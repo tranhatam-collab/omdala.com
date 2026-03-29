@@ -77,7 +77,7 @@ export function MagicLinkLoginForm({
         })
       }
     })()
-  }, [redirectTo, router, searchParams])
+  }, [isVi, redirectTo, router, searchParams])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()

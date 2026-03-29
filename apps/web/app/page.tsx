@@ -2,10 +2,12 @@
 
 import { LocaleLink } from './components/LocaleLink'
 import { homeContent, pickText } from './lib/content'
+import { getPublicRuntimeSnapshot } from './lib/runtime-seed'
 import { useWebLocale } from './lib/useWebLocale'
 
 export default function HomePage() {
   const locale = useWebLocale()
+  const runtime = getPublicRuntimeSnapshot()
 
   return (
     <main className="site-shell page-shell">
@@ -110,6 +112,52 @@ export default function HomePage() {
               <strong>{signal.metric}</strong>
               <h3>{pickText(locale, signal.label)}</h3>
               <p>{pickText(locale, signal.detail)}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="section-header">
+          <p className="eyebrow">{pickText(locale, { en: 'Live Seed Snapshot', vi: 'Ảnh chụp seed đang chạy' })}</p>
+          <h2>{pickText(locale, { en: 'Public runtime now reads shared seeded objects', vi: 'Runtime public đang đọc object seed dùng chung' })}</h2>
+        </div>
+
+        <div className="metric-grid">
+          {runtime.counters.map((item) => (
+            <article key={item.key} className="metric-card">
+              <strong>{item.metric}</strong>
+              <p>{item.label}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="section-header">
+          <p className="eyebrow">{pickText(locale, { en: 'Seeded Marketplace', vi: 'Marketplace seed' })}</p>
+          <h2>{pickText(locale, { en: 'Featured offers and requests from runtime data', vi: 'Đề nghị và nhu cầu nổi bật từ dữ liệu runtime' })}</h2>
+        </div>
+
+        <div className="card-grid">
+          {runtime.featuredOffers.map((offer) => (
+            <article key={offer.id}>
+              <h3>{offer.title}</h3>
+              <p>{offer.summary}</p>
+              <p>
+                {pickText(locale, { en: 'Status', vi: 'Trạng thái' })}: <strong>{offer.status}</strong> ·{' '}
+                {pickText(locale, { en: 'Min trust', vi: 'Niềm tin tối thiểu' })}: <strong>{offer.minimumTrustLevel}</strong>
+              </p>
+            </article>
+          ))}
+          {runtime.featuredRequests.map((request) => (
+            <article key={request.id}>
+              <h3>{request.title}</h3>
+              <p>{request.summary}</p>
+              <p>
+                {pickText(locale, { en: 'Urgency', vi: 'Độ khẩn' })}: <strong>{request.urgency}</strong> ·{' '}
+                {pickText(locale, { en: 'Status', vi: 'Trạng thái' })}: <strong>{request.status}</strong>
+              </p>
             </article>
           ))}
         </div>

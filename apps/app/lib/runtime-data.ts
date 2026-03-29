@@ -124,3 +124,46 @@ export function getTrustWorkspace() {
     proofs: proofs.sort((a, b) => (a.priority === b.priority ? 0 : a.priority === 'high' ? -1 : 1)),
   }
 }
+
+export function getOfferWorkspace() {
+  const offers = listMockOffers()
+  const nodes = listMockNodes()
+  const resources = listMockResources()
+
+  return offers.map((offer) => {
+    const owner = nodes.find((node) => node.id === offer.nodeId)
+    const linkedResources = resources.filter((resource) => offer.resourceIds.includes(resource.id))
+    const proofDensity = linkedResources.reduce((sum, resource) => sum + resource.proofCount, 0)
+    const readinessScore = Math.min(100, 50 + proofDensity * 4 + (offer.status === 'published' ? 12 : 0))
+
+    return {
+      offer,
+      owner,
+      linkedResources,
+      proofDensity,
+      readinessScore,
+      readinessBand: trustScoreBand(readinessScore),
+    }
+  })
+}
+
+export function getRequestWorkspace() {
+  const requests = listMockRequests()
+  const nodes = listMockNodes()
+  const offers = listMockOffers()
+
+  return requests.map((request) => {
+    const owner = nodes.find((node) => node.id === request.nodeId)
+    const candidateOffers = offers.filter((offer) => offer.nodeId === request.nodeId)
+    const urgencyWeight = request.urgency === 'high' ? 20 : request.urgency === 'medium' ? 10 : 4
+    const matchingReadiness = Math.min(100, 40 + urgencyWeight + candidateOffers.length * 12)
+
+    return {
+      request,
+      owner,
+      candidateOffers,
+      matchingReadiness,
+      readinessBand: trustScoreBand(matchingReadiness),
+    }
+  })
+}
