@@ -9,49 +9,15 @@ import {
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import type { AccessRequest, ApiBindings, ContactRequest, MagicLinkPayload, MailRequest } from './contracts'
+import { createApiContractStub } from './stub'
 
-type Bindings = {
-  ENVIRONMENT: string
-  APP_BASE_URL?: string
-  WEB_BASE_URL?: string
-  MAIL_API_URL?: string
-  MAIL_API_KEY?: string
-  MAGIC_LINK_SECRET?: string
-}
+export type { AccessRequest, ApiBindings, ContactRequest, MagicLinkPayload, MailRequest } from './contracts'
+export type { ApiContractStubOptions } from './stub'
+export { createApiContractStub } from './stub'
 
-type ContactRequest = {
-  name?: string
-  email?: string
-  organization?: string
-  topic?: string
-  message?: string
-  source?: string
-}
-
-type AccessRequest = {
-  email?: string
-  role?: string
-  nodeName?: string
-  note?: string
-}
-
-type MagicLinkPayload = {
-  email: string
-  redirectTo: string
-  exp: number
-}
-
-type MailRequest = {
-  from: string
-  to: string | string[]
-  subject: string
-  html: string
-  text: string
-  reply_to?: string
-}
-
-const app = new Hono<{ Bindings: Bindings }>()
-type ApiContext = Context<{ Bindings: Bindings }>
+const app = new Hono<{ Bindings: ApiBindings }>()
+type ApiContext = Context<{ Bindings: ApiBindings }>
 type ApiStatus = 200 | 201 | 400 | 401 | 422 | 500 | 502
 
 const localOrigins = [
@@ -64,23 +30,16 @@ const localOrigins = [
 const contactTopicLabels = Object.fromEntries(
   OMDALA_CONTACT_TOPICS.map((topic) => [topic.value, topic.label]),
 )
-
-function resolveAllowedOrigin(origin?: string | null) {
-  if (!origin) {
-    return null
-  }
-
-  const allowed = [
+const apiContract = createApiContractStub({
+  allowedOrigins: [
     OMDALA_WEB_ORIGIN,
     OMDALA_APP_ORIGIN,
     'https://docs.omdala.com',
     'https://trust.omdala.com',
     'https://admin.omdala.com',
     ...localOrigins,
-  ]
-
-  return allowed.includes(origin) ? origin : null
-}
+  ],
+})
 
 function jsonError(c: ApiContext, status: ApiStatus, code: string, message: string) {
   return c.json({ ok: false, error: { code, message } }, status)
@@ -88,22 +47,6 @@ function jsonError(c: ApiContext, status: ApiStatus, code: string, message: stri
 
 function jsonOk(c: ApiContext, data: unknown, status: ApiStatus = 200) {
   return c.json({ ok: true, data }, status)
-}
-
-function normalizeEmail(value?: string) {
-  return value?.trim().toLowerCase() ?? ''
-}
-
-function isEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-}
-
-function normalizePath(value: string | undefined, fallback: string) {
-  if (!value || !value.startsWith('/')) {
-    return fallback
-  }
-
-  return value
 }
 
 function escapeHtml(value: string) {
@@ -141,7 +84,7 @@ async function importHmacKey(secret: string) {
   )
 }
 
-async function createMagicLinkToken(env: Bindings, payload: MagicLinkPayload) {
+async function createMagicLinkToken(env: ApiBindings, payload: MagicLinkPayload) {
   if (!env.MAGIC_LINK_SECRET) {
     throw new Error('MAGIC_LINK_SECRET is not configured')
   }
@@ -152,7 +95,7 @@ async function createMagicLinkToken(env: Bindings, payload: MagicLinkPayload) {
   return `${payloadPart}.${bytesToBase64Url(new Uint8Array(signature))}`
 }
 
-async function verifyMagicLinkToken(env: Bindings, token: string) {
+async function verifyMagicLinkToken(env: ApiBindings, token: string) {
   if (!env.MAGIC_LINK_SECRET) {
     throw new Error('MAGIC_LINK_SECRET is not configured')
   }
@@ -185,19 +128,19 @@ async function verifyMagicLinkToken(env: Bindings, token: string) {
   return payload
 }
 
-function getMailApiUrl(env: Bindings) {
+function getMailApiUrl(env: ApiBindings) {
   return (env.MAIL_API_URL ?? OMDALA_MAIL_API_ORIGIN).replace(/\/+$/g, '')
 }
 
-function getAppBaseUrl(env: Bindings) {
+function getAppBaseUrl(env: ApiBindings) {
   return (env.APP_BASE_URL ?? OMDALA_APP_ORIGIN).replace(/\/+$/g, '')
 }
 
-function getWebBaseUrl(env: Bindings) {
+function getWebBaseUrl(env: ApiBindings) {
   return (env.WEB_BASE_URL ?? OMDALA_WEB_ORIGIN).replace(/\/+$/g, '')
 }
 
-async function sendMail(env: Bindings, payload: MailRequest) {
+async function sendMail(env: ApiBindings, payload: MailRequest) {
   if (!env.MAIL_API_KEY) {
     throw new Error('MAIL_API_KEY is not configured')
   }
@@ -375,7 +318,7 @@ function buildAccessRequestAckEmail(payload: Required<AccessRequest>) {
 
 // CORS — restrict to first-party OMDALA surfaces in production
 app.use('/*', cors({
-  origin: (origin) => resolveAllowedOrigin(origin),
+  origin: (origin) => apiContract.resolveAllowedOrigin(origin),
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
   maxAge: 86400,
@@ -393,16 +336,9 @@ app.post('/v1/contact', async (c) => {
     return jsonError(c, 400, 'invalid_json', 'Request body must be valid JSON.')
   }
 
-  const payload = {
-    name: body.name?.trim() ?? '',
-    email: normalizeEmail(body.email),
-    organization: body.organization?.trim() ?? '',
-    topic: body.topic?.trim() ?? 'general',
-    message: body.message?.trim() ?? '',
-    source: body.source?.trim() ?? 'web',
-  }
+  const payload = apiContract.normalizeContactRequest(body)
 
-  if (!payload.name || !payload.message || !isEmail(payload.email)) {
+  if (!payload.name || !payload.message || !apiContract.isEmail(payload.email)) {
     return jsonError(c, 422, 'invalid_contact_request', 'Name, valid email, and message are required.')
   }
 
@@ -433,14 +369,9 @@ app.post('/v1/auth/access-request', async (c) => {
     return jsonError(c, 400, 'invalid_json', 'Request body must be valid JSON.')
   }
 
-  const payload = {
-    email: normalizeEmail(body.email),
-    role: body.role?.trim() ?? '',
-    nodeName: body.nodeName?.trim() ?? '',
-    note: body.note?.trim() ?? '',
-  }
+  const payload = apiContract.normalizeAccessRequest(body)
 
-  if (!isEmail(payload.email) || !payload.role || !payload.nodeName) {
+  if (!apiContract.isEmail(payload.email) || !payload.role || !payload.nodeName) {
     return jsonError(c, 422, 'invalid_access_request', 'Email, role, and node name are required.')
   }
 
@@ -471,10 +402,9 @@ app.post('/v1/auth/magic-link/request', async (c) => {
     return jsonError(c, 400, 'invalid_json', 'Request body must be valid JSON.')
   }
 
-  const email = normalizeEmail(body.email)
-  const redirectTo = normalizePath(body.redirectTo, '/dashboard')
+  const { email, redirectTo } = apiContract.normalizeMagicLinkRequest(body)
 
-  if (!isEmail(email)) {
+  if (!apiContract.isEmail(email)) {
     return jsonError(c, 422, 'invalid_email', 'A valid email is required.')
   }
 
@@ -521,7 +451,7 @@ app.get('/v1/auth/magic-link', async (c) => {
     return jsonOk(c, {
       authenticated: true,
       email: payload.email,
-      redirectTo: normalizePath(requestedPath, payload.redirectTo),
+      redirectTo: apiContract.normalizePath(requestedPath, payload.redirectTo),
       appBaseUrl: getAppBaseUrl(c.env),
       webBaseUrl: getWebBaseUrl(c.env),
       apiBaseUrl: OMDALA_API_ORIGIN,
