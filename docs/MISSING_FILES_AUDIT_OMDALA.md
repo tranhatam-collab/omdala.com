@@ -51,15 +51,15 @@ Application:
 
 - [x] auth routes
 - [x] authenticated dashboard structure
-- [ ] node CRUD flows
-- [ ] resource CRUD flows
+- [x] node CRUD flows
+- [x] resource CRUD flows
 - [ ] offer and request flows
 
 Services:
 
 - [x] `services/auth`
-- [ ] `services/trust`
-- [ ] `services/matching`
+- [x] `services/trust`
+- [x] `services/matching`
 - [ ] `services/notifications`
 - [ ] `services/ai`
 
@@ -90,10 +90,10 @@ CI/CD:
 
 ## 3. Priority order
 
-1. Domain object CRUD for nodes, resources, offers, and requests
-2. Trust and matching services
-3. Admin moderation
-4. CI/CD and deployment hardening
+1. Offer and request flows
+2. Admin moderation
+3. CI/CD and deployment hardening
+4. Notifications and AI services
 5. Brand-token package extraction
 
 ---

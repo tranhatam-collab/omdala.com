@@ -3,6 +3,8 @@ export const APP_ROUTES = {
   login:     '/login',
   signup:    '/signup',
   dashboard: '/dashboard',
+  nodes:     '/nodes',
+  resources: '/resources',
   profile:   '/profile',
   settings:  '/settings',
 } as const

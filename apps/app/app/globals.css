@@ -209,6 +209,12 @@ a {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.entity-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
 .dashboard-stat {
   background: var(--app-panel-soft);
   border: 1px solid var(--app-border-soft);
@@ -225,9 +231,102 @@ a {
   text-transform: uppercase;
 }
 
+.entity-card,
+.detail-card {
+  background: var(--app-panel-soft);
+  border: 1px solid var(--app-border-soft);
+  border-radius: var(--app-radius-md);
+  padding: 20px;
+}
+
+.entity-meta,
+.detail-meta {
+  color: var(--app-text-muted);
+  display: grid;
+  gap: 6px;
+  font-size: 0.95rem;
+  margin: 14px 0 0;
+}
+
+.entity-actions,
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.dashboard-breadcrumbs {
+  color: var(--app-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.dashboard-breadcrumbs span {
+  opacity: 0.5;
+}
+
+.detail-layout {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+}
+
+.entity-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.entity-form label {
+  color: var(--app-text-muted);
+  display: grid;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.entity-form input,
+.entity-form textarea,
+.entity-form select {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  color: var(--app-text);
+  min-height: 48px;
+  padding: 12px 14px;
+}
+
+.entity-form textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.app-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--app-border-soft);
+  border-radius: 999px;
+  color: var(--app-text-muted);
+  font-size: 0.9rem;
+  padding: 8px 12px;
+}
+
+.danger-link {
+  color: #ff9f9f;
+}
+
 @media (max-width: 920px) {
   .auth-grid,
-  .dashboard-layout {
+  .dashboard-layout,
+  .detail-layout {
     grid-template-columns: 1fr;
   }
 }

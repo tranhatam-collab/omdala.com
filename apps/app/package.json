@@ -12,6 +12,8 @@
   "dependencies": {
     "@omdala/auth-service": "workspace:*",
     "@omdala/core":  "workspace:*",
+    "@omdala/matching-service": "workspace:*",
+    "@omdala/trust-service": "workspace:*",
     "@omdala/types": "workspace:*",
     "@omdala/ui":    "workspace:*",
     "next":          "^15.1.0",
