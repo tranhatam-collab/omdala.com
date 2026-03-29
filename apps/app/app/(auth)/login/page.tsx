@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { APP_ROUTES } from '@omdala/core'
 import { createPasswordlessDraft } from '@omdala/auth-service'
 import { MagicLinkLoginForm } from './MagicLinkLoginForm'
@@ -16,7 +17,9 @@ export default function LoginPage() {
           expectations for the next implementation step.
         </p>
 
-        <MagicLinkLoginForm defaultEmail={draft.email} defaultRedirect={draft.redirectTo} />
+        <Suspense fallback={null}>
+          <MagicLinkLoginForm defaultEmail={draft.email} defaultRedirect={draft.redirectTo} />
+        </Suspense>
       </div>
 
       <aside className="auth-panel">
