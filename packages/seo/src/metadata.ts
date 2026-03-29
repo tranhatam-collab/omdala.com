@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
 import { SEO_DEFAULTS } from './constants'
+import { buildLanguageAlternates, buildSeoUrl } from './utils'
+
+type SeoLocale = 'en' | 'vi'
 
 export interface PageMetadataInput {
   title:        string
@@ -7,7 +10,7 @@ export interface PageMetadataInput {
   path:         string
   ogImage?:     string
   noindex?:     boolean
-  locale?:      string
+  locale?:      `${SeoLocale}_${Uppercase<SeoLocale>}` | string
   alternateLanguages?: Record<string, string>
 }
 
@@ -22,8 +25,9 @@ export function buildMetadata(input: PageMetadataInput): Metadata {
     alternateLanguages,
   } = input
 
-  const url        = `${SEO_DEFAULTS.baseUrl}${path}`
+  const url        = buildSeoUrl(path)
   const fullTitle  = `${title} — ${SEO_DEFAULTS.siteName}`
+  const alternates = alternateLanguages ?? buildLanguageAlternates(path)
 
   return {
     title,
@@ -32,7 +36,7 @@ export function buildMetadata(input: PageMetadataInput): Metadata {
 
     alternates: {
       canonical:  url,
-      ...(alternateLanguages ? { languages: alternateLanguages } : {}),
+      languages: alternates,
     },
 
     robots: noindex

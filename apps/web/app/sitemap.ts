@@ -1,7 +1,6 @@
 import type { MetadataRoute } from 'next'
-import { OMDALA_PAGES } from '@omdala/seo'
+import { OMDALA_PAGES, buildLanguageAlternates, buildSeoUrl } from '@omdala/seo'
 
-const BASE_URL = 'https://omdala.com'
 const BUILD_DATE = new Date()
 
 const ROUTE_PRIORITY: Record<string, number> = {
@@ -36,17 +35,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const routes = Object.values(OMDALA_PAGES)
 
   return routes.map((path) => {
-    const url = `${BASE_URL}${path}`
+    const url = buildSeoUrl(path)
+    const alternates = buildLanguageAlternates(path)
+
     return {
       url,
       lastModified: BUILD_DATE,
       changeFrequency: ROUTE_CHANGE_FREQUENCY[path] ?? 'monthly',
       priority: ROUTE_PRIORITY[path] ?? 0.5,
       alternates: {
-        languages: {
-          en: url,
-          vi: `${url}?lang=vi`,
-        },
+        languages: alternates,
       },
     }
   })

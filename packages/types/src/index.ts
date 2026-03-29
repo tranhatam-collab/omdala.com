@@ -6,6 +6,22 @@
 export type UserRole = 'expert' | 'host' | 'community' | 'business' | 'admin' | 'system'
 
 export type SupportedLocale = 'en' | 'vi'
+export type RuntimeEnvironment = 'development' | 'preview' | 'staging' | 'production'
+export type DeploySurface = 'web' | 'app' | 'admin' | 'docs' | 'api'
+export type ISODateTimeString = string
+export type EntityId = string
+
+export type JsonPrimitive = string | number | boolean | null
+export type JsonValue = JsonPrimitive | JsonObject | JsonArray
+export interface JsonObject {
+  [key: string]: JsonValue
+}
+export interface JsonArray extends Array<JsonValue> {}
+
+export interface LocalizedTextMap<T = string> {
+  en: T
+  vi: T
+}
 
 // ─── Trust ────────────────────────────────────────────────────────────────
 
@@ -50,7 +66,7 @@ export type NodeType = 'person' | 'team' | 'business' | 'place' | 'community'
 export type NodeStatus = 'draft' | 'active' | 'archived'
 
 export interface NodeRecord {
-  id: string
+  id: EntityId
   slug: string
   nodeType: NodeType
   name: string
@@ -86,8 +102,8 @@ export type AvailabilityMode = 'flexible' | 'scheduled' | 'limited'
 export type PricingMode = 'free' | 'fixed' | 'custom'
 
 export interface ResourceRecord {
-  id: string
-  nodeId: string
+  id: EntityId
+  nodeId: EntityId
   slug: string
   resourceType: ResourceType
   title: string
@@ -119,9 +135,9 @@ export type OfferStatus = 'draft' | 'published' | 'paused' | 'archived'
 export type RequestStatus = 'draft' | 'published' | 'matched' | 'fulfilled' | 'archived'
 
 export interface OfferRecord {
-  id: string
-  nodeId: string
-  resourceIds: string[]
+  id: EntityId
+  nodeId: EntityId
+  resourceIds: EntityId[]
   slug: string
   title: string
   summary: string
@@ -133,8 +149,8 @@ export interface OfferRecord {
 }
 
 export interface RequestRecord {
-  id: string
-  nodeId: string
+  id: EntityId
+  nodeId: EntityId
   slug: string
   title: string
   summary: string
@@ -171,18 +187,18 @@ export interface RequestFormInput {
 // ─── Proof and Moderation ─────────────────────────────────────────────────
 
 export interface ProofRecord {
-  id: string
+  id: EntityId
   subjectType: 'node' | 'resource' | 'offer' | 'request'
-  subjectId: string
+  subjectId: EntityId
   proofType: string
   summary: string
   verificationStatus: VerificationStatus
 }
 
 export interface ModerationCase {
-  id: string
+  id: EntityId
   subjectType: 'node' | 'offer' | 'request' | 'proof'
-  subjectId: string
+  subjectId: EntityId
   title: string
   summary: string
   severity: 'low' | 'medium' | 'high'
@@ -193,7 +209,7 @@ export interface ModerationCase {
 // ─── Matching ─────────────────────────────────────────────────────────────
 
 export interface MatchSuggestion {
-  id: string
+  id: EntityId
   type: 'offer_activation' | 'collaboration' | 'trust_upgrade' | 'distribution'
   score: number
   title: string
@@ -204,7 +220,7 @@ export interface MatchSuggestion {
 // ─── Notifications and AI ────────────────────────────────────────────────
 
 export interface NotificationRecord {
-  id: string
+  id: EntityId
   type: 'match' | 'trust' | 'proof' | 'follow_up' | 'system'
   title: string
   summary: string
@@ -214,7 +230,7 @@ export interface NotificationRecord {
 }
 
 export interface AiActionSuggestion {
-  id: string
+  id: EntityId
   mode: 'advisor' | 'planner' | 'operator' | 'analyst'
   title: string
   summary: string
@@ -223,10 +239,16 @@ export interface AiActionSuggestion {
 
 // ─── API ──────────────────────────────────────────────────────────────────
 
+export interface ApiError {
+  code: string
+  message: string
+  details?: JsonValue
+}
+
 export interface ApiResponse<T> {
   data: T
   ok: boolean
-  error?: string
+  error?: string | ApiError
 }
 
 export interface PaginatedResponse<T> extends ApiResponse<T[]> {

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { getOrganizationSchema, getWebSiteSchema } from '@omdala/seo'
+import { SchemaScript } from '@omdala/ui'
 import { WebChrome } from './WebChrome'
 import './globals.css'
 
@@ -48,14 +49,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify([
-              getOrganizationSchema(),
-              getWebSiteSchema(),
-            ]),
-          }}
+        <SchemaScript
+          id="omdala-root-schema"
+          schema={[
+            getOrganizationSchema(),
+            getWebSiteSchema(),
+          ]}
         />
       </head>
       <body><WebChrome>{children}</WebChrome></body>

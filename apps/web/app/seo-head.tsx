@@ -1,4 +1,5 @@
-import { getBreadcrumbSchema, getWebPageSchema, SEO_DEFAULTS } from '@omdala/seo'
+import { getBreadcrumbSchema, getWebPageSchema, SEO_DEFAULTS, buildLanguageAlternates, buildSeoUrl } from '@omdala/seo'
+import { SchemaScript } from '@omdala/ui'
 
 interface SeoHeadProps {
   title: string
@@ -8,9 +9,10 @@ interface SeoHeadProps {
 }
 
 export function SeoHead({ title, description, path, breadcrumbs }: SeoHeadProps) {
-  const canonical = `${SEO_DEFAULTS.baseUrl}${path}`
+  const canonical = buildSeoUrl(path)
   const fullTitle = `${title} — ${SEO_DEFAULTS.siteName}`
   const ogImage = SEO_DEFAULTS.ogImage
+  const alternates = buildLanguageAlternates(path)
   const schema = [getWebPageSchema({ title: fullTitle, description, path }), getBreadcrumbSchema(breadcrumbs)]
 
   return (
@@ -18,9 +20,9 @@ export function SeoHead({ title, description, path, breadcrumbs }: SeoHeadProps)
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <link rel="canonical" href={canonical} />
-      <link rel="alternate" hrefLang="en" href={canonical} />
-      <link rel="alternate" hrefLang="vi" href={`${canonical}?lang=vi`} />
-      <link rel="alternate" hrefLang="x-default" href={canonical} />
+      <link rel="alternate" hrefLang="en" href={alternates.en} />
+      <link rel="alternate" hrefLang="vi" href={alternates.vi} />
+      <link rel="alternate" hrefLang="x-default" href={alternates['x-default']} />
 
       <meta property="og:type" content="website" />
       <meta property="og:site_name" content={SEO_DEFAULTS.siteName} />
@@ -34,12 +36,7 @@ export function SeoHead({ title, description, path, breadcrumbs }: SeoHeadProps)
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={ogImage} />
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(schema),
-        }}
-      />
+      <SchemaScript id="omdala-page-schema" schema={schema} />
     </>
   )
 }
