@@ -33,6 +33,8 @@ export function getDashboardSnapshot() {
   const notifications = primaryNode ? getInboxNotifications(primaryNode) : []
   const aiActions = primaryNode ? getAiActionSuggestions(primaryNode, resources) : []
   const pendingProofs = proofs.filter((proof) => proof.verificationStatus === 'pending')
+  const topAiAction = aiActions[0]
+  const highPriorityAiActions = aiActions.filter((action) => action.priority === 'high').length
 
   return {
     session,
@@ -50,6 +52,12 @@ export function getDashboardSnapshot() {
     suggestions,
     notifications,
     aiActions,
+    aiSummary: {
+      total: aiActions.length,
+      highPriority: highPriorityAiActions,
+      topActionTitle: topAiAction?.title ?? null,
+      topActionConfidence: topAiAction?.confidence ?? null,
+    },
   }
 }
 

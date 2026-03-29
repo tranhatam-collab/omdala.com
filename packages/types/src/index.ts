@@ -235,6 +235,9 @@ export interface AiActionSuggestion {
   title: string
   summary: string
   nextAction: string
+  priority?: 'high' | 'medium' | 'low'
+  confidence?: number
+  rationale?: string
 }
 
 // ─── API ──────────────────────────────────────────────────────────────────

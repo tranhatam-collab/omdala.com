@@ -41,6 +41,13 @@ export default function DashboardPage() {
           <strong>Pending trust proofs</strong>
           <p>{snapshot.counts.pendingProofs} items need trust review before broader distribution.</p>
         </article>
+        <article className="dashboard-stat">
+          <strong>AI high-priority actions</strong>
+          <p>
+            {snapshot.aiSummary.highPriority} / {snapshot.aiSummary.total} actions are marked high
+            priority.
+          </p>
+        </article>
       </section>
 
       <section className="dashboard-panel">
@@ -109,11 +116,30 @@ export default function DashboardPage() {
         <article className="detail-card">
           <p className="app-eyebrow">AI Layer</p>
           <h2>Suggested actions</h2>
-          <ul className="dashboard-list">
+          {snapshot.aiSummary.topActionTitle ? (
+            <p className="app-copy">
+              Top recommendation: <strong>{snapshot.aiSummary.topActionTitle}</strong>
+              {snapshot.aiSummary.topActionConfidence !== null
+                ? ` (${Math.round(snapshot.aiSummary.topActionConfidence * 100)}% confidence).`
+                : '.'}
+            </p>
+          ) : null}
+          <ul className="dashboard-list ai-list">
             {snapshot.aiActions.map((action) => (
-              <li key={action.id}>
-                <strong>{action.mode}</strong> — {action.title}.{' '}
-                <Link href={action.nextAction}>{action.summary}</Link>
+              <li key={action.id} className="ai-item">
+                <div className="ai-item__row">
+                  <strong>{action.mode}</strong>
+                  <span className={`app-pill app-pill--ai app-pill--${action.priority ?? 'low'}`}>
+                    {action.priority ?? 'low'}
+                  </span>
+                </div>
+                <p className="app-copy">
+                  <strong>{action.title}</strong> — {action.summary}
+                </p>
+                {action.rationale ? <p className="app-copy">{action.rationale}</p> : null}
+                <div className="entity-actions">
+                  <Link href={action.nextAction}>Open action</Link>
+                </div>
               </li>
             ))}
           </ul>

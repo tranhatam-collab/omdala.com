@@ -379,6 +379,46 @@ a {
   padding: 8px 12px;
 }
 
+.app-pill--ai {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.app-pill--high {
+  border-color: rgba(255, 120, 120, 0.45);
+  color: #ffd6d6;
+}
+
+.app-pill--medium {
+  border-color: rgba(126, 242, 255, 0.4);
+  color: #d9f8ff;
+}
+
+.app-pill--low {
+  border-color: rgba(255, 255, 255, 0.24);
+  color: var(--app-text-muted);
+}
+
+.ai-list {
+  padding-left: 0;
+}
+
+.ai-item {
+  list-style: none;
+  border: 1px solid var(--app-border-soft);
+  border-radius: var(--app-radius-sm);
+  padding: 14px;
+}
+
+.ai-item__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .danger-link {
   color: #ff9f9f;
 }
