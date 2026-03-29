@@ -1,173 +1,104 @@
-# MISSING_FILES_AUDIT_OMDALA.md
+# MISSING_FILES_AUDIT_OMDALA
 
 ## OMDALA.COM
 ## Missing Files Audit
-## Version 1.0 — Updated after Foundation Commit
+## Version 1.1
 
 ---
 
-## 1. FOUNDATION STATUS (Post First Commit)
+## 1. Foundation now present
 
-After the initial monorepo foundation commit, the following are now present:
+Monorepo root:
 
-### Monorepo Root
-- [x] package.json
-- [x] pnpm-workspace.yaml
-- [x] turbo.json
-- [x] tsconfig.base.json
-- [x] .nvmrc
-- [x] .editorconfig
-- [x] .gitignore
+- [x] `package.json`
+- [x] `pnpm-workspace.yaml`
+- [x] `turbo.json`
+- [x] `tsconfig.base.json`
+- [x] `.nvmrc`
+- [x] `.editorconfig`
+- [x] `.env.example`
 
-### apps/web (omdala.com)
-- [x] package.json
-- [x] next.config.ts
-- [x] tsconfig.json
-- [x] public/robots.txt
-- [x] public/_headers
-- [x] public/_redirects
-- [x] app/layout.tsx
-- [x] app/page.tsx
-- [x] app/not-found.tsx
-- [x] app/globals.css (full design token system)
-- [x] app/sitemap.ts
+Public web:
 
-### apps/app (app.omdala.com)
-- [x] package.json
-- [x] next.config.ts (noindex enforced)
-- [x] tsconfig.json
-- [x] public/robots.txt
-- [x] public/_headers
-- [x] app/layout.tsx
-- [x] app/page.tsx
+- [x] homepage
+- [x] `what-is-omdala`
+- [x] `how-it-works`
+- [x] role pages
+- [x] `trust`
+- [x] `vision`
+- [x] `faq`
+- [x] `contact`
+- [x] `robots.txt`
+- [x] `_headers`
+- [x] `_redirects`
+- [x] sitemap
+- [x] OG/logo assets
 
-### apps/admin (admin.omdala.com)
-- [x] package.json
-- [x] next.config.ts (noindex + DENY frame)
-- [x] tsconfig.json
-- [x] public/robots.txt
-- [x] public/_headers
-- [x] app/layout.tsx
-- [x] app/page.tsx
+Core docs:
 
-### apps/docs (docs.omdala.com)
-- [x] package.json
-- [x] next.config.ts
-- [x] tsconfig.json
-- [x] public/robots.txt
-- [x] public/_headers
-- [x] app/layout.tsx
-- [x] app/page.tsx
-
-### packages/seo
-- [x] package.json
-- [x] tsconfig.json
-- [x] src/constants.ts
-- [x] src/metadata.ts (buildMetadata)
-- [x] src/schema.ts (Organization, WebSite, Breadcrumb, TechArticle)
-- [x] src/index.ts
-
-### packages/ui
-- [x] package.json
-- [x] tsconfig.json
-- [x] src/index.ts
-- [x] src/components/LinkSEO.tsx
-- [x] src/components/SchemaScript.tsx
-
-### packages/types
-- [x] package.json
-- [x] tsconfig.json
-- [x] src/index.ts (UserRole, TrustLevel, GeoPoint, CityNode, ApiResponse)
-
-### services/api
-- [x] package.json
-- [x] tsconfig.json
-- [x] wrangler.toml (explicit route: api.omdala.com/*)
-- [x] src/index.ts (Hono, CORS, health, robots)
-
-### docs
-- [x] BRAND_ARCHITECTURE_OMDALA.md
-- [x] OMDALA_THEME_SYSTEM.md
-- [x] SEO_MASTER_LOCK_OMDALA_SYSTEM.md
-- [x] DNS_SUBDOMAIN_DEPLOYMENT_LOCK_OMDALA.md
-- [x] TECHNICAL_SEO_IMPLEMENTATION_FILES_OMDALA.md
-- [x] README_DEV_HANDOFF_OMDALA.md
+- [x] `PRODUCT_SPEC_OMDALA.md`
+- [x] `DATA_MODEL_OMDALA.md`
+- [x] `API_SPEC_OMDALA.md`
+- [x] `TRUST_ENGINE_OMDALA.md`
+- [x] `MATCHING_ENGINE_OMDALA.md`
+- [x] brand, theme, SEO, deploy, and handoff locks
 
 ---
 
-## 2. STILL MISSING — NEXT PHASE
+## 2. Still missing — next phase
 
-### Critical Product Docs
-- [ ] PRODUCT_SPEC_OMDALA.md
-- [ ] DATA_MODEL_OMDALA.md
-- [ ] API_SPEC_OMDALA.md
-- [ ] TRUST_ENGINE_OMDALA.md
-- [ ] MATCHING_ENGINE_OMDALA.md
+Application:
 
-### Critical App Pages (apps/web)
-- [ ] app/what-is-omdala/page.tsx
-- [ ] app/how-it-works/page.tsx
-- [ ] app/for-experts/page.tsx
-- [ ] app/for-hosts/page.tsx
-- [ ] app/for-communities/page.tsx
-- [ ] app/trust/page.tsx
-- [ ] app/omdalat/page.tsx
-- [ ] app/vision/page.tsx
-- [ ] app/faq/page.tsx
-- [ ] app/contact/page.tsx
+- [x] auth routes
+- [x] authenticated dashboard structure
+- [ ] node CRUD flows
+- [ ] resource CRUD flows
+- [ ] offer and request flows
 
-### Critical Assets
-- [ ] public/og-default.png (1200x630, OMDALA brand)
-- [ ] public/logo.png
-- [ ] public/favicon.ico / apple-touch-icon.png
+Services:
 
-### Core App Routes (apps/app)
-- [ ] app/(auth)/login/page.tsx
-- [ ] app/(auth)/signup/page.tsx
-- [ ] app/(dashboard)/page.tsx
+- [x] `services/auth`
+- [ ] `services/trust`
+- [ ] `services/matching`
+- [ ] `services/notifications`
+- [ ] `services/ai`
 
-### Admin Shell (apps/admin)
-- [ ] auth guard middleware
-- [ ] basic dashboard structure
+Shared packages:
 
-### Docs Content (apps/docs)
-- [ ] app/platform/page.tsx
-- [ ] app/api/page.tsx
-- [ ] app/trust/page.tsx
+- [x] `packages/core`
+- [ ] `packages/brand`
 
-### Services
-- [ ] services/auth
-- [ ] services/trust
-- [ ] services/matching
-- [ ] services/notifications
-- [ ] services/ai
+Admin:
 
-### CI/CD
-- [ ] .github/workflows/build.yml
-- [ ] .github/workflows/lint.yml
-- [ ] .github/workflows/deploy-web.yml
-- [ ] .github/workflows/deploy-api.yml
+- [ ] auth guard
+- [ ] moderation dashboard
+- [ ] proof review flows
 
-### packages/core
-- [ ] shared utilities (date, format, validation)
+Docs app:
 
-### packages/brand
-- [ ] brand tokens as JS/TS constants (mirrors globals.css)
+- [ ] richer documentation rendering
+- [ ] navigation polish
+- [ ] direct spec surfacing
+
+CI/CD:
+
+- [ ] `.github/workflows/build.yml`
+- [ ] `.github/workflows/lint.yml`
+- [ ] deploy workflows
 
 ---
 
-## 3. PRIORITY ORDER — NEXT BUILD PHASE
+## 3. Priority order
 
-1. public/og-default.png + logo.png (brand assets)
-2. All apps/web route pages (SEO content)
-3. services/auth (needed before any app routes work)
-4. apps/app — auth flow (login, signup, dashboard)
-5. PRODUCT_SPEC_OMDALA.md + DATA_MODEL_OMDALA.md
-6. services/trust + services/matching
-7. CI/CD workflows
-8. apps/docs — real documentation content
+1. Domain object CRUD for nodes, resources, offers, and requests
+2. Trust and matching services
+3. Admin moderation
+4. CI/CD and deployment hardening
+5. Brand-token package extraction
 
 ---
 
-*MISSING_FILES_AUDIT_OMDALA.md — Version 1.0*
-*Updated after foundation commit*
+## 4. Final note
+
+The repository is no longer missing the strategic contract layer. The remaining work is mostly runtime
+implementation, operational services, and production hardening.

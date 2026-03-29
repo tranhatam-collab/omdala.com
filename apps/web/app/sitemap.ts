@@ -47,12 +47,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority:     0.7,
     },
     {
-      url:          `${BASE_URL}/omdalat`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority:     0.7,
-    },
-    {
       url:          `${BASE_URL}/vision`,
       lastModified: new Date(),
       changeFrequency: 'monthly',

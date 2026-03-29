@@ -8,7 +8,7 @@ export function getOrganizationSchema() {
     '@type':     'Organization',
     name:        'OMDALA',
     url:          BASE_URL,
-    logo:        `${BASE_URL}/logo.png`,
+    logo:        `${BASE_URL}/logo.svg`,
     description: SEO_DEFAULTS.description,
     sameAs:      [] as string[],
   }

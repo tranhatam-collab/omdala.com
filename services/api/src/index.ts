@@ -7,14 +7,15 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-// CORS — restrict to omdala.com origin in production
+// CORS — restrict to first-party OMDALA surfaces in production
 app.use('/*', cors({
   origin: (origin) => {
     const allowed = [
       'https://omdala.com',
       'https://app.omdala.com',
-      'https://omdalat.com',
-      'https://app.omdalat.com',
+      'https://docs.omdala.com',
+      'https://trust.omdala.com',
+      'https://admin.omdala.com',
     ]
     return allowed.includes(origin) ? origin : null
   },

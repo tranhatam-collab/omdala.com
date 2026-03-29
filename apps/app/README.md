@@ -1,4 +1,3 @@
 # apps/app
 
-Future home for `app.omdala.com`.
-
+Authenticated product shell for `app.omdala.com`.

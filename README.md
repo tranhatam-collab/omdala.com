@@ -1,38 +1,45 @@
 # OMDALA
 
-OMDALA is the master global brand.
-
-This repository is the foundation for:
+OMDALA is the master platform repository for the global brand and system layer behind:
 
 - `omdala.com`
 - `app.omdala.com`
 - `api.omdala.com`
-- future `docs.omdala.com`
+- `docs.omdala.com`
+- `admin.omdala.com`
 
-OMDALA is not a city website and not a tourism site. It is the global operating layer for real-world value, trust, and coordination.
+OMDALA is not a city website, tourism product, or thin marketplace. It is the operating layer for
+real-world value, trust, and intelligent coordination.
 
-## Role in the brand system
+## Core definition
 
-- `OMDALA` = master/global platform brand
-- `OMDALAT` = first city implementation and living lab
+OMDALA exists to help people, places, organizations, and communities:
 
-## Positioning
+- see underused resources clearly
+- structure needs and offers correctly
+- match with better relevance and trust
+- move from intent to real action
+- store proof so future outcomes improve
 
-Primary line:
+## Repo status
 
-- OMDALA
-- The Operating Layer for Real-World Value
+This branch now includes:
 
-Supporting line:
-
-- Activate people, places, and intelligence.
+- monorepo foundation with `pnpm` and `turbo`
+- public OMDALA web routes for the masterbrand surface
+- app, docs, admin, and API shells
+- master brand, theme, SEO, deploy, and developer lock files
+- core product, data, API, trust, and matching specifications
 
 ## Start here
 
-Read:
+Read these files first:
 
-1. `docs/BRAND_ARCHITECTURE_OMDALA.md`
-2. `docs/README_DEV_HANDOFF_OMDALA.md`
+1. `docs/README_DEV_HANDOFF_OMDALA.md`
+2. `docs/BRAND_ARCHITECTURE_OMDALA.md`
+3. `docs/PRODUCT_SPEC_OMDALA.md`
+4. `docs/DATA_MODEL_OMDALA.md`
+5. `docs/API_SPEC_OMDALA.md`
 
 ## Repo structure
 
@@ -41,17 +48,18 @@ omdala.com/
   apps/
     web/
     app/
+    admin/
+    docs/
   packages/
+    seo/
+    types/
     ui/
   services/
     api/
   docs/
-  index.html
-  styles.css
 ```
 
-## Immediate build intent
+## Build rule
 
-This repo starts as a static-first foundation plus handoff docs.
-The next build phase should turn it into the real master platform surface for the OMDALA ecosystem.
-
+Do not introduce implementation-specific brands or local-node logic into this repository unless that
+scope has been explicitly approved and documented as a separate system contract.

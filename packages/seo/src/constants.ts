@@ -2,7 +2,7 @@ export const SEO_DEFAULTS = {
   siteName:     'OMDALA',
   baseUrl:      'https://omdala.com',
   description:  'The global operating layer for real-world value, trust, and intelligent coordination.',
-  ogImage:      'https://omdala.com/og-default.png',
+  ogImage:      'https://omdala.com/og-default.svg',
   locale:       'en_US',
 } as const
 
@@ -14,7 +14,6 @@ export const OMDALA_PAGES = {
   forHosts:       '/for-hosts',
   forCommunities: '/for-communities',
   trust:          '/trust',
-  omdalat:        '/omdalat',
   vision:         '/vision',
   faq:            '/faq',
   contact:        '/contact',

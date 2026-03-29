@@ -1,7 +1,7 @@
 /* OMDALA — Global CSS Foundation */
 /* See docs/OMDALA_THEME_SYSTEM.md for full design token specification */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700&display=swap');
 
 /* ─── Design Tokens ───────────────────────────────────────────────── */
 
@@ -87,6 +87,10 @@ html {
 }
 
 body {
+  background:
+    radial-gradient(circle at top right, rgba(99, 245, 255, 0.16), transparent 30%),
+    radial-gradient(circle at left center, rgba(61, 139, 255, 0.14), transparent 32%),
+    linear-gradient(180deg, var(--omdala-bg-secondary) 0%, var(--omdala-bg-primary) 100%);
   background-color: var(--omdala-bg-primary);
   color:            var(--omdala-text-primary);
   font-family:      var(--font-sans);
@@ -118,4 +122,270 @@ a:hover {
 img, video {
   max-width: 100%;
   display:   block;
+}
+
+/* ─── Layout ───────────────────────────────────────────────────────── */
+
+.site-shell {
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(var(--omdala-blur-sm));
+  background: rgba(4, 8, 22, 0.72);
+  border-bottom: 1px solid var(--omdala-border-subtle);
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 0;
+}
+
+.brand-mark {
+  color: var(--omdala-text-primary);
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  justify-content: center;
+}
+
+.site-nav a {
+  color: var(--omdala-text-muted);
+  font-size: 0.95rem;
+}
+
+.site-nav a:hover {
+  color: var(--omdala-text-primary);
+}
+
+.site-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--omdala-radius-pill);
+  padding: 12px 18px;
+  font-weight: 600;
+  transition:
+    transform var(--omdala-transition-base),
+    border-color var(--omdala-transition-base),
+    box-shadow var(--omdala-transition-base),
+    background var(--omdala-transition-base);
+}
+
+.site-button:hover {
+  transform: translateY(-1px);
+}
+
+.site-button--primary {
+  background: linear-gradient(135deg, var(--omdala-blue-700), var(--omdala-blue-500));
+  border: 1px solid rgba(126, 242, 255, 0.18);
+  box-shadow: 0 20px 40px rgba(13, 48, 104, 0.28);
+  color: var(--omdala-text-primary);
+}
+
+.site-button--ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--omdala-border-default);
+  color: var(--omdala-text-primary);
+}
+
+.page-shell {
+  display: grid;
+  gap: 24px;
+  padding: 40px 0 80px;
+}
+
+.panel {
+  background: linear-gradient(180deg, rgba(16, 28, 51, 0.88), rgba(8, 16, 31, 0.92));
+  border: 1px solid var(--omdala-border-default);
+  border-radius: var(--omdala-radius-lg);
+  padding: 28px;
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.24);
+}
+
+.hero {
+  padding: 40px 32px;
+}
+
+.hero h1 {
+  font-size: clamp(2.7rem, 7vw, 4.9rem);
+  max-width: 12ch;
+}
+
+.eyebrow {
+  color: var(--omdala-cyan-400);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  margin-bottom: 14px;
+  text-transform: uppercase;
+}
+
+.lead {
+  color: var(--omdala-text-secondary);
+  font-size: 1.1rem;
+  margin-top: 18px;
+  max-width: 70ch;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.section-header {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.section-header h2 {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+}
+
+.section-copy {
+  color: var(--omdala-text-secondary);
+  max-width: 72ch;
+}
+
+.metric-grid,
+.card-grid,
+.faq-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.metric-card,
+.card-grid article,
+.faq-grid article {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--omdala-border-subtle);
+  border-radius: var(--omdala-radius-md);
+  padding: 20px;
+}
+
+.metric-card strong {
+  display: block;
+  color: var(--omdala-cyan-400);
+  font-size: 0.84rem;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.metric-card p,
+.card-grid p,
+.faq-grid p {
+  color: var(--omdala-text-secondary);
+}
+
+.stack-list {
+  display: grid;
+  gap: 16px;
+}
+
+.stack-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--omdala-border-subtle);
+  border-radius: var(--omdala-radius-md);
+  padding: 20px;
+}
+
+.stack-item h3,
+.card-grid h3,
+.faq-grid h3 {
+  font-size: 1.05rem;
+  margin-bottom: 8px;
+}
+
+.feature-list {
+  color: var(--omdala-text-secondary);
+  display: grid;
+  gap: 10px;
+  list-style: disc;
+  margin-top: 16px;
+  padding-left: 18px;
+}
+
+.page-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 18px;
+}
+
+.inline-code {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--omdala-border-subtle);
+  border-radius: 10px;
+  color: var(--omdala-white-100);
+  display: inline-flex;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.95rem;
+  padding: 4px 10px;
+}
+
+.site-footer {
+  border-top: 1px solid var(--omdala-border-subtle);
+  padding: 28px 0 48px;
+}
+
+.footer-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.footer-block {
+  display: grid;
+  gap: 8px;
+}
+
+.footer-heading {
+  color: var(--omdala-text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.footer-block a {
+  color: var(--omdala-text-muted);
+}
+
+.footer-block a:hover {
+  color: var(--omdala-text-primary);
+}
+
+@media (max-width: 860px) {
+  .site-header__inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .site-nav {
+    justify-content: flex-start;
+  }
+
+  .hero {
+    padding: 28px 24px;
+  }
 }

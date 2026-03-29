@@ -1,0 +1,233 @@
+:root {
+  --app-bg: #06111f;
+  --app-panel: rgba(10, 24, 44, 0.88);
+  --app-panel-soft: rgba(255, 255, 255, 0.03);
+  --app-border: rgba(255, 255, 255, 0.08);
+  --app-border-soft: rgba(255, 255, 255, 0.06);
+  --app-text: #f7fbff;
+  --app-text-muted: #bfcde1;
+  --app-accent: #3d8bff;
+  --app-accent-strong: #153a72;
+  --app-glow: #7ef2ff;
+  --app-radius-lg: 24px;
+  --app-radius-md: 18px;
+  --app-radius-sm: 14px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, rgba(126, 242, 255, 0.12), transparent 30%),
+    radial-gradient(circle at left center, rgba(61, 139, 255, 0.12), transparent 32%),
+    linear-gradient(180deg, #08101f 0%, var(--app-bg) 100%);
+  color: var(--app-text);
+}
+
+a {
+  color: var(--app-glow);
+  text-decoration: none;
+}
+
+.app-shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 72px;
+}
+
+.auth-shell {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+}
+
+.auth-card,
+.dashboard-card,
+.dashboard-panel,
+.auth-panel {
+  background: var(--app-panel);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.24);
+}
+
+.auth-card {
+  max-width: 760px;
+  padding: 36px;
+}
+
+.app-eyebrow {
+  color: var(--app-glow);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.app-copy {
+  color: var(--app-text-muted);
+  line-height: 1.7;
+  max-width: 60ch;
+}
+
+.app-button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.app-button {
+  border-radius: 999px;
+  display: inline-flex;
+  padding: 12px 18px;
+  font-weight: 600;
+}
+
+.app-button--primary {
+  background: linear-gradient(135deg, var(--app-accent-strong), var(--app-accent));
+  color: var(--app-text);
+}
+
+.app-button--ghost {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+}
+
+.auth-helper-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 18px;
+}
+
+.auth-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  align-items: start;
+}
+
+.auth-panel {
+  padding: 32px;
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.auth-form label {
+  color: var(--app-text-muted);
+  display: grid;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.auth-form input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  color: var(--app-text);
+  min-height: 48px;
+  padding: 0 14px;
+}
+
+.auth-note {
+  color: var(--app-text-muted);
+  font-size: 0.92rem;
+}
+
+.auth-side-list,
+.dashboard-list {
+  color: var(--app-text-muted);
+  display: grid;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding-left: 18px;
+}
+
+.dashboard-layout {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 240px minmax(0, 1fr);
+}
+
+.dashboard-sidebar,
+.dashboard-main {
+  display: grid;
+  gap: 18px;
+}
+
+.dashboard-card,
+.dashboard-panel {
+  padding: 24px;
+}
+
+.dashboard-brand {
+  color: var(--app-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dashboard-nav {
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-nav a {
+  border: 1px solid var(--app-border-soft);
+  border-radius: var(--app-radius-sm);
+  color: var(--app-text-muted);
+  padding: 12px 14px;
+}
+
+.dashboard-nav a:hover,
+.dashboard-nav a[aria-current='page'] {
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+.dashboard-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.dashboard-stat {
+  background: var(--app-panel-soft);
+  border: 1px solid var(--app-border-soft);
+  border-radius: var(--app-radius-md);
+  padding: 18px;
+}
+
+.dashboard-stat strong {
+  color: var(--app-glow);
+  display: block;
+  font-size: 0.84rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 920px) {
+  .auth-grid,
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+}

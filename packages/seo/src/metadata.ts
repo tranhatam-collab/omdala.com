@@ -26,7 +26,7 @@ export function buildMetadata(input: PageMetadataInput): Metadata {
   const fullTitle  = `${title} — ${SEO_DEFAULTS.siteName}`
 
   return {
-    title:       fullTitle,
+    title,
     description,
     metadataBase: new URL(SEO_DEFAULTS.baseUrl),
 
