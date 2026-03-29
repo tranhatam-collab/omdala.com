@@ -4,6 +4,7 @@ export type { PageMetadataInput }        from './metadata'
 export {
   getOrganizationSchema,
   getWebSiteSchema,
+  getWebPageSchema,
   getBreadcrumbSchema,
   getTechArticleSchema,
 }                                        from './schema'

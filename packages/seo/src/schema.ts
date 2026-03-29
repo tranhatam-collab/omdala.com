@@ -23,6 +23,25 @@ export function getWebSiteSchema() {
   }
 }
 
+export function getWebPageSchema(page: {
+  title: string
+  description: string
+  path: string
+}) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: page.title,
+    description: page.description,
+    url: `${BASE_URL}${page.path}`,
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'OMDALA',
+      url: BASE_URL,
+    },
+  }
+}
+
 export function getBreadcrumbSchema(
   items: ReadonlyArray<{ readonly name: string; readonly url: string }>
 ) {
