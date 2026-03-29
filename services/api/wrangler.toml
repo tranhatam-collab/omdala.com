@@ -10,6 +10,16 @@ ENVIRONMENT = "production"
 APP_BASE_URL = "https://app.omdala.com"
 WEB_BASE_URL = "https://omdala.com"
 
+[env.preview.vars]
+ENVIRONMENT = "preview"
+APP_BASE_URL = "https://preview.app.omdala.com"
+WEB_BASE_URL = "https://preview.omdala.com"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+APP_BASE_URL = "https://staging.app.omdala.com"
+WEB_BASE_URL = "https://staging.omdala.com"
+
 # api.omdala.com — bind khi omdala.com zone sẵn sàng trên Cloudflare
 # [[routes]]
 # pattern = "api.omdala.com/*"

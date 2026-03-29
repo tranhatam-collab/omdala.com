@@ -1,5 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 
@@ -51,6 +52,40 @@ function run(command, args, options = {}) {
   }
 }
 
+function isProductionBranch(value) {
+  return value === 'main' || value === 'production'
+}
+
+function shouldNoindexSurface(valueSurface, valueBranch) {
+  if (valueSurface === 'app' || valueSurface === 'admin') {
+    return true
+  }
+
+  return !isProductionBranch(valueBranch)
+}
+
+function verifyRobotsOutput(valueSurface, expectedNoindex) {
+  const robotsPath = path.join(outDir, 'robots.txt')
+  if (!existsSync(robotsPath)) {
+    console.error(`Expected robots.txt at ${robotsPath}, but it was not found.`)
+    process.exit(1)
+  }
+
+  const robots = readFileSync(robotsPath, 'utf8')
+  const hasDisallowAll = /Disallow:\s*\/\s*$/m.test(robots)
+  const hasAllowAll = /Allow:\s*\/\s*$/m.test(robots)
+
+  if (expectedNoindex && !hasDisallowAll) {
+    console.error(`Expected noindex robots policy for ${valueSurface} (${branch}), but robots.txt allows indexing.`)
+    process.exit(1)
+  }
+
+  if (!expectedNoindex && !hasAllowAll) {
+    console.error(`Expected indexable robots policy for ${valueSurface} (${branch}), but robots.txt is not allow-all.`)
+    process.exit(1)
+  }
+}
+
 function getCommitHash() {
   try {
     return execFileSync('git', ['rev-parse', 'HEAD'], {
@@ -62,12 +97,21 @@ function getCommitHash() {
   }
 }
 
-run('pnpm', ['--filter', target.packageName, 'build'])
+const expectedNoindex = shouldNoindexSurface(surface, branch)
+const buildEnv = {
+  ...process.env,
+  CLOUDFLARE_PAGES_BRANCH: branch,
+  OMDALA_NOINDEX: expectedNoindex ? 'true' : 'false',
+}
+
+run('pnpm', ['--filter', target.packageName, 'build'], { env: buildEnv })
 
 if (!existsSync(outDir)) {
   console.error(`Expected static export output at ${outDir}, but it was not found.`)
   process.exit(1)
 }
+
+verifyRobotsOutput(surface, expectedNoindex)
 
 const deployArgs = [
   'pages',
