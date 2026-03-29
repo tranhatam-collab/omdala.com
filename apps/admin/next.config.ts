@@ -2,7 +2,7 @@ import type { NextConfig } from 'next'
 
 const config: NextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@omdala/ui', '@omdala/types'],
+  transpilePackages: ['@omdala/ui', '@omdala/types', '@omdala/core', '@omdala/auth-service'],
 
   async headers() {
     return [

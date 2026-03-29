@@ -112,6 +112,84 @@ export interface ResourceFormInput {
   visibility: VisibilityStatus
 }
 
+// ─── Offers and Requests ──────────────────────────────────────────────────
+
+export type OfferStatus = 'draft' | 'published' | 'paused' | 'archived'
+
+export type RequestStatus = 'draft' | 'published' | 'matched' | 'fulfilled' | 'archived'
+
+export interface OfferRecord {
+  id: string
+  nodeId: string
+  resourceIds: string[]
+  slug: string
+  title: string
+  summary: string
+  category: string
+  pricingMode: PricingMode
+  visibility: VisibilityStatus
+  status: OfferStatus
+  minimumTrustLevel: TrustLevel | 'none'
+}
+
+export interface RequestRecord {
+  id: string
+  nodeId: string
+  slug: string
+  title: string
+  summary: string
+  category: string
+  urgency: 'low' | 'medium' | 'high'
+  visibility: VisibilityStatus
+  status: RequestStatus
+  budgetHint: string
+}
+
+export interface OfferFormInput {
+  nodeId: string
+  resourceIds: string
+  title: string
+  slug: string
+  category: string
+  summary: string
+  pricingMode: PricingMode
+  visibility: VisibilityStatus
+  minimumTrustLevel: TrustLevel | 'none'
+}
+
+export interface RequestFormInput {
+  nodeId: string
+  title: string
+  slug: string
+  category: string
+  summary: string
+  urgency: 'low' | 'medium' | 'high'
+  visibility: VisibilityStatus
+  budgetHint: string
+}
+
+// ─── Proof and Moderation ─────────────────────────────────────────────────
+
+export interface ProofRecord {
+  id: string
+  subjectType: 'node' | 'resource' | 'offer' | 'request'
+  subjectId: string
+  proofType: string
+  summary: string
+  verificationStatus: VerificationStatus
+}
+
+export interface ModerationCase {
+  id: string
+  subjectType: 'node' | 'offer' | 'request' | 'proof'
+  subjectId: string
+  title: string
+  summary: string
+  severity: 'low' | 'medium' | 'high'
+  status: 'open' | 'reviewed'
+  actionHint: string
+}
+
 // ─── Matching ─────────────────────────────────────────────────────────────
 
 export interface MatchSuggestion {

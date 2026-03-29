@@ -42,6 +42,8 @@ Core docs:
 - [x] `TRUST_ENGINE_OMDALA.md`
 - [x] `MATCHING_ENGINE_OMDALA.md`
 - [x] brand, theme, SEO, deploy, and handoff locks
+- [x] Cloudflare account baseline locked for account `93112cc89181e75335cbd7ef7e392ba3`
+- [x] OMDALA Pages targets provisioned on Cloudflare (`omdala-web`, `omdala-app`, `omdala-admin`, `omdala-docs`)
 
 ---
 
@@ -53,7 +55,7 @@ Application:
 - [x] authenticated dashboard structure
 - [x] node CRUD flows
 - [x] resource CRUD flows
-- [ ] offer and request flows
+- [x] offer and request flows
 
 Services:
 
@@ -70,9 +72,9 @@ Shared packages:
 
 Admin:
 
-- [ ] auth guard
-- [ ] moderation dashboard
-- [ ] proof review flows
+- [x] auth guard
+- [x] moderation dashboard
+- [x] proof review flows
 
 Docs app:
 
@@ -82,19 +84,20 @@ Docs app:
 
 CI/CD:
 
-- [ ] `.github/workflows/build.yml`
-- [ ] `.github/workflows/lint.yml`
+- [x] `.github/workflows/build.yml`
+- [x] `.github/workflows/lint.yml`
 - [ ] deploy workflows
+- [ ] first Pages deployment wiring
 
 ---
 
 ## 3. Priority order
 
-1. Offer and request flows
-2. Admin moderation
-3. CI/CD and deployment hardening
-4. Notifications and AI services
-5. Brand-token package extraction
+1. Deploy workflow wiring for Cloudflare Pages and Worker targets
+2. Notifications and AI services
+3. Brand-token package extraction
+4. Richer docs rendering
+5. Admin auth provider wiring beyond mock session
 
 ---
 

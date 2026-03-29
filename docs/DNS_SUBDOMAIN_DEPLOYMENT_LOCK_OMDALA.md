@@ -60,7 +60,27 @@ Recommended projects:
 - `omdala-admin`
 - `omdala-api`
 
+Current Pages target status:
+
+- `omdala-web` provisioned
+- `omdala-app` provisioned
+- `omdala-docs` provisioned
+- `omdala-admin` provisioned
+
 If `trust.omdala.com` is separated later, create a dedicated deployment target for it.
+
+Observed Cloudflare account baseline:
+
+- account id `93112cc89181e75335cbd7ef7e392ba3`
+- active Pages projects already exist for other systems
+- active D1 databases currently include `NHACHUNG_DB`, `iai-db`, and `iai-flow-db`
+- active R2 buckets currently include `iai-flow-files`, `iai-media`, and `iai-media-dev`
+
+Rule:
+
+- do not silently reuse legacy `iai-*` or `nhachung-*` data/storage surfaces for OMDALA
+- provision dedicated OMDALA Pages targets first
+- provision dedicated OMDALA D1 and R2 resources only when backend binding is ready
 
 ---
 

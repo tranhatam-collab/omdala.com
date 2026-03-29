@@ -3,12 +3,19 @@ import { APP_ROUTES } from '@omdala/core'
 import { getMockSession } from '@omdala/auth-service'
 import { getSuggestedMatchesForNode } from '@omdala/matching-service'
 import { getNodeTrustSummary } from '@omdala/trust-service'
-import { listMockNodes, listMockResources } from '@/lib/mock-data'
+import {
+  listMockNodes,
+  listMockOffers,
+  listMockRequests,
+  listMockResources,
+} from '@/lib/mock-data'
 
 export default function DashboardPage() {
   const session = getMockSession()
   const nodes = listMockNodes()
   const resources = listMockResources()
+  const offers = listMockOffers()
+  const requests = listMockRequests()
   const primaryNode = nodes[0]
   const trustSummary = primaryNode ? getNodeTrustSummary(primaryNode) : null
   const suggestions = primaryNode ? getSuggestedMatchesForNode(primaryNode, resources) : []
@@ -41,16 +48,30 @@ export default function DashboardPage() {
           <strong>Nodes in shell</strong>
           <p>{nodes.length} structured nodes are ready for CRUD iteration.</p>
         </article>
+        <article className="dashboard-stat">
+          <strong>Offer flow</strong>
+          <p>{offers.length} offer records now exist for create, detail, and edit flows.</p>
+        </article>
+        <article className="dashboard-stat">
+          <strong>Request flow</strong>
+          <p>{requests.length} request records now exist for create, detail, and edit flows.</p>
+        </article>
       </section>
 
       <section className="dashboard-panel">
-        <h2>Node and resource workspace</h2>
+        <h2>Core workspaces</h2>
         <div className="entity-actions">
           <Link href={APP_ROUTES.nodes} className="app-button app-button--primary">
             Open nodes
           </Link>
           <Link href={APP_ROUTES.resources} className="app-button app-button--ghost">
             Open resources
+          </Link>
+          <Link href={APP_ROUTES.offers} className="app-button app-button--ghost">
+            Open offers
+          </Link>
+          <Link href={APP_ROUTES.requests} className="app-button app-button--ghost">
+            Open requests
           </Link>
         </div>
       </section>

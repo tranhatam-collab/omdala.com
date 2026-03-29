@@ -4,6 +4,8 @@ export const APP_PRIMARY_NAV = [
   { label: 'Dashboard', href: APP_ROUTES.dashboard },
   { label: 'Nodes', href: APP_ROUTES.nodes },
   { label: 'Resources', href: APP_ROUTES.resources },
+  { label: 'Offers', href: APP_ROUTES.offers },
+  { label: 'Requests', href: APP_ROUTES.requests },
   { label: 'Profile', href: APP_ROUTES.profile },
   { label: 'Settings', href: APP_ROUTES.settings },
 ] as const
