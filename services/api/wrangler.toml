@@ -1,0 +1,12 @@
+name            = "omdala-api"
+main            = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "production"
+
+# api.omdala.com — explicit custom domain (no wildcard)
+[[routes]]
+pattern = "api.omdala.com/*"
+zone_name = "omdala.com"
