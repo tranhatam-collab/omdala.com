@@ -341,6 +341,78 @@ img, video {
   padding: 4px 10px;
 }
 
+.contact-layout {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+}
+
+.contact-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.contact-form {
+  display: grid;
+  gap: 14px;
+}
+
+.contact-field {
+  color: var(--omdala-text-secondary);
+  display: grid;
+  gap: 8px;
+  font-size: 0.95rem;
+}
+
+.contact-input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--omdala-border-default);
+  border-radius: var(--omdala-radius-md);
+  color: var(--omdala-text-primary);
+  font: inherit;
+  min-height: 48px;
+  padding: 12px 14px;
+}
+
+.contact-textarea {
+  min-height: 144px;
+  resize: vertical;
+}
+
+.contact-note {
+  color: var(--omdala-text-muted);
+  font-size: 0.95rem;
+}
+
+.contact-status {
+  border-radius: var(--omdala-radius-md);
+  padding: 12px 14px;
+}
+
+.contact-status--error {
+  background: rgba(255, 96, 96, 0.12);
+  border: 1px solid rgba(255, 96, 96, 0.24);
+}
+
+.contact-status--info {
+  background: rgba(99, 245, 255, 0.12);
+  border: 1px solid rgba(99, 245, 255, 0.2);
+}
+
+.contact-status--success {
+  background: rgba(61, 139, 255, 0.14);
+  border: 1px solid rgba(126, 242, 255, 0.24);
+}
+
+.contact-list {
+  color: var(--omdala-text-secondary);
+  display: grid;
+  gap: 10px;
+  list-style: disc;
+  margin: 0;
+  padding-left: 18px;
+}
+
 .site-footer {
   border-top: 1px solid var(--omdala-border-subtle);
   padding: 28px 0 48px;
@@ -377,6 +449,10 @@ img, video {
   .site-header__inner {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .contact-layout {
+    grid-template-columns: 1fr;
   }
 
   .site-nav {

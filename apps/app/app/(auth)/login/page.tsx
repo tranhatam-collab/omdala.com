@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { APP_ROUTES } from '@omdala/core'
 import { createPasswordlessDraft } from '@omdala/auth-service'
+import { MagicLinkLoginForm } from './MagicLinkLoginForm'
 
 export default function LoginPage() {
   const draft = createPasswordlessDraft()
@@ -15,23 +16,7 @@ export default function LoginPage() {
           expectations for the next implementation step.
         </p>
 
-        <form className="auth-form">
-          <label>
-            Work email
-            <input type="email" name="email" defaultValue={draft.email} placeholder="operator@omdala.com" />
-          </label>
-          <label>
-            Redirect after sign-in
-            <input type="text" name="redirectTo" defaultValue={draft.redirectTo} />
-          </label>
-          <button type="button" className="app-button app-button--primary">
-            Send magic link
-          </button>
-        </form>
-
-        <p className="auth-note">
-          No live auth provider is connected yet. This route locks the flow before service integration.
-        </p>
+        <MagicLinkLoginForm defaultEmail={draft.email} defaultRedirect={draft.redirectTo} />
       </div>
 
       <aside className="auth-panel">

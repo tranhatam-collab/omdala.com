@@ -137,18 +137,46 @@ a {
   font-size: 0.95rem;
 }
 
-.auth-form input {
+.auth-form input,
+.auth-form select,
+.auth-form textarea {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-sm);
   color: var(--app-text);
   min-height: 48px;
-  padding: 0 14px;
+  padding: 12px 14px;
+}
+
+.auth-form textarea {
+  min-height: 120px;
+  resize: vertical;
 }
 
 .auth-note {
   color: var(--app-text-muted);
   font-size: 0.92rem;
+}
+
+.auth-status {
+  border-radius: var(--app-radius-sm);
+  margin-top: 14px;
+  padding: 12px 14px;
+}
+
+.auth-status--error {
+  background: rgba(255, 96, 96, 0.12);
+  border: 1px solid rgba(255, 96, 96, 0.28);
+}
+
+.auth-status--info {
+  background: rgba(126, 242, 255, 0.12);
+  border: 1px solid rgba(126, 242, 255, 0.22);
+}
+
+.auth-status--success {
+  background: rgba(61, 139, 255, 0.16);
+  border: 1px solid rgba(126, 242, 255, 0.26);
 }
 
 .auth-side-list,

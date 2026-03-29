@@ -5,6 +5,8 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 ENVIRONMENT = "production"
+APP_BASE_URL = "https://app.omdala.com"
+WEB_BASE_URL = "https://omdala.com"
 
 # api.omdala.com — explicit custom domain (no wildcard)
 [[routes]]

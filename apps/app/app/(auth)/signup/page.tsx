@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { APP_ROUTES } from '@omdala/core'
+import { AccessRequestForm } from './AccessRequestForm'
 
 export default function SignupPage() {
   return (
@@ -12,23 +13,7 @@ export default function SignupPage() {
           capture fields before backend auth and onboarding are connected.
         </p>
 
-        <form className="auth-form">
-          <label>
-            Work email
-            <input type="email" name="email" placeholder="builder@omdala.com" />
-          </label>
-          <label>
-            Primary role
-            <input type="text" name="role" placeholder="expert / host / community / business" />
-          </label>
-          <label>
-            First node name
-            <input type="text" name="nodeName" placeholder="Your node or organization name" />
-          </label>
-          <button type="button" className="app-button app-button--primary">
-            Create draft account
-          </button>
-        </form>
+        <AccessRequestForm />
       </div>
 
       <aside className="auth-panel">
