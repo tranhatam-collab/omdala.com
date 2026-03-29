@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { getMockAdminSession, hasRequiredRole } from '@omdala/auth-service'
+import { LanguageSwitcher } from './components/LanguageSwitcher'
+import { LocaleLink } from './components/LocaleLink'
 import './globals.css'
 
 const adminNavigation = [
@@ -36,17 +37,18 @@ export default function AdminLayout({
           <aside className="admin-sidebar">
             <section className="admin-card">
               <p className="admin-eyebrow">Restricted Surface</p>
-              <Link href="/" className="admin-brand">
+              <LocaleLink href="/" className="admin-brand">
                 OMDALA Admin
-              </Link>
+              </LocaleLink>
               <p className="admin-copy">{session.user.email}</p>
+              <LanguageSwitcher />
             </section>
 
             <nav className="admin-card admin-nav" aria-label="Admin navigation">
               {adminNavigation.map((item) => (
-                <Link key={item.href} href={item.href}>
+                <LocaleLink key={item.href} href={item.href}>
                   {item.label}
-                </Link>
+                </LocaleLink>
               ))}
             </nav>
           </aside>

@@ -1,21 +1,28 @@
-import type { Metadata } from 'next'
-import Link from 'next/link'
+'use client'
 
-export const metadata: Metadata = {
-  title:       'OMDALA Docs',
-  description: 'Official documentation for OMDALA — platform guides, API reference, and system architecture.',
-  alternates:  { canonical: 'https://docs.omdala.com/' },
-}
+import { resolveLanguage } from '@omdala/core'
+import { useEffect, useState } from 'react'
+import { LocaleLink } from './components/LocaleLink'
 
 export default function DocsHomePage() {
+  const [isVi, setIsVi] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    setIsVi(resolveLanguage(new URLSearchParams(window.location.search).get('lang')) === 'vi')
+  }, [])
+
   return (
     <main>
-      <h1>OMDALA Documentation</h1>
-      <p>Platform guides, API reference, trust logic, and system architecture.</p>
+      <h1>{isVi ? 'Tài liệu OMDALA' : 'OMDALA Documentation'}</h1>
+      <p>{isVi ? 'Hướng dẫn nền tảng, tham chiếu API, logic niềm tin và kiến trúc hệ thống.' : 'Platform guides, API reference, trust logic, and system architecture.'}</p>
       <nav>
-        <Link href="/platform">Platform overview</Link>
-        <Link href="/api">API reference</Link>
-        <Link href="/trust">Trust system</Link>
+        <LocaleLink href="/platform">{isVi ? 'Tổng quan nền tảng' : 'Platform overview'}</LocaleLink>
+        <LocaleLink href="/api">{isVi ? 'Tham chiếu API' : 'API reference'}</LocaleLink>
+        <LocaleLink href="/trust">{isVi ? 'Hệ thống niềm tin' : 'Trust system'}</LocaleLink>
       </nav>
     </main>
   )

@@ -43,6 +43,33 @@ a {
   padding: 32px;
 }
 
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.language-switcher__item {
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  color: var(--admin-text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 5px 9px;
+  text-transform: uppercase;
+}
+
+.language-switcher__item--active {
+  border-color: rgba(255, 179, 122, 0.45);
+  color: var(--admin-text);
+}
+
+.language-switcher__item--disabled {
+  opacity: 0.45;
+}
+
 .admin-sidebar,
 .admin-main {
   display: grid;

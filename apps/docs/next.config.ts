@@ -7,7 +7,7 @@ const config: NextConfig = {
   images: {
     unoptimized: true,
   },
-  transpilePackages: ['@omdala/ui', '@omdala/seo', '@omdala/types'],
+  transpilePackages: ['@omdala/ui', '@omdala/seo', '@omdala/types', '@omdala/core'],
 }
 
 export default config

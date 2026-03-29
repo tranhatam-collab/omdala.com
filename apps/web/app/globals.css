@@ -146,6 +146,12 @@ img, video {
   padding: 18px 0;
 }
 
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .brand-mark {
   color: var(--omdala-text-primary);
   font-family: var(--font-heading);
@@ -169,6 +175,30 @@ img, video {
 
 .site-nav a:hover {
   color: var(--omdala-text-primary);
+}
+
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.language-switcher__item {
+  border: 1px solid var(--omdala-border-default);
+  border-radius: var(--omdala-radius-pill);
+  color: var(--omdala-text-muted);
+  font-size: 0.8rem;
+  padding: 6px 10px;
+}
+
+.language-switcher__item--active {
+  border-color: rgba(126, 242, 255, 0.32);
+  color: var(--omdala-text-primary);
+}
+
+.language-switcher__item--disabled {
+  opacity: 0.5;
 }
 
 .site-button {

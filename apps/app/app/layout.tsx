@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { LanguageSwitcher } from './components/LanguageSwitcher'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -17,7 +18,12 @@ export default function AppRootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <div className="app-shell app-layout-topbar">
+          <LanguageSwitcher />
+        </div>
+        {children}
+      </body>
     </html>
   )
 }

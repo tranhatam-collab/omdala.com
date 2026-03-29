@@ -45,6 +45,38 @@ a {
   padding: 32px 0 72px;
 }
 
+.app-layout-topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.language-switcher__item {
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  color: var(--app-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 6px 10px;
+  text-transform: uppercase;
+}
+
+.language-switcher__item--active {
+  border-color: rgba(126, 242, 255, 0.38);
+  color: var(--app-text);
+}
+
+.language-switcher__item--disabled {
+  opacity: 0.45;
+}
+
 .auth-shell {
   display: grid;
   place-items: center;

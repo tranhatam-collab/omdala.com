@@ -1,33 +1,40 @@
-import type { Metadata } from 'next'
-import { buildMetadata } from '@omdala/seo'
+'use client'
+
+import { resolveLanguage } from '@omdala/core'
+import { useEffect, useState } from 'react'
 import { OMDALA_INBOXES } from '../../../../packages/core/src/mail'
 import { ContactForm } from './ContactForm'
 
-export const metadata: Metadata = buildMetadata({
-  title:       'Contact',
-  description:
-    'Current official OMDALA surfaces for product, documentation, and API access before public launch expansion.',
-  path: '/contact',
-})
-
 export default function ContactPage() {
+  const [isVi, setIsVi] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    setIsVi(resolveLanguage(new URLSearchParams(window.location.search).get('lang')) === 'vi')
+  }, [])
+
   return (
     <main className="site-shell page-shell">
       <section className="panel hero">
-        <p className="eyebrow">Contact Surface</p>
-        <h1>Contact the live OMDALA inbox layer.</h1>
+        <p className="eyebrow">{isVi ? 'Bề mặt liên hệ' : 'Contact Surface'}</p>
+        <h1>{isVi ? 'Liên hệ lớp inbox đang hoạt động của OMDALA.' : 'Contact the live OMDALA inbox layer.'}</h1>
         <p className="lead">
-          Public contact now routes through the same mail system the platform uses for support, app
-          onboarding, and operator response.
+          {isVi
+            ? 'Liên hệ công khai hiện đi qua cùng hệ thống mail mà nền tảng dùng cho hỗ trợ, onboarding ứng dụng và phản hồi vận hành.'
+            : 'Public contact now routes through the same mail system the platform uses for support, app onboarding, and operator response.'}
         </p>
       </section>
 
       <section className="contact-layout">
         <article className="panel contact-panel">
           <div className="section-header">
-            <h2>Contact form / Form liên hệ</h2>
+            <h2>{isVi ? 'Biểu mẫu liên hệ' : 'Contact form'}</h2>
             <p className="section-copy">
-              Use this form for support, partnership discussions, trust questions, or product routing.
+              {isVi
+                ? 'Dùng biểu mẫu này cho hỗ trợ, trao đổi hợp tác, câu hỏi về niềm tin hoặc điều hướng sản phẩm.'
+                : 'Use this form for support, partnership discussions, trust questions, or product routing.'}
             </p>
           </div>
           <ContactForm />
@@ -35,35 +42,37 @@ export default function ContactPage() {
 
         <article className="panel contact-panel">
           <div className="section-header">
-            <h2>Official inboxes / Hộp thư chính thức</h2>
+            <h2>{isVi ? 'Hộp thư chính thức' : 'Official inboxes'}</h2>
             <p className="section-copy">
-              These inboxes are the public routing points the web, app, docs, and operator layer can use immediately.
+              {isVi
+                ? 'Các hộp thư này là điểm điều hướng công khai mà lớp web, app, docs và vận hành có thể dùng ngay.'
+                : 'These inboxes are the public routing points the web, app, docs, and operator layer can use immediately.'}
             </p>
           </div>
 
           <div className="card-grid">
             <article>
-              <h3>General / Tổng quát</h3>
+              <h3>{isVi ? 'Tổng quát' : 'General'}</h3>
               <p><a href={`mailto:${OMDALA_INBOXES.hello}`}>{OMDALA_INBOXES.hello}</a></p>
             </article>
             <article>
-              <h3>Support / Hỗ trợ</h3>
+              <h3>{isVi ? 'Hỗ trợ' : 'Support'}</h3>
               <p><a href={`mailto:${OMDALA_INBOXES.support}`}>{OMDALA_INBOXES.support}</a></p>
             </article>
             <article>
-              <h3>App / Ứng dụng</h3>
+              <h3>{isVi ? 'Ứng dụng' : 'App'}</h3>
               <p><a href={`mailto:${OMDALA_INBOXES.app}`}>{OMDALA_INBOXES.app}</a></p>
             </article>
             <article>
-              <h3>Trust / Niềm tin</h3>
+              <h3>{isVi ? 'Niềm tin' : 'Trust'}</h3>
               <p><a href={`mailto:${OMDALA_INBOXES.trust}`}>{OMDALA_INBOXES.trust}</a></p>
             </article>
           </div>
 
           <ul className="contact-list">
-            <li>Auth and magic-link mail: <span className="inline-code">{OMDALA_INBOXES.noreply}</span></li>
-            <li>Docs and API routing: <span className="inline-code">{OMDALA_INBOXES.docs}</span></li>
-            <li>Admin operations: <span className="inline-code">{OMDALA_INBOXES.admin}</span></li>
+            <li>{isVi ? 'Mail xác thực và magic-link' : 'Auth and magic-link mail'}: <span className="inline-code">{OMDALA_INBOXES.noreply}</span></li>
+            <li>{isVi ? 'Điều hướng docs và API' : 'Docs and API routing'}: <span className="inline-code">{OMDALA_INBOXES.docs}</span></li>
+            <li>{isVi ? 'Vận hành admin' : 'Admin operations'}: <span className="inline-code">{OMDALA_INBOXES.admin}</span></li>
           </ul>
         </article>
       </section>

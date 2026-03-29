@@ -9,7 +9,7 @@ const config: NextConfig = {
   },
 
   // Transpile shared workspace packages
-  transpilePackages: ['@omdala/ui', '@omdala/seo', '@omdala/types'],
+  transpilePackages: ['@omdala/ui', '@omdala/seo', '@omdala/types', '@omdala/core'],
 }
 
 export default config

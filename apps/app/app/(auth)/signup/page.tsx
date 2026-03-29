@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import { APP_ROUTES } from '@omdala/core'
+import { LocaleLink } from '../../components/LocaleLink'
 import { AccessRequestForm } from './AccessRequestForm'
 
 export default function SignupPage() {
@@ -26,7 +26,7 @@ export default function SignupPage() {
           <li>Reach a first meaningful action quickly.</li>
         </ul>
         <div className="auth-helper-links">
-          <Link href={APP_ROUTES.login}>Already have access?</Link>
+          <LocaleLink href={APP_ROUTES.login}>Already have access?</LocaleLink>
         </div>
       </aside>
     </section>

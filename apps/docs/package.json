@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@omdala/core":  "workspace:*",
     "@omdala/seo":   "workspace:*",
     "@omdala/types": "workspace:*",
     "@omdala/ui":    "workspace:*",

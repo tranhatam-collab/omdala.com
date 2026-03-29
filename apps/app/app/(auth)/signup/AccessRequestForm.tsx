@@ -1,8 +1,8 @@
 'use client'
 
-import { OMDALA_ACCESS_ROLES, OMDALA_API_ORIGIN, OMDALA_INBOXES } from '@omdala/core'
+import { OMDALA_ACCESS_ROLES, OMDALA_API_ORIGIN, OMDALA_INBOXES, resolveLanguage } from '@omdala/core'
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type AccessState = {
   email: string
@@ -23,6 +23,14 @@ const initialState: AccessState = {
 }
 
 export function AccessRequestForm() {
+  const [isVi, setIsVi] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    setIsVi(resolveLanguage(new URLSearchParams(window.location.search).get('lang')) === 'vi')
+  }, [])
   const [form, setForm] = useState<AccessState>(initialState)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [status, setStatus] = useState<{ message: string; tone: StatusTone }>({
@@ -35,7 +43,7 @@ export function AccessRequestForm() {
     setIsSubmitting(true)
     setStatus({
       tone: 'info',
-      message: 'Đang gửi yêu cầu truy cập... / Sending your access request...',
+      message: isVi ? 'Đang gửi yêu cầu truy cập...' : 'Sending your access request...',
     })
 
     try {
@@ -55,14 +63,18 @@ export function AccessRequestForm() {
       setForm(initialState)
       setStatus({
         tone: 'success',
-        message: `Đã gửi yêu cầu. Đội ngũ sẽ phản hồi từ ${OMDALA_INBOXES.app}. / Request received. The team will reply from ${OMDALA_INBOXES.app}.`,
+        message: isVi
+          ? `Đã gửi yêu cầu. Đội ngũ sẽ phản hồi từ ${OMDALA_INBOXES.app}.`
+          : `Request received. The team will reply from ${OMDALA_INBOXES.app}.`,
       })
     } catch (error) {
       setStatus({
         tone: 'error',
         message: error instanceof Error
           ? error.message
-          : 'Không gửi được yêu cầu truy cập. / Unable to submit the access request.',
+            : isVi
+              ? 'Không gửi được yêu cầu truy cập.'
+              : 'Unable to submit the access request.',
       })
     } finally {
       setIsSubmitting(false)
@@ -73,7 +85,7 @@ export function AccessRequestForm() {
     <>
       <form className="auth-form" onSubmit={handleSubmit}>
         <label>
-          Work email
+          {isVi ? 'Email công việc' : 'Work email'}
           <input
             type="email"
             name="email"
@@ -84,7 +96,7 @@ export function AccessRequestForm() {
           />
         </label>
         <label>
-          Primary role
+          {isVi ? 'Vai trò chính' : 'Primary role'}
           <select
             name="role"
             value={form.role}
@@ -98,32 +110,34 @@ export function AccessRequestForm() {
           </select>
         </label>
         <label>
-          First node name
+          {isVi ? 'Tên node đầu tiên' : 'First node name'}
           <input
             type="text"
             name="nodeName"
             value={form.nodeName}
             onChange={(event) => setForm((current) => ({ ...current, nodeName: event.target.value }))}
-            placeholder="Your node or organization name"
+            placeholder={isVi ? 'Tên node hoặc tổ chức của bạn' : 'Your node or organization name'}
             required
           />
         </label>
         <label>
-          Context note / Ghi chú
+          {isVi ? 'Ghi chú bối cảnh' : 'Context note'}
           <textarea
             name="note"
             value={form.note}
             onChange={(event) => setForm((current) => ({ ...current, note: event.target.value }))}
-            placeholder="What you are building, coordinating, or exploring."
+            placeholder={isVi ? 'Bạn đang xây dựng, điều phối hoặc khám phá điều gì?' : 'What you are building, coordinating, or exploring.'}
           />
         </label>
         <button type="submit" className="app-button app-button--primary" disabled={isSubmitting}>
-          {isSubmitting ? 'Đang gửi... / Sending...' : 'Create draft account / Tạo yêu cầu truy cập'}
+          {isSubmitting ? (isVi ? 'Đang gửi...' : 'Sending...') : isVi ? 'Tạo yêu cầu truy cập' : 'Create draft account'}
         </button>
       </form>
 
       <p className="auth-note">
-        Access intake được gửi tới <a href={`mailto:${OMDALA_INBOXES.app}`}>{OMDALA_INBOXES.app}</a>. Hỗ trợ theo dõi qua{' '}
+        {isVi ? 'Yêu cầu truy cập được gửi tới ' : 'Access intake is sent to '}
+        <a href={`mailto:${OMDALA_INBOXES.app}`}>{OMDALA_INBOXES.app}</a>.{' '}
+        {isVi ? 'Hỗ trợ theo dõi qua ' : 'Support follows through '}
         <a href={`mailto:${OMDALA_INBOXES.support}`}>{OMDALA_INBOXES.support}</a>.
       </p>
 

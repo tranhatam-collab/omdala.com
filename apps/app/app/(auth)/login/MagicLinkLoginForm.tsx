@@ -1,6 +1,6 @@
 'use client'
 
-import { OMDALA_API_ORIGIN, OMDALA_INBOXES } from '@omdala/core'
+import { OMDALA_API_ORIGIN, OMDALA_INBOXES, resolveLanguage } from '@omdala/core'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { FormEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
@@ -26,6 +26,7 @@ export function MagicLinkLoginForm({
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const isVi = resolveLanguage(searchParams.get('lang')) === 'vi'
   const verifiedTokenRef = useRef<string | null>(null)
   const [email, setEmail] = useState(defaultEmail)
   const [redirectTo, setRedirectTo] = useState(defaultRedirect)
@@ -45,7 +46,7 @@ export function MagicLinkLoginForm({
     const nextPath = normalizeRedirectPath(searchParams.get('next'), redirectTo)
     setStatus({
       tone: 'info',
-      message: 'Đang xác thực magic link... / Verifying your magic link...',
+      message: isVi ? 'Đang xác thực magic link...' : 'Verifying your magic link...',
     })
 
     void (async () => {
@@ -60,7 +61,9 @@ export function MagicLinkLoginForm({
 
         setStatus({
           tone: 'success',
-          message: 'Magic link hợp lệ. Đang chuyển vào app... / Magic link accepted. Redirecting into the app...',
+          message: isVi
+            ? 'Magic link hợp lệ. Đang chuyển vào app...'
+            : 'Magic link accepted. Redirecting into the app...',
         })
         router.replace(payload.data?.redirectTo ?? '/dashboard')
       } catch (error) {
@@ -68,7 +71,9 @@ export function MagicLinkLoginForm({
           tone: 'error',
           message: error instanceof Error
             ? error.message
-            : 'Magic link không hợp lệ hoặc đã hết hạn. / Magic link is invalid or expired.',
+            : isVi
+              ? 'Magic link không hợp lệ hoặc đã hết hạn.'
+              : 'Magic link is invalid or expired.',
         })
       }
     })()
@@ -79,7 +84,7 @@ export function MagicLinkLoginForm({
     setIsSubmitting(true)
     setStatus({
       tone: 'info',
-      message: 'Đang gửi magic link... / Sending your magic link...',
+      message: isVi ? 'Đang gửi magic link...' : 'Sending your magic link...',
     })
 
     try {
@@ -101,14 +106,18 @@ export function MagicLinkLoginForm({
 
       setStatus({
         tone: 'success',
-        message: `Magic link đã được gửi từ ${OMDALA_INBOXES.noreply}. / Your magic link has been sent from ${OMDALA_INBOXES.noreply}.`,
+        message: isVi
+          ? `Magic link đã được gửi từ ${OMDALA_INBOXES.noreply}.`
+          : `Your magic link has been sent from ${OMDALA_INBOXES.noreply}.`,
       })
     } catch (error) {
       setStatus({
         tone: 'error',
         message: error instanceof Error
           ? error.message
-          : 'Không gửi được magic link. / Unable to send the magic link.',
+            : isVi
+              ? 'Không gửi được magic link.'
+              : 'Unable to send the magic link.',
       })
     } finally {
       setIsSubmitting(false)
@@ -119,7 +128,7 @@ export function MagicLinkLoginForm({
     <>
       <form className="auth-form" onSubmit={handleSubmit}>
         <label>
-          Work email
+          {isVi ? 'Email công việc' : 'Work email'}
           <input
             type="email"
             name="email"
@@ -130,7 +139,7 @@ export function MagicLinkLoginForm({
           />
         </label>
         <label>
-          Redirect after sign-in
+          {isVi ? 'Điều hướng sau đăng nhập' : 'Redirect after sign-in'}
           <input
             type="text"
             name="redirectTo"
@@ -139,12 +148,14 @@ export function MagicLinkLoginForm({
           />
         </label>
         <button type="submit" className="app-button app-button--primary" disabled={isSubmitting}>
-          {isSubmitting ? 'Đang gửi... / Sending...' : 'Send magic link / Gửi magic link'}
+          {isSubmitting ? (isVi ? 'Đang gửi...' : 'Sending...') : isVi ? 'Gửi magic link' : 'Send magic link'}
         </button>
       </form>
 
       <p className="auth-note">
-        Login mail đi từ <a href={`mailto:${OMDALA_INBOXES.noreply}`}>{OMDALA_INBOXES.noreply}</a>. Nếu cần hỗ trợ, trả lời qua{' '}
+        {isVi ? 'Email đăng nhập được gửi từ ' : 'Login email comes from '}
+        <a href={`mailto:${OMDALA_INBOXES.noreply}`}>{OMDALA_INBOXES.noreply}</a>.{' '}
+        {isVi ? 'Nếu cần hỗ trợ, phản hồi qua ' : 'For support, reply via '}
         <a href={`mailto:${OMDALA_INBOXES.support}`}>{OMDALA_INBOXES.support}</a>.
       </p>
 

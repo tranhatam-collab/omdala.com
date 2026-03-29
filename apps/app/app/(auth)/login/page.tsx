@@ -1,7 +1,7 @@
-import Link from 'next/link'
 import { Suspense } from 'react'
 import { APP_ROUTES } from '@omdala/core'
 import { createPasswordlessDraft } from '@omdala/auth-service'
+import { LocaleLink } from '../../components/LocaleLink'
 import { MagicLinkLoginForm } from './MagicLinkLoginForm'
 
 export default function LoginPage() {
@@ -32,8 +32,8 @@ export default function LoginPage() {
           <li>Wire app guards for dashboard access.</li>
         </ul>
         <div className="auth-helper-links">
-          <Link href={APP_ROUTES.signup}>Create account</Link>
-          <Link href={APP_ROUTES.dashboard}>Preview dashboard</Link>
+          <LocaleLink href={APP_ROUTES.signup}>Create account</LocaleLink>
+          <LocaleLink href={APP_ROUTES.dashboard}>Preview dashboard</LocaleLink>
         </div>
       </aside>
     </section>

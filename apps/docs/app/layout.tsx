@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { LanguageSwitcher } from './components/LanguageSwitcher'
+import './globals.css'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://docs.omdala.com'),
@@ -16,7 +18,12 @@ export default function DocsLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <div className="docs-topbar">
+          <LanguageSwitcher />
+        </div>
+        {children}
+      </body>
     </html>
   )
 }

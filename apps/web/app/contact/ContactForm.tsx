@@ -1,8 +1,9 @@
 'use client'
 
 import { OMDALA_API_ORIGIN, OMDALA_CONTACT_TOPICS, OMDALA_INBOXES } from '../../../../packages/core/src/mail'
+import { resolveLanguage } from '@omdala/core'
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type ContactState = {
   name: string
@@ -25,6 +26,14 @@ const initialState: ContactState = {
 }
 
 export function ContactForm() {
+  const [isVi, setIsVi] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    setIsVi(resolveLanguage(new URLSearchParams(window.location.search).get('lang')) === 'vi')
+  }, [])
   const [form, setForm] = useState<ContactState>(initialState)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [status, setStatus] = useState<{ message: string; tone: StatusTone }>({
@@ -37,7 +46,7 @@ export function ContactForm() {
     setIsSubmitting(true)
     setStatus({
       tone: 'info',
-      message: 'Đang gửi liên hệ... / Sending your message...',
+      message: isVi ? 'Đang gửi liên hệ...' : 'Sending your message...',
     })
 
     try {
@@ -60,14 +69,18 @@ export function ContactForm() {
       setForm(initialState)
       setStatus({
         tone: 'success',
-        message: `Đã gửi. Đội ngũ sẽ phản hồi từ ${OMDALA_INBOXES.support}. / Sent. The team will reply from ${OMDALA_INBOXES.support}.`,
+        message: isVi
+          ? `Đã gửi. Đội ngũ sẽ phản hồi từ ${OMDALA_INBOXES.support}.`
+          : `Sent. The team will reply from ${OMDALA_INBOXES.support}.`,
       })
     } catch (error) {
       setStatus({
         tone: 'error',
         message: error instanceof Error
           ? error.message
-          : 'Không gửi được liên hệ. / Unable to deliver your message.',
+          : isVi
+            ? 'Không gửi được liên hệ.'
+            : 'Unable to deliver your message.',
       })
     } finally {
       setIsSubmitting(false)
@@ -77,19 +90,19 @@ export function ContactForm() {
   return (
     <form className="contact-form" onSubmit={handleSubmit}>
       <label className="contact-field">
-        <span>Tên của bạn / Your name</span>
+        <span>{isVi ? 'Tên của bạn' : 'Your name'}</span>
         <input
           className="contact-input"
           type="text"
           value={form.name}
           onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-          placeholder="Builder name"
+          placeholder={isVi ? 'Tên người gửi' : 'Builder name'}
           required
         />
       </label>
 
       <label className="contact-field">
-        <span>Email công việc / Work email</span>
+        <span>{isVi ? 'Email công việc' : 'Work email'}</span>
         <input
           className="contact-input"
           type="email"
@@ -101,18 +114,18 @@ export function ContactForm() {
       </label>
 
       <label className="contact-field">
-        <span>Tổ chức hoặc node / Organization or node</span>
+        <span>{isVi ? 'Tổ chức hoặc node' : 'Organization or node'}</span>
         <input
           className="contact-input"
           type="text"
           value={form.organization}
           onChange={(event) => setForm((current) => ({ ...current, organization: event.target.value }))}
-          placeholder="Your organization or node"
+          placeholder={isVi ? 'Tên tổ chức hoặc node của bạn' : 'Your organization or node'}
         />
       </label>
 
       <label className="contact-field">
-        <span>Chủ đề / Topic</span>
+        <span>{isVi ? 'Chủ đề' : 'Topic'}</span>
         <select
           className="contact-input"
           value={form.topic}
@@ -127,22 +140,24 @@ export function ContactForm() {
       </label>
 
       <label className="contact-field">
-        <span>Nội dung / Message</span>
+        <span>{isVi ? 'Nội dung' : 'Message'}</span>
         <textarea
           className="contact-input contact-textarea"
           value={form.message}
           onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
-          placeholder="Describe the context, goal, or support you need."
+          placeholder={isVi ? 'Mô tả bối cảnh, mục tiêu hoặc hỗ trợ bạn cần.' : 'Describe the context, goal, or support you need.'}
           required
         />
       </label>
 
       <button className="site-button site-button--primary" type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Đang gửi... / Sending...' : 'Gửi liên hệ / Send message'}
+        {isSubmitting ? (isVi ? 'Đang gửi...' : 'Sending...') : isVi ? 'Gửi liên hệ' : 'Send message'}
       </button>
 
       <p className="contact-note">
-        Email xác nhận sẽ được gửi từ <a href={`mailto:${OMDALA_INBOXES.hello}`}>{OMDALA_INBOXES.hello}</a>. Hỗ trợ vận hành trả lời từ{' '}
+        {isVi ? 'Email xác nhận sẽ được gửi từ ' : 'Confirmation email will be sent from '}
+        <a href={`mailto:${OMDALA_INBOXES.hello}`}>{OMDALA_INBOXES.hello}</a>.{' '}
+        {isVi ? 'Hỗ trợ vận hành trả lời từ ' : 'Operations support replies from '}
         <a href={`mailto:${OMDALA_INBOXES.support}`}>{OMDALA_INBOXES.support}</a>.
       </p>
 
