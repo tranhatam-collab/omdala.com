@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { getAiActionSuggestions } from '@omdala/ai-service'
 import { APP_ROUTES } from '@omdala/core'
 import { getMockSession } from '@omdala/auth-service'
 import { getSuggestedMatchesForNode } from '@omdala/matching-service'
+import { getInboxNotifications } from '@omdala/notifications-service'
 import { getNodeTrustSummary } from '@omdala/trust-service'
 import {
   listMockNodes,
@@ -19,6 +21,8 @@ export default function DashboardPage() {
   const primaryNode = nodes[0]
   const trustSummary = primaryNode ? getNodeTrustSummary(primaryNode) : null
   const suggestions = primaryNode ? getSuggestedMatchesForNode(primaryNode, resources) : []
+  const notifications = primaryNode ? getInboxNotifications(primaryNode) : []
+  const aiActions = primaryNode ? getAiActionSuggestions(primaryNode, resources) : []
 
   return (
     <>
@@ -102,6 +106,33 @@ export default function DashboardPage() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="detail-layout">
+        <article className="detail-card">
+          <p className="app-eyebrow">Inbox</p>
+          <h2>Notifications</h2>
+          <ul className="dashboard-list">
+            {notifications.map((notification) => (
+              <li key={notification.id}>
+                <strong>{notification.title}</strong> — {notification.summary}
+              </li>
+            ))}
+          </ul>
+        </article>
+
+        <article className="detail-card">
+          <p className="app-eyebrow">AI Layer</p>
+          <h2>Suggested actions</h2>
+          <ul className="dashboard-list">
+            {aiActions.map((action) => (
+              <li key={action.id}>
+                <strong>{action.mode}</strong> — {action.title}.{' '}
+                <Link href={action.nextAction}>{action.summary}</Link>
+              </li>
+            ))}
+          </ul>
+        </article>
       </section>
     </>
   )

@@ -1,8 +1,6 @@
 /* OMDALA — Global CSS Foundation */
 /* See docs/OMDALA_THEME_SYSTEM.md for full design token specification */
 
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700&display=swap');
-
 /* ─── Design Tokens ───────────────────────────────────────────────── */
 
 :root {
@@ -68,8 +66,8 @@
   --omdala-transition-slower: 600ms ease;
 
   /* Fonts */
-  --font-sans:    var(--font-inter), 'Inter', 'SF Pro Text', system-ui, sans-serif;
-  --font-heading: 'Sora', var(--font-inter), sans-serif;
+  --font-sans:    'Inter', 'Segoe UI', 'SF Pro Text', system-ui, sans-serif;
+  --font-heading: 'Inter', 'Segoe UI', 'SF Pro Display', system-ui, sans-serif;
 }
 
 /* ─── Reset ───────────────────────────────────────────────────────── */

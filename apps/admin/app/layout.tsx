@@ -1,13 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Inter } from 'next/font/google'
 import { getMockAdminSession, hasRequiredRole } from '@omdala/auth-service'
 import './globals.css'
-
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-})
 
 const adminNavigation = [
   { label: 'Overview', href: '/' },
@@ -36,7 +30,7 @@ export default function AdminLayout({
   const canAccessAdmin = hasRequiredRole(session, ['admin', 'system'])
 
   return (
-    <html lang="en" className={inter.className}>
+    <html lang="en">
       <body>
         <main className="admin-shell">
           <aside className="admin-sidebar">

@@ -1,6 +1,13 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { findResourceById, getResourceFormValue } from '@/lib/mock-data'
+import { getResourceStaticParams } from '@/lib/static-params'
+
+export const dynamicParams = false
+
+export function generateStaticParams() {
+  return getResourceStaticParams()
+}
 
 export default async function EditResourcePage({
   params,

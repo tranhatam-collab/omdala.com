@@ -201,6 +201,26 @@ export interface MatchSuggestion {
   nextAction: string
 }
 
+// ─── Notifications and AI ────────────────────────────────────────────────
+
+export interface NotificationRecord {
+  id: string
+  type: 'match' | 'trust' | 'proof' | 'follow_up' | 'system'
+  title: string
+  summary: string
+  href: string
+  priority: 'normal' | 'high'
+  read: boolean
+}
+
+export interface AiActionSuggestion {
+  id: string
+  mode: 'advisor' | 'planner' | 'operator' | 'analyst'
+  title: string
+  summary: string
+  nextAction: string
+}
+
 // ─── API ──────────────────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {

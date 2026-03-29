@@ -1,6 +1,13 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { findOfferById, getOfferFormValue } from '@/lib/mock-data'
+import { getOfferStaticParams } from '@/lib/static-params'
+
+export const dynamicParams = false
+
+export function generateStaticParams() {
+  return getOfferStaticParams()
+}
 
 export default async function EditOfferPage({
   params,

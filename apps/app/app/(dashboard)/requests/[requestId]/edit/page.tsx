@@ -1,6 +1,13 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { findRequestById, getRequestFormValue } from '@/lib/mock-data'
+import { getRequestStaticParams } from '@/lib/static-params'
+
+export const dynamicParams = false
+
+export function generateStaticParams() {
+  return getRequestStaticParams()
+}
 
 export default async function EditRequestPage({
   params,

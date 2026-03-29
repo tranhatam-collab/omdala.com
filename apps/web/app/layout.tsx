@@ -1,14 +1,7 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
 import Link from 'next/link'
 import { getOrganizationSchema, getWebSiteSchema, OMDALA_PAGES } from '@omdala/seo'
 import './globals.css'
-
-const inter = Inter({
-  subsets:  ['latin'],
-  variable: '--font-inter',
-  display:  'swap',
-})
 
 const primaryNavigation = [
   { label: 'What it is', href: OMDALA_PAGES.whatIsOmdala },
@@ -63,7 +56,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en">
       <head>
         <script
           type="application/ld+json"

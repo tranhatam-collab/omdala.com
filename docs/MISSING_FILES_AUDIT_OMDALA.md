@@ -44,6 +44,7 @@ Core docs:
 - [x] brand, theme, SEO, deploy, and handoff locks
 - [x] Cloudflare account baseline locked for account `93112cc89181e75335cbd7ef7e392ba3`
 - [x] OMDALA Pages targets provisioned on Cloudflare (`omdala-web`, `omdala-app`, `omdala-admin`, `omdala-docs`)
+- [x] deployment runbook and Pages deploy script
 
 ---
 
@@ -62,8 +63,8 @@ Services:
 - [x] `services/auth`
 - [x] `services/trust`
 - [x] `services/matching`
-- [ ] `services/notifications`
-- [ ] `services/ai`
+- [x] `services/notifications`
+- [x] `services/ai`
 
 Shared packages:
 
@@ -86,18 +87,18 @@ CI/CD:
 
 - [x] `.github/workflows/build.yml`
 - [x] `.github/workflows/lint.yml`
-- [ ] deploy workflows
-- [ ] first Pages deployment wiring
+- [x] deploy workflows
+- [x] first Pages deployment wiring
 
 ---
 
 ## 3. Priority order
 
-1. Deploy workflow wiring for Cloudflare Pages and Worker targets
-2. Notifications and AI services
-3. Brand-token package extraction
-4. Richer docs rendering
-5. Admin auth provider wiring beyond mock session
+1. Brand-token package extraction
+2. Richer docs rendering
+3. Admin auth provider wiring beyond mock session
+4. Dedicated OMDALA D1 and R2 provisioning when persistence is ready
+5. First persistence-backed API iteration beyond mock data
 
 ---
 

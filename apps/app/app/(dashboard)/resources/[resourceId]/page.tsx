@@ -3,6 +3,13 @@ import { notFound } from 'next/navigation'
 import { getSuggestedMatchesForResource } from '@omdala/matching-service'
 import { getResourceTrustSummary } from '@omdala/trust-service'
 import { findNodeById, findResourceById } from '@/lib/mock-data'
+import { getResourceStaticParams } from '@/lib/static-params'
+
+export const dynamicParams = false
+
+export function generateStaticParams() {
+  return getResourceStaticParams()
+}
 
 export default async function ResourceDetailPage({
   params,

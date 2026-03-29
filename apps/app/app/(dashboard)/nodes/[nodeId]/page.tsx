@@ -3,6 +3,13 @@ import { notFound } from 'next/navigation'
 import { getSuggestedMatchesForNode } from '@omdala/matching-service'
 import { getNodeTrustSummary } from '@omdala/trust-service'
 import { findNodeById, listResourcesForNode } from '@/lib/mock-data'
+import { getNodeStaticParams } from '@/lib/static-params'
+
+export const dynamicParams = false
+
+export function generateStaticParams() {
+  return getNodeStaticParams()
+}
 
 export default async function NodeDetailPage({
   params,
