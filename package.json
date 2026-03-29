@@ -1,0 +1,24 @@
+{
+  "name": "omdala.com",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm run dev:web",
+    "start": "npm run start:web",
+    "build": "npm run build:web",
+    "dev:web": "npm --prefix apps/web run dev",
+    "start:web": "npm --prefix apps/web run start",
+    "build:web": "npm --prefix apps/web run build",
+    "dev:app": "npm --prefix apps/app run dev",
+    "start:app": "npm --prefix apps/app run start",
+    "build:app": "npm --prefix apps/app run build",
+    "dev:api": "npm --prefix services/api run dev",
+    "start:api": "npm --prefix services/api run start",
+    "build:api": "npm --prefix services/api run check",
+    "dev:static": "node scripts/dev-server.mjs",
+    "start:static": "node scripts/dev-server.mjs",
+    "build:static": "node scripts/build-static.mjs",
+    "preview:static": "node scripts/dev-server.mjs --root dist --port 4174"
+  }
+}

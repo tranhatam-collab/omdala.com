@@ -1,0 +1,6 @@
+name = "omdala-api"
+main = "src/index.js"
+compatibility_date = "2026-03-17"
+
+[dev]
+port = 8789
