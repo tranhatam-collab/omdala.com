@@ -1,64 +1,45 @@
 import Link from 'next/link'
-import { getAiActionSuggestions } from '@omdala/ai-service'
 import { APP_ROUTES } from '@omdala/core'
-import { getMockSession } from '@omdala/auth-service'
-import { getSuggestedMatchesForNode } from '@omdala/matching-service'
-import { getInboxNotifications } from '@omdala/notifications-service'
-import { getNodeTrustSummary } from '@omdala/trust-service'
-import {
-  listMockNodes,
-  listMockOffers,
-  listMockRequests,
-  listMockResources,
-} from '@/lib/mock-data'
+import { getDashboardSnapshot } from '@/lib/runtime-data'
 
 export default function DashboardPage() {
-  const session = getMockSession()
-  const nodes = listMockNodes()
-  const resources = listMockResources()
-  const offers = listMockOffers()
-  const requests = listMockRequests()
-  const primaryNode = nodes[0]
-  const trustSummary = primaryNode ? getNodeTrustSummary(primaryNode) : null
-  const suggestions = primaryNode ? getSuggestedMatchesForNode(primaryNode, resources) : []
-  const notifications = primaryNode ? getInboxNotifications(primaryNode) : []
-  const aiActions = primaryNode ? getAiActionSuggestions(primaryNode, resources) : []
+  const snapshot = getDashboardSnapshot()
 
   return (
     <>
       <section className="dashboard-panel">
-        <p className="app-eyebrow">Dashboard Shell</p>
-        <h1>Welcome back, {session.user.displayName}.</h1>
+        <p className="app-eyebrow">Dashboard Runtime</p>
+        <h1>Welcome back, {snapshot.session.user.displayName}.</h1>
         <p className="app-copy">
-          This dashboard is the next stable development step after the masterbrand lock. It creates
-          the frame for real node, resource, trust, and activity modules.
+          The app now runs on structured mock data flow with active trust scoring, match suggestions,
+          notifications, and AI action outputs wired into the same runtime graph.
         </p>
       </section>
 
       <section className="dashboard-grid">
         <article className="dashboard-stat">
           <strong>Session</strong>
-          <p>Passwordless draft session loaded for the auth service contract.</p>
+          <p>Passwordless auth contract is loaded with role-aware runtime context.</p>
         </article>
         <article className="dashboard-stat">
           <strong>Primary role</strong>
-          <p>{session.user.roles.join(', ')}</p>
+          <p>{snapshot.session.user.roles.join(', ')}</p>
         </article>
         <article className="dashboard-stat">
-          <strong>Next modules</strong>
-          <p>Nodes, resources, offers, requests, and trust summaries.</p>
+          <strong>Primary node</strong>
+          <p>{snapshot.primaryNode?.name ?? 'Not available'}</p>
         </article>
         <article className="dashboard-stat">
-          <strong>Nodes in shell</strong>
-          <p>{nodes.length} structured nodes are ready for CRUD iteration.</p>
+          <strong>Nodes online</strong>
+          <p>{snapshot.counts.nodes} nodes are active in the mock runtime graph.</p>
         </article>
         <article className="dashboard-stat">
-          <strong>Offer flow</strong>
-          <p>{offers.length} offer records now exist for create, detail, and edit flows.</p>
+          <strong>Resource flow</strong>
+          <p>{snapshot.counts.resources} resources are available for trust and matching operations.</p>
         </article>
         <article className="dashboard-stat">
-          <strong>Request flow</strong>
-          <p>{requests.length} request records now exist for create, detail, and edit flows.</p>
+          <strong>Pending trust proofs</strong>
+          <p>{snapshot.counts.pendingProofs} items need trust review before broader distribution.</p>
         </article>
       </section>
 
@@ -71,6 +52,9 @@ export default function DashboardPage() {
           <Link href={APP_ROUTES.resources} className="app-button app-button--ghost">
             Open resources
           </Link>
+          <Link href={APP_ROUTES.trust} className="app-button app-button--ghost">
+            Open trust
+          </Link>
           <Link href={APP_ROUTES.offers} className="app-button app-button--ghost">
             Open offers
           </Link>
@@ -80,14 +64,15 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {trustSummary ? (
+      {snapshot.trustSummary ? (
         <section className="dashboard-panel">
           <h2>Primary node trust summary</h2>
           <ul className="dashboard-list">
-            <li>Level: {trustSummary.level}</li>
-            <li>Score: {trustSummary.overallScore}</li>
-            <li>Highlights: {trustSummary.highlights.join(' ')}</li>
-            <li>Blockers: {trustSummary.blockers.join(' ')}</li>
+            <li>Level: {snapshot.trustSummary.level}</li>
+            <li>Score: {snapshot.trustSummary.overallScore}</li>
+            <li>Highlights: {snapshot.trustSummary.highlights.join(' ')}</li>
+            <li>Blockers: {snapshot.trustSummary.blockers.join(' ')}</li>
+            <li>Band: {snapshot.trustBand}</li>
           </ul>
         </section>
       ) : null}
@@ -95,7 +80,7 @@ export default function DashboardPage() {
       <section className="dashboard-panel">
         <h2>Suggested next matches</h2>
         <div className="entity-grid">
-          {suggestions.map((suggestion) => (
+          {snapshot.suggestions.map((suggestion) => (
             <article key={suggestion.id} className="entity-card">
               <strong>{suggestion.score}</strong>
               <h3>{suggestion.title}</h3>
@@ -113,7 +98,7 @@ export default function DashboardPage() {
           <p className="app-eyebrow">Inbox</p>
           <h2>Notifications</h2>
           <ul className="dashboard-list">
-            {notifications.map((notification) => (
+            {snapshot.notifications.map((notification) => (
               <li key={notification.id}>
                 <strong>{notification.title}</strong> — {notification.summary}
               </li>
@@ -125,7 +110,7 @@ export default function DashboardPage() {
           <p className="app-eyebrow">AI Layer</p>
           <h2>Suggested actions</h2>
           <ul className="dashboard-list">
-            {aiActions.map((action) => (
+            {snapshot.aiActions.map((action) => (
               <li key={action.id}>
                 <strong>{action.mode}</strong> — {action.title}.{' '}
                 <Link href={action.nextAction}>{action.summary}</Link>

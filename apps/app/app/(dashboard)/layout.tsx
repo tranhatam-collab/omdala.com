@@ -9,6 +9,7 @@ const NAV_LABELS_VI: Record<string, string> = {
   Dashboard: 'Bảng điều khiển',
   Nodes: 'Node',
   Resources: 'Tài nguyên',
+  Trust: 'Niềm tin',
   Offers: 'Đề nghị',
   Requests: 'Nhu cầu',
   Profile: 'Hồ sơ',
