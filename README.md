@@ -31,8 +31,9 @@ Supporting line:
 
 Read:
 
-1. `docs/BRAND_ARCHITECTURE_OMDALA.md`
-2. `docs/README_DEV_HANDOFF_OMDALA.md`
+1. `docs/MASTER_BUILD_SYSTEM_OMDALA_OMDALAT.md`
+2. `docs/BRAND_ARCHITECTURE_OMDALA.md`
+3. `docs/README_DEV_HANDOFF_OMDALA.md`
 
 ## Repo structure
 
@@ -54,4 +55,3 @@ omdala.com/
 
 This repo starts as a static-first foundation plus handoff docs.
 The next build phase should turn it into the real master platform surface for the OMDALA ecosystem.
-
