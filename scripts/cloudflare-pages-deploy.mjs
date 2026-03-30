@@ -4,6 +4,45 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 
+const repoRootEarly = process.cwd()
+
+/**
+ * Load optional root `.env` / `.env.local` so `pnpm deploy:*` works without
+ * re-exporting secrets in every shell (files are gitignored; never commit values).
+ */
+function loadOptionalRootEnvFiles() {
+  for (const name of ['.env', '.env.local']) {
+    const envPath = path.join(repoRootEarly, name)
+    if (!existsSync(envPath)) {
+      continue
+    }
+    const raw = readFileSync(envPath, 'utf8')
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) {
+        continue
+      }
+      const eq = trimmed.indexOf('=')
+      if (eq === -1) {
+        continue
+      }
+      const key = trimmed.slice(0, eq).trim()
+      let val = trimmed.slice(eq + 1).trim()
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
+        val = val.slice(1, -1)
+      }
+      if (process.env[key] === undefined) {
+        process.env[key] = val
+      }
+    }
+  }
+}
+
+loadOptionalRootEnvFiles()
+
 const surface = process.argv[2]
 const branch = process.argv[3] ?? 'preview'
 
@@ -36,7 +75,7 @@ if (!surface || !(surface in SURFACES)) {
 }
 
 const target = SURFACES[surface]
-const repoRoot = process.cwd()
+const repoRoot = repoRootEarly
 const outDir = path.join(repoRoot, target.appDir, 'out')
 
 function run(command, args, options = {}) {
