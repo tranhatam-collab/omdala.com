@@ -475,13 +475,9 @@ img, video {
   color: var(--omdala-text-primary);
 }
 
-.footer-address-preline {
-  white-space: pre-line;
-}
-
-.footer-legal-note {
-  font-size: 0.9rem;
-  opacity: 0.9;
+.footer-legal-label {
+  font-weight: 600;
+  color: var(--omdala-text-muted);
 }
 
 .contact-org-block {
