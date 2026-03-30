@@ -475,6 +475,19 @@ img, video {
   color: var(--omdala-text-primary);
 }
 
+.footer-address-preline {
+  white-space: pre-line;
+}
+
+.footer-legal-note {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.contact-org-block {
+  margin-top: 2rem;
+}
+
 @media (max-width: 860px) {
   .site-header__inner {
     align-items: flex-start;

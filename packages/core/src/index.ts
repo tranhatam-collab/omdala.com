@@ -17,6 +17,7 @@ export {
   OMDALA_MAIL_API_ORIGIN,
   OMDALA_WEB_ORIGIN,
 } from './mail'
+export { ANGEL_EDU_TAM_FOUNDATION } from './foundation'
 export {
   findNodeById,
   findOfferById,

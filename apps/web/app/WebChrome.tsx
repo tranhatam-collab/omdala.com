@@ -1,6 +1,6 @@
 'use client'
 
-import { resolveLanguage, type OmdalaLanguage } from '@omdala/core'
+import { ANGEL_EDU_TAM_FOUNDATION, resolveLanguage, type OmdalaLanguage } from '@omdala/core'
 import { OMDALA_PAGES } from '@omdala/seo'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -27,6 +27,9 @@ const COPY = {
     trustArchitecture: 'Trust architecture',
     surfaces: 'Surfaces',
     apiHealth: 'API health',
+    legalEntity: 'Legal entity',
+    legalSponsor:
+      'Angel Edu Tam Foundation Inc sponsors omdala.com, omdalat.com, and the *.iai.one ecosystem, including fully sponsored technology for omdalat.com. Official legal texts for IAI services: docs.iai.one/legal/.',
   },
   vi: {
     nav: {
@@ -47,6 +50,9 @@ const COPY = {
     trustArchitecture: 'Kiến trúc niềm tin',
     surfaces: 'Bề mặt hệ thống',
     apiHealth: 'Trạng thái API',
+    legalEntity: 'Pháp nhân tài trợ',
+    legalSponsor:
+      'Angel Edu Tam Foundation Inc tài trợ omdala.com, omdalat.com và hệ sinh thái *.iai.one; hỗ trợ công nghệ hoàn toàn miễn phí cho omdalat.com. Văn bản pháp lý chính thức cho dịch vụ IAI: docs.iai.one/legal/.',
   },
 }
 
@@ -122,6 +128,18 @@ export function WebChrome({ children }: { children: React.ReactNode }) {
             <a href="https://app.omdala.com">App</a>
             <a href="https://docs.omdala.com">Docs</a>
             <a href="https://api.omdala.com/health">{text.apiHealth}</a>
+          </div>
+
+          <div className="footer-block">
+            <p className="footer-heading">{text.legalEntity}</p>
+            <p className="section-copy">{ANGEL_EDU_TAM_FOUNDATION.legalName}</p>
+            <p className="section-copy footer-address-preline">
+              {ANGEL_EDU_TAM_FOUNDATION.addressLines.join('\n')}
+            </p>
+            <p className="section-copy">
+              <a href={`mailto:${ANGEL_EDU_TAM_FOUNDATION.email}`}>{ANGEL_EDU_TAM_FOUNDATION.email}</a>
+            </p>
+            <p className="section-copy footer-legal-note">{text.legalSponsor}</p>
           </div>
         </div>
       </footer>

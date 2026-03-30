@@ -1,6 +1,6 @@
 'use client'
 
-import { OMDALA_INBOXES } from '../../../../packages/core/src/mail'
+import { ANGEL_EDU_TAM_FOUNDATION, OMDALA_INBOXES } from '@omdala/core'
 import { contactContent, pickText } from '../lib/content'
 import { useWebLocale } from '../lib/useWebLocale'
 import { ContactForm } from './ContactForm'
@@ -54,6 +54,27 @@ export default function ContactPage() {
               </li>
             ))}
           </ul>
+
+          <div className="section-header contact-org-block">
+            <h2>{locale === 'vi' ? 'Pháp nhân tài trợ' : 'Sponsoring legal entity'}</h2>
+            <p className="section-copy">
+              {locale === 'vi'
+                ? 'OMDALA được tài trợ và phát hành trong khuôn khổ Angel Edu Tam Foundation Inc, cùng hệ sinh thái *.iai.one và omdalat.com (hỗ trợ công nghệ miễn phí).'
+                : 'OMDALA is sponsored and published under Angel Edu Tam Foundation Inc, alongside the *.iai.one ecosystem and omdalat.com (fully sponsored technology).'}
+            </p>
+            <p className="section-copy">{ANGEL_EDU_TAM_FOUNDATION.legalName}</p>
+            <p className="section-copy footer-address-preline">
+              {ANGEL_EDU_TAM_FOUNDATION.addressLines.join('\n')}
+            </p>
+            <p className="section-copy">
+              <a href={`mailto:${ANGEL_EDU_TAM_FOUNDATION.email}`}>{ANGEL_EDU_TAM_FOUNDATION.email}</a>
+            </p>
+            <p className="section-copy">
+              <a href="https://docs.iai.one/legal/">docs.iai.one/legal</a>
+              {' — '}
+              {locale === 'vi' ? 'trung tâm điều khoản IAI Flow' : 'IAI Flow legal hub'}
+            </p>
+          </div>
         </article>
       </section>
     </main>
