@@ -12,201 +12,158 @@ export function pickText(locale: WebLocale, text: LocalizedText): string {
 export const homeContent = {
   hero: {
     eyebrow: {
-      en: 'Global Coordination System',
-      vi: 'Hệ điều phối toàn cầu',
+      en: 'Verified Coordination Infrastructure',
+      vi: 'Hạ tầng điều phối có kiểm chứng',
     },
     title: {
-      en: 'OMDALA turns people, places, and resources into coordinated value.',
-      vi: 'OMDALA biến con người, địa điểm và tài nguyên thành giá trị được điều phối.',
+      en: 'OMDALA — The Operating Layer for Real-World Value.',
+      vi: 'OMDALA — Lớp vận hành cho giá trị thế giới thực.',
     },
     lead: {
-      en: 'OMDALA is the master operating layer for identity, resources, trust, matching, and AI-guided action across a growing network of people, organizations, and places.',
-      vi: 'OMDALA là lớp vận hành chủ cho định danh, tài nguyên, niềm tin, ghép nối và hành động có AI hướng dẫn trên một mạng lưới con người, tổ chức và địa điểm đang mở rộng.',
+      en: 'From Current Reality to Desired Reality — coordinated, verified, and trusted. OMDALA connects people, places, and resources into a single coordination system where value is activated, outcomes are proven, and trust compounds over time.',
+      vi: 'Từ Thực tại hiện có đến Thực tại mong muốn — được điều phối, kiểm chứng và tin cậy. OMDALA kết nối con người, địa điểm và tài nguyên vào một hệ thống thống nhất, nơi giá trị được kích hoạt, kết quả được chứng minh và niềm tin tích lũy theo thời gian.',
     },
-    ctaPrimary: { en: 'See the platform', vi: 'Xem nền tảng' },
-    ctaSecondary: { en: 'Understand the system', vi: 'Hiểu cách vận hành' },
-    ctaDocs: { en: 'Open docs', vi: 'Mở tài liệu' },
-  },
-  platformLogic: {
-    eyebrow: { en: 'Platform Logic', vi: 'Logic nền tảng' },
-    title: {
-      en: 'Built as a master layer, not a single-use app',
-      vi: 'Được xây như lớp chủ, không phải ứng dụng một mục đích',
-    },
-    copy: {
-      en: 'The system starts from a simple question: what value already exists but is not being coordinated well enough to create trusted outcomes? OMDALA answers that through visibility, activation, trust, and follow-through.',
-      vi: 'Hệ thống bắt đầu từ một câu hỏi đơn giản: giá trị nào đã tồn tại nhưng chưa được điều phối đủ tốt để tạo kết quả đáng tin? OMDALA trả lời bằng khả năng nhìn thấy, kích hoạt, xây niềm tin và theo đuổi đến cùng.',
-    },
-    metrics: [
-      {
-        title: { en: 'Identity', vi: 'Định danh' },
-        copy: {
-          en: 'Model people, teams, places, and organizations as living nodes with goals and capacity.',
-          vi: 'Mô hình hóa con người, nhóm, địa điểm và tổ chức thành các node sống có mục tiêu và năng lực.',
-        },
-      },
-      {
-        title: { en: 'Resources', vi: 'Tài nguyên' },
-        copy: {
-          en: 'Track underused time, space, knowledge, services, assets, and network potential.',
-          vi: 'Theo dõi thời gian, không gian, tri thức, dịch vụ, tài sản và tiềm năng mạng lưới đang chưa khai thác.',
-        },
-      },
-      {
-        title: { en: 'Trust', vi: 'Niềm tin' },
-        copy: {
-          en: 'Turn proof, verification, behavior, and completion into durable confidence signals.',
-          vi: 'Biến bằng chứng, xác thực, hành vi và mức độ hoàn thành thành tín hiệu tin cậy bền vững.',
-        },
-      },
-      {
-        title: { en: 'Action', vi: 'Hành động' },
-        copy: {
-          en: 'Use orchestration, messaging, booking, and AI plans to move from intention to execution.',
-          vi: 'Dùng điều phối, nhắn tin, đặt lịch và kế hoạch AI để đi từ ý định đến triển khai.',
-        },
-      },
-    ],
-  },
-  operators: {
-    eyebrow: { en: 'Who It Serves', vi: 'Đối tượng phục vụ' },
-    title: {
-      en: 'Designed for real operators with real capacity',
-      vi: 'Thiết kế cho người vận hành có năng lực thực',
-    },
-    copy: {
-      en: 'The first fit is not everyone. The first fit is people and organizations that already have value to activate but lack a serious coordination layer.',
-      vi: 'Phù hợp giai đoạn đầu không phải tất cả mọi người. Đó là người và tổ chức đã có giá trị để kích hoạt nhưng thiếu một lớp điều phối nghiêm túc.',
-    },
-    cards: [
-      {
-        title: { en: 'Experts', vi: 'Chuyên gia' },
-        copy: {
-          en: 'Package skill, time, and trust into structured offers instead of scattered outreach.',
-          vi: 'Đóng gói kỹ năng, thời gian và niềm tin thành đề nghị có cấu trúc thay vì kết nối rời rạc.',
-        },
-      },
-      {
-        title: { en: 'Hosts', vi: 'Điểm đón' },
-        copy: {
-          en: 'Turn places, availability, and local reputation into higher-quality utilization.',
-          vi: 'Biến không gian, mức sẵn sàng và uy tín địa phương thành khả năng khai thác chất lượng hơn.',
-        },
-      },
-      {
-        title: { en: 'Communities', vi: 'Cộng đồng' },
-        copy: {
-          en: 'Coordinate members, shared assets, events, and governance without operational chaos.',
-          vi: 'Điều phối thành viên, tài sản chung, sự kiện và quản trị mà không rối loạn vận hành.',
-        },
-      },
-      {
-        title: { en: 'Small businesses', vi: 'Doanh nghiệp nhỏ' },
-        copy: {
-          en: 'See idle capacity, improve matching, and run trust-backed operations in one system.',
-          vi: 'Nhìn thấy công suất nhàn rỗi, cải thiện ghép nối và vận hành dựa trên niềm tin trong một hệ thống.',
-        },
-      },
-    ],
+    ctaPrimary: { en: 'Start Building Reality', vi: 'Bắt đầu kiến tạo' },
+    ctaSecondary: { en: 'Explore the System', vi: 'Khám phá hệ thống' },
+    ctaDocs: { en: 'Open Docs', vi: 'Mở tài liệu' },
   },
   loop: {
     eyebrow: { en: 'Core Loop', vi: 'Vòng lặp cốt lõi' },
     title: {
-      en: 'See value. Activate it. Prove it. Compound it.',
-      vi: 'Nhìn thấy giá trị. Kích hoạt. Chứng minh. Tích lũy.',
+      en: 'How OMDALA Works',
+      vi: 'Cách OMDALA vận hành',
     },
     items: [
       {
-        title: { en: '1. See what exists', vi: '1. Nhìn rõ hiện trạng' },
+        title: { en: '1. See Value', vi: '1. Thấy giá trị' },
         copy: {
-          en: 'Inventory nodes, resources, trust status, needs, and network context.',
-          vi: 'Kiểm kê node, tài nguyên, trạng thái niềm tin, nhu cầu và bối cảnh mạng lưới.',
+          en: 'Discover people, places, and resources around you.',
+          vi: 'Khám phá con người, địa điểm và tài nguyên xung quanh bạn.',
         },
       },
       {
-        title: { en: '2. Structure what matters', vi: '2. Chuẩn hóa điều quan trọng' },
+        title: { en: '2. Activate It', vi: '2. Kích hoạt' },
         copy: {
-          en: 'Turn loose intent into requests, offers, availability, tasks, and booking-ready objects.',
-          vi: 'Biến ý định rời rạc thành nhu cầu, đề nghị, khả năng sẵn sàng, tác vụ và đối tượng có thể đặt lịch.',
+          en: 'Structure resources and define desired outcomes.',
+          vi: 'Cấu trúc hóa tài nguyên và xác định kết quả mong muốn.',
         },
       },
       {
-        title: { en: '3. Match with context', vi: '3. Ghép theo ngữ cảnh' },
+        title: { en: '3. Prove It', vi: '3. Chứng minh' },
         copy: {
-          en: 'Score fit by relevance, trust, timing, capability, and expected operational outcome.',
-          vi: 'Chấm mức phù hợp theo độ liên quan, niềm tin, thời điểm, năng lực và kết quả vận hành kỳ vọng.',
+          en: 'Execute commitments and attach verifiable proof.',
+          vi: 'Thực thi cam kết và đính kèm bằng chứng có thể kiểm chứng.',
         },
       },
       {
-        title: { en: '4. Move to action', vi: '4. Chuyển sang hành động' },
+        title: { en: '4. Compound It', vi: '4. Tích lũy' },
         copy: {
-          en: 'Use AI drafts, messaging, booking, payments, and task flows to complete the work.',
-          vi: 'Dùng bản nháp AI, nhắn tin, đặt lịch, thanh toán và luồng công việc để hoàn thành tác vụ.',
-        },
-      },
-      {
-        title: { en: '5. Store proof and trust', vi: '5. Lưu bằng chứng và niềm tin' },
-        copy: {
-          en: 'Record outcomes so every completed interaction strengthens future discoverability.',
-          vi: 'Ghi nhận kết quả để mỗi tương tác hoàn tất đều tăng khả năng được khám phá trong tương lai.',
+          en: 'Build trust that grows with every completed action.',
+          vi: 'Xây dựng niềm tin lớn mạnh sau mỗi hành động hoàn tất.',
         },
       },
     ],
   },
-  surfaces: {
-    eyebrow: { en: 'Platform Surfaces', vi: 'Các bề mặt nền tảng' },
+  stateTransition: {
+    eyebrow: { en: 'State Transition Layer', vi: 'Lớp chuyển đổi trạng thái' },
     title: {
-      en: 'One master brand across the full operating stack',
-      vi: 'Một thương hiệu chủ cho toàn bộ tầng vận hành',
+      en: 'From Current Reality to Desired Reality',
+      vi: 'Từ thực tại hiện có đến thực tại mong muốn',
     },
-    cards: [
-      {
-        label: 'omdala.com',
-        copy: {
-          en: 'Public brand, positioning, onboarding, trust explanation, and category definition.',
-          vi: 'Bề mặt thương hiệu công khai, định vị, onboarding, giải thích niềm tin và định nghĩa danh mục.',
-        },
-      },
-      {
-        label: 'app.omdala.com',
-        copy: {
-          en: 'Authenticated application for nodes, offers, requests, trust, and action workflows.',
-          vi: 'Ứng dụng xác thực cho node, đề nghị, nhu cầu, niềm tin và luồng hành động.',
-        },
-      },
-      {
-        label: 'docs.omdala.com',
-        copy: {
-          en: 'Developer and product documentation for system contracts, architecture, and APIs.',
-          vi: 'Tài liệu kỹ thuật và sản phẩm cho hợp đồng hệ thống, kiến trúc và API.',
-        },
-      },
-      {
-        label: 'api.omdala.com',
-        copy: {
-          en: 'Versioned API layer for identity, resources, matching, trust, and orchestration services.',
-          vi: 'Lớp API có phiên bản cho định danh, tài nguyên, ghép nối, niềm tin và dịch vụ điều phối.',
-        },
-      },
+    copy: {
+      en: 'Every node in OMDALA has a current state and a desired state. The system continuously plans and executes transitions between them — using real resources, real commitments, and verifiable outcomes.',
+      vi: 'Mỗi node trong OMDALA đều có một trạng thái hiện tại và trạng thái mong muốn. Hệ thống liên tục lập kế hoạch và thực thi việc chuyển đổi giữa chúng — sử dụng tài nguyên thật, cam kết thật và kết quả có thể kiểm chứng.',
+    },
+    concepts: [
+      { en: 'Current State', vi: 'Trạng thái hiện tại' },
+      { en: 'Desired State', vi: 'Trạng thái mong muốn' },
+      { en: 'Transition Path', vi: 'Đường dẫn chuyển đổi' },
+      { en: 'Constraints', vi: 'Các ràng buộc' },
+      { en: 'Outcomes', vi: 'Kết quả' },
     ],
   },
-  mockSignals: [
-    {
-      metric: '12',
-      label: { en: 'Core route contracts', vi: 'Hợp đồng route lõi' },
-      detail: { en: 'Public web routes now mapped with canonical + schema runtime.', vi: 'Route web công khai đã được map với canonical + schema runtime.' },
+  commitments: {
+    eyebrow: { en: 'Commitments Engine', vi: 'Động cơ cam kết' },
+    title: {
+      en: 'Coordination Through Commitments',
+      vi: 'Điều phối thông qua cam kết',
     },
-    {
-      metric: '2',
-      label: { en: 'Live locales', vi: 'Ngôn ngữ đang chạy' },
-      detail: { en: 'English-first with full Vietnamese overlay and expansion hooks.', vi: 'English-first với lớp tiếng Việt đầy đủ và hook mở rộng.' },
+    copy: {
+      en: 'Offers and requests are just the surface. At the core of OMDALA is a commitment engine — where nodes define what they will do, under what conditions, and how success is verified.',
+      vi: 'Đề nghị và nhu cầu chỉ là bề mặt. Cốt lõi của OMDALA là một động cơ cam kết — nơi các node xác định họ sẽ làm gì, dưới điều kiện nào, và sự thành công được xác thực ra sao.',
     },
-    {
-      metric: '10',
-      label: { en: 'Structured content modules', vi: 'Module nội dung có cấu trúc' },
-      detail: { en: 'All major public pages read from typed content objects.', vi: 'Các trang public chính đọc từ object nội dung có kiểu.' },
+    features: [
+      { en: 'Multi-party commitments', vi: 'Cam kết đa bên' },
+      { en: 'Conditional execution', vi: 'Thực thi có điều kiện' },
+      { en: 'Deadlines & consequences', vi: 'Thời hạn & hệ quả' },
+      { en: 'Approval flows', vi: 'Luồng phê duyệt' },
+    ],
+  },
+  trust: {
+    eyebrow: { en: 'Proof & Trust System', vi: 'Hệ thống bằng chứng & niềm tin' },
+    title: {
+      en: 'Trust Is Built, Not Claimed',
+      vi: 'Niềm tin được xây dựng, không phải tự xưng',
     },
-  ],
+    copy: {
+      en: 'Trust in OMDALA is not based on ratings alone. It is built from verifiable actions, completed commitments, and transparent governance.',
+      vi: 'Niềm tin trong OMDALA không chỉ dựa trên đánh giá. Nó được xây từ các hành động có thể kiểm chứng, cam kết đã hoàn tất, và sự quản trị minh bạch.',
+    },
+    signals: [
+      { en: 'Verified identity', vi: 'Định danh xác thực' },
+      { en: 'Proof of completion', vi: 'Bằng chứng hoàn thành' },
+      { en: 'Behavioral history', vi: 'Lịch sử hành vi' },
+      { en: 'Governance decisions', vi: 'Quyết định quản trị' },
+    ],
+  },
+  governance: {
+    eyebrow: { en: 'AGI-Safe Governance', vi: 'Quản trị an toàn cho AGI' },
+    title: {
+      en: 'Human-Governed, Machine-Operated',
+      vi: 'Con người quản trị, máy móc vận hành',
+    },
+    copy: {
+      en: 'All actions — human or AI — must pass through policy and governance. OMDALA ensures that every transition is auditable, explainable, and reversible when needed.',
+      vi: 'Mọi hành động — của người hay AI — đều phải đi qua chính sách và quản trị. OMDALA đảm bảo mọi quá trình chuyển đổi đều có thể kiểm toán, giải thích và đảo ngược khi cần.',
+    },
+  },
+  systemMap: {
+    eyebrow: { en: 'System Map', vi: 'Bản đồ hệ thống' },
+    title: {
+      en: 'The OMDALA System',
+      vi: 'Hệ thống OMDALA',
+    },
+    layers: [
+      { en: 'Brand Layer', vi: 'Lớp thương hiệu' },
+      { en: 'App Layer', vi: 'Lớp ứng dụng' },
+      { en: 'Trust Layer', vi: 'Lớp niềm tin' },
+      { en: 'Proof Layer', vi: 'Lớp bằng chứng' },
+      { en: 'Graph Layer', vi: 'Lớp đồ thị' },
+      { en: 'API Layer', vi: 'Lớp API' },
+      { en: 'AI Layer', vi: 'Lớp AI' },
+    ],
+  },
+  useCases: {
+    eyebrow: { en: 'Use Cases', vi: 'Trường hợp sử dụng' },
+    title: {
+      en: 'What You Can Do',
+      vi: 'Những gì bạn có thể làm',
+    },
+    examples: [
+      { en: 'Eliminate overdue payments', vi: 'Xóa bỏ nợ quá hạn' },
+      { en: 'Activate idle resources', vi: 'Kích hoạt tài nguyên nhàn rỗi' },
+      { en: 'Coordinate teams and communities', vi: 'Điều phối đội ngũ và cộng đồng' },
+      { en: 'Deliver outcomes with proof', vi: 'Giao kết quả kèm bằng chứng' },
+    ],
+  },
+  ctaFinal: {
+    title: {
+      en: 'Build Your Reality with OMDALA',
+      vi: 'Kiến tạo thực tại của bạn cùng OMDALA',
+    },
+    primary: { en: 'Start Now', vi: 'Bắt đầu ngay' },
+    secondary: { en: 'Talk to Us', vi: 'Trò chuyện với chúng tôi' },
+  }
 } as const
 
 export const definitionContent = {

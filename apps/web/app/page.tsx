@@ -2,15 +2,14 @@
 
 import { LocaleLink } from './components/LocaleLink'
 import { homeContent, pickText } from './lib/content'
-import { getPublicRuntimeSnapshot } from './lib/runtime-seed'
 import { useWebLocale } from './lib/useWebLocale'
 
 export default function HomePage() {
   const locale = useWebLocale()
-  const runtime = getPublicRuntimeSnapshot()
 
   return (
     <main className="site-shell page-shell">
+      {/* 1. HERO SECTION */}
       <section className="panel hero">
         <p className="eyebrow">{pickText(locale, homeContent.hero.eyebrow)}</p>
         <h1>{pickText(locale, homeContent.hero.title)}</h1>
@@ -28,46 +27,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="panel">
-        <div className="section-header">
-          <p className="eyebrow">{pickText(locale, homeContent.platformLogic.eyebrow)}</p>
-          <h2>{pickText(locale, homeContent.platformLogic.title)}</h2>
-          <p className="section-copy">{pickText(locale, homeContent.platformLogic.copy)}</p>
-        </div>
-
-        <div className="metric-grid">
-          {homeContent.platformLogic.metrics.map((item) => (
-            <article key={item.title.en} className="metric-card">
-              <strong>{pickText(locale, item.title)}</strong>
-              <p>{pickText(locale, item.copy)}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="panel">
-        <div className="section-header">
-          <p className="eyebrow">{pickText(locale, homeContent.operators.eyebrow)}</p>
-          <h2>{pickText(locale, homeContent.operators.title)}</h2>
-          <p className="section-copy">{pickText(locale, homeContent.operators.copy)}</p>
-        </div>
-
-        <div className="card-grid">
-          {homeContent.operators.cards.map((card) => (
-            <article key={card.title.en}>
-              <h3>{pickText(locale, card.title)}</h3>
-              <p>{pickText(locale, card.copy)}</p>
-            </article>
-          ))}
-        </div>
-
-        <div className="page-links">
-          <LocaleLink href="/for-experts">{pickText(locale, { en: 'For experts', vi: 'Cho chuyên gia' })}</LocaleLink>
-          <LocaleLink href="/for-hosts">{pickText(locale, { en: 'For hosts', vi: 'Cho điểm đón' })}</LocaleLink>
-          <LocaleLink href="/for-communities">{pickText(locale, { en: 'For communities', vi: 'Cho cộng đồng' })}</LocaleLink>
-        </div>
-      </section>
-
+      {/* 2. CORE LOOP */}
       <section className="panel">
         <div className="section-header">
           <p className="eyebrow">{pickText(locale, homeContent.loop.eyebrow)}</p>
@@ -84,82 +44,108 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* 3. STATE TRANSITION LAYER */}
       <section className="panel">
         <div className="section-header">
-          <p className="eyebrow">{pickText(locale, homeContent.surfaces.eyebrow)}</p>
-          <h2>{pickText(locale, homeContent.surfaces.title)}</h2>
+          <p className="eyebrow">{pickText(locale, homeContent.stateTransition.eyebrow)}</p>
+          <h2>{pickText(locale, homeContent.stateTransition.title)}</h2>
+          <p className="section-copy">{pickText(locale, homeContent.stateTransition.copy)}</p>
         </div>
 
         <div className="card-grid">
-          {homeContent.surfaces.cards.map((card) => (
-            <article key={card.label}>
-              <h3>{card.label}</h3>
-              <p>{pickText(locale, card.copy)}</p>
-            </article>
+          {homeContent.stateTransition.concepts.map((concept) => (
+            <article key={concept.en}><h3>
+              {pickText(locale, concept)}
+            </h3></article>
           ))}
         </div>
       </section>
 
+      {/* 4. COMMITMENTS ENGINE */}
       <section className="panel">
         <div className="section-header">
-          <p className="eyebrow">{pickText(locale, { en: 'Runtime Signals', vi: 'Tín hiệu runtime' })}</p>
-          <h2>{pickText(locale, { en: 'Structured mock data now powers public routes', vi: 'Dữ liệu mock có cấu trúc đang vận hành các route public' })}</h2>
+          <p className="eyebrow">{pickText(locale, homeContent.commitments.eyebrow)}</p>
+          <h2>{pickText(locale, homeContent.commitments.title)}</h2>
+          <p className="section-copy">{pickText(locale, homeContent.commitments.copy)}</p>
         </div>
 
         <div className="metric-grid">
-          {homeContent.mockSignals.map((signal) => (
-            <article key={signal.label.en} className="metric-card">
-              <strong>{signal.metric}</strong>
-              <h3>{pickText(locale, signal.label)}</h3>
-              <p>{pickText(locale, signal.detail)}</p>
+          {homeContent.commitments.features.map((feature) => (
+            <article key={feature.en} className="metric-card">
+              <strong>{pickText(locale, feature)}</strong>
             </article>
           ))}
         </div>
       </section>
 
+      {/* 5. PROOF & TRUST SYSTEM */}
       <section className="panel">
         <div className="section-header">
-          <p className="eyebrow">{pickText(locale, { en: 'Live Seed Snapshot', vi: 'Ảnh chụp seed đang chạy' })}</p>
-          <h2>{pickText(locale, { en: 'Public runtime now reads shared seeded objects', vi: 'Runtime public đang đọc object seed dùng chung' })}</h2>
-        </div>
-
-        <div className="metric-grid">
-          {runtime.counters.map((item) => (
-            <article key={item.key} className="metric-card">
-              <strong>{item.metric}</strong>
-              <p>{item.label}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="panel">
-        <div className="section-header">
-          <p className="eyebrow">{pickText(locale, { en: 'Seeded Marketplace', vi: 'Marketplace seed' })}</p>
-          <h2>{pickText(locale, { en: 'Featured offers and requests from runtime data', vi: 'Đề nghị và nhu cầu nổi bật từ dữ liệu runtime' })}</h2>
+          <p className="eyebrow">{pickText(locale, homeContent.trust.eyebrow)}</p>
+          <h2>{pickText(locale, homeContent.trust.title)}</h2>
+          <p className="section-copy">{pickText(locale, homeContent.trust.copy)}</p>
         </div>
 
         <div className="card-grid">
-          {runtime.featuredOffers.map((offer) => (
-            <article key={offer.id}>
-              <h3>{offer.title}</h3>
-              <p>{offer.summary}</p>
-              <p>
-                {pickText(locale, { en: 'Status', vi: 'Trạng thái' })}: <strong>{offer.status}</strong> ·{' '}
-                {pickText(locale, { en: 'Min trust', vi: 'Niềm tin tối thiểu' })}: <strong>{offer.minimumTrustLevel}</strong>
-              </p>
+          {homeContent.trust.signals.map((signal) => (
+            <article key={signal.en}>
+              <h3>{pickText(locale, signal)}</h3>
             </article>
           ))}
-          {runtime.featuredRequests.map((request) => (
-            <article key={request.id}>
-              <h3>{request.title}</h3>
-              <p>{request.summary}</p>
-              <p>
-                {pickText(locale, { en: 'Urgency', vi: 'Độ khẩn' })}: <strong>{request.urgency}</strong> ·{' '}
-                {pickText(locale, { en: 'Status', vi: 'Trạng thái' })}: <strong>{request.status}</strong>
-              </p>
+        </div>
+      </section>
+
+      {/* 6. AGI-SAFE GOVERNANCE */}
+      <section className="panel">
+        <div className="section-header">
+          <p className="eyebrow">{pickText(locale, homeContent.governance.eyebrow)}</p>
+          <h2>{pickText(locale, homeContent.governance.title)}</h2>
+          <p className="section-copy">{pickText(locale, homeContent.governance.copy)}</p>
+        </div>
+      </section>
+
+      {/* 7. SYSTEM MAP */}
+      <section className="panel">
+        <div className="section-header">
+          <p className="eyebrow">{pickText(locale, homeContent.systemMap.eyebrow)}</p>
+          <h2>{pickText(locale, homeContent.systemMap.title)}</h2>
+        </div>
+
+        <div className="card-grid">
+          {homeContent.systemMap.layers.map((layer) => (
+            <article key={layer.en}><h3>
+              {pickText(locale, layer)}
+            </h3></article>
+          ))}
+        </div>
+      </section>
+
+      {/* 8. USE CASES */}
+      <section className="panel">
+        <div className="section-header">
+          <p className="eyebrow">{pickText(locale, homeContent.useCases.eyebrow)}</p>
+          <h2>{pickText(locale, homeContent.useCases.title)}</h2>
+        </div>
+
+        <div className="stack-list">
+          {homeContent.useCases.examples.map((example) => (
+            <article key={example.en} className="stack-item">
+              <h3>{pickText(locale, example)}</h3>
             </article>
           ))}
+        </div>
+      </section>
+
+      {/* 9. CTA FINAL */}
+      <section className="panel hero">
+        <h2>{pickText(locale, homeContent.ctaFinal.title)}</h2>
+        <div className="button-row">
+          <LocaleLink href="/what-is-omdala" className="site-button site-button--primary">
+            {pickText(locale, homeContent.ctaFinal.primary)}
+          </LocaleLink>
+          <LocaleLink href="/contact" className="site-button site-button--ghost">
+            {pickText(locale, homeContent.ctaFinal.secondary)}
+          </LocaleLink>
         </div>
       </section>
     </main>
