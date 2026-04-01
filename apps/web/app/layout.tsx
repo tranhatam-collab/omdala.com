@@ -12,6 +12,18 @@ export const metadata: Metadata = {
   },
   description:
     'OMDALA is the global operating layer for real-world value, trust, and intelligent coordination.',
+  alternates: {
+    canonical: '/',
+    languages: {
+      'en': '/',
+      'vi': '/?lang=vi',
+      'zh': '/?lang=zh',
+      'es': '/?lang=es',
+      'ja': '/?lang=ja',
+      'ko': '/?lang=ko',
+      'x-default': '/',
+    },
+  },
   openGraph: {
     siteName: 'OMDALA',
     type:     'website',
