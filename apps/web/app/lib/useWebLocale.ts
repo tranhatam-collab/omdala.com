@@ -1,11 +1,10 @@
 'use client'
 
-import { resolveLanguage } from '@omdala/core'
+import { resolveLanguage, type OmdalaLanguage } from '@omdala/core'
 import { useEffect, useState } from 'react'
-import type { WebLocale } from './content'
 
-export function useWebLocale(): WebLocale {
-  const [locale, setLocale] = useState<WebLocale>('en')
+export function useWebLocale(): OmdalaLanguage {
+  const [locale, setLocale] = useState<OmdalaLanguage>('en')
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -13,7 +12,7 @@ export function useWebLocale(): WebLocale {
     }
 
     const lang = resolveLanguage(new URLSearchParams(window.location.search).get('lang'))
-    setLocale(lang === 'vi' ? 'vi' : 'en')
+    setLocale(lang)
   }, [])
 
   return locale

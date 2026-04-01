@@ -12,10 +12,12 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 const LANGUAGE_LABELS: Record<(typeof OMDALA_LANGUAGES)[number], string> = {
-  en: 'English',
-  vi: 'Tiếng Việt',
-  ja: '日本語',
-  ko: '한국어',
+  en: 'EN',
+  vi: 'VI',
+  zh: 'ZH',
+  es: 'ES',
+  ja: 'JA',
+  ko: 'KO',
 }
 
 export function LanguageSwitcher() {

@@ -4,10 +4,11 @@ import { ANGEL_EDU_TAM_FOUNDATION, resolveLanguage, type OmdalaLanguage } from '
 import { OMDALA_PAGES } from '@omdala/seo'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { LocaleLink } from './components/LocaleLink'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
 
-const COPY = {
+const COPY: Record<OmdalaLanguage, any> = {
   en: {
     nav: {
       what: 'What it is',
@@ -20,8 +21,7 @@ const COPY = {
     },
     enterApp: 'Enter App',
     footerEyebrow: 'Master Platform',
-    footerLead:
-      'The operating layer for real-world value, trust, and intelligent coordination.',
+    footerLead: 'The operating layer for real-world value, trust, and intelligent coordination.',
     platform: 'Platform',
     whatIsOmdala: 'What OMDALA is',
     trustArchitecture: 'Trust architecture',
@@ -34,17 +34,16 @@ const COPY = {
   vi: {
     nav: {
       what: 'OMDALA là gì',
-      how: 'Cách hệ thống vận hành',
-      experts: 'Cho chuyên gia',
-      hosts: 'Cho điểm đón',
-      communities: 'Cho cộng đồng',
+      how: 'Cách vận hành',
+      experts: 'Chuyên gia',
+      hosts: 'Điểm đón',
+      communities: 'Cộng đồng',
       trust: 'Niềm tin',
       vision: 'Tầm nhìn',
     },
     enterApp: 'Vào ứng dụng',
     footerEyebrow: 'Nền tảng chủ',
-    footerLead:
-      'Lớp vận hành cho giá trị đời thực, niềm tin và điều phối thông minh.',
+    footerLead: 'Lớp vận hành cho giá trị đời thực, niềm tin và điều phối thông minh.',
     platform: 'Nền tảng',
     whatIsOmdala: 'OMDALA là gì',
     trustArchitecture: 'Kiến trúc niềm tin',
@@ -53,6 +52,94 @@ const COPY = {
     legalSection: 'Pháp lý',
     legalEmailLabel: 'Email:',
     legalWebLabel: 'Web:',
+  },
+  zh: {
+    nav: {
+      what: '什么是 OMDALA',
+      how: '工作原理',
+      experts: '专家',
+      hosts: '主机',
+      communities: '社区',
+      trust: '信任',
+      vision: '愿景',
+    },
+    enterApp: '进入应用',
+    footerEyebrow: '主平台',
+    footerLead: '真实世界价值、信任和智能协调的运营层。',
+    platform: '平台',
+    whatIsOmdala: '什么是 OMDALA',
+    trustArchitecture: '信任架构',
+    surfaces: '系统表面',
+    apiHealth: 'API 健康状态',
+    legalSection: '法律',
+    legalEmailLabel: '电子邮件:',
+    legalWebLabel: '网站:',
+  },
+  es: {
+    nav: {
+      what: 'Qué es',
+      how: 'Cómo funciona',
+      experts: 'Expertos',
+      hosts: 'Anfitriones',
+      communities: 'Comunidades',
+      trust: 'Confianza',
+      vision: 'Visión',
+    },
+    enterApp: 'Entrar a la App',
+    footerEyebrow: 'Plataforma Maestra',
+    footerLead: 'La capa operativa para el valor del mundo real, la confianza y la coordinación inteligente.',
+    platform: 'Plataforma',
+    whatIsOmdala: 'Qué es OMDALA',
+    trustArchitecture: 'Arquitectura de confianza',
+    surfaces: 'Superficies',
+    apiHealth: 'Salud de API',
+    legalSection: 'Legal',
+    legalEmailLabel: 'Correo:',
+    legalWebLabel: 'Web:',
+  },
+  ja: {
+    nav: {
+      what: 'OMDALAとは',
+      how: '仕組み',
+      experts: '専門家',
+      hosts: 'ホスト',
+      communities: 'コミュニティ',
+      trust: '信頼',
+      vision: 'ビジョン',
+    },
+    enterApp: 'アプリを開く',
+    footerEyebrow: 'マスタープラットフォーム',
+    footerLead: '現実世界の価値、信頼、インテリジェントな調整のためのオペレーティングレイヤー。',
+    platform: 'プラットフォーム',
+    whatIsOmdala: 'OMDALAとは',
+    trustArchitecture: '信頼アーキテクチャ',
+    surfaces: 'システムサーフェス',
+    apiHealth: 'APIステータス',
+    legalSection: '法的情報',
+    legalEmailLabel: 'メール:',
+    legalWebLabel: 'ウェブ:',
+  },
+  ko: {
+    nav: {
+      what: 'OMDALA란',
+      how: '작동 방식',
+      experts: '전문가',
+      hosts: '호스트',
+      communities: '커뮤니티',
+      trust: '신뢰',
+      vision: '비전',
+    },
+    enterApp: '앱 입장',
+    footerEyebrow: '마스터 플랫폼',
+    footerLead: '현실 세계의 가치, 신뢰 및 지능형 조정을 위한 운영 레이어.',
+    platform: '플랫폼',
+    whatIsOmdala: 'OMDALA란',
+    trustArchitecture: '신뢰 아키텍처',
+    surfaces: '시스템 표면',
+    apiHealth: 'API 상태',
+    legalSection: '법적 정보',
+    legalEmailLabel: '이메일:',
+    legalWebLabel: '웹:',
   },
 }
 
@@ -79,14 +166,15 @@ export function WebChrome({ children }: { children: React.ReactNode }) {
     setLanguage(lang)
   }, [pathname])
 
-  const text = COPY[language === 'vi' ? 'vi' : 'en']
+  const text = COPY[language] || COPY.en
 
   return (
     <>
       <header className="site-header">
         <div className="site-shell site-header__inner">
-          <LocaleLink href={OMDALA_PAGES.home} className="brand-mark">
-            OMDALA
+          <LocaleLink href={OMDALA_PAGES.home} className="brand-mark" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Image src="/logo.svg" alt="OMDALA" width={24} height={24} className="brand-icon" />
+            <span>OMDALA</span>
           </LocaleLink>
 
           <nav className="site-nav" aria-label="Primary">
@@ -112,7 +200,10 @@ export function WebChrome({ children }: { children: React.ReactNode }) {
         <div className="site-shell footer-grid">
           <div className="footer-block">
             <p className="eyebrow">{text.footerEyebrow}</p>
-            <h2>OMDALA</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+              <Image src="/logo.svg" alt="OMDALA" width={24} height={24} />
+              <h2>OMDALA</h2>
+            </div>
             <p className="section-copy">{text.footerLead}</p>
           </div>
 

@@ -1,5 +1,5 @@
-export const OMDALA_LANGUAGES = ['en', 'vi', 'ja', 'ko'] as const
-export const OMDALA_READY_LANGUAGES = ['en', 'vi'] as const
+export const OMDALA_LANGUAGES = ['en', 'vi', 'zh', 'es', 'ja', 'ko'] as const
+export const OMDALA_READY_LANGUAGES = ['en', 'vi', 'zh', 'es', 'ja', 'ko'] as const
 
 export type OmdalaLanguage = (typeof OMDALA_LANGUAGES)[number]
 
