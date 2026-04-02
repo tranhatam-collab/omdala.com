@@ -1,8 +1,40 @@
+# Dependencies
 node_modules
+.pnpm-store
+apps/*/package-lock.json
+
+# Build outputs
 .next
-.DS_Store
+dist
+.turbo
+out
+build
+
+# Environment
 .env
 .env.*
+!.env.example
+
+# Editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+
+# Cloudflare
 .wrangler
-dist
+.dev.vars
+
+# Testing
 coverage
+.nyc_output
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Type generation
+*.tsbuildinfo
