@@ -2,6 +2,7 @@
 node_modules
 .pnpm-store
 apps/*/package-lock.json
+services/*/package-lock.json
 
 # Build outputs
 .next
@@ -38,3 +39,22 @@ pnpm-debug.log*
 
 # Type generation
 *.tsbuildinfo
+
+# Scratch cleanup targets
+deploy.js
+deploy_prod.js
+patch_*.js
+robust_translate.js
+translate_content.py
+update_content_script.js
+en_strings.txt
+full_content.txt
+apps/app/app/layout.js
+apps/app/app/page.js
+apps/app/lib/api.js
+apps/app/lib/navigation.js
+apps/web/app/layout.js
+apps/web/app/page.js
+services/api/src/index.js
+scripts/build-static.mjs
+scripts/dev-server.mjs

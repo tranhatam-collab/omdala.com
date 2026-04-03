@@ -1,109 +1,226 @@
 # OMDALA MASTER SYSTEM ARCHITECTURE 2026 – FINAL
 
-## 1. System Thesis (Tầm nhìn cốt lõi)
+**Version:** 1.1  
+**Date:** 2026-04-03
 
-OMDALA là **Verified Coordination Infrastructure for Real-World State Transitions**.  
-Chúng tôi xây dựng lớp hạ tầng mà mọi Siêu AI / AIG / AGI tương lai sẽ sử dụng để chuyển đổi trạng thái thực tại một cách verifiable, policy-bounded và an toàn nhất cho con người + Trái Đất.
+## 1. Document Status
 
-Core Loop (không thay đổi):  
-**See value → Activate it → Prove it → Compound it.**
+This file is the strategic architecture baseline for OMDALA as of April 2026.
 
-Primitive cốt lõi (khóa):  
-Node → Resource → State → Commitment → Transition → Proof → Trust
+It is intended to align product, engineering, design, operations, trust, and ecosystem expansion around a single system thesis that is:
 
-Mục tiêu 2030: OMDALA trở thành **default Reality Operating System** cho toàn bộ agent economy, nơi con người chỉ khai báo Desired Reality, còn hệ thống tự planner + execute + prove dưới governance policy.
+- ambitious but buildable
+- category-defining but not detached from runtime reality
+- suitable for internal execution
+- usable as a handoff foundation for product and engineering teams
 
-## 2. Primitive Model (khóa)
+Any valuation figures discussed elsewhere should be treated as scenario models, not factual current valuations or guarantees.
 
-- **Node**: Living nodes (person, team, org, place) với goals & capacity.
-- **State**: Current State + Desired State (multi-dimension).
-- **Commitment**: Cam kết verifiable giữa nodes.
-- **Transition**: Autonomous path từ Current → Desired (core IP).
-- **Proof**: ZK + on-chain + behavior proof.
-- **Trust**: Compound signal từ Proof + Governance + Audit.
+## 2. System Thesis
 
-## 3. Full Subdomain Tree (Control-Plane Architecture)
+OMDALA is:
 
-**Core Surfaces (luôn tồn tại)**
+> **Verified Coordination Infrastructure for Real-World State Transitions**
 
-- omdala.com (brand + onboarding)
-- app.omdala.com (main user experience)
-- admin.omdala.com (policy & governance)
-- docs.omdala.com
-- api.omdala.com
-- trust.omdala.com
-- proof.omdala.com
-- graph.omdala.com
-- id.omdala.com
-- flow.omdala.com
-- intel.omdala.com
-- status.omdala.com
+Its purpose is to become the infrastructure layer through which humans, organizations, places, resources, and future AI agents coordinate real-world change safely, transparently, and verifiably.
 
-**Wedge Domains (ra mắt theo thứ tự)**
+Core operating logic:
 
-- finance.omdala.com (Zero Overdue – wedge đầu tiên)
-- resource.omdala.com
-- spaces.omdala.com
-- community.omdala.com
-- talent.omdala.com
+> **See value -> Activate it -> Prove it -> Compound it**
 
-**AI Layer (aomdala.com)**
+## 3. Strategic Shift
 
-- aomdala.com (master AI entry)
-- studio.aomdala.com
-- agents.aomdala.com
-- lab.aomdala.com
-- memory.aomdala.com
+OMDALA must evolve from:
 
-## 4. Entity + API Namespaces (v2/reality)
+- brand platform
+- product shell
+- docs shell
+- coordination narrative
 
-- /reality/nodes/{id}/state
-- /reality/commitments
-- /reality/transitions/plan
-- /reality/transitions/execute
-- /reality/proofs
-- /reality/trust/score
-- /reality/policy/governance (Policy-Bounded Autonomy)
-- /reality/agi-safety/audit
+into:
 
-## 5. Implementation Order (12 tháng – theo tuần)
+- runtime truth
+- policy-aware execution
+- proof-backed trust
+- state transition infrastructure
 
-**Tuần 1-8 (Tầng 1 – Runtime Truth)**
+This is not a rejection of current surfaces such as offers, requests, matches, bookings, and payments. It is an elevation of the system model underneath them.
 
-- Fix API health + auth thật cho app
-- 3 live flows đầu tiên (Zero Overdue)
-- Mở docs với data model + trust model + policy model
+## 4. Canonical Primitives
 
-**Tháng 3-6 (Tầng 2 – Core Moat)**
+The following primitives are locked as the deeper model of the system:
 
-- State Graph Engine
-- Commitment & Transition Engine
-- Proof Bundles + Explainable Trust
-- Policy + Governance Layer
-- API v2 /reality
+- `Node`
+- `Resource`
+- `State`
+- `Commitment`
+- `Transition`
+- `Proof`
+- `Trust`
 
-**Tháng 7-12 (Tầng 3 – Surface Expansion)**
+These primitives should shape architecture decisions even where the first product wedge still presents simpler user-facing objects.
 
-- Triển khai 8 subdomain wedge
-- Operator Workspace + AGI Safety Audit
-- Reality Memory public (opt-in)
+## 5. What OMDALA Is Not
 
-## 6. Homepage + App IA Mới (để update ngay)
+OMDALA is not:
 
-Homepage mới:
+- a generic marketplace
+- a tourism app
+- a booking layer only
+- an AI wrapper
+- a CRM with new language
+- a speculation-first blockchain product
 
-- Hero: “The Operating Layer for Real-World Value. From Current Reality to Desired Reality.”
-- Section mới: State Transition Layer • Commitments Engine • Proof & Trust System • AGI-Safe Governance
+OMDALA is:
 
-App IA: Visual Reality Map (graph + drag-and-drop Desired State).
+- a coordination system
+- a trust system
+- a commitment system
+- a transition system
+- an execution system with governance
+- a future-safe operational layer for humans and AI
 
-## 7. AGI Safety & Human Alignment (bổ sung cuối cùng)
+## 6. Strategic Decisions
 
-Mọi Transition đều phải qua:
+### 6.1 Brand decision
 
-1. Policy Check
-2. Governance Audit
-3. Human Override Option (nếu high-stake)
-4. ZK Proof + On-chain Record
+Keep **OMDALA** as the master brand.
 
-→ Đây là **AIG/AGI an toàn nhất** mà con người Trái Đất từng có.
+Do not split the core identity into competing master brands inside this repo.
+
+### 6.2 Primitive decision
+
+Upgrade the system model from:
+
+- offers
+- requests
+- matches
+
+into:
+
+- state
+- commitment
+- transition
+
+while preserving compatibility with the current implementation wedge.
+
+### 6.3 Governance decision
+
+Reject fully unbounded autonomy.
+
+Adopt:
+
+> **Policy-Bounded Autonomous Operations**
+
+Meaning:
+
+- machines operate within policy
+- humans govern high-stakes exceptions
+- overrides, appeals, disputes, and kill switches remain human-controlled
+
+### 6.4 Surface decision
+
+Expand by architecture, not by enthusiasm.
+
+All new surfaces must share one canonical model, one trust logic, one proof logic, and one policy framework.
+
+## 7. Control-Plane Subdomain Architecture
+
+Core surfaces that define the OMDALA control plane:
+
+- `omdala.com`
+- `app.omdala.com`
+- `admin.omdala.com`
+- `docs.omdala.com`
+- `api.omdala.com`
+- `trust.omdala.com`
+- `status.omdala.com`
+
+Potential future surfaces, only when supported by actual product scope:
+
+- `proof.omdala.com`
+- `graph.omdala.com`
+- `id.omdala.com`
+- `flow.omdala.com`
+- `intel.omdala.com`
+
+Future wedge domains may exist, but must remain architecture-aligned and masterbrand-consistent.
+
+## 8. API Direction
+
+The current system can continue to serve operational namespaces such as nodes, offers, requests, matches, and trust.
+
+Longer-term architecture should support a deeper reality model:
+
+- `/reality/nodes/{id}/state`
+- `/reality/commitments`
+- `/reality/transitions/plan`
+- `/reality/transitions/execute`
+- `/reality/proofs`
+- `/reality/trust/score`
+- `/reality/policy/governance`
+- `/reality/agi-safety/audit`
+
+These should be treated as directional architecture targets, not all immediate implementation requirements.
+
+## 9. Implementation Order
+
+### Phase 1: Runtime truth
+
+- fix auth, API reliability, and live product flows
+- stabilize docs, data model, trust model, and deployment discipline
+- keep one canonical source of truth per system concern
+
+### Phase 2: Core moat
+
+- state graph engine
+- commitment and transition engine
+- proof bundles and explainable trust
+- governance and policy layer
+- deeper API namespaces where justified
+
+### Phase 3: Surface expansion
+
+- broaden control-plane surfaces
+- strengthen operator workspace
+- expand proof, trust, and policy observability
+
+## 10. Homepage and App Direction
+
+Public positioning should continue to support:
+
+- “The Operating Layer for Real-World Value”
+- “From Current Reality to Desired Reality”
+
+Recommended homepage themes:
+
+- state transition layer
+- commitments engine
+- proof and trust system
+- policy-bounded AI execution
+
+Recommended app direction:
+
+- visual reality map
+- current state versus desired state
+- commitments and transitions as first-class concepts
+- trust and proof visible in the flow, not bolted on afterward
+
+## 11. AGI Safety and Human Alignment
+
+High-stakes transitions must always support:
+
+1. policy check
+2. governance audit
+3. human override for high-risk cases
+4. durable proof and audit trail
+
+This is the architecture stance that keeps OMDALA aligned with human governance while remaining machine-operable.
+
+## 12. Final Rule
+
+Every new surface, workflow, or feature should be evaluated against one question:
+
+> Does it help OMDALA move real actors from current reality to desired reality in a way that is verifiable, governed, and trust-compounding?
+
+If not, it is not core architecture.
