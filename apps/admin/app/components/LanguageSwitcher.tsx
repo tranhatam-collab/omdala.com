@@ -14,6 +14,8 @@ import { useEffect, useState } from 'react'
 const LANGUAGE_LABELS: Record<(typeof OMDALA_LANGUAGES)[number], string> = {
   en: 'EN',
   vi: 'VI',
+  zh: 'ZH',
+  es: 'ES',
   ja: 'JA',
   ko: 'KO',
 }
