@@ -1,11 +1,11 @@
-import { Suspense } from 'react'
-import { APP_ROUTES } from '@omdala/core'
-import { createPasswordlessDraft } from '@omdala/auth-service'
-import { LocaleLink } from '../../components/LocaleLink'
-import { MagicLinkLoginForm } from './MagicLinkLoginForm'
+import { Suspense } from "react";
+import { APP_ROUTES } from "@omdala/core";
+import { createPasswordlessDraft } from "@omdala/auth-service";
+import { LocaleLink } from "../../components/LocaleLink";
+import { MagicLinkLoginForm } from "./MagicLinkLoginForm";
 
 export default function LoginPage() {
-  const draft = createPasswordlessDraft()
+  const draft = createPasswordlessDraft();
 
   return (
     <section className="auth-grid">
@@ -13,12 +13,18 @@ export default function LoginPage() {
         <p className="app-eyebrow">Log In</p>
         <h1>Enter the OMDALA app with a passwordless flow.</h1>
         <p className="app-copy">
-          This shell is ready for real auth wiring. For now it locks the product shape and field
-          expectations for the next implementation step.
+          Use your operator email to request a magic link. When verified, the
+          session is persisted locally and dashboard routes unlock
+          automatically.
         </p>
 
-        <Suspense fallback={null}>
-          <MagicLinkLoginForm defaultEmail={draft.email} defaultRedirect={draft.redirectTo} />
+        <Suspense
+          fallback={<p className="auth-note">Preparing secure login form...</p>}
+        >
+          <MagicLinkLoginForm
+            defaultEmail={draft.email}
+            defaultRedirect={draft.redirectTo}
+          />
         </Suspense>
       </div>
 
@@ -26,10 +32,10 @@ export default function LoginPage() {
         <p className="app-eyebrow">Next integration</p>
         <h2>Auth service checklist</h2>
         <ul className="auth-side-list">
-          <li>Connect real session issuance and expiry.</li>
-          <li>Persist redirect targets safely.</li>
-          <li>Add role-aware session bootstrap.</li>
-          <li>Wire app guards for dashboard access.</li>
+          <li>Magic-link request endpoint is wired to API v1.</li>
+          <li>Token verification now stores a local app session.</li>
+          <li>Redirect target is normalized before app handoff.</li>
+          <li>Dashboard routes are guarded by session checks.</li>
         </ul>
         <div className="auth-helper-links">
           <LocaleLink href={APP_ROUTES.signup}>Create account</LocaleLink>
@@ -37,5 +43,5 @@ export default function LoginPage() {
         </div>
       </aside>
     </section>
-  )
+  );
 }

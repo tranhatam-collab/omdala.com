@@ -3,28 +3,31 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev":       "next dev --port 3001",
-    "build":     "next build",
-    "start":     "next start",
-    "lint":      "next lint",
-    "typecheck": "tsc --noEmit"
+    "dev": "next dev --port 3001",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:prod": "E2E_BASE_URL=https://app.omdala.com playwright test"
   },
   "dependencies": {
     "@omdala/ai-service": "workspace:*",
     "@omdala/auth-service": "workspace:*",
-    "@omdala/core":  "workspace:*",
+    "@omdala/core": "workspace:*",
     "@omdala/matching-service": "workspace:*",
     "@omdala/notifications-service": "workspace:*",
     "@omdala/trust-service": "workspace:*",
     "@omdala/types": "workspace:*",
-    "@omdala/ui":    "workspace:*",
-    "next":          "^15.1.0",
-    "react":         "^19.0.0",
-    "react-dom":     "^19.0.0"
+    "@omdala/ui": "workspace:*",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@types/react":     "^19.0.0",
+    "@playwright/test": "^1.51.0",
+    "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "typescript":       "^5.6.0"
+    "typescript": "^5.6.0"
   }
 }
