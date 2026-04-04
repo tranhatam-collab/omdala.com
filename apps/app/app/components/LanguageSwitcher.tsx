@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import {
   isReadyLanguage,
@@ -6,37 +6,41 @@ import {
   type OmdalaLanguage,
   resolveLanguage,
   withLanguageParam,
-} from '@omdala/core'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+} from "@omdala/core";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const LANGUAGE_LABELS: Record<(typeof OMDALA_LANGUAGES)[number], string> = {
-  en: 'EN',
-  vi: 'VI',
-  ja: 'JA',
-  ko: 'KO',
-}
+  en: "EN",
+  vi: "VI",
+  zh: "ZH",
+  es: "ES",
+  ja: "JA",
+  ko: "KO",
+};
 
 export function LanguageSwitcher() {
-  const pathname = usePathname()
-  const [currentLanguage, setCurrentLanguage] = useState<OmdalaLanguage>('en')
-  const currentPath = pathname
+  const pathname = usePathname();
+  const [currentLanguage, setCurrentLanguage] = useState<OmdalaLanguage>("en");
+  const currentPath = pathname;
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
+    if (typeof window === "undefined") {
+      return;
     }
 
-    setCurrentLanguage(resolveLanguage(new URLSearchParams(window.location.search).get('lang')))
-  }, [pathname])
+    setCurrentLanguage(
+      resolveLanguage(new URLSearchParams(window.location.search).get("lang")),
+    );
+  }, [pathname]);
 
   return (
     <div className="language-switcher" aria-label="Language selector">
       {OMDALA_LANGUAGES.map((language) => {
-        const isReady = isReadyLanguage(language)
-        const href = withLanguageParam(currentPath, language)
-        const isActive = currentLanguage === language
+        const isReady = isReadyLanguage(language);
+        const href = withLanguageParam(currentPath, language);
+        const isActive = currentLanguage === language;
 
         if (!isReady) {
           return (
@@ -47,19 +51,19 @@ export function LanguageSwitcher() {
             >
               {LANGUAGE_LABELS[language]}
             </span>
-          )
+          );
         }
 
         return (
           <Link
             key={language}
             href={href}
-            className={`language-switcher__item${isActive ? ' language-switcher__item--active' : ''}`}
+            className={`language-switcher__item${isActive ? " language-switcher__item--active" : ""}`}
           >
             {LANGUAGE_LABELS[language]}
           </Link>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

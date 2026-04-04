@@ -1,19 +1,38 @@
-'use client'
+"use client";
 
-import { resolveLanguage, type OmdalaLanguage } from '@omdala/core'
-import { useEffect, useState } from 'react'
+import { resolveLanguage, type OmdalaLanguage } from "@omdala/core";
+import { useEffect, useState } from "react";
 
 export function useWebLocale(): OmdalaLanguage {
-  const [locale, setLocale] = useState<OmdalaLanguage>('en')
+  const [locale, setLocale] = useState<OmdalaLanguage>("en");
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return
+    if (typeof window === "undefined") {
+      return;
     }
 
-    const lang = resolveLanguage(new URLSearchParams(window.location.search).get('lang'))
-    setLocale(lang)
-  }, [])
+    const lang = resolveLanguage(
+      new URLSearchParams(window.location.search).get("lang"),
+    );
+    setLocale(lang);
+  }, []);
 
-  return locale
+  useEffect(() => {
+    function handleLanguageChanged(event: Event) {
+      const customEvent = event as CustomEvent<{ language?: OmdalaLanguage }>;
+      const nextLanguage = customEvent.detail?.language;
+      if (nextLanguage) {
+        setLocale(resolveLanguage(nextLanguage));
+      }
+    }
+
+    window.addEventListener("omdala:language-changed", handleLanguageChanged);
+    return () =>
+      window.removeEventListener(
+        "omdala:language-changed",
+        handleLanguageChanged,
+      );
+  }, []);
+
+  return locale;
 }
