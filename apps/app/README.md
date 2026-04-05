@@ -1,14 +1,19 @@
 # apps/app
 
-Next.js application shell for `app.omdala.com`.
+Authenticated product shell for `app.omdala.com`.
 
-## Commands
+## Current completion scope
 
-From the repo root:
+- Core auth flow wired to API magic-link request/verify endpoints.
+- Dashboard route guard checks local session and redirects to login when missing.
+- Signup access request flow uses unified API envelope handling.
+- Runtime dashboard surfaces remain backed by structured mock graph data.
+
+## E2E smoke
 
 ```bash
-npm run dev:app
-npm run build:app
+pnpm test:app:e2e:prod
 ```
 
-Set `NEXT_PUBLIC_OMDALA_API_BASE_URL` if the API is not running on `http://127.0.0.1:8789`.
+- Validates login screen interaction.
+- Validates dashboard redirect-to-login when session is missing.

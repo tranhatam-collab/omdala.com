@@ -1,8 +1,60 @@
+# Dependencies
 node_modules
+.pnpm-store
+apps/*/package-lock.json
+services/*/package-lock.json
+
+# Build outputs
 .next
-.DS_Store
+dist
+.turbo
+out
+build
+
+# Environment
 .env
 .env.*
+!.env.example
+
+# Editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+
+# Cloudflare
 .wrangler
-dist
+.dev.vars
+
+# Testing
 coverage
+.nyc_output
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Type generation
+*.tsbuildinfo
+
+# Scratch cleanup targets
+deploy.js
+deploy_prod.js
+patch_*.js
+robust_translate.js
+translate_content.py
+update_content_script.js
+en_strings.txt
+full_content.txt
+apps/app/app/layout.js
+apps/app/app/page.js
+apps/app/lib/api.js
+apps/app/lib/navigation.js
+apps/web/app/layout.js
+apps/web/app/page.js
+services/api/src/index.js
+scripts/build-static.mjs
+scripts/dev-server.mjs

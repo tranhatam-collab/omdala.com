@@ -1,126 +1,115 @@
 # OMDALA
 
-OMDALA is the master global brand.
-
-This repository is the foundation for:
+OMDALA is the master platform repository for the global brand and system layer behind:
 
 - `omdala.com`
 - `app.omdala.com`
 - `api.omdala.com`
-- future `docs.omdala.com`
+- `docs.omdala.com`
+- `admin.omdala.com`
 
-OMDALA is not a city website and not a tourism site. It is the global operating layer for real-world value, trust, and coordination.
+OMDALA is not a city website, tourism product, or thin marketplace. It is the operating layer for real-world value, trust, and intelligent coordination.
 
-## Role in the brand system
+## Core definition
 
-- `OMDALA` = master/global platform brand
-- `OMDALAT` = first city implementation and living lab
+OMDALA exists to help people, places, organizations, and communities:
 
-## Positioning
+- see underused resources clearly
+- structure needs, commitments, and outcomes correctly
+- match with better relevance and trust
+- move from intent to real action
+- store proof so future outcomes improve
 
-Primary line:
+The current system thesis is:
 
-- OMDALA
-- The Operating Layer for Real-World Value
+> OMDALA is verified coordination infrastructure for real-world state transitions.
 
-Supporting line:
+Core loop:
 
-- Activate people, places, and intelligence.
+> See value -> Activate it -> Prove it -> Compound it
+
+## Repo status
+
+This branch now includes:
+
+- monorepo foundation with `pnpm` and `turbo`
+- public OMDALA web routes for the masterbrand surface
+- app, docs, admin, and API shells
+- master brand, theme, SEO, deploy, and developer lock files
+- core product, data, API, trust, and matching specifications
+- process guidance for AI-assisted engineering under `.github/`
+
+## Domain lock
+
+OMDALA and OMDALAT are intentionally separate:
+
+- `omdala.com` is the global system layer
+- `omdalat.com` is the city node layer
+- `docs.omdala.com` and `app.omdala.com` belong to the global layer only
+
+Routing and auth must stay on the global domain model unless a city-node scope is explicitly approved.
 
 ## Start here
 
-Read:
+Read these files first:
 
-1. `docs/MASTER_BUILD_SYSTEM_OMDALA_OMDALAT.md`
+1. `docs/README_DEV_HANDOFF_OMDALA.md`
 2. `docs/BRAND_ARCHITECTURE_OMDALA.md`
-3. `docs/README_DEV_HANDOFF_OMDALA.md`
+3. `docs/PRODUCT_SPEC_OMDALA.md`
+4. `docs/DATA_MODEL_OMDALA.md`
+5. `docs/API_SPEC_OMDALA.md`
+6. `docs/architecture/OMDALA_MASTER_SYSTEM_ARCHITECTURE_2026_FINAL.md`
 
 ## Repo structure
 
 ```text
 omdala.com/
+  .github/
+    copilot-instructions.md
+    prompts/
+    agents/
+    workflows/
   apps/
     web/
     app/
+    admin/
+    docs/
   packages/
+    core/
+    seo/
+    types/
     ui/
   services/
     api/
+    auth/
+    trust/
+    matching/
+    notifications/
+    ai/
   docs/
-  index.html
-  styles.css
+  scripts/
 ```
 
-## Immediate build intent
+## Development principles
 
-This repo starts as a static-first foundation plus handoff docs.
-The next build phase should turn it into the real master platform surface for the OMDALA ecosystem.
+- architecture first, code second
+- minimal safe changes over broad rewrites
+- one canonical source of truth per system concern
+- no silent architectural drift
+- production-first thinking
+- no mixed-brand scope unless explicitly approved
+- keep global and city scopes separate
 
-## Local development
+## AI-assisted development
 
-The active frontend now lives in `apps/web` as a Next.js app.
+This repository is designed to be developed with AI assistance.
 
-```bash
-npm install
-npm run dev
-```
+Working rules and task scaffolding live in:
 
-Default local URL:
+- `.github/copilot-instructions.md`
+- `.github/prompts/*`
+- `.github/agents/*`
 
-- `http://localhost:3000`
+## Build rule
 
-If that port is already in use, Next.js uses the next available port.
-
-## Web build
-
-```bash
-npm run build
-```
-
-## Application shell
-
-The logged-in product shell now lives in `apps/app`.
-
-```bash
-cd apps/app
-npm install
-cd ../..
-npm run dev:app
-```
-
-Default local URL:
-
-- `http://localhost:3000`
-
-You can point the app shell at the backend skeleton with:
-
-```bash
-NEXT_PUBLIC_OMDALA_API_BASE_URL=http://127.0.0.1:8789 npm run dev:app
-```
-
-## API skeleton
-
-The backend boundary now lives in `services/api` as a Cloudflare Worker.
-
-```bash
-cd services/api
-npm install
-cd ../..
-npm run dev:api
-```
-
-Default local URL:
-
-- `http://127.0.0.1:8789`
-
-## Static prototype commands
-
-The original static foundation at the repo root is still available:
-
-```bash
-npm run dev:static
-npm run build:static
-npm run preview:static
-```
-
-`npm run build:static` writes a deployable static bundle to `dist/`.
+Do not introduce implementation-specific brands or local-node logic into this repository unless that scope has been explicitly approved and documented as a separate system contract.
