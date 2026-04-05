@@ -15,8 +15,8 @@ export function TimelineScreen() {
   return (
     <ScrollView style={styles.container}>
       <NavMenu />
-      <Card title="Activity timeline">
-        <AppButton title={loading ? 'Refreshing...' : 'Refresh'} onPress={() => void refresh()} disabled={loading} />
+      <Card title="Activity timeline / Nhat ky hoat dong">
+        <AppButton title={loading ? 'Refreshing... / Dang lam moi...' : 'Refresh / Lam moi'} onPress={() => void refresh()} disabled={loading} />
         {error ? <AppAlert tone="warning">{error}</AppAlert> : null}
         {entries.map(({ run, proof }) => (
           <View key={run.run_id} style={styles.runRow}>
@@ -27,9 +27,9 @@ export function TimelineScreen() {
               <StatusPill label={run.status} />
               {run.policy_decision ? <StatusPill label={run.policy_decision} /> : null}
             </View>
-            <Text style={styles.meta}>Run ID: {run.run_id}</Text>
-            {proof ? <Text style={styles.meta}>Proof: {proof.proofId}</Text> : <Text style={styles.meta}>Proof pending</Text>}
-            <AppButton title="View run detail" variant="secondary" onPress={() => navigation.navigate('RunDetail', { runId: run.run_id })} />
+            <Text style={styles.meta}>Run ID / Ma run: {run.run_id}</Text>
+            {proof ? <Text style={styles.meta}>Proof / Bang chung: {proof.proofId}</Text> : <Text style={styles.meta}>Proof pending / Dang cho bang chung</Text>}
+            <AppButton title="View run detail / Xem chi tiet run" variant="secondary" onPress={() => navigation.navigate('RunDetail', { runId: run.run_id })} />
           </View>
         ))}
       </Card>

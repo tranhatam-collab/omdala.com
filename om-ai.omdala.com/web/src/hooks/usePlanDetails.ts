@@ -10,7 +10,7 @@ export function usePlanDetails() {
     const result = await getPlan(planId);
     setLoading(false);
     if (result.error || !result.value) {
-      setError(result.error ?? 'request_failed');
+      setError('Unable to load plan details. Please try again. / Khong the tai chi tiet ke hoach. Vui long thu lai.');
       return null;
     }
     setError(null);

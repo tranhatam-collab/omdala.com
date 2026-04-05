@@ -14,7 +14,7 @@ export function useDevices() {
       const result = await listDevices();
       if (!mounted) return;
       if (result.error || !result.value) {
-        setError(result.error ?? 'request_failed');
+        setError('Unable to load devices. Please try again. / Khong the tai danh sach thiet bi. Vui long thu lai.');
         setLoading(false);
         return;
       }

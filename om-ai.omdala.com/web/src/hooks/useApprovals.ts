@@ -10,7 +10,7 @@ export function useApprovals() {
     const result = await createApproval(runId);
     setLoading(false);
     if (result.error || !result.value) {
-      setError(result.error ?? 'request_failed');
+      setError('Unable to request approval. Please try again. / Khong the gui yeu cau phe duyet. Vui long thu lai.');
       return null;
     }
     setError(null);
@@ -22,7 +22,7 @@ export function useApprovals() {
     const result = await getApproval(approvalId);
     setLoading(false);
     if (result.error || !result.value) {
-      setError(result.error ?? 'request_failed');
+      setError('Unable to load approval status. Please try again. / Khong the tai trang thai phe duyet. Vui long thu lai.');
       return null;
     }
     setError(null);

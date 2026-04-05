@@ -22,11 +22,15 @@ export function AppNavigator() {
       {isSignedIn ? (
         <Stack.Navigator>
           <Stack.Screen name="MainTabs" component={AppTabs} options={{ headerShown: false }} />
-          <Stack.Screen name="RunDetail" component={RunDetailScreen} options={{ title: 'Run detail' }} />
+          <Stack.Screen
+            name="RunDetail"
+            component={RunDetailScreen}
+            options={{ title: 'Run detail / Chi tiet run' }}
+          />
         </Stack.Navigator>
       ) : (
         <Stack.Navigator>
-          <Stack.Screen name="SignIn" component={SignInScreen} options={{ title: 'Sign In' }} />
+          <Stack.Screen name="SignIn" component={SignInScreen} options={{ title: 'Sign in / Dang nhap' }} />
         </Stack.Navigator>
       )}
     </NavigationContainer>

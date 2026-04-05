@@ -1,44 +1,44 @@
-# Release Notes Draft
+# Release Notes Draft / Ban nhap ghi chu phat hanh
 
-Version: <tag>
-Date: <yyyy-mm-dd>
+Version / Phien ban: <tag>
+Date / Ngay: <yyyy-mm-dd>
 
-## Highlights
-
--
--
--
-
-## Backend
+## Highlights / Diem noi bat
 
 -
+-
+-
 
-## Web
+## Backend / Dich vu backend
 
 -
 
-## Gateway
+## Web / Ung dung web
 
 -
 
-## iOS Structure
+## Gateway / Lop ket noi
 
 -
 
-## Docs and Governance
+## iOS Structure / Cau truc iOS
 
 -
 
-## Breaking or Important Changes
+## Docs and Governance / Tai lieu va quan tri
 
 -
 
-## Verification
+## Breaking or Important Changes / Thay doi quan trong hoac co the gay vo
 
-- `npm run ci`: pass/fail
-- `npm --prefix backend run e2e`: pass/fail
-- `npm run smoke`: pass/fail
+-
 
-## Known Limitations
+## Verification / Xac minh
+
+- `npm run ci`: pass/fail / dat-khong dat
+- `npm --prefix backend run e2e`: pass/fail / dat-khong dat
+- `npm run smoke`: pass/fail / dat-khong dat
+
+## Known Limitations / Gioi han da biet
 
 -

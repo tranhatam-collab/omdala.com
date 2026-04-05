@@ -11,12 +11,16 @@ export function useMagicLink() {
     const result = await requestMagicLink(email);
     setLoading(false);
     if (result.error || !result.value) {
-      setError(result.error ?? 'request_failed');
+      setError('Unable to send magic link. Please try again. / Khong the gui magic link. Vui long thu lai.');
       setSuccess(null);
       return false;
     }
     setError(null);
-    setSuccess(result.value.expiresAt ? `Magic link sent. Expires ${result.value.expiresAt}` : 'Magic link sent.');
+    setSuccess(
+      result.value.expiresAt
+        ? `Magic link sent. Expires ${result.value.expiresAt}. / Da gui magic link. Het han luc ${result.value.expiresAt}.`
+        : 'Magic link sent. / Da gui magic link.',
+    );
     return true;
   }
 

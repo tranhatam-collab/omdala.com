@@ -11,7 +11,7 @@ export function useRuns() {
     setLoading(true);
     const result = await listRuns(20);
     if (result.error || !result.value) {
-      setError(result.error ?? 'request_failed');
+      setError('Unable to load activity timeline. Please try again. / Khong the tai nhat ky hoat dong. Vui long thu lai.');
       setLoading(false);
       return;
     }

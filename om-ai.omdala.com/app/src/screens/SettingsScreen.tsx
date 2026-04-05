@@ -11,11 +11,11 @@ export function SettingsScreen() {
   return (
     <View style={styles.container}>
       <NavMenu />
-      <Card title="Session">
-        <Text style={styles.meta}>Token: {session.token ?? 'none'}</Text>
-        <Text style={styles.meta}>Refresh token: {session.refreshToken ? 'available' : 'none'}</Text>
-        <Text style={styles.meta}>Expires at: {session.expiresAt ?? 'unknown'}</Text>
-        <AppButton title="Logout" onPress={() => void logout()} />
+      <Card title="Session / Phien dang nhap">
+        <Text style={styles.meta}>Token / Ma phien: {session.token ?? 'none / khong co'}</Text>
+        <Text style={styles.meta}>Refresh token / Ma lam moi: {session.refreshToken ? 'available / san sang' : 'none / khong co'}</Text>
+        <Text style={styles.meta}>Expires at / Het han luc: {session.expiresAt ?? 'unknown / chua ro'}</Text>
+        <AppButton title="Logout / Dang xuat" onPress={() => void logout()} />
       </Card>
     </View>
   );

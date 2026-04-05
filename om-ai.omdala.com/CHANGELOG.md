@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-04-05 - App MVP RC Finalized
+
+- strict launch blockers resolved: production `/v2/reality/scenes` and `/v2/reality/runs` now return 200
+- strict app smoke gate passed (`npm run e2e:app:mvp:strict`)
+- final production deploy + verification passed (`npm run deploy:prod:full`)
+- beta rollout checklist finalized as launch-ready
+- added internal beta announcement draft with known limitations (`INTERNAL_BETA_ANNOUNCEMENT_APP_MVP.md`)
+
+## 2026-04-05 - Bilingual rollout update (EN/VI)
+
+- updated app MVP screens to bilingual UI labels/messages in English and Vietnamese
+- updated web app primary user-facing strings to bilingual English/Vietnamese
+- normalized RC and beta rollout documents to bilingual English/Vietnamese format
+- added web smoke fallback path (`scripts/verify-app_smoke-fallback.mjs`) for environments where Playwright runtime is incompatible with current Node runtime
+
 ## 2026-04-04 - App MVP Release Candidate
 
 - completed web gates with request trace diagnostics and smoke/lighthouse scripts

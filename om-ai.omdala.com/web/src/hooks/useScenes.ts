@@ -14,7 +14,7 @@ export function useScenes() {
       const result = await listScenes();
       if (!mounted) return;
       if (result.error || !result.value) {
-        setError(result.error ?? 'request_failed');
+        setError('Unable to load scenes. Please try again. / Khong the tai scenes. Vui long thu lai.');
       } else {
         setScenes(result.value);
         setError(null);
@@ -30,7 +30,7 @@ export function useScenes() {
   async function runScene(sceneId: string) {
     const result = await runSceneRequest(sceneId);
     if (result.error || !result.value) {
-      setError(result.error ?? 'request_failed');
+      setError('Unable to run this scene. Please try again. / Khong the chay scene nay. Vui long thu lai.');
       return null;
     }
     setError(null);

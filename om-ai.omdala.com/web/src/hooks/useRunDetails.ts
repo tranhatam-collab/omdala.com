@@ -23,7 +23,7 @@ export function useRunDetails() {
 
     const runResult = await getRun(runId);
     if (runResult.error || !runResult.value) {
-      setError(runResult.error ?? 'run_not_found');
+      setError('Unable to load activity details. Please try again. / Khong the tai chi tiet hoat dong. Vui long thu lai.');
       setLoading(false);
       return null;
     }
@@ -39,7 +39,7 @@ export function useRunDetails() {
 
     const proofResult = await getProof(run.proof_id);
     if (proofResult.error || !proofResult.value) {
-      setError(proofResult.error ?? 'proof_not_found');
+      setError('Unable to load proof details. Please try again. / Khong the tai chi tiet bang chung. Vui long thu lai.');
       setLoading(false);
       return { run, proof: null };
     }

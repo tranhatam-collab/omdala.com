@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getProof, getRun, listRuns } from '../api/reality';
+import { getProof, listRuns } from '../api/reality';
 import type { RunRecord, ProofRecord } from '../../../shared/api-contracts';
 
 export type TimelineEntry = {
@@ -16,7 +16,7 @@ export function useTimeline() {
     setLoading(true);
     const runsResult = await listRuns(20);
     if (runsResult.error || !runsResult.value) {
-      setError(runsResult.error ?? 'request_failed');
+      setError('Unable to load timeline. Please try again. / Khong the tai timeline. Vui long thu lai.');
       setLoading(false);
       return;
     }

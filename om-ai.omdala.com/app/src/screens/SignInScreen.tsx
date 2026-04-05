@@ -19,17 +19,17 @@ export function SignInScreen() {
 
   return (
     <View style={styles.container}>
-      <Card title="Sign in with magic link">
-        <Text style={styles.label}>Email address</Text>
+      <Card title="Sign in / Dang nhap (magic link)">
+        <Text style={styles.label}>Email address / Dia chi email</Text>
         <AppInput
-          placeholder="you@omdala.com"
+          placeholder="you@omdala.com / ban@omdala.com"
           autoCapitalize="none"
           keyboardType="email-address"
           value={email}
           onChangeText={setEmail}
         />
-        <AppButton title={loading ? 'Sending...' : 'Send magic link'} onPress={onSend} disabled={loading} />
-        <AppAlert tone="info">Open your magic-link email on this device to continue sign in.</AppAlert>
+        <AppButton title={loading ? 'Sending... / Dang gui...' : 'Send magic link / Gui magic link'} onPress={onSend} disabled={loading} />
+        <AppAlert tone="info">Open your magic-link email on this device to continue sign in. / Mo email magic-link tren thiet bi nay de tiep tuc dang nhap.</AppAlert>
         {success ? <AppAlert tone="success">{success}</AppAlert> : null}
         {error ? <AppAlert tone="warning">{error}</AppAlert> : null}
       </Card>

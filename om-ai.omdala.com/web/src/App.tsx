@@ -28,7 +28,7 @@ export function App() {
   const { plan, loading: planning, error: planningError } = usePlanner();
   const { fetchPlan, loading: loadingPlanDetails, error: planDetailsError } = usePlanDetails();
   const { requestApproval, fetchApproval, loading: approvalsLoading, error: approvalsError } = useApprovals();
-  const [input, setInput] = useState('Om, cho phong con ngu');
+  const [input, setInput] = useState('Om, cho phong con ngu / Om, turn off the baby room light');
   const [planResult, setPlanResult] = useState<string>('');
   const [planDetailResult, setPlanDetailResult] = useState<string>('');
   const [approvalResult, setApprovalResult] = useState<string>('');
@@ -61,17 +61,23 @@ export function App() {
   }, []);
 
   const cooldownSeconds = Math.max(0, Math.ceil((cooldownUntil - nowTick) / 1000));
+  const apiReadyLabel =
+    apiReady === 'ready'
+      ? 'ready / san sang'
+      : apiReady === 'down'
+        ? 'down / khong san sang'
+        : 'checking / dang kiem tra';
 
   const featurePoints = [
-    'Natural language to safe execution plans with explicit policy decisions.',
-    'Run-level proof records for traceability and post-action audits.',
-    'Live AI teacher, coach, and companion calls with metered session access.',
+    'Natural language to safe execution plans with explicit policy decisions. / Ngon ngu tu nhien thanh ke hoach thuc thi an toan voi quyet dinh chinh sach ro rang.',
+    'Run-level proof records for traceability and post-action audits. / Ban ghi bang chung theo tung run de truy vet va kiem toan sau hanh dong.',
+    'Live AI teacher, coach, and companion calls with metered session access. / Cuoc goi AI live cho giao vien, huan luyen vien, va dong hanh voi gioi han phien su dung.',
   ];
 
   const useCases = [
-    'Smart home routines with parent-safe control boundaries.',
-    '1:1 language practice and guided teacher calls on iPhone.',
-    'Facility operations and assistive workflows with confidence and verification.',
+    'Smart home routines with parent-safe control boundaries. / Kich ban nha thong minh voi gioi han dieu khien an toan cho gia dinh.',
+    '1:1 language practice and guided teacher calls on iPhone. / Luyen ngon ngu 1:1 va cuoc goi huong dan voi giao vien tren iPhone.',
+    'Facility operations and assistive workflows with confidence and verification. / Van hanh co so va quy trinh tro ly co do tin cay va xac minh.',
   ];
 
   async function onPlan() {
@@ -134,12 +140,12 @@ export function App() {
   async function onRequestMagicLink(emailOverride?: string) {
     const email = (emailOverride ?? authEmail).trim();
     if (!email) {
-      setAuthError('Please enter your email.');
+      setAuthError('Please enter your email. / Vui long nhap email.');
       return;
     }
 
     if (cooldownSeconds > 0) {
-      setAuthError(`Please wait ${cooldownSeconds}s before resending.`);
+      setAuthError(`Please wait ${cooldownSeconds}s before resending. / Vui long doi ${cooldownSeconds} giay truoc khi gui lai.`);
       return;
     }
 
@@ -150,13 +156,21 @@ export function App() {
     const result = await requestMagicLink({ email, redirectTo: '/dashboard' });
 
     if (result.error || !result.value) {
-      setAuthError(result.error === 'network_error' ? 'Network error. Please retry.' : 'Request failed. Please retry.');
+      setAuthError(
+        result.error === 'network_error'
+          ? 'Connection issue. Please try again. / Ket noi dang co van de. Vui long thu lai.'
+          : 'Could not send request. Please try again. / Chua gui duoc yeu cau. Vui long thu lai.',
+      );
       setAuthLoading(false);
       return;
     }
 
     setLastAuthEmail(email);
-    setAuthSuccess(`Magic link sent to ${email}${result.value.expiresAt ? ` (expires ${result.value.expiresAt})` : ''}.`);
+    setAuthSuccess(
+      `Check your email: ${email} / Vui long kiem tra email: ${email}${
+        result.value.expiresAt ? ` (expires at ${result.value.expiresAt} / het han luc ${result.value.expiresAt})` : ''
+      }.`,
+    );
     setCooldownUntil(Date.now() + 30_000);
     setNowTick(Date.now());
     setAuthLoading(false);
@@ -207,13 +221,13 @@ export function App() {
     );
 
     if (!details.proof) {
-      setSelectedProofDetails('No proof linked');
+      setSelectedProofDetails('No proof yet / Chua co bang chung');
       return;
     }
 
     setSelectedProofId(details.proof.proofId);
     setSelectedProofDetails(
-      `${details.proof.proofId} / confidence=${details.proof.confidenceScore} / verifiedAt=${details.proof.verifiedAt}`,
+      `${details.proof.proofId} / confidence-do tin cay=${details.proof.confidenceScore} / verifiedAt-da xac minh luc=${details.proof.verifiedAt}`,
     );
     setSelectedRequestedState(JSON.stringify(details.proof.requestedState, null, 2));
     setSelectedActualState(JSON.stringify(details.proof.actualState, null, 2));
@@ -224,54 +238,56 @@ export function App() {
       <section className="hero">
         <h1>Om AI</h1>
         <p>
-          Reality control and live AI human calling in one native-first system, with explicit policy decisions,
-          proof logging, and operator-grade activity history.
+          Control your space and talk with live AI support in one place. Every action is checked by policy and
+          saved with a clear history. / Dieu khien khong gian va tro chuyen voi AI live trong mot noi. Moi hanh dong
+          duoc kiem tra theo chinh sach va luu lai lich su ro rang.
         </p>
         <div className="hero-actions">
-          <a href="#planner" className="cta-primary">Try live planner</a>
-          <a href="#activity" className="cta-secondary">See activity timeline</a>
+          <a href="#planner" className="cta-primary">Try live planner / Thu planner truc tiep</a>
+          <a href="#activity" className="cta-secondary">See activity timeline / Xem nhat ky hoat dong</a>
         </div>
         <div className="hero-row">
-          <span className="chip">Policy-first execution</span>
-          <span className="chip">Proof-linked runs</span>
-          <span className="chip">Human approvals built-in</span>
+          <span className="chip">Policy-first execution / Thuc thi uu tien chinh sach</span>
+          <span className="chip">Proof-linked runs / Run gan voi bang chung</span>
+          <span className="chip">Human approvals built-in / Co phe duyet thu cong tich hop</span>
         </div>
         <div className="status-row">
-          <span className="status-pill">Status: {deployStatus}</span>
-          <span className="status-pill">Release: {releaseTag}</span>
+          <span className="status-pill">Status / Trang thai: {deployStatus}</span>
+          <span className="status-pill">Release / Phien ban: {releaseTag}</span>
           <span className="status-pill">API: {apiBaseUrl}</span>
           <span className={`status-pill ${apiReady === 'ready' ? 'status-ok' : apiReady === 'down' ? 'status-down' : ''}`}>
-            API Ready: {apiReady}
+            API ready / API san sang: {apiReadyLabel}
           </span>
           <button className="button-secondary" onClick={() => void onCheckApiReady()}>
-            Check API
+            Check API / Kiem tra API
           </button>
         </div>
-        {lastRequestId ? <p className="meta-line">Latest request id: {lastRequestId}</p> : null}
-        {apiCheckedAt ? <p className="meta-line">Last API check: {apiCheckedAt}</p> : null}
+        {lastRequestId ? <p className="meta-line">Latest request id / Request id moi nhat: {lastRequestId}</p> : null}
+        {apiCheckedAt ? <p className="meta-line">Last API check / Lan kiem tra API gan nhat: {apiCheckedAt}</p> : null}
         {apiReady === 'down' ? (
           <p className="meta-line warning-line">
-            API appears unavailable. Check backend health endpoint, `VITE_API_BASE_URL`, and CORS policy.
+            API is not available right now. Check backend health, `VITE_API_BASE_URL`, and CORS settings. / API hien
+            tai chua san sang. Hay kiem tra health backend, `VITE_API_BASE_URL`, va cau hinh CORS.
           </p>
         ) : null}
       </section>
 
       <section className="grid">
-      <Card className="span-6" id="auth" title="Sign in with magic link">
-        {callbackState === 'success' ? <Alert tone="success">Your sign-in link is verified. You can continue.</Alert> : null}
+      <Card className="span-6" id="auth" title="Sign in / Dang nhap (magic link)">
+        {callbackState === 'success' ? <Alert tone="success">Your sign-in link is verified. You can continue. / Link dang nhap da duoc xac minh. Ban co the tiep tuc.</Alert> : null}
         {callbackState === 'expired' ? (
-          <Alert tone="warning">Your sign-in link has expired. Request a new link below.</Alert>
+          <Alert tone="warning">Your sign-in link has expired. Request a new link below. / Link dang nhap da het han. Hay yeu cau link moi ben duoi.</Alert>
         ) : null}
-        {callbackState === 'invalid' ? <Alert tone="warning">Invalid sign-in link. Request a new link.</Alert> : null}
+        {callbackState === 'invalid' ? <Alert tone="warning">Invalid sign-in link. Request a new link. / Link dang nhap khong hop le. Hay yeu cau link moi.</Alert> : null}
         <div className="controls">
           <Input
             type="email"
-            placeholder="you@domain.com"
+            placeholder="you@domain.com / ban@domain.com"
             value={authEmail}
             onChange={(e) => setAuthEmail(e.target.value)}
           />
           <Button onClick={() => void onRequestMagicLink()} disabled={authLoading || cooldownSeconds > 0}>
-            {authLoading ? 'Sending...' : cooldownSeconds > 0 ? `Resend in ${cooldownSeconds}s` : 'Send magic link'}
+            {authLoading ? 'Sending... / Dang gui...' : cooldownSeconds > 0 ? `Resend in ${cooldownSeconds}s / Gui lai sau ${cooldownSeconds} giay` : 'Send magic link / Gui magic link'}
           </Button>
         </div>
         {authSuccess ? <Alert tone="success">{authSuccess}</Alert> : null}
@@ -279,13 +295,13 @@ export function App() {
           <Alert tone="warning">
             {authError}{' '}
             <Button variant="secondary" onClick={() => void onRequestMagicLink(lastAuthEmail || undefined)}>
-              Retry
+              Retry / Thu lai
             </Button>
           </Alert>
         ) : null}
       </Card>
 
-      <Card className="span-6" title="Why Om AI">
+      <Card className="span-6" title="Why Om AI / Vi sao chon Om AI">
         <ul>
           {featurePoints.map((point) => (
             <li key={point}>{point}</li>
@@ -293,7 +309,7 @@ export function App() {
         </ul>
       </Card>
 
-      <Card className="span-6" title="Use cases">
+      <Card className="span-6" title="Use cases / Cach dung thuc te">
         <ul>
           {useCases.map((item) => (
             <li key={item}>{item}</li>
@@ -301,85 +317,85 @@ export function App() {
         </ul>
       </Card>
 
-      <Card className="span-6" id="planner" title="Planner">
+      <Card className="span-6" id="planner" title="Planner / Bo lap ke hoach">
         <div className="controls">
-        <Input value={input} onChange={(e) => setInput(e.target.value)} />
+          <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Describe what you want / Mo ta dieu ban muon" />
         <Button onClick={onPlan} disabled={planning}>
-          {planning ? 'Planning...' : 'Plan'}
+          {planning ? 'Planning... / Dang lap ke hoach...' : 'Plan / Lap ke hoach'}
         </Button>
         </div>
-        {planningError ? <Alert tone="warning">Planner error: {planningError}</Alert> : null}
-        {planResult ? <Alert>Last plan: {planResult}</Alert> : null}
-        {loadingPlanDetails ? <p>Loading plan details...</p> : null}
-        {planDetailsError ? <Alert tone="warning">Plan details error: {planDetailsError}</Alert> : null}
-        {planDetailResult ? <Alert>Plan details: {planDetailResult}</Alert> : null}
-        {approvalsLoading ? <p>Loading approval...</p> : null}
-        {approvalsError ? <Alert tone="warning">Approvals error: {approvalsError}</Alert> : null}
-        {approvalResult ? <Alert>Approval: {approvalResult}</Alert> : null}
+        {planningError ? <Alert tone="warning">Planner error / Loi planner: {planningError}</Alert> : null}
+        {planResult ? <Alert>Last plan / Ke hoach gan nhat: {planResult}</Alert> : null}
+        {loadingPlanDetails ? <p>Loading plan details... / Dang tai chi tiet ke hoach...</p> : null}
+        {planDetailsError ? <Alert tone="warning">Plan details error / Loi chi tiet ke hoach: {planDetailsError}</Alert> : null}
+        {planDetailResult ? <Alert>Plan details / Chi tiet ke hoach: {planDetailResult}</Alert> : null}
+        {approvalsLoading ? <p>Loading approval... / Dang tai phe duyet...</p> : null}
+        {approvalsError ? <Alert tone="warning">Approvals error / Loi phe duyet: {approvalsError}</Alert> : null}
+        {approvalResult ? <Alert>Approval / Phe duyet: {approvalResult}</Alert> : null}
       </Card>
 
-      <Card className="span-6" title="Scenes">
-        {loadingScenes ? <p>Loading scenes...</p> : null}
-        {scenesError ? <Alert tone="warning">Scenes error: {scenesError}</Alert> : null}
+      <Card className="span-6" title="Scenes / Ngu canh">
+        {loadingScenes ? <p>Loading scenes... / Dang tai scenes...</p> : null}
+        {scenesError ? <Alert tone="warning">Scenes error / Loi scenes: {scenesError}</Alert> : null}
         {!loadingScenes && !scenesError ? (
           <ul>
             {scenes.map((s) => (
               <li key={s.scene_id}>
                 {s.display_name} ({s.safety_class})
                 <Button onClick={() => onRunScene(s.scene_id)} variant="secondary" className="ml-8">
-                  Run
+                  Run / Chay
                 </Button>
               </li>
             ))}
           </ul>
         ) : null}
-        {sceneRunResult ? <Alert>Last scene run: {sceneRunResult}</Alert> : null}
+        {sceneRunResult ? <Alert>Last scene run / Lan chay scene gan nhat: {sceneRunResult}</Alert> : null}
       </Card>
 
-      <Card className="span-8" id="activity" title="Activity timeline">
+      <Card className="span-8" id="activity" title="Activity timeline / Nhat ky hoat dong">
         <Button onClick={() => void refreshRuns()} disabled={loadingRuns} variant="secondary">
-          {loadingRuns ? 'Refreshing...' : 'Refresh'}
+          {loadingRuns ? 'Refreshing... / Dang lam moi...' : 'Refresh / Lam moi'}
         </Button>
-        {runsError ? <Alert tone="warning">Runs error: {runsError}</Alert> : null}
+        {runsError ? <Alert tone="warning">Runs error / Loi runs: {runsError}</Alert> : null}
         {!loadingRuns && !runsError ? (
           <ul>
             {runs.map((r) => (
               <li key={r.run_id}>
                 {r.created_at} - {r.source}:{r.source_id} - {r.status} ({r.run_id})
                 <Button onClick={() => void onToggleRunDetails(r.run_id)} className="ml-8" variant="secondary">
-                  {selectedRunId === r.run_id ? 'Hide details' : 'View details'}
+                  {selectedRunId === r.run_id ? 'Hide details / An chi tiet' : 'View details / Xem chi tiet'}
                 </Button>
                 {selectedRunId === r.run_id ? (
                   <div className="meta-line">
-                    {loadingRunDetails ? <p>Loading run details...</p> : null}
-                    {runDetailsError ? <Alert tone="warning">Run details error: {runDetailsError}</Alert> : null}
+                    {loadingRunDetails ? <p>Loading run details... / Dang tai chi tiet run...</p> : null}
+                    {runDetailsError ? <Alert tone="warning">Run details error / Loi chi tiet run: {runDetailsError}</Alert> : null}
                     {selectedRunDetails ? (
                       <p>
-                        Run: {selectedRunDetails}{' '}
+                        Activity / Hoat dong: {selectedRunDetails}{' '}
                         <Button variant="secondary" onClick={() => void onCopy(r.run_id)}>
-                          Copy run id
+                          Copy run id / Sao chep run id
                         </Button>
                       </p>
                     ) : null}
                     {selectedProofDetails ? (
                       <p>
-                        Proof: {selectedProofDetails}{' '}
+                        Proof / Bang chung: {selectedProofDetails}{' '}
                         {selectedProofId ? (
                           <Button variant="secondary" onClick={() => void onCopy(selectedProofId)}>
-                            Copy proof id
+                            Copy proof id / Sao chep proof id
                           </Button>
                         ) : null}
                       </p>
                     ) : null}
                     {selectedRequestedState ? (
                       <>
-                        <p>Requested state</p>
+                        <p>Requested state / Trang thai yeu cau</p>
                         <pre style={{ whiteSpace: 'pre-wrap', overflowX: 'auto' }}>{selectedRequestedState}</pre>
                       </>
                     ) : null}
                     {selectedActualState ? (
                       <>
-                        <p>Actual state</p>
+                        <p>Actual state / Trang thai thuc te</p>
                         <pre style={{ whiteSpace: 'pre-wrap', overflowX: 'auto' }}>{selectedActualState}</pre>
                       </>
                     ) : null}
@@ -391,9 +407,9 @@ export function App() {
         ) : null}
       </Card>
 
-      <Card className="span-4" title="Devices">
-        {loadingDevices ? <p>Loading devices...</p> : null}
-        {devicesError ? <Alert tone="warning">Device error: {devicesError}</Alert> : null}
+      <Card className="span-4" title="Devices / Thiet bi">
+        {loadingDevices ? <p>Loading devices... / Dang tai thiet bi...</p> : null}
+        {devicesError ? <Alert tone="warning">Device error / Loi thiet bi: {devicesError}</Alert> : null}
         {!loadingDevices && !devicesError ? (
           <ul>
             {devices.map((d) => (
@@ -403,14 +419,14 @@ export function App() {
         ) : null}
       </Card>
 
-      <Card className="span-12" title="Store">
-        <Alert>Selected space: {state.selectedSpaceId ?? 'none'}</Alert>
-        <Button onClick={() => setSelectedSpaceId('space_demo_01')}>Select demo space</Button>
-        <Button onClick={() => setSelectedSpaceId(null)} className="ml-8" variant="secondary">Clear</Button>
+      <Card className="span-12" title="Store / Bo nho trang thai">
+        <Alert>Selected space / Khong gian dang chon: {state.selectedSpaceId ?? 'none / chua chon'}</Alert>
+        <Button onClick={() => setSelectedSpaceId('space_demo_01')}>Select demo space / Chon khong gian demo</Button>
+        <Button onClick={() => setSelectedSpaceId(null)} className="ml-8" variant="secondary">Clear / Xoa</Button>
       </Card>
       </section>
 
-      <footer className="footer">Om AI - reality control and AI human interaction in one governed flow.</footer>
+      <footer className="footer">Om AI - reality control and AI human interaction in one governed flow. / Om AI - dieu khien thuc tai va tuong tac AI con nguoi trong mot luong duoc quan tri.</footer>
     </main>
   );
 }

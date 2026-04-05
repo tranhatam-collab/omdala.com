@@ -11,7 +11,7 @@ export function usePlanner() {
     setLoading(false);
 
     if (result.error || !result.value) {
-      setError(result.error ?? 'request_failed');
+      setError('Unable to create a plan right now. Please try again. / Hien tai chua tao duoc ke hoach. Vui long thu lai.');
       return null;
     }
 
