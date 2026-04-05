@@ -82,6 +82,33 @@ export function createOmniverseApi({
           return json(200, { ok: true, data: result, meta: { requestId } });
         }
 
+        if (
+          request.method === "POST" &&
+          pathname === "/v2/omniverse/devices/onboard"
+        ) {
+          const body = await safeJson(request);
+          const authToken = request.headers.get("authorization");
+          const authCtx = await loginService.buildAuthCtxFromToken(
+            parseBearerToken(authToken),
+          );
+          const deviceSvc = require("./../backend/src/services/deviceService.js");
+          // Fallback path if module resolution differs in runtime
+          const svc = deviceSvc?.default || deviceSvc;
+          const service =
+            svc && typeof svc.createDeviceService === "function"
+              ? svc.createDeviceService({})
+              : null;
+          // For skeleton, return a placeholder
+          const onboard = {
+            roomId: body.roomId,
+            deviceId: body.deviceId,
+            name: body.name,
+            type: body.type,
+            state: body.initialState || {},
+          };
+          return json(200, { ok: true, data: onboard, meta: { requestId } });
+        }
+
         const roomMatch = pathname.match(
           /^\/v2\/omniverse\/rooms\/([^/]+)\/state$/,
         );

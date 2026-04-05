@@ -41,3 +41,27 @@ Dependencies
 - DB adapters ready for new domain models
 
 End of Phase
+
+Backlog Details (expanded)
+
+- Task 1: API spec for O2 device onboarding, device state, and scene activation
+  - Acceptance: endpoints defined; payloads and responses documented
+  - Owner: Backend Architect
+  - Est: 4h
+- Task 2: Implement device onboarding skeleton endpoint
+  - Endpoint: POST /v2/omniverse/devices/onboard
+  - Acceptance: returns created device entry; validates room exists
+- Task 3: Implement get device state skeleton
+  - Endpoint: GET /v2/omniverse/devices/:deviceId/state
+- Task 4: Implement update device state skeleton
+  - Endpoint: PUT /v2/omniverse/devices/:deviceId/state
+- Task 5: Implement scene activation skeleton
+  - Endpoint: POST /v2/omniverse/rooms/:roomId/scene/activate
+- Task 6: Implement list devices in a room skeleton
+  - Endpoint: GET /v2/omniverse/rooms/:roomId/devices
+- Task 7: Unit tests for O2 skeletons
+  - Coverage: onboarding, get/update state, scene activate
+- Task 8: E2E test scaffolds for O2 flows
+- Task 9: Boundary doc section for Phase O2
+- Task 10: Update PHASE_O2_PLAN_2026.md with acceptance criteria and milestones
+- Task 11: CI wiring for Phase O2 (branch, PR, and tests)
