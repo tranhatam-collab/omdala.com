@@ -12,9 +12,16 @@
     "db:seed": "node backend/src/db/migrate.js --seed-only",
     "db:migrate:dry": "node backend/src/db/migrate.js --dry-run",
     "db:migrate:d1": "node backend/src/db/migrate.js --adapter d1 --seed",
-    "db:migrate:d1:dry": "node backend/src/db/migrate.js --adapter d1 --dry-run"
+    "db:migrate:d1:dry": "node backend/src/db/migrate.js --adapter d1 --dry-run",
+    "deploy:preview": "wrangler deploy --env preview",
+    "deploy:production": "wrangler deploy --env production",
+    "deploy": "npm run deploy:production",
+    "worker:dev": "wrangler dev"
   },
   "dependencies": {
     "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "wrangler": "^3.57.0"
   }
 }

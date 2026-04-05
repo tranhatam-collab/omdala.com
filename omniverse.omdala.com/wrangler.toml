@@ -1,0 +1,25 @@
+name = "omniverse-api"
+main = "backend/src/worker.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+account_id = "93112cc89181e75335cbd7ef7e392ba3"
+
+# ── Environments ─────────────────────────────────────────────────────────────
+
+[env.preview]
+name = "omniverse-api-preview"
+
+[env.production]
+name = "omniverse-api"
+
+# ── Variables (non-secret) ────────────────────────────────────────────────────
+# Secrets (SHARED_CORE_BASE_URL, DATABASE_URL) are set via:
+#   wrangler secret put SHARED_CORE_BASE_URL --env production
+#   wrangler secret put DATABASE_URL          --env production
+#
+# D1 binding (when using D1 instead of postgres):
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "omdala-db"
+# database_id   = ""   # fill in after: wrangler d1 create omdala-db
