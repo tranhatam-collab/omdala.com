@@ -8,6 +8,10 @@ import { createSharedCoreClient } from "./shared/sharedCoreClient.js";
 import { createDbAdapter } from "./db/createDbAdapter.js";
 import { createDeviceService } from "./services/deviceService.js";
 import { createSceneService } from "./services/sceneService.js";
+import { createAutomationService } from "./services/automationService.js";
+import { createScheduleService } from "./services/scheduleService.js";
+import { createGatewayService } from "./services/gatewayService.js";
+import { createMultiRoomService } from "./services/multiRoomService.js";
 
 export async function createOmniverseRuntime(options = {}) {
   const sharedCoreClient =
@@ -38,12 +42,30 @@ export async function createOmniverseRuntime(options = {}) {
   });
   const deviceService = createDeviceService({ dbAdapter, roomRepository });
   const sceneService = createSceneService({ dbAdapter, roomRepository });
+  const automationService = createAutomationService({
+    dbAdapter,
+    deviceService,
+  });
+  const scheduleService = createScheduleService({
+    dbAdapter,
+    automationService,
+  });
+  const gatewayService = createGatewayService({ dbAdapter });
+  const multiRoomService = createMultiRoomService({
+    dbAdapter,
+    roomRepository,
+  });
+
   const api = createOmniverseApi({
     loginService,
     roomStateService,
     loginToRoomStateFlow,
     deviceService,
     sceneService,
+    automationService,
+    scheduleService,
+    gatewayService,
+    multiRoomService,
   });
 
   return {
@@ -52,6 +74,12 @@ export async function createOmniverseRuntime(options = {}) {
       roomStateService,
       loginToRoomStateFlow,
       roomRepository,
+      deviceService,
+      sceneService,
+      automationService,
+      scheduleService,
+      gatewayService,
+      multiRoomService,
     },
     api,
   };

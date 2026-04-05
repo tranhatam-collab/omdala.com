@@ -350,3 +350,367 @@ test("O2: POST scene activate changes active scene", async () => {
   assert.equal(payload.data.sceneName, "Morning Bright");
   assert.equal(payload.data.roomId, "room_living_001");
 });
+
+// ─── Phase O3 tests ────────────────────────────────────────────────────────
+
+async function loginAndGetToken(runtime) {
+  const res = await runtime.api.handle(
+    createJsonRequest("http://localhost/v2/omniverse/auth/login", "POST", {
+      email: "owner@omdala.com",
+      password: "demo-owner-pass",
+    }),
+  );
+  const { data } = await res.json();
+  return data.accessToken;
+}
+
+test("O3: GET workspace state returns all rooms snapshot", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  const response = await runtime.api.handle(
+    new Request(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/state",
+      { method: "GET", headers: { authorization: `Bearer ${token}` } },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.data.workspaceId, "workspace_home_001");
+  assert.ok(Array.isArray(payload.data.rooms));
+  assert.ok(payload.data.rooms.length >= 2);
+  assert.ok(payload.data.snapshotAt);
+});
+
+test("O3: POST workspace preset applies scenes to all rooms", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  const response = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/preset",
+      "POST",
+      {
+        presetName: "away",
+        presetScenes: [
+          {
+            roomId: "room_living_001",
+            sceneId: "scene_away",
+            sceneName: "Away Mode",
+          },
+          {
+            roomId: "room_bedroom_001",
+            sceneId: "scene_away",
+            sceneName: "Away Mode",
+          },
+        ],
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.data.presetName, "away");
+  assert.equal(payload.data.roomsUpdated, 2);
+});
+
+test("O3: POST automation creates and returns automation", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  const response = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/automations",
+      "POST",
+      {
+        workspaceId: "workspace_home_001",
+        roomId: "room_living_001",
+        name: "Evening Light On",
+        triggerType: "schedule",
+        triggerJson: { cron: "0 19 * * *" },
+        actionsJson: [
+          { deviceId: "dev_light_001", state: { power: "on", brightness: 80 } },
+        ],
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 201);
+  assert.equal(payload.ok, true);
+  assert.ok(payload.data.automation_id);
+  assert.equal(payload.data.name, "Evening Light On");
+  assert.equal(payload.data.trigger_type, "schedule");
+});
+
+test("O3: GET automations lists created automations", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  // Create one first
+  await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/automations",
+      "POST",
+      {
+        workspaceId: "workspace_home_001",
+        name: "Test Rule",
+        triggerType: "manual",
+        actionsJson: [],
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+
+  const response = await runtime.api.handle(
+    new Request(
+      "http://localhost/v2/omniverse/automations?workspaceId=workspace_home_001",
+      { method: "GET", headers: { authorization: `Bearer ${token}` } },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.ok(Array.isArray(payload.data));
+  assert.ok(payload.data.length >= 1);
+});
+
+test("O3: POST automation run executes actions and updates last_run_at", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  // Create automation with a real device action
+  const createRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/automations",
+      "POST",
+      {
+        workspaceId: "workspace_home_001",
+        name: "Night Mode",
+        triggerType: "manual",
+        actionsJson: [{ deviceId: "dev_light_001", state: { power: "off" } }],
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const { data: created } = await createRes.json();
+
+  const response = await runtime.api.handle(
+    createJsonRequest(
+      `http://localhost/v2/omniverse/automations/${created.automation_id}/run`,
+      "POST",
+      {},
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.data.automationId, created.automation_id);
+  assert.equal(payload.data.actionsExecuted, 1);
+  assert.ok(payload.data.ranAt);
+});
+
+test("O3: POST schedule creates schedule linked to automation", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  const autoRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/automations",
+      "POST",
+      {
+        workspaceId: "workspace_home_001",
+        name: "Morning Routine",
+        triggerType: "schedule",
+        actionsJson: [
+          { deviceId: "dev_ac_001", state: { power: "on", targetTempC: 23 } },
+        ],
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const { data: auto } = await autoRes.json();
+
+  const response = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/schedules",
+      "POST",
+      {
+        workspaceId: "workspace_home_001",
+        automationId: auto.automation_id,
+        cronExpr: "0 7 * * *",
+        timezone: "Asia/Ho_Chi_Minh",
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 201);
+  assert.equal(payload.ok, true);
+  assert.ok(payload.data.schedule_id);
+  assert.equal(payload.data.cron_expr, "0 7 * * *");
+  assert.equal(payload.data.automation_id, auto.automation_id);
+});
+
+test("O3: POST schedule trigger runs linked automation", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  // Create automation + schedule
+  const autoRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/automations",
+      "POST",
+      {
+        workspaceId: "workspace_home_001",
+        name: "Sleep Mode",
+        triggerType: "schedule",
+        actionsJson: [{ deviceId: "dev_light_001", state: { power: "off" } }],
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const { data: auto } = await autoRes.json();
+
+  const schedRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/schedules",
+      "POST",
+      {
+        workspaceId: "workspace_home_001",
+        automationId: auto.automation_id,
+        cronExpr: "0 22 * * *",
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const { data: sched } = await schedRes.json();
+
+  const response = await runtime.api.handle(
+    createJsonRequest(
+      `http://localhost/v2/omniverse/schedules/${sched.schedule_id}/trigger`,
+      "POST",
+      {},
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.data.scheduleId, sched.schedule_id);
+  assert.ok(payload.data.triggeredAt);
+  assert.equal(payload.data.automationResult.actionsExecuted, 1);
+});
+
+test("O3: POST gateway registers gateway", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  const response = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/gateways",
+      "POST",
+      {
+        workspaceId: "workspace_home_001",
+        gatewayId: "gw_home_001",
+        name: "Home Hub",
+        meta: { firmware: "1.2.0" },
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 201);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.data.gateway_id, "gw_home_001");
+  assert.equal(payload.data.name, "Home Hub");
+  assert.equal(payload.data.status, "offline");
+});
+
+test("O3: POST gateway heartbeat marks gateway online", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  // Register first
+  await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/gateways",
+      "POST",
+      {
+        workspaceId: "workspace_home_001",
+        gatewayId: "gw_home_002",
+        name: "Bedroom Hub",
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+
+  const response = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/gateways/gw_home_002/heartbeat",
+      "POST",
+      {},
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.data.status, "online");
+  assert.ok(payload.data.lastSeenAt);
+});
+
+test("O3: POST gateway command dispatches and can be ACKed", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/gateways",
+      "POST",
+      {
+        workspaceId: "workspace_home_001",
+        gatewayId: "gw_home_003",
+        name: "Kitchen Hub",
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+
+  const dispatchRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/gateways/gw_home_003/commands",
+      "POST",
+      { deviceId: "dev_light_001", payload: { power: "on" } },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const { data: cmd } = await dispatchRes.json();
+
+  assert.equal(dispatchRes.status, 201);
+  assert.equal(cmd.status, "pending");
+  assert.ok(cmd.command_id);
+
+  // ACK it
+  const ackRes = await runtime.api.handle(
+    createJsonRequest(
+      `http://localhost/v2/omniverse/gateways/gw_home_003/commands/${cmd.command_id}/ack`,
+      "POST",
+      {},
+    ),
+  );
+  const ackPayload = await ackRes.json();
+
+  assert.equal(ackRes.status, 200);
+  assert.equal(ackPayload.data.status, "ack");
+  assert.ok(ackPayload.data.ackAt);
+});

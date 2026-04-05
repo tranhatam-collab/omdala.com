@@ -41,6 +41,10 @@ export function createOmniverseApi({
   loginToRoomStateFlow,
   deviceService,
   sceneService,
+  automationService,
+  scheduleService,
+  gatewayService,
+  multiRoomService,
 }) {
   return {
     async handle(request) {
@@ -199,6 +203,258 @@ export function createOmniverseApi({
             );
           }
           return json(200, { ok: true, data: updated, meta: { requestId } });
+        }
+
+        // ── O3: Multi-room ────────────────────────────────────────────────────
+
+        // GET /v2/omniverse/workspaces/:workspaceId/state
+        const workspaceStateMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/state$/,
+        );
+        if (request.method === "GET" && workspaceStateMatch) {
+          const workspaceId = workspaceStateMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const state = await multiRoomService.getWorkspaceState({
+            authCtx,
+            workspaceId,
+          });
+          return json(200, { ok: true, data: state, meta: { requestId } });
+        }
+
+        // POST /v2/omniverse/workspaces/:workspaceId/preset
+        const workspacePresetMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/preset$/,
+        );
+        if (request.method === "POST" && workspacePresetMatch) {
+          const workspaceId = workspacePresetMatch[1];
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await multiRoomService.applyPreset({
+            authCtx,
+            workspaceId,
+            presetName: body.presetName,
+            presetScenes: body.presetScenes,
+          });
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // ── O3: Automations ───────────────────────────────────────────────────
+
+        // POST /v2/omniverse/automations
+        if (
+          request.method === "POST" &&
+          pathname === "/v2/omniverse/automations"
+        ) {
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await automationService.createAutomation({
+            authCtx,
+            workspaceId: body.workspaceId,
+            roomId: body.roomId,
+            name: body.name,
+            triggerType: body.triggerType,
+            triggerJson: body.triggerJson,
+            actionsJson: body.actionsJson,
+          });
+          return json(201, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // GET /v2/omniverse/automations?workspaceId=...
+        if (
+          request.method === "GET" &&
+          pathname === "/v2/omniverse/automations"
+        ) {
+          const workspaceId = new URL(request.url).searchParams.get(
+            "workspaceId",
+          );
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const list = await automationService.listAutomations({
+            authCtx,
+            workspaceId,
+          });
+          return json(200, { ok: true, data: list, meta: { requestId } });
+        }
+
+        // POST /v2/omniverse/automations/:automationId/run
+        const automationRunMatch = pathname.match(
+          /^\/v2\/omniverse\/automations\/([^/]+)\/run$/,
+        );
+        if (request.method === "POST" && automationRunMatch) {
+          const automationId = automationRunMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await automationService.runAutomation({
+            authCtx,
+            automationId,
+          });
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // ── O3: Schedules ─────────────────────────────────────────────────────
+
+        // POST /v2/omniverse/schedules
+        if (
+          request.method === "POST" &&
+          pathname === "/v2/omniverse/schedules"
+        ) {
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await scheduleService.createSchedule({
+            authCtx,
+            workspaceId: body.workspaceId,
+            automationId: body.automationId,
+            cronExpr: body.cronExpr,
+            timezone: body.timezone,
+          });
+          return json(201, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // GET /v2/omniverse/schedules?workspaceId=...
+        if (
+          request.method === "GET" &&
+          pathname === "/v2/omniverse/schedules"
+        ) {
+          const workspaceId = new URL(request.url).searchParams.get(
+            "workspaceId",
+          );
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const list = await scheduleService.listSchedules({
+            authCtx,
+            workspaceId,
+          });
+          return json(200, { ok: true, data: list, meta: { requestId } });
+        }
+
+        // POST /v2/omniverse/schedules/:scheduleId/trigger
+        const scheduleTriggerMatch = pathname.match(
+          /^\/v2\/omniverse\/schedules\/([^/]+)\/trigger$/,
+        );
+        if (request.method === "POST" && scheduleTriggerMatch) {
+          const scheduleId = scheduleTriggerMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await scheduleService.triggerSchedule({
+            authCtx,
+            scheduleId,
+          });
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // ── O3: Gateways ──────────────────────────────────────────────────────
+
+        // POST /v2/omniverse/gateways
+        if (
+          request.method === "POST" &&
+          pathname === "/v2/omniverse/gateways"
+        ) {
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await gatewayService.registerGateway({
+            authCtx,
+            workspaceId: body.workspaceId,
+            gatewayId: body.gatewayId,
+            name: body.name,
+            meta: body.meta,
+          });
+          return json(201, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // GET /v2/omniverse/gateways?workspaceId=...
+        if (request.method === "GET" && pathname === "/v2/omniverse/gateways") {
+          const workspaceId = new URL(request.url).searchParams.get(
+            "workspaceId",
+          );
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const list = await gatewayService.listGateways({
+            authCtx,
+            workspaceId,
+          });
+          return json(200, { ok: true, data: list, meta: { requestId } });
+        }
+
+        // POST /v2/omniverse/gateways/:gatewayId/heartbeat  (no auth — gateway-side call)
+        const gatewayHeartbeatMatch = pathname.match(
+          /^\/v2\/omniverse\/gateways\/([^/]+)\/heartbeat$/,
+        );
+        if (request.method === "POST" && gatewayHeartbeatMatch) {
+          const gatewayId = gatewayHeartbeatMatch[1];
+          const result = await gatewayService.heartbeat({ gatewayId });
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // POST /v2/omniverse/gateways/:gatewayId/commands
+        const gatewayCommandsMatch = pathname.match(
+          /^\/v2\/omniverse\/gateways\/([^/]+)\/commands$/,
+        );
+        if (request.method === "POST" && gatewayCommandsMatch) {
+          const gatewayId = gatewayCommandsMatch[1];
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await gatewayService.dispatchCommand({
+            authCtx,
+            gatewayId,
+            deviceId: body.deviceId,
+            payload: body.payload,
+          });
+          return json(201, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // GET /v2/omniverse/gateways/:gatewayId/commands
+        if (request.method === "GET" && gatewayCommandsMatch) {
+          const gatewayId = gatewayCommandsMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const list = await gatewayService.listCommands({
+            authCtx,
+            gatewayId,
+          });
+          return json(200, { ok: true, data: list, meta: { requestId } });
+        }
+
+        // POST /v2/omniverse/gateways/:gatewayId/commands/:commandId/ack
+        const gatewayAckMatch = pathname.match(
+          /^\/v2\/omniverse\/gateways\/([^/]+)\/commands\/([^/]+)\/ack$/,
+        );
+        if (request.method === "POST" && gatewayAckMatch) {
+          const [, gatewayId, commandId] = gatewayAckMatch;
+          const result = await gatewayService.ackCommand({
+            gatewayId,
+            commandId,
+          });
+          return json(200, { ok: true, data: result, meta: { requestId } });
         }
 
         return json(404, {
