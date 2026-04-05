@@ -16,7 +16,23 @@ CREATE TABLE IF NOT EXISTS omniverse_room_devices (
   PRIMARY KEY (room_id, device_id)
 );
 
+CREATE TABLE IF NOT EXISTS omniverse_devices (
+  device_id TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  room_id TEXT NOT NULL REFERENCES omniverse_rooms(room_id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  state_json JSONB NOT NULL DEFAULT '{}',
+  onboarded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- workspace_members lives in shared-core (/v1/workspaces), not in Omniverse DB.
 
 CREATE INDEX IF NOT EXISTS idx_omniverse_rooms_workspace
   ON omniverse_rooms(workspace_id);
+
+CREATE INDEX IF NOT EXISTS idx_omniverse_devices_room
+  ON omniverse_devices(room_id);
+
+CREATE INDEX IF NOT EXISTS idx_omniverse_devices_workspace
+  ON omniverse_devices(workspace_id);

@@ -39,6 +39,8 @@ export function createOmniverseApi({
   loginService,
   roomStateService,
   loginToRoomStateFlow,
+  deviceService,
+  sceneService,
 }) {
   return {
     async handle(request) {
@@ -87,25 +89,21 @@ export function createOmniverseApi({
           pathname === "/v2/omniverse/devices/onboard"
         ) {
           const body = await safeJson(request);
-          const authToken = request.headers.get("authorization");
-          const authCtx = await loginService.buildAuthCtxFromToken(
-            parseBearerToken(authToken),
-          );
-          const deviceSvc = require("./../backend/src/services/deviceService.js");
-          // Fallback path if module resolution differs in runtime
-          const svc = deviceSvc?.default || deviceSvc;
-          const service =
-            svc && typeof svc.createDeviceService === "function"
-              ? svc.createDeviceService({})
-              : null;
-          // For skeleton, return a placeholder
-          const onboard = {
-            roomId: body.roomId,
-            deviceId: body.deviceId,
-            name: body.name,
-            type: body.type,
-            state: body.initialState || {},
-          };
+          const onboard = await (deviceService?.onboardDevice
+            ? deviceService.onboardDevice({
+                roomId: body.roomId,
+                deviceId: body.deviceId,
+                name: body.name,
+                type: body.type,
+                initialState: body.initialState,
+              })
+            : {
+                roomId: body.roomId,
+                deviceId: body.deviceId,
+                name: body.name,
+                type: body.type,
+                state: body.initialState ?? {},
+              });
           return json(200, { ok: true, data: onboard, meta: { requestId } });
         }
 
@@ -120,6 +118,87 @@ export function createOmniverseApi({
           const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
           const room = await roomStateService.getRoomState({ authCtx, roomId });
           return json(200, { ok: true, data: room, meta: { requestId } });
+        }
+
+        // GET /v2/omniverse/rooms/:roomId/devices
+        const roomDevicesMatch = pathname.match(
+          /^\/v2\/omniverse\/rooms\/([^/]+)\/devices$/,
+        );
+        if (request.method === "GET" && roomDevicesMatch) {
+          const roomId = roomDevicesMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const devices = await deviceService.listDevices(roomId, authCtx);
+          return json(200, {
+            ok: true,
+            data: { roomId, devices },
+            meta: { requestId },
+          });
+        }
+
+        // POST /v2/omniverse/rooms/:roomId/scene/activate
+        const sceneActivateMatch = pathname.match(
+          /^\/v2\/omniverse\/rooms\/([^/]+)\/scene\/activate$/,
+        );
+        if (request.method === "POST" && sceneActivateMatch) {
+          const roomId = sceneActivateMatch[1];
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await sceneService.activateScene({
+            authCtx,
+            roomId,
+            sceneId: body.sceneId,
+            sceneName: body.sceneName,
+          });
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // GET /v2/omniverse/devices/:deviceId/state
+        const deviceStateMatch = pathname.match(
+          /^\/v2\/omniverse\/devices\/([^/]+)\/state$/,
+        );
+        if (request.method === "GET" && deviceStateMatch) {
+          const deviceId = deviceStateMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken); // validate token
+          const state = await deviceService.getDeviceState(deviceId);
+          if (!state) {
+            throw new HttpError(
+              404,
+              "DEVICE_NOT_FOUND",
+              `Device ${deviceId} not found`,
+            );
+          }
+          return json(200, { ok: true, data: state, meta: { requestId } });
+        }
+
+        // PUT /v2/omniverse/devices/:deviceId/state
+        if (request.method === "PUT" && deviceStateMatch) {
+          const deviceId = deviceStateMatch[1];
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken); // validate token
+          const updated = await deviceService.updateDeviceState(
+            deviceId,
+            body.state ?? body,
+          );
+          if (!updated) {
+            throw new HttpError(
+              404,
+              "DEVICE_NOT_FOUND",
+              `Device ${deviceId} not found`,
+            );
+          }
+          return json(200, { ok: true, data: updated, meta: { requestId } });
         }
 
         return json(404, {

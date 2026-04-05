@@ -7,6 +7,7 @@ import { createOmniverseApi } from "./http/api.js";
 import { createSharedCoreClient } from "./shared/sharedCoreClient.js";
 import { createDbAdapter } from "./db/createDbAdapter.js";
 import { createDeviceService } from "./services/deviceService.js";
+import { createSceneService } from "./services/sceneService.js";
 
 export async function createOmniverseRuntime(options = {}) {
   const sharedCoreClient =
@@ -36,11 +37,13 @@ export async function createOmniverseRuntime(options = {}) {
     roomStateService,
   });
   const deviceService = createDeviceService({ dbAdapter, roomRepository });
+  const sceneService = createSceneService({ dbAdapter, roomRepository });
   const api = createOmniverseApi({
     loginService,
     roomStateService,
     loginToRoomStateFlow,
     deviceService,
+    sceneService,
   });
 
   return {

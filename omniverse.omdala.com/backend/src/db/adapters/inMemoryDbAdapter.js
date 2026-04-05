@@ -84,5 +84,14 @@ export function createInMemoryDbAdapter(seed = DEFAULT_DATA) {
             : dev.state_json,
       };
     },
+
+    async activateScene(roomId, sceneId, sceneName) {
+      const room = data.rooms.find((r) => r.room_id === roomId);
+      if (!room) return null;
+      room.active_scene_id = sceneId;
+      room.active_scene_name = sceneName;
+      room.updated_at = new Date().toISOString();
+      return { roomId, sceneId, sceneName, activatedAt: room.updated_at };
+    },
   };
 }
