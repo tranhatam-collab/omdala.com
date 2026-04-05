@@ -7,8 +7,10 @@ OMDALA is the master platform repository for the global brand and system layer b
 - `api.omdala.com`
 - `docs.omdala.com`
 - `admin.omdala.com`
+- `om-ai.omdala.com`
+- `omniverse.omdala.com`
 
-OMDALA is not a city website, tourism product, or thin marketplace. It is the operating layer for real-world value, trust, and intelligent coordination.
+OMDALA is not a city website, tourism product, or thin marketplace. It is the ecosystem root for real-world value, trust, and intelligent coordination.
 
 ## Core definition
 
@@ -38,6 +40,21 @@ This branch now includes:
 - master brand, theme, SEO, deploy, and developer lock files
 - core product, data, API, trust, and matching specifications
 - process guidance for AI-assisted engineering under `.github/`
+- split product workspaces under the root: `om-ai.omdala.com/` and `omniverse.omdala.com/`
+
+## Product split lock
+
+From April 4, 2026 onward, the ecosystem is locked as:
+
+- `OMDALA` = ecosystem motherbrand and shared platform layer
+- `Om AI` = AI human calls, learning, communication, companion, and business interaction
+- `AI Omniverse` = spaces, devices, scenes, gateways, and physical reality orchestration
+
+This root repository now holds:
+
+- shared ecosystem foundation at the root
+- the `om-ai.omdala.com/` product workspace
+- the `omniverse.omdala.com/` product workspace
 
 ## Domain lock
 
@@ -58,7 +75,9 @@ Read these files first:
 3. `docs/PRODUCT_SPEC_OMDALA.md`
 4. `docs/DATA_MODEL_OMDALA.md`
 5. `docs/API_SPEC_OMDALA.md`
-6. `docs/architecture/OMDALA_MASTER_SYSTEM_ARCHITECTURE_2026_FINAL.md`
+6. `docs/OM_AI_AND_AI_OMNIVERSE_SPLIT_MASTER_DEV_ADJUSTMENT_2026.md`
+7. `docs/OMDALA_SHARED_PLATFORM_CORE_BOUNDARY_2026.md`
+8. `docs/REPO_SPLIT_DECISION_AND_FOLDER_STRUCTURE_2026.md`
 
 ## Repo structure
 
@@ -88,6 +107,8 @@ omdala.com/
     ai/
   docs/
   scripts/
+  om-ai.omdala.com/
+  omniverse.omdala.com/
 ```
 
 ## Development principles
@@ -99,6 +120,7 @@ omdala.com/
 - production-first thinking
 - no mixed-brand scope unless explicitly approved
 - keep global and city scopes separate
+- keep `Om AI` and `AI Omniverse` as separate products with separate ownership
 
 ## AI-assisted development
 
@@ -112,4 +134,4 @@ Working rules and task scaffolding live in:
 
 ## Build rule
 
-Do not introduce implementation-specific brands or local-node logic into this repository unless that scope has been explicitly approved and documented as a separate system contract.
+Do not collapse `Om AI` and `AI Omniverse` back into one app, one dashboard, or one roadmap. Split decisions must be documented and respected before implementation continues.

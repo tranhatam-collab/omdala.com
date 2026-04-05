@@ -1,6 +1,11 @@
 // OMDALA — Shared Type Definitions
 // Source of truth expands from the master data model in docs/DATA_MODEL_OMDALA.md
 
+// ─── Domain-specific re-exports ──────────────────────────────────────────
+
+export * from './om-ai.js';
+export * from './omniverse.js';
+
 // ─── Identity ─────────────────────────────────────────────────────────────
 
 export type UserRole =

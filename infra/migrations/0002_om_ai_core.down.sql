@@ -1,0 +1,10 @@
+-- Rollback: Om AI Core Schema
+BEGIN;
+DROP TABLE IF EXISTS om_ai_subscriptions CASCADE;
+DROP TABLE IF EXISTS conversation_memories CASCADE;
+DROP TABLE IF EXISTS usage_events CASCADE;
+DROP TABLE IF EXISTS recaps CASCADE;
+DROP TABLE IF EXISTS transcript_segments CASCADE;
+DROP TABLE IF EXISTS calls CASCADE;
+DROP TABLE IF EXISTS personas CASCADE;
+COMMIT;

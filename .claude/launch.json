@@ -1,0 +1,61 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web (omdala.com)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@omdala/web", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "app (app.omdala.com)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@omdala/app", "dev"],
+      "port": 3001
+    },
+    {
+      "name": "admin (admin.omdala.com)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@omdala/admin", "dev"],
+      "port": 3002
+    },
+    {
+      "name": "docs (docs.omdala.com)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@omdala/docs", "dev"],
+      "port": 3003
+    },
+    {
+      "name": "api (Cloudflare Worker)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@omdala/api", "dev"],
+      "port": 8787
+    },
+    {
+      "name": "om-ai backend (Fastify)",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": [
+        "/Users/tranhatam/Documents/New project/omdala.com/om-ai.omdala.com/backend/node_modules/.bin/tsx",
+        "watch",
+        "/Users/tranhatam/Documents/New project/omdala.com/om-ai.omdala.com/backend/src/index.ts"
+      ],
+      "port": 3001
+    },
+    {
+      "name": "om-ai web (Vite)",
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": [
+        "/Users/tranhatam/Documents/New project/omdala.com/om-ai.omdala.com/web/node_modules/.bin/vite",
+        "--root",
+        "/Users/tranhatam/Documents/New project/omdala.com/om-ai.omdala.com/web"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "omniverse backend",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd '/Users/tranhatam/Documents/New project/omdala.com/omniverse.omdala.com' && npm run dev:backend"],
+      "port": 4080
+    }
+  ]
+}

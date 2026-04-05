@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "moduleResolution": "Bundler",
+    "skipLibCheck": true,
+    "types": ["react-native", "jest"],
+    "baseUrl": "."
+  },
+  "include": ["src", "../shared/**/*.ts"],
+  "extends": "expo/tsconfig.base"
+}

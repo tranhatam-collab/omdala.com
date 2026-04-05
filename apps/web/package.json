@@ -9,7 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
-    "test:e2e:prod": "E2E_BASE_URL=https://omdala-web.pages.dev playwright test"
+    "test:e2e:prod": "E2E_BASE_URL=${E2E_BASE_URL:-https://production.omdala-web.pages.dev} playwright test"
   },
   "dependencies": {
     "@omdala/core": "workspace:*",

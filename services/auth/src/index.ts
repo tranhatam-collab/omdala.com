@@ -1,4 +1,9 @@
-import type { UserRole } from '@omdala/types'
+import type { UserRole } from '@omdala/types';
+
+// Re-export sub-modules
+export * from './jwt.js';
+export * from './magic-link.js';
+export * from './session.js';
 
 export interface AuthUserSummary {
   id: string

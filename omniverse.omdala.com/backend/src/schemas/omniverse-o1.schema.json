@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://omniverse.omdala.com/schemas/omniverse-o1.schema.json",
+  "title": "AI Omniverse O1 Domain Schema",
+  "type": "object",
+  "definitions": {
+    "User": {
+      "type": "object",
+      "required": ["id", "email", "displayName"],
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" }
+      }
+    },
+    "AuthSession": {
+      "type": "object",
+      "required": ["user", "accessToken", "tokenType", "createdAt"],
+      "properties": {
+        "user": { "$ref": "#/definitions/User" },
+        "accessToken": { "type": "string" },
+        "tokenType": { "type": "string", "enum": ["Bearer"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "DeviceState": {
+      "type": "object",
+      "required": ["deviceId", "name", "type", "state"],
+      "properties": {
+        "deviceId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "state": { "type": "object", "additionalProperties": true }
+      }
+    },
+    "RoomState": {
+      "type": "object",
+      "required": [
+        "roomId",
+        "workspaceId",
+        "roomName",
+        "devices",
+        "scene",
+        "updatedAt"
+      ],
+      "properties": {
+        "roomId": { "type": "string" },
+        "workspaceId": { "type": "string" },
+        "roomName": { "type": "string" },
+        "devices": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/DeviceState" }
+        },
+        "scene": {
+          "type": "object",
+          "required": ["activeSceneId", "activeSceneName"],
+          "properties": {
+            "activeSceneId": { "type": "string" },
+            "activeSceneName": { "type": "string" }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@omdala/omniverse-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev:backend": "node backend/src/server.js",
+    "test:backend": "node --test backend/src/index.test.js",
+    "test": "npm run test:backend",
+    "db:migrate": "node backend/src/db/migrate.js",
+    "db:migrate:seed": "node backend/src/db/migrate.js --seed",
+    "db:seed": "node backend/src/db/migrate.js --seed-only",
+    "db:migrate:dry": "node backend/src/db/migrate.js --dry-run",
+    "db:migrate:d1": "node backend/src/db/migrate.js --adapter d1 --seed",
+    "db:migrate:d1:dry": "node backend/src/db/migrate.js --adapter d1 --dry-run"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}

@@ -62,7 +62,13 @@ type ApiContext = Context<{
     requestId: string;
   };
 }>;
-type ApiStatus = 200 | 201 | 400 | 401 | 404 | 422 | 500 | 502 | 504;
+type ApiStatus = 200 | 201 | 400 | 401 | 404 | 422 | 429 | 500 | 502 | 504;
+type RateLimitBucket = {
+  count: number;
+  resetAt: number;
+};
+
+const rateLimitStore = new Map<string, RateLimitBucket>();
 
 const localOrigins = [
   "http://127.0.0.1:3000",
@@ -144,6 +150,31 @@ function escapeHtml(value: string) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#39;");
+}
+
+function getClientIp(c: ApiContext): string {
+  return (
+    c.req.header("cf-connecting-ip")?.trim() ||
+    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown"
+  );
+}
+
+function isRateLimited(key: string, limit: number, windowMs: number): boolean {
+  const now = Date.now();
+  const bucket = rateLimitStore.get(key);
+  if (!bucket || bucket.resetAt <= now) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
+    return false;
+  }
+
+  if (bucket.count >= limit) {
+    return true;
+  }
+
+  bucket.count += 1;
+  rateLimitStore.set(key, bucket);
+  return false;
 }
 
 function bytesToBase64Url(bytes: Uint8Array) {
@@ -1048,6 +1079,18 @@ app.post("/v1/contact", async (c) => {
   }
 
   const payload = apiContract.normalizeContactRequest(body);
+  const clientIp = getClientIp(c);
+  if (
+    isRateLimited(`contact:ip:${clientIp}`, 10, 15 * 60 * 1000) ||
+    isRateLimited(`contact:email:${payload.email}`, 5, 15 * 60 * 1000)
+  ) {
+    return jsonError(
+      c,
+      429,
+      "rate_limited",
+      "Too many contact requests. Please retry later.",
+    );
+  }
 
   if (
     !payload.name ||
@@ -1097,6 +1140,18 @@ app.post("/v1/auth/access-request", async (c) => {
   }
 
   const payload = apiContract.normalizeAccessRequest(body);
+  const clientIp = getClientIp(c);
+  if (
+    isRateLimited(`access:ip:${clientIp}`, 10, 15 * 60 * 1000) ||
+    isRateLimited(`access:email:${payload.email}`, 5, 15 * 60 * 1000)
+  ) {
+    return jsonError(
+      c,
+      429,
+      "rate_limited",
+      "Too many access requests. Please retry later.",
+    );
+  }
 
   if (
     !apiContract.isEmail(payload.email) ||
@@ -1152,6 +1207,18 @@ app.post("/v1/auth/magic-link/request", async (c) => {
   }
 
   const { email, redirectTo } = apiContract.normalizeMagicLinkRequest(body);
+  const clientIp = getClientIp(c);
+  if (
+    isRateLimited(`magic-link:ip:${clientIp}`, 20, 15 * 60 * 1000) ||
+    isRateLimited(`magic-link:email:${email}`, 5, 15 * 60 * 1000)
+  ) {
+    return jsonError(
+      c,
+      429,
+      "rate_limited",
+      "Too many magic-link requests. Please retry later.",
+    );
+  }
 
   if (!apiContract.isEmail(email)) {
     return jsonError(c, 422, "invalid_email", "A valid email is required.");

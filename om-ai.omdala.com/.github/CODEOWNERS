@@ -1,0 +1,18 @@
+# Global fallback
+* @omdala/core-team
+
+# Backend
+/backend/ @omdala/backend-team
+
+# Web
+/web/ @omdala/web-team
+
+# Gateway
+/gateway/ @omdala/gateway-team
+
+# iOS
+/ios/ @omdala/ios-team
+
+# Specs and docs
+/*.md @omdala/product-architecture
+/.github/ @omdala/platform-team
