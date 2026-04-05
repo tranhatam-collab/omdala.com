@@ -2,6 +2,11 @@
 set -euo pipefail
 
 API_BASE_URL="${API_BASE_URL:-https://api.omdala.com}"
+STRICT_E2E="${STRICT_E2E:-0}"
+
+if [[ -x "./scripts/update-api-strict-status.sh" ]]; then
+  API_BASE_URL="$API_BASE_URL" bash ./scripts/update-api-strict-status.sh || true
+fi
 
 echo "[e2e-app-mvp] run app unit tests"
 npm run app:test
@@ -29,7 +34,27 @@ if [[ "$SCENES_STATUS" == "200" ]]; then
       --data '{}' >/dev/null
   fi
 else
+  if [[ "$STRICT_E2E" == "1" ]]; then
+    echo "[e2e-app-mvp] STRICT_E2E enabled: /v2/reality/scenes returned $SCENES_STATUS" >&2
+    echo "[e2e-app-mvp] scenes response body:" >&2
+    cat /tmp/scenes_body.json >&2 || true
+    exit 1
+  fi
   echo "[e2e-app-mvp] scenes endpoint unavailable on current production API, skipping optional scene run"
+fi
+
+echo "[e2e-app-mvp] optional runs flow"
+RUNS_STATUS="$(curl -sS -o /tmp/runs_body.json -w "%{http_code}" "$API_BASE_URL/v2/reality/runs?page=1&limit=10")"
+if [[ "$RUNS_STATUS" == "200" ]]; then
+  echo "[e2e-app-mvp] runs endpoint available"
+else
+  if [[ "$STRICT_E2E" == "1" ]]; then
+    echo "[e2e-app-mvp] STRICT_E2E enabled: /v2/reality/runs returned $RUNS_STATUS" >&2
+    echo "[e2e-app-mvp] runs response body:" >&2
+    cat /tmp/runs_body.json >&2 || true
+    exit 1
+  fi
+  echo "[e2e-app-mvp] runs endpoint unavailable on current production API, skipping optional runs validation"
 fi
 
 echo "[e2e-app-mvp] done"

@@ -391,7 +391,40 @@ function createRealitySeed() {
     },
   ];
 
-  return { nodes, states, commitments, transitions, proofs, trust };
+  const scenes = [
+    {
+      scene_id: "scene_sleep_child",
+      display_name: "Sleep – Child's Room",
+      safety_class: "safe",
+      actions: [
+        { device: "smart_bulb_child", command: "set_brightness", value: 0 },
+        { device: "air_purifier_child", command: "set_mode", value: "sleep" },
+      ],
+      created_at: now,
+    },
+  ];
+
+  const runs: Array<{
+    run_id: string;
+    source: string;
+    source_id: string;
+    actor_id: string;
+    status: string;
+    policy_decision: string;
+    proof_id: string | null;
+    created_at: string;
+  }> = [];
+
+  return {
+    nodes,
+    states,
+    commitments,
+    transitions,
+    proofs,
+    trust,
+    scenes,
+    runs,
+  };
 }
 
 const realitySeed = createRealitySeed();
@@ -1064,6 +1097,76 @@ app.get("/v2/reality/trust/:nodeId", async (c) => {
     }
 
     return jsonOk(c, record);
+  });
+});
+
+app.get("/v2/reality/scenes", async (c) => {
+  return withV2Guard(c, async () => {
+    return jsonOk(c, {
+      scenes: realitySeed.scenes,
+      total: realitySeed.scenes.length,
+    });
+  });
+});
+
+app.post("/v2/reality/scenes/:id/run", async (c) => {
+  return withV2Guard(c, async () => {
+    const sceneId = c.req.param("id");
+    const scene = realitySeed.scenes.find((s) => s.scene_id === sceneId);
+    if (!scene) {
+      return jsonError(c, 404, "SCENE_NOT_FOUND", "Scene does not exist.");
+    }
+
+    const now = new Date().toISOString();
+    const runId = `run_scene_${Date.now()}`;
+    const proofId = `proof_${Date.now()}`;
+    const actorId =
+      c.req.header("x-user-id") ?? c.req.header("x-actor-id") ?? "scene_runner";
+
+    const run = {
+      run_id: runId,
+      source: "scene",
+      source_id: scene.scene_id,
+      actor_id: actorId,
+      status: "succeeded",
+      policy_decision: "allow_with_logging",
+      proof_id: proofId,
+      created_at: now,
+    };
+
+    realitySeed.runs.unshift(run);
+
+    return jsonOk(c, {
+      run_id: runId,
+      scene_id: scene.scene_id,
+      status: "succeeded",
+      proof: {
+        proofId,
+        runId,
+        actorId,
+        policyDecision: "allow_with_logging",
+        verifiedAt: now,
+      },
+    });
+  });
+});
+
+app.get("/v2/reality/runs", async (c) => {
+  return withV2Guard(c, async () => {
+    const page = Math.max(1, Number(c.req.query("page") ?? 1));
+    const limit = Math.max(
+      1,
+      Math.min(100, Number(c.req.query("limit") ?? 20)),
+    );
+    const sorted = [...realitySeed.runs].sort((a, b) =>
+      a.created_at < b.created_at ? 1 : -1,
+    );
+    const start = (page - 1) * limit;
+    const paged = sorted.slice(start, start + limit);
+    return jsonOk(c, {
+      runs: paged,
+      meta_pagination: { page, limit, total: sorted.length },
+    });
   });
 });
 

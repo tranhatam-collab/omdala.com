@@ -7,6 +7,12 @@
 - implemented app session manager with secure storage, refresh skeleton, and logout path
 - completed app MVP flows: magic-link callback handling, timeline + run detail, scenes run action, settings/logout
 - added app MVP smoke script and CI workflow (`.github/workflows/app-ci.yml`)
+- added strict app smoke mode (`npm run e2e:app:mvp:strict`) for launch readiness
+- added app beta rollout checklist (`APP_BETA_ROLLOUT_CHECKLIST.md`)
+- made strict CI smoke toggleable via repo variable `LAUNCH_STRICT`
+- added continuous acceleration execution plan (`DEV_ACCELERATION_PLAN_CONTINUOUS.md`)
+- added strict launch API runbook (`STRICT_LAUNCH_RUNBOOK_API.md`) and detailed strict smoke diagnostics
+- added strict API handoff report generator and strict gate watch script
 
 ## 2026-04-04 - API Domain Unified and Production Handshake Verified
 

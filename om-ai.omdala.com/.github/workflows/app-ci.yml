@@ -47,3 +47,10 @@ jobs:
         env:
           API_BASE_URL: https://api.omdala.com
         run: npm run e2e:app:mvp
+
+      - name: Run app MVP strict smoke
+        if: vars.LAUNCH_STRICT == '1'
+        env:
+          API_BASE_URL: https://api.omdala.com
+          STRICT_E2E: 1
+        run: npm run e2e:app:mvp:strict
