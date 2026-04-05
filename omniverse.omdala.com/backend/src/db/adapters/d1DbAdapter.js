@@ -348,5 +348,213 @@ export function createD1DbAdapter({ d1 }) {
         .all();
       return result.results || [];
     },
+
+    // ── O4: Properties ────────────────────────────────────────────────────────
+    async createProperty(property) {
+      await d1
+        .prepare(
+          `INSERT INTO omniverse_properties
+             (property_id, owner_user_id, name, address, type, meta_json, created_at)
+           VALUES (?,?,?,?,?,?,?)`,
+        )
+        .bind(
+          property.property_id,
+          property.owner_user_id,
+          property.name,
+          property.address || null,
+          property.type || "residential",
+          JSON.stringify(property.meta_json || {}),
+          property.created_at,
+        )
+        .run();
+      return property;
+    },
+
+    async getProperty(propertyId) {
+      return (
+        (await d1
+          .prepare(
+            `SELECT * FROM omniverse_properties WHERE property_id = ? LIMIT 1`,
+          )
+          .bind(propertyId)
+          .first()) || null
+      );
+    },
+
+    async listProperties(ownerUserId) {
+      const result = await d1
+        .prepare(
+          `SELECT * FROM omniverse_properties WHERE owner_user_id = ? ORDER BY created_at DESC`,
+        )
+        .bind(ownerUserId)
+        .all();
+      return result.results || [];
+    },
+
+    async addPropertyWorkspace(propertyId, workspaceId) {
+      const linkedAt = new Date().toISOString();
+      await d1
+        .prepare(
+          `INSERT INTO omniverse_property_workspaces (property_id, workspace_id, linked_at)
+           VALUES (?,?,?)
+           ON CONFLICT (property_id, workspace_id) DO NOTHING`,
+        )
+        .bind(propertyId, workspaceId, linkedAt)
+        .run();
+      return {
+        property_id: propertyId,
+        workspace_id: workspaceId,
+        linked_at: linkedAt,
+      };
+    },
+
+    async listPropertyWorkspaces(propertyId) {
+      const result = await d1
+        .prepare(
+          `SELECT * FROM omniverse_property_workspaces WHERE property_id = ? ORDER BY linked_at ASC`,
+        )
+        .bind(propertyId)
+        .all();
+      return result.results || [];
+    },
+
+    // ── O4: Device capabilities ───────────────────────────────────────────────
+    async registerCapability(capability) {
+      await d1
+        .prepare(
+          `INSERT INTO omniverse_device_capabilities
+             (device_type, capability, value_type, min_value, max_value, allowed_json, created_at)
+           VALUES (?,?,?,?,?,?,?)
+           ON CONFLICT (device_type, capability) DO UPDATE
+             SET value_type = excluded.value_type,
+                 min_value = excluded.min_value,
+                 max_value = excluded.max_value,
+                 allowed_json = excluded.allowed_json`,
+        )
+        .bind(
+          capability.device_type,
+          capability.capability,
+          capability.value_type,
+          capability.min_value ?? null,
+          capability.max_value ?? null,
+          JSON.stringify(capability.allowed_json || null),
+          capability.created_at,
+        )
+        .run();
+      return capability;
+    },
+
+    async listCapabilities(deviceType) {
+      const result = await d1
+        .prepare(
+          `SELECT * FROM omniverse_device_capabilities WHERE device_type = ? ORDER BY capability ASC`,
+        )
+        .bind(deviceType)
+        .all();
+      return result.results || [];
+    },
+
+    async getCapability(deviceType, capability) {
+      return (
+        (await d1
+          .prepare(
+            `SELECT * FROM omniverse_device_capabilities WHERE device_type = ? AND capability = ? LIMIT 1`,
+          )
+          .bind(deviceType, capability)
+          .first()) || null
+      );
+    },
+
+    // ── O4: State graph ───────────────────────────────────────────────────────
+    async appendStateEvent(event) {
+      await d1
+        .prepare(
+          `INSERT INTO omniverse_state_events
+             (event_id, device_id, workspace_id, previous_json, new_json, source, actor_id, occurred_at)
+           VALUES (?,?,?,?,?,?,?,?)`,
+        )
+        .bind(
+          event.event_id,
+          event.device_id,
+          event.workspace_id,
+          JSON.stringify(event.previous_json || null),
+          JSON.stringify(event.new_json || null),
+          event.source,
+          event.actor_id || null,
+          event.occurred_at,
+        )
+        .run();
+      return event;
+    },
+
+    async listStateEvents(deviceId, limit = 50) {
+      const result = await d1
+        .prepare(
+          `SELECT * FROM omniverse_state_events WHERE device_id = ? ORDER BY occurred_at DESC LIMIT ?`,
+        )
+        .bind(deviceId, limit)
+        .all();
+      return result.results || [];
+    },
+
+    async listStateEventsByWorkspace(workspaceId, limit = 50) {
+      const result = await d1
+        .prepare(
+          `SELECT * FROM omniverse_state_events WHERE workspace_id = ? ORDER BY occurred_at DESC LIMIT ?`,
+        )
+        .bind(workspaceId, limit)
+        .all();
+      return result.results || [];
+    },
+
+    // ── O4: Observability ─────────────────────────────────────────────────────
+    async appendEvent(event) {
+      await d1
+        .prepare(
+          `INSERT INTO omniverse_events
+             (event_id, workspace_id, event_type, subject_id, payload_json, severity, occurred_at)
+           VALUES (?,?,?,?,?,?,?)`,
+        )
+        .bind(
+          event.event_id,
+          event.workspace_id,
+          event.event_type,
+          event.subject_id || null,
+          JSON.stringify(event.payload_json || {}),
+          event.severity || "info",
+          event.occurred_at,
+        )
+        .run();
+      return event;
+    },
+
+    async queryEvents(workspaceId, { eventType, limit = 100 } = {}) {
+      if (eventType) {
+        const result = await d1
+          .prepare(
+            `SELECT * FROM omniverse_events WHERE workspace_id = ? AND event_type = ? ORDER BY occurred_at DESC LIMIT ?`,
+          )
+          .bind(workspaceId, eventType, limit)
+          .all();
+        return result.results || [];
+      }
+      const result = await d1
+        .prepare(
+          `SELECT * FROM omniverse_events WHERE workspace_id = ? ORDER BY occurred_at DESC LIMIT ?`,
+        )
+        .bind(workspaceId, limit)
+        .all();
+      return result.results || [];
+    },
+
+    async countEvents(workspaceId) {
+      const row = await d1
+        .prepare(
+          `SELECT COUNT(*) AS cnt FROM omniverse_events WHERE workspace_id = ?`,
+        )
+        .bind(workspaceId)
+        .first();
+      return row?.cnt ?? 0;
+    },
   };
 }

@@ -44,6 +44,11 @@ const DEFAULT_DATA = {
   schedules: [],
   gateways: [],
   gateway_commands: [],
+  properties: [],
+  property_workspaces: [],
+  device_capabilities: [],
+  state_events: [],
+  events: [],
 };
 
 export function createInMemoryDbAdapter(seed = DEFAULT_DATA) {
@@ -54,6 +59,11 @@ export function createInMemoryDbAdapter(seed = DEFAULT_DATA) {
     schedules: [...(seed.schedules || [])],
     gateways: [...(seed.gateways || [])],
     gateway_commands: [...(seed.gateway_commands || [])],
+    properties: [...(seed.properties || [])],
+    property_workspaces: [...(seed.property_workspaces || [])],
+    device_capabilities: [...(seed.device_capabilities || [])],
+    state_events: [...(seed.state_events || [])],
+    events: [...(seed.events || [])],
   };
 
   return {
@@ -214,6 +224,110 @@ export function createInMemoryDbAdapter(seed = DEFAULT_DATA) {
 
     async listGatewayCommands(gatewayId) {
       return data.gateway_commands.filter((c) => c.gateway_id === gatewayId);
+    },
+
+    // ── O4: Properties ───────────────────────────────────────────────────────
+    async createProperty(property) {
+      data.properties.push(property);
+      return property;
+    },
+
+    async getProperty(propertyId) {
+      return data.properties.find((p) => p.property_id === propertyId) || null;
+    },
+
+    async listProperties(ownerUserId) {
+      return data.properties.filter((p) => p.owner_user_id === ownerUserId);
+    },
+
+    async addPropertyWorkspace(propertyId, workspaceId) {
+      const existing = data.property_workspaces.find(
+        (pw) =>
+          pw.property_id === propertyId && pw.workspace_id === workspaceId,
+      );
+      if (!existing) {
+        const link = {
+          property_id: propertyId,
+          workspace_id: workspaceId,
+          linked_at: new Date().toISOString(),
+        };
+        data.property_workspaces.push(link);
+        return link;
+      }
+      return existing;
+    },
+
+    async listPropertyWorkspaces(propertyId) {
+      return data.property_workspaces.filter(
+        (pw) => pw.property_id === propertyId,
+      );
+    },
+
+    // ── O4: Device capabilities ──────────────────────────────────────────────
+    async registerCapability(capability) {
+      const existing = data.device_capabilities.findIndex(
+        (c) =>
+          c.device_type === capability.device_type &&
+          c.capability === capability.capability,
+      );
+      if (existing >= 0) {
+        data.device_capabilities[existing] = capability;
+      } else {
+        data.device_capabilities.push(capability);
+      }
+      return capability;
+    },
+
+    async listCapabilities(deviceType) {
+      return data.device_capabilities.filter(
+        (c) => c.device_type === deviceType,
+      );
+    },
+
+    async getCapability(deviceType, capability) {
+      return (
+        data.device_capabilities.find(
+          (c) => c.device_type === deviceType && c.capability === capability,
+        ) || null
+      );
+    },
+
+    // ── O4: State graph ──────────────────────────────────────────────────────
+    async appendStateEvent(event) {
+      data.state_events.push(event);
+      return event;
+    },
+
+    async listStateEvents(deviceId, limit = 50) {
+      return data.state_events
+        .filter((e) => e.device_id === deviceId)
+        .slice(-limit)
+        .reverse();
+    },
+
+    async listStateEventsByWorkspace(workspaceId, limit = 50) {
+      return data.state_events
+        .filter((e) => e.workspace_id === workspaceId)
+        .slice(-limit)
+        .reverse();
+    },
+
+    // ── O4: Observability ────────────────────────────────────────────────────
+    async appendEvent(event) {
+      data.events.push(event);
+      return event;
+    },
+
+    async queryEvents(workspaceId, { eventType, limit = 100 } = {}) {
+      let results = data.events.filter((e) => e.workspace_id === workspaceId);
+      if (eventType) {
+        results = results.filter((e) => e.event_type === eventType);
+      }
+      return results.slice(-limit).reverse();
+    },
+
+    async countEvents(workspaceId) {
+      return data.events.filter((e) => e.workspace_id === workspaceId).length;
     },
   };
 }

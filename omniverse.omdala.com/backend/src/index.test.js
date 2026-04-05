@@ -714,3 +714,385 @@ test("O3: POST gateway command dispatches and can be ACKed", async () => {
   assert.equal(ackPayload.data.status, "ack");
   assert.ok(ackPayload.data.ackAt);
 });
+
+// ─── Phase O4 tests ────────────────────────────────────────────────────────
+
+test("O4: POST /properties creates a property", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  const response = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/properties",
+      "POST",
+      {
+        name: "Main Residence",
+        address: "123 OMDALA St",
+        type: "residential",
+        meta: { floors: 2 },
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 201);
+  assert.equal(payload.ok, true);
+  assert.ok(payload.data.property_id);
+  assert.equal(payload.data.name, "Main Residence");
+  assert.equal(payload.data.type, "residential");
+});
+
+test("O4: GET /properties lists properties for owner", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  // Create one first
+  await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/properties",
+      "POST",
+      { name: "Office HQ", ownerUserId: "usr_omni_owner_001" },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+
+  const response = await runtime.api.handle(
+    new Request(
+      "http://localhost/v2/omniverse/properties?ownerUserId=usr_omni_owner_001",
+      { method: "GET", headers: { authorization: `Bearer ${token}` } },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.ok(Array.isArray(payload.data));
+  assert.ok(payload.data.length >= 1);
+});
+
+test("O4: GET /properties/:propertyId returns property", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  const createRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/properties",
+      "POST",
+      { name: "Beach House", ownerUserId: "usr_omni_owner_001" },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const { data: created } = await createRes.json();
+
+  const response = await runtime.api.handle(
+    new Request(
+      `http://localhost/v2/omniverse/properties/${created.property_id}`,
+      { method: "GET", headers: { authorization: `Bearer ${token}` } },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.data.property_id, created.property_id);
+  assert.equal(payload.data.name, "Beach House");
+});
+
+test("O4: POST /properties/:propertyId/workspaces links workspace", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  const createRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/properties",
+      "POST",
+      { name: "Smart Villa", ownerUserId: "usr_omni_owner_001" },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const { data: prop } = await createRes.json();
+
+  const response = await runtime.api.handle(
+    createJsonRequest(
+      `http://localhost/v2/omniverse/properties/${prop.property_id}/workspaces`,
+      "POST",
+      { workspaceId: "workspace_home_001" },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 201);
+  assert.equal(payload.data.property_id, prop.property_id);
+  assert.equal(payload.data.workspace_id, "workspace_home_001");
+});
+
+test("O4: GET /properties/:propertyId/workspaces lists linked workspaces", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  const createRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/properties",
+      "POST",
+      { name: "Downtown Flat", ownerUserId: "usr_omni_owner_001" },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const { data: prop } = await createRes.json();
+
+  await runtime.api.handle(
+    createJsonRequest(
+      `http://localhost/v2/omniverse/properties/${prop.property_id}/workspaces`,
+      "POST",
+      { workspaceId: "workspace_home_001" },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+
+  const response = await runtime.api.handle(
+    new Request(
+      `http://localhost/v2/omniverse/properties/${prop.property_id}/workspaces`,
+      { method: "GET", headers: { authorization: `Bearer ${token}` } },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.ok(Array.isArray(payload.data));
+  assert.ok(payload.data.length >= 1);
+  assert.equal(payload.data[0].workspace_id, "workspace_home_001");
+});
+
+test("O4: POST /device-capabilities registers capability", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  const response = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/device-capabilities",
+      "POST",
+      {
+        deviceType: "light",
+        capability: "brightness",
+        valueType: "number",
+        minValue: 0,
+        maxValue: 100,
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 201);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.data.device_type, "light");
+  assert.equal(payload.data.capability, "brightness");
+  assert.equal(payload.data.value_type, "number");
+});
+
+test("O4: GET /device-capabilities lists capabilities for deviceType", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  // Register two capabilities
+  await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/device-capabilities",
+      "POST",
+      {
+        deviceType: "climate",
+        capability: "targetTempC",
+        valueType: "number",
+        minValue: 16,
+        maxValue: 30,
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/device-capabilities",
+      "POST",
+      {
+        deviceType: "climate",
+        capability: "power",
+        valueType: "enum",
+        allowed: ["on", "off"],
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+
+  const response = await runtime.api.handle(
+    new Request(
+      "http://localhost/v2/omniverse/device-capabilities?deviceType=climate",
+      { method: "GET", headers: { authorization: `Bearer ${token}` } },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.ok(Array.isArray(payload.data));
+  assert.ok(payload.data.length >= 2);
+});
+
+test("O4: PUT device state records state event in history", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  // Update device state
+  await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/devices/dev_light_001/state",
+      "PUT",
+      { state: { power: "on", brightness: 90 } },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+
+  const response = await runtime.api.handle(
+    new Request("http://localhost/v2/omniverse/devices/dev_light_001/history", {
+      method: "GET",
+      headers: { authorization: `Bearer ${token}` },
+    }),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.data.deviceId, "dev_light_001");
+  assert.ok(Array.isArray(payload.data.history));
+  assert.ok(payload.data.history.length >= 1);
+  assert.equal(payload.data.history[0].device_id, "dev_light_001");
+});
+
+test("O4: GET /workspaces/:workspaceId/history returns workspace state events", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  // Trigger a state update to generate an event
+  await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/devices/dev_ac_001/state",
+      "PUT",
+      { state: { power: "on", targetTempC: 25 } },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+
+  const response = await runtime.api.handle(
+    new Request(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/history",
+      { method: "GET", headers: { authorization: `Bearer ${token}` } },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.ok(Array.isArray(payload.data.history));
+});
+
+test("O4: GET /workspaces/:workspaceId/events returns observability log", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  // Trigger an event via device update
+  await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/devices/dev_light_001/state",
+      "PUT",
+      { state: { power: "off" } },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+
+  const response = await runtime.api.handle(
+    new Request(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/events",
+      { method: "GET", headers: { authorization: `Bearer ${token}` } },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.ok(Array.isArray(payload.data.events));
+});
+
+test("O4: GET /workspaces/:workspaceId/health returns health summary", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  const response = await runtime.api.handle(
+    new Request(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/health",
+      { method: "GET", headers: { authorization: `Bearer ${token}` } },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.ok, true);
+  assert.equal(payload.data.workspaceId, "workspace_home_001");
+  assert.ok(typeof payload.data.eventCount === "number");
+  assert.equal(payload.data.status, "ok");
+});
+
+test("O4: capability violation rejects invalid state update", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginAndGetToken(runtime);
+
+  // Register strict capabilities for 'light'
+  await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/device-capabilities",
+      "POST",
+      {
+        deviceType: "light",
+        capability: "power",
+        valueType: "enum",
+        allowed: ["on", "off"],
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/device-capabilities",
+      "POST",
+      {
+        deviceType: "light",
+        capability: "brightness",
+        valueType: "number",
+        minValue: 0,
+        maxValue: 100,
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+
+  // Try to set an unknown capability key
+  const response = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/devices/dev_light_001/state",
+      "PUT",
+      { state: { power: "on", unknownProp: "bad" } },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 422);
+  assert.equal(payload.error.code, "CAPABILITY_VIOLATION");
+});
+
+test("O4: GET /health returns enriched status with uptime", async () => {
+  const runtime = await createTestRuntime();
+
+  const response = await runtime.api.handle(
+    new Request("http://localhost/health", { method: "GET" }),
+  );
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(payload.data.status, "ok");
+  assert.ok(typeof payload.data.uptime === "number");
+});

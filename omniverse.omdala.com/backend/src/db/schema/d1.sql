@@ -102,3 +102,71 @@ CREATE TABLE IF NOT EXISTS omniverse_gateway_commands (
   ack_at        TEXT,
   FOREIGN KEY (gateway_id) REFERENCES omniverse_gateways(gateway_id) ON DELETE CASCADE
 );
+
+-- Phase O4: Properties (multi-property support)
+CREATE TABLE IF NOT EXISTS omniverse_properties (
+  property_id   TEXT PRIMARY KEY,
+  owner_user_id TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  address       TEXT,
+  type          TEXT NOT NULL DEFAULT 'home',
+  meta_json     TEXT NOT NULL DEFAULT '{}',
+  created_at    TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS omniverse_property_workspaces (
+  property_id  TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  PRIMARY KEY (property_id, workspace_id),
+  FOREIGN KEY (property_id) REFERENCES omniverse_properties(property_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_omniverse_properties_owner
+  ON omniverse_properties(owner_user_id);
+
+-- Phase O4: Device capability registry
+CREATE TABLE IF NOT EXISTS omniverse_device_capabilities (
+  capability_id TEXT PRIMARY KEY,
+  device_type   TEXT NOT NULL,
+  capability    TEXT NOT NULL,
+  value_type    TEXT NOT NULL DEFAULT 'any',
+  min_value     REAL,
+  max_value     REAL,
+  allowed_json  TEXT,
+  UNIQUE (device_type, capability)
+);
+
+-- Phase O4: Device state history (state graph)
+CREATE TABLE IF NOT EXISTS omniverse_state_events (
+  event_id      TEXT PRIMARY KEY,
+  device_id     TEXT NOT NULL,
+  workspace_id  TEXT NOT NULL,
+  previous_json TEXT NOT NULL DEFAULT '{}',
+  new_json      TEXT NOT NULL DEFAULT '{}',
+  source        TEXT NOT NULL DEFAULT 'manual',
+  actor_id      TEXT,
+  recorded_at   TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_omniverse_state_events_device
+  ON omniverse_state_events(device_id, recorded_at);
+
+CREATE INDEX IF NOT EXISTS idx_omniverse_state_events_workspace
+  ON omniverse_state_events(workspace_id, recorded_at);
+
+-- Phase O4: Observability event log (proof log)
+CREATE TABLE IF NOT EXISTS omniverse_events (
+  event_id     TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  event_type   TEXT NOT NULL,
+  subject_id   TEXT,
+  payload_json TEXT NOT NULL DEFAULT '{}',
+  severity     TEXT NOT NULL DEFAULT 'info',
+  recorded_at  TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_omniverse_events_workspace
+  ON omniverse_events(workspace_id, recorded_at);
+
+CREATE INDEX IF NOT EXISTS idx_omniverse_events_type
+  ON omniverse_events(event_type, recorded_at);

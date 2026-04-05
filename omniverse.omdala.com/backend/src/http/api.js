@@ -45,6 +45,10 @@ export function createOmniverseApi({
   scheduleService,
   gatewayService,
   multiRoomService,
+  stateGraphService,
+  deviceCapabilityService,
+  propertyService,
+  observabilityService,
 }) {
   return {
     async handle(request) {
@@ -55,9 +59,10 @@ export function createOmniverseApi({
         const pathname = url.pathname;
 
         if (request.method === "GET" && pathname === "/health") {
+          const healthData = { status: "ok", uptime: process.uptime?.() ?? 0 };
           return json(200, {
             ok: true,
-            data: { status: "ok" },
+            data: healthData,
             meta: { requestId },
           });
         }
@@ -455,6 +460,221 @@ export function createOmniverseApi({
             commandId,
           });
           return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // ── O4: Properties ────────────────────────────────────────────────────
+
+        // POST /v2/omniverse/properties
+        if (
+          request.method === "POST" &&
+          pathname === "/v2/omniverse/properties"
+        ) {
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await propertyService.createProperty({
+            ownerUserId: body.ownerUserId || authCtx.user.id,
+            name: body.name,
+            address: body.address,
+            type: body.type,
+            meta: body.meta,
+          });
+          return json(201, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // GET /v2/omniverse/properties?ownerUserId=...
+        if (
+          request.method === "GET" &&
+          pathname === "/v2/omniverse/properties"
+        ) {
+          const ownerUserId = new URL(request.url).searchParams.get(
+            "ownerUserId",
+          );
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken);
+          const list = await propertyService.listProperties({ ownerUserId });
+          return json(200, { ok: true, data: list, meta: { requestId } });
+        }
+
+        // GET /v2/omniverse/properties/:propertyId
+        const propertyMatch = pathname.match(
+          /^\/v2\/omniverse\/properties\/([^/]+)$/,
+        );
+        if (request.method === "GET" && propertyMatch) {
+          const propertyId = propertyMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken);
+          const property = await propertyService.getProperty({ propertyId });
+          return json(200, { ok: true, data: property, meta: { requestId } });
+        }
+
+        // POST /v2/omniverse/properties/:propertyId/workspaces
+        const propertyWorkspacesMatch = pathname.match(
+          /^\/v2\/omniverse\/properties\/([^/]+)\/workspaces$/,
+        );
+        if (request.method === "POST" && propertyWorkspacesMatch) {
+          const propertyId = propertyWorkspacesMatch[1];
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await propertyService.addWorkspaceToProperty({
+            propertyId,
+            workspaceId: body.workspaceId,
+          });
+          return json(201, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // GET /v2/omniverse/properties/:propertyId/workspaces
+        if (request.method === "GET" && propertyWorkspacesMatch) {
+          const propertyId = propertyWorkspacesMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken);
+          const list = await propertyService.listPropertyWorkspaces({
+            propertyId,
+          });
+          return json(200, { ok: true, data: list, meta: { requestId } });
+        }
+
+        // ── O4: Device capabilities ───────────────────────────────────────────
+
+        // POST /v2/omniverse/device-capabilities
+        if (
+          request.method === "POST" &&
+          pathname === "/v2/omniverse/device-capabilities"
+        ) {
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await deviceCapabilityService.registerCapability({
+            deviceType: body.deviceType,
+            capability: body.capability,
+            valueType: body.valueType,
+            minValue: body.minValue,
+            maxValue: body.maxValue,
+            allowed: body.allowed,
+          });
+          return json(201, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // GET /v2/omniverse/device-capabilities?deviceType=...
+        if (
+          request.method === "GET" &&
+          pathname === "/v2/omniverse/device-capabilities"
+        ) {
+          const deviceType = new URL(request.url).searchParams.get(
+            "deviceType",
+          );
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken);
+          const list = await deviceCapabilityService.listCapabilities({
+            deviceType,
+          });
+          return json(200, { ok: true, data: list, meta: { requestId } });
+        }
+
+        // ── O4: State graph ───────────────────────────────────────────────────
+
+        // GET /v2/omniverse/devices/:deviceId/history
+        const deviceHistoryMatch = pathname.match(
+          /^\/v2\/omniverse\/devices\/([^/]+)\/history$/,
+        );
+        if (request.method === "GET" && deviceHistoryMatch) {
+          const deviceId = deviceHistoryMatch[1];
+          const limit =
+            Number(new URL(request.url).searchParams.get("limit")) || 50;
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken);
+          const history = await stateGraphService.listDeviceHistory({
+            deviceId,
+            limit,
+          });
+          return json(200, {
+            ok: true,
+            data: { deviceId, history },
+            meta: { requestId },
+          });
+        }
+
+        // GET /v2/omniverse/workspaces/:workspaceId/history
+        const workspaceHistoryMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/history$/,
+        );
+        if (request.method === "GET" && workspaceHistoryMatch) {
+          const workspaceId = workspaceHistoryMatch[1];
+          const limit =
+            Number(new URL(request.url).searchParams.get("limit")) || 50;
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken);
+          const history = await stateGraphService.listWorkspaceHistory({
+            workspaceId,
+            limit,
+          });
+          return json(200, {
+            ok: true,
+            data: { workspaceId, history },
+            meta: { requestId },
+          });
+        }
+
+        // ── O4: Observability ─────────────────────────────────────────────────
+
+        // GET /v2/omniverse/workspaces/:workspaceId/events
+        const workspaceEventsMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/events$/,
+        );
+        if (request.method === "GET" && workspaceEventsMatch) {
+          const workspaceId = workspaceEventsMatch[1];
+          const searchParams = new URL(request.url).searchParams;
+          const eventType = searchParams.get("eventType") || undefined;
+          const limit = Number(searchParams.get("limit")) || 100;
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken);
+          const events = await observabilityService.queryEvents({
+            workspaceId,
+            eventType,
+            limit,
+          });
+          return json(200, {
+            ok: true,
+            data: { workspaceId, events },
+            meta: { requestId },
+          });
+        }
+
+        // GET /v2/omniverse/workspaces/:workspaceId/health
+        const workspaceHealthMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/health$/,
+        );
+        if (request.method === "GET" && workspaceHealthMatch) {
+          const workspaceId = workspaceHealthMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken);
+          const summary = await observabilityService.getHealthSummary({
+            workspaceId,
+          });
+          return json(200, { ok: true, data: summary, meta: { requestId } });
         }
 
         return json(404, {

@@ -12,6 +12,10 @@ import { createAutomationService } from "./services/automationService.js";
 import { createScheduleService } from "./services/scheduleService.js";
 import { createGatewayService } from "./services/gatewayService.js";
 import { createMultiRoomService } from "./services/multiRoomService.js";
+import { createStateGraphService } from "./services/stateGraphService.js";
+import { createDeviceCapabilityService } from "./services/deviceCapabilityService.js";
+import { createPropertyService } from "./services/propertyService.js";
+import { createObservabilityService } from "./services/observabilityService.js";
 
 export async function createOmniverseRuntime(options = {}) {
   const sharedCoreClient =
@@ -40,7 +44,20 @@ export async function createOmniverseRuntime(options = {}) {
     loginService,
     roomStateService,
   });
-  const deviceService = createDeviceService({ dbAdapter, roomRepository });
+
+  // ── O4 services ────────────────────────────────────────────────────────────
+  const stateGraphService = createStateGraphService({ dbAdapter });
+  const deviceCapabilityService = createDeviceCapabilityService({ dbAdapter });
+  const observabilityService = createObservabilityService({ dbAdapter });
+  const propertyService = createPropertyService({ dbAdapter });
+
+  const deviceService = createDeviceService({
+    dbAdapter,
+    roomRepository,
+    stateGraphService,
+    deviceCapabilityService,
+    observabilityService,
+  });
   const sceneService = createSceneService({ dbAdapter, roomRepository });
   const automationService = createAutomationService({
     dbAdapter,
@@ -66,6 +83,10 @@ export async function createOmniverseRuntime(options = {}) {
     scheduleService,
     gatewayService,
     multiRoomService,
+    stateGraphService,
+    deviceCapabilityService,
+    propertyService,
+    observabilityService,
   });
 
   return {
@@ -80,6 +101,10 @@ export async function createOmniverseRuntime(options = {}) {
       scheduleService,
       gatewayService,
       multiRoomService,
+      stateGraphService,
+      deviceCapabilityService,
+      propertyService,
+      observabilityService,
     },
     api,
   };

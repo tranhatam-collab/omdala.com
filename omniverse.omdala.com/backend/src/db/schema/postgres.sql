@@ -97,3 +97,70 @@ CREATE TABLE IF NOT EXISTS omniverse_gateway_commands (
   dispatched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   ack_at        TIMESTAMPTZ
 );
+
+-- Phase O4: Properties (multi-property support — sits above workspaces)
+CREATE TABLE IF NOT EXISTS omniverse_properties (
+  property_id   TEXT PRIMARY KEY,
+  owner_user_id TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  address       TEXT,
+  type          TEXT NOT NULL DEFAULT 'home', -- 'home' | 'office' | 'commercial'
+  meta_json     JSONB NOT NULL DEFAULT '{}',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS omniverse_property_workspaces (
+  property_id  TEXT NOT NULL REFERENCES omniverse_properties(property_id) ON DELETE CASCADE,
+  workspace_id TEXT NOT NULL,
+  PRIMARY KEY (property_id, workspace_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_omniverse_properties_owner
+  ON omniverse_properties(owner_user_id);
+
+-- Phase O4: Device capability registry
+CREATE TABLE IF NOT EXISTS omniverse_device_capabilities (
+  capability_id TEXT PRIMARY KEY,
+  device_type   TEXT NOT NULL,              -- e.g. 'light', 'climate', 'sensor'
+  capability    TEXT NOT NULL,              -- e.g. 'on_off', 'brightness', 'temperature'
+  value_type    TEXT NOT NULL DEFAULT 'any', -- 'boolean' | 'number' | 'string' | 'any'
+  min_value     NUMERIC,
+  max_value     NUMERIC,
+  allowed_json  JSONB,                      -- allowed enum values if applicable
+  UNIQUE (device_type, capability)
+);
+
+-- Phase O4: Device state history (state graph)
+CREATE TABLE IF NOT EXISTS omniverse_state_events (
+  event_id        TEXT PRIMARY KEY,
+  device_id       TEXT NOT NULL,
+  workspace_id    TEXT NOT NULL,
+  previous_json   JSONB NOT NULL DEFAULT '{}',
+  new_json        JSONB NOT NULL DEFAULT '{}',
+  source          TEXT NOT NULL DEFAULT 'manual', -- 'manual' | 'automation' | 'gateway' | 'schedule'
+  actor_id        TEXT,                           -- userId or automationId or gatewayId
+  recorded_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_omniverse_state_events_device
+  ON omniverse_state_events(device_id, recorded_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_omniverse_state_events_workspace
+  ON omniverse_state_events(workspace_id, recorded_at DESC);
+
+-- Phase O4: Observability event log (proof log / audit trail)
+CREATE TABLE IF NOT EXISTS omniverse_events (
+  event_id     TEXT PRIMARY KEY,
+  workspace_id TEXT NOT NULL,
+  event_type   TEXT NOT NULL,   -- 'device.state_changed' | 'scene.activated' | 'automation.run' | 'gateway.command' | 'alert' etc.
+  subject_id   TEXT,            -- deviceId / automationId / gatewayId
+  payload_json JSONB NOT NULL DEFAULT '{}',
+  severity     TEXT NOT NULL DEFAULT 'info', -- 'info' | 'warn' | 'error'
+  recorded_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_omniverse_events_workspace
+  ON omniverse_events(workspace_id, recorded_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_omniverse_events_type
+  ON omniverse_events(event_type, recorded_at DESC);
