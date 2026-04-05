@@ -62,7 +62,18 @@ type ApiContext = Context<{
     requestId: string;
   };
 }>;
-type ApiStatus = 200 | 201 | 400 | 401 | 404 | 422 | 429 | 500 | 502 | 504;
+type ApiStatus =
+  | 200
+  | 201
+  | 400
+  | 401
+  | 404
+  | 422
+  | 429
+  | 500
+  | 501
+  | 502
+  | 504;
 type RateLimitBucket = {
   count: number;
   resetAt: number;
@@ -256,6 +267,54 @@ async function verifyMagicLinkToken(env: ApiBindings, token: string) {
     return null;
   }
 
+  return payload;
+}
+
+type SessionTokenPayload = {
+  email: string;
+  type: "access" | "refresh";
+  exp: number;
+};
+
+async function createSessionToken(
+  env: ApiBindings,
+  payload: SessionTokenPayload,
+) {
+  if (!env.MAGIC_LINK_SECRET) {
+    throw new Error("MAGIC_LINK_SECRET is not configured");
+  }
+  const payloadPart = bytesToBase64Url(
+    new TextEncoder().encode(JSON.stringify(payload)),
+  );
+  const key = await importHmacKey(env.MAGIC_LINK_SECRET);
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(payloadPart),
+  );
+  return `${payloadPart}.${bytesToBase64Url(new Uint8Array(signature))}`;
+}
+
+async function verifySessionToken(
+  env: ApiBindings,
+  token: string,
+  expectedType: "access" | "refresh",
+): Promise<SessionTokenPayload | null> {
+  if (!env.MAGIC_LINK_SECRET) return null;
+  const [payloadPart, signaturePart] = token.split(".");
+  if (!payloadPart || !signaturePart) return null;
+  const key = await importHmacKey(env.MAGIC_LINK_SECRET);
+  const isValid = await crypto.subtle.verify(
+    "HMAC",
+    key,
+    base64UrlToBytes(signaturePart),
+    new TextEncoder().encode(payloadPart),
+  );
+  if (!isValid) return null;
+  const payload = JSON.parse(
+    new TextDecoder().decode(base64UrlToBytes(payloadPart)),
+  ) as SessionTokenPayload;
+  if (payload.type !== expectedType || payload.exp < Date.now()) return null;
   return payload;
 }
 
@@ -859,16 +918,23 @@ app.use(
   cors({
     origin: (origin) => apiContract.resolveAllowedOrigin(origin),
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "x-request-id"],
+    exposeHeaders: ["x-request-id"],
     maxAge: 86400,
     credentials: true,
   }),
 );
 
-app.use("/v2/reality/*", async (c, next) => {
+// Global request-id tracing — applies to all routes
+app.use("/*", async (c, next) => {
   const requestId = getOrCreateRequestId(c);
   await next();
   c.header("x-request-id", requestId);
+});
+
+app.use("/v2/reality/*", async (c, next) => {
+  getOrCreateRequestId(c); // already set by global middleware, just ensure variable is seeded
+  await next();
 });
 
 // Health
@@ -1392,6 +1458,97 @@ app.get("/v1/auth/magic-link", async (c) => {
       error instanceof Error ? error.message : "Unable to verify magic link.",
     );
   }
+});
+
+app.post("/v1/auth/refresh", async (c) => {
+  const requestId = getOrCreateRequestId(c);
+  const body = await c.req.json<{ refresh_token?: string }>().catch(() => null);
+
+  if (!body?.refresh_token) {
+    return jsonError(
+      c,
+      400,
+      "missing_refresh_token",
+      "refresh_token is required.",
+    );
+  }
+
+  if (!c.env.MAGIC_LINK_SECRET) {
+    return jsonError(
+      c,
+      501,
+      "not_configured",
+      "Session refresh is not configured.",
+    );
+  }
+
+  try {
+    const payload = await verifySessionToken(
+      c.env,
+      body.refresh_token,
+      "refresh",
+    );
+    if (!payload) {
+      return jsonError(
+        c,
+        401,
+        "invalid_or_expired_token",
+        "Refresh token is invalid or has expired.",
+      );
+    }
+
+    const now = Date.now();
+    const accessExp = now + 60 * 60 * 1000; // 1 hour
+    const refreshExp = now + 7 * 24 * 60 * 60 * 1000; // 7 days
+
+    const [accessToken, refreshToken] = await Promise.all([
+      createSessionToken(c.env, {
+        email: payload.email,
+        type: "access",
+        exp: accessExp,
+      }),
+      createSessionToken(c.env, {
+        email: payload.email,
+        type: "refresh",
+        exp: refreshExp,
+      }),
+    ]);
+
+    console.log("v2_request", {
+      request_id: requestId,
+      route: "/v1/auth/refresh",
+      method: "POST",
+      status: 200,
+      email_hash: payload.email.length,
+    });
+
+    return jsonOk(c, {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_at: new Date(accessExp).toISOString(),
+    });
+  } catch (error) {
+    return jsonError(
+      c,
+      500,
+      "refresh_failed",
+      error instanceof Error ? error.message : "Unable to refresh session.",
+    );
+  }
+});
+
+app.post("/v1/auth/logout", async (c) => {
+  // Stateless MVP: no server-side revocation store.
+  // Client must clear tokens on their side.
+  // Always returns 200 so the client can safely proceed with local cleanup.
+  const requestId = getOrCreateRequestId(c);
+  console.log("v2_request", {
+    request_id: requestId,
+    route: "/v1/auth/logout",
+    method: "POST",
+    status: 200,
+  });
+  return jsonOk(c, { ok: true });
 });
 
 // Robots — API must never be indexed

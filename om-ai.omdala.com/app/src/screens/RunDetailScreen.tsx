@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { getProof, getRun } from '../api/reality';
 import { Card } from '../components/Card';
 import { AppAlert } from '../components/AppAlert';
+import { AppButton } from '../components/AppButton';
 import { colors } from '../theme/colors';
 
 type Props = {
@@ -20,42 +21,55 @@ export function RunDetailScreen({ route }: Props) {
   const [runText, setRunText] = useState('');
   const [proofText, setProofText] = useState('');
 
-  useEffect(() => {
-    let active = true;
-    void (async () => {
-      const runResult = await getRun(runId);
-      if (!active) return;
-      if (runResult.error || !runResult.value) {
-        setError(runResult.error ?? 'run_not_found');
-        setLoading(false);
-        return;
-      }
-      const run = runResult.value;
-      setRunText(`${run.run_id} / ${run.source}:${run.source_id} / ${run.status}`);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setRunText('');
+    setProofText('');
 
-      if (run.proof_id) {
-        const proofResult = await getProof(run.proof_id);
-        if (proofResult.value) {
-          setProofText(`${proofResult.value.proofId} / confidence=${proofResult.value.confidenceScore}`);
-        }
-      }
-
-      setError(null);
+    const runResult = await getRun(runId);
+    if (runResult.error || !runResult.value) {
+      setError('Unable to load activity details. Please try again. / Khong the tai chi tiet hoat dong. Vui long thu lai.');
       setLoading(false);
-    })();
+      return;
+    }
+    const run = runResult.value;
+    setRunText(
+      `${run.run_id} / ${run.source}:${run.source_id} / ${run.status}`,
+    );
 
-    return () => {
-      active = false;
-    };
+    if (run.proof_id) {
+      const proofResult = await getProof(run.proof_id);
+      if (proofResult.value) {
+        setProofText(
+          `${proofResult.value.proofId} / confidence=${proofResult.value.confidenceScore}`,
+        );
+      }
+    }
+
+    setError(null);
+    setLoading(false);
   }, [runId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   return (
     <ScrollView style={styles.container}>
-      <Card title="Run detail">
-        {loading ? <Text style={styles.meta}>Loading...</Text> : null}
-        {error ? <AppAlert tone="warning">{error}</AppAlert> : null}
-        {runText ? <Text style={styles.meta}>Run: {runText}</Text> : null}
-        {proofText ? <Text style={styles.meta}>Proof: {proofText}</Text> : null}
+      <Card title="Run detail / Chi tiet run">
+        {loading ? <Text style={styles.meta}>Loading... / Dang tai...</Text> : null}
+        {error ? (
+          <View>
+            <AppAlert tone="warning">{error}</AppAlert>
+            <AppButton title="Retry / Thu lai" onPress={() => void load()} />
+          </View>
+        ) : null}
+        {!loading && !error && !runText ? (
+          <Text style={styles.meta}>Run not found. / Khong tim thay run.</Text>
+        ) : null}
+        {runText ? <Text style={styles.meta}>Run / Luot chay: {runText}</Text> : null}
+        {proofText ? <Text style={styles.meta}>Proof / Bang chung: {proofText}</Text> : null}
       </Card>
     </ScrollView>
   );
