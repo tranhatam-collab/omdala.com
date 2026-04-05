@@ -1,6 +1,26 @@
-name = "omdala-api"
-main = "src/index.js"
-compatibility_date = "2026-03-17"
+name            = "omdala-api"
+main            = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+account_id      = "93112cc89181e75335cbd7ef7e392ba3"
+workers_dev     = true
 
-[dev]
-port = 8789
+[vars]
+ENVIRONMENT = "production"
+APP_BASE_URL = "https://app.omdala.com"
+WEB_BASE_URL = "https://omdala.com"
+
+[env.preview.vars]
+ENVIRONMENT = "preview"
+APP_BASE_URL = "https://preview.app.omdala.com"
+WEB_BASE_URL = "https://preview.omdala.com"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+APP_BASE_URL = "https://staging.app.omdala.com"
+WEB_BASE_URL = "https://staging.omdala.com"
+
+# api.omdala.com — bind khi omdala.com zone sẵn sàng trên Cloudflare
+# [[routes]]
+# pattern = "api.omdala.com/*"
+# zone_name = "omdala.com"

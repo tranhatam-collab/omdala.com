@@ -3,13 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "dev":       "next dev --port 3001",
+    "build":     "next build",
+    "start":     "next start",
+    "lint":      "next lint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "16.2.1",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "@omdala/ai-service": "workspace:*",
+    "@omdala/auth-service": "workspace:*",
+    "@omdala/core":  "workspace:*",
+    "@omdala/matching-service": "workspace:*",
+    "@omdala/notifications-service": "workspace:*",
+    "@omdala/trust-service": "workspace:*",
+    "@omdala/types": "workspace:*",
+    "@omdala/ui":    "workspace:*",
+    "next":          "^15.1.0",
+    "react":         "^19.0.0",
+    "react-dom":     "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react":     "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript":       "^5.6.0"
   }
 }

@@ -3,13 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "dev":       "next dev --port 3000",
+    "build":     "next build",
+    "start":     "next start",
+    "lint":      "next lint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest"
+    "@omdala/core":  "workspace:*",
+    "@omdala/seo":   "workspace:*",
+    "@omdala/types": "workspace:*",
+    "@omdala/ui":    "workspace:*",
+    "next":          "^15.1.0",
+    "react":         "^19.0.0",
+    "react-dom":     "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react":     "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript":       "^5.6.0"
   }
 }

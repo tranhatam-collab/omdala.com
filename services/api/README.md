@@ -1,18 +1,16 @@
 # services/api
 
-Cloudflare Worker skeleton for `api.omdala.com`.
+Future backend service boundary for `api.omdala.com`.
 
-## Endpoints
+## Deploy environments
 
-- `GET /api/health`
-- `GET /api/session`
-- `POST /api/auth/magic-link`
+- `production` uses default `wrangler.toml` `[vars]`.
+- `preview` uses `[env.preview.vars]`.
+- `staging` uses `[env.staging.vars]`.
 
-## Commands
+Use:
 
-From the repo root:
+- `pnpm --filter @omdala/api deploy` for production
+- `pnpm --filter @omdala/api deploy -- --env preview`
+- `pnpm --filter @omdala/api deploy -- --env staging`
 
-```bash
-npm run dev:api
-npm run build:api
-```

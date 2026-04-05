@@ -1,66 +1,81 @@
 # README_DEV_HANDOFF_OMDALA
 
-# PROJECT: OMDALA
+## PROJECT: OMDALA
+
+Version: 1.1  
+Status: master handoff for design, product, frontend, backend, AI, and operations
+
+---
 
 ## 1. Core concept
 
-OMDALA is the global coordination system.
-
-It is the master brand and platform layer for:
+OMDALA is the master operating layer for:
 
 - identity
 - resources
+- requests and offers
 - matching
 - trust
-- AI orchestration
-- real-world action
+- orchestration
+- proof-backed action
 
-OMDALAT is not a sibling brand. It is the first city implementation under OMDALA.
+It is the parent system, not a local implementation.
 
-## 2. Domain model
+---
 
-- `omdala.com` = global homepage
-- `app.omdala.com` = web app
-- `api.omdala.com` = backend
-- `docs.omdala.com` = docs
+## 2. Official surfaces
 
-## 3. Recommended repo structure
+- `omdala.com` — public brand and category surface
+- `app.omdala.com` — authenticated product surface
+- `api.omdala.com` — versioned API layer
+- `docs.omdala.com` — public documentation
+- `admin.omdala.com` — internal operations and moderation
+
+---
+
+## 3. Repo model
 
 ```text
 /apps
   /web
   /app
+  /admin
+  /docs
 
 /packages
   /ui
-  /core
-  /api-types
+  /types
+  /seo
 
 /services
   /api
-  /auth
-  /matching
-  /trust
-  /ai
 ```
+
+Planned next shared layers:
+
+- `packages/core`
+- `packages/brand`
+- `services/auth`
+- `services/trust`
+- `services/matching`
+- `services/notifications`
+- `services/ai`
+
+---
 
 ## 4. Tech direction
 
 Frontend:
 
 - Next.js
-- Tailwind CSS
-- Framer Motion only where useful
+- TypeScript
+- shared design tokens
 
 Backend:
 
 - Cloudflare Workers
-- D1 initially
-- R2 for proofs and files
-
-Auth:
-
-- Magic link or passwordless-first
+- D1 or relational core later
+- R2 for files and proofs
 
 Payments:
 
@@ -68,102 +83,63 @@ Payments:
 
 AI:
 
-- external LLM gateway with structured outputs
+- structured-output agentic workflows
+
+---
 
 ## 5. Core modules
 
-- Identity
-- Node
+- Identity and node model
 - Resources
-- Offers
-- Requests
+- Offers and requests
 - Matching
 - Messaging
 - Booking
-- Payment
+- Payments
+- Proofs
 - Trust
-- AI
-- Admin
+- AI orchestration
+- Admin operations
 
-## 6. MVP priority
+---
 
-P1:
+## 6. Product principles
 
-- auth
-- node
-- homepage
+- Build for action, not browsing.
+- Trust must be explainable and auditable.
+- AI must create operational value, not decoration.
+- The public brand must remain calm, premium, and clear.
+- No local implementation logic should pollute the master OMDALA scope.
 
-P2:
+---
 
-- resources
-- offers
-- requests
+## 7. Immediate implementation order
 
-P3:
+1. Keep domain language stable.
+2. Build the public OMDALA routes completely.
+3. Implement auth and node foundations in the app.
+4. Add structured domain objects for resources, offers, and requests.
+5. Ship matching and trust services behind typed contracts.
+6. Add booking, payment, and proof flows.
+7. Expand AI orchestration only after the operational objects are real.
 
-- matching
-- messaging
+---
 
-P4:
+## 8. Required docs
 
-- booking
-- payment
+These files are now the minimum source of truth:
 
-P5:
+- `PRODUCT_SPEC_OMDALA.md`
+- `DATA_MODEL_OMDALA.md`
+- `API_SPEC_OMDALA.md`
+- `TRUST_ENGINE_OMDALA.md`
+- `MATCHING_ENGINE_OMDALA.md`
+- `SEO_MASTER_LOCK_OMDALA_SYSTEM.md`
+- `DNS_SUBDOMAIN_DEPLOYMENT_LOCK_OMDALA.md`
+- `TECHNICAL_SEO_IMPLEMENTATION_FILES_OMDALA.md`
 
-- trust
-- proof
+---
 
-P6:
+## 9. Final rule
 
-- AI
-
-## 7. Design rules
-
-- minimal
-- clear
-- premium
-- mobile-aware
-- action-focused
-
-## 8. Copy rules
-
-Avoid:
-
-- hype
-- startup jargon
-- empty futurism
-
-Use:
-
-- clear
-- operational
-- calm
-- premium
-
-## 9. Critical principle
-
-If a feature does not help:
-
-- activate value
-- coordinate action
-- build trust
-
-do not build it.
-
-## 10. Initial implementation sequence
-
-1. freeze domain language
-2. build master homepage
-3. scaffold app shell
-4. implement node and resource model
-5. implement requests and offers
-6. implement matching and messaging
-7. implement booking and trust
-8. add AI action layer
-
-## 11. Final definition
-
-OMDALA is not just a product.
-OMDALA is the global operating layer.
-
+If a feature does not help users see value, coordinate action, or build trust, it is not core OMDALA work.
