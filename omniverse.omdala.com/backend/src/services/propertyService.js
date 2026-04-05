@@ -69,5 +69,20 @@ export function createPropertyService({ dbAdapter }) {
       }
       return dbAdapter.listPropertyWorkspaces(propertyId);
     },
+
+    async deleteProperty({ propertyId }) {
+      if (!propertyId) {
+        throw new HttpError(400, "INVALID_PARAMS", "propertyId is required");
+      }
+      const removed = await dbAdapter.deleteProperty(propertyId);
+      if (!removed) {
+        throw new HttpError(
+          404,
+          "PROPERTY_NOT_FOUND",
+          `Property ${propertyId} not found`,
+        );
+      }
+      return { success: true, propertyId };
+    },
   };
 }

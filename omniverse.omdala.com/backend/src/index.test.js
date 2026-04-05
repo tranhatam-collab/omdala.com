@@ -1096,3 +1096,373 @@ test("O4: GET /health returns enriched status with uptime", async () => {
   assert.equal(payload.data.status, "ok");
   assert.ok(typeof payload.data.uptime === "number");
 });
+
+// ── Web client parity tests ──────────────────────────────────────────────────
+
+async function loginGetToken(runtime) {
+  const res = await runtime.api.handle(
+    createJsonRequest("http://localhost/v2/omniverse/auth/login", "POST", {
+      email: "owner@omdala.com",
+      password: "demo-owner-pass",
+    }),
+  );
+  const body = await res.json();
+  return body.data.accessToken;
+}
+
+test("WEB: POST /auth/signup returns 201 with accessToken (fallback to login)", async () => {
+  const runtime = await createTestRuntime();
+  const res = await runtime.api.handle(
+    createJsonRequest("http://localhost/v2/omniverse/auth/signup", "POST", {
+      email: "owner@omdala.com",
+      password: "demo-owner-pass",
+      name: "New User",
+    }),
+  );
+  const body = await res.json();
+  assert.equal(res.status, 201);
+  assert.ok(body.data.accessToken);
+});
+
+test("WEB: GET /workspaces/:id returns workspace info", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  const res = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001",
+      "GET",
+      undefined,
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await res.json();
+  assert.equal(res.status, 200);
+  assert.equal(body.data.workspace.id, "workspace_home_001");
+});
+
+test("WEB: GET /workspaces/:id/rooms lists rooms", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  const res = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/rooms",
+      "GET",
+      undefined,
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await res.json();
+  assert.equal(res.status, 200);
+  assert.ok(Array.isArray(body.data.rooms));
+  assert.ok(body.data.rooms.length >= 2);
+});
+
+test("WEB: POST /workspaces/:id/rooms creates room", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  const res = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/rooms",
+      "POST",
+      { name: "Kitchen" },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await res.json();
+  assert.equal(res.status, 201);
+  assert.equal(body.data.room.name, "Kitchen");
+  assert.ok(body.data.room.id);
+});
+
+test("WEB: DELETE /workspaces/:id/rooms/:roomId removes room", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  // Create first
+  const createRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/rooms",
+      "POST",
+      { name: "TempRoom" },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const created = await createRes.json();
+  const roomId = created.data.room.id;
+
+  const delRes = await runtime.api.handle(
+    createJsonRequest(
+      `http://localhost/v2/omniverse/workspaces/workspace_home_001/rooms/${roomId}`,
+      "DELETE",
+      undefined,
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const delBody = await delRes.json();
+  assert.equal(delRes.status, 200);
+  assert.equal(delBody.data.success, true);
+});
+
+test("WEB: GET /workspaces/:id/devices lists all workspace devices", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  const res = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/devices",
+      "GET",
+      undefined,
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await res.json();
+  assert.equal(res.status, 200);
+  assert.ok(Array.isArray(body.data.devices));
+  assert.ok(body.data.devices.length >= 2);
+});
+
+test("WEB: POST /workspaces/:id/devices onboards device", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  const res = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/devices",
+      "POST",
+      { name: "Smart Lock", type: "lock", roomId: "room_living_001" },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await res.json();
+  assert.equal(res.status, 201);
+  assert.equal(body.data.device.name, "Smart Lock");
+  assert.equal(body.data.device.type, "lock");
+});
+
+test("WEB: DELETE /workspaces/:id/devices/:deviceId removes device", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  const delRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/devices/dev_light_001",
+      "DELETE",
+      undefined,
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await delRes.json();
+  assert.equal(delRes.status, 200);
+  assert.equal(body.data.success, true);
+});
+
+test("WEB: GET /workspaces/:id/scenes lists scenes", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  const res = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/scenes",
+      "GET",
+      undefined,
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await res.json();
+  assert.equal(res.status, 200);
+  assert.ok(Array.isArray(body.data.scenes));
+});
+
+test("WEB: POST /workspaces/:id/scenes creates scene", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  const res = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/scenes",
+      "POST",
+      {
+        name: "Movie Night",
+        actions: [{ deviceId: "dev_light_001", state: { brightness: 20 } }],
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await res.json();
+  assert.equal(res.status, 201);
+  assert.equal(body.data.scene.name, "Movie Night");
+  assert.ok(body.data.scene.scene_id);
+});
+
+test("WEB: POST /workspaces/:id/scenes/:id/activate activates scene", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  // Create first
+  const createRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/scenes",
+      "POST",
+      { name: "Party", actions: [] },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const created = await createRes.json();
+  const sceneId = created.data.scene.scene_id;
+
+  const actRes = await runtime.api.handle(
+    createJsonRequest(
+      `http://localhost/v2/omniverse/workspaces/workspace_home_001/scenes/${sceneId}/activate`,
+      "POST",
+      undefined,
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const actBody = await actRes.json();
+  assert.equal(actRes.status, 200);
+  assert.equal(actBody.data.sceneId, sceneId);
+});
+
+test("WEB: DELETE /workspaces/:id/scenes/:id removes scene", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  const createRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/scenes",
+      "POST",
+      { name: "TempScene", actions: [] },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const created = await createRes.json();
+  const sceneId = created.data.scene.scene_id;
+
+  const delRes = await runtime.api.handle(
+    createJsonRequest(
+      `http://localhost/v2/omniverse/workspaces/workspace_home_001/scenes/${sceneId}`,
+      "DELETE",
+      undefined,
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await delRes.json();
+  assert.equal(delRes.status, 200);
+  assert.equal(body.data.success, true);
+});
+
+test("WEB: GET /workspaces/:id/automations lists automations", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  const res = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/automations",
+      "GET",
+      undefined,
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await res.json();
+  assert.equal(res.status, 200);
+  assert.ok(Array.isArray(body.data.automations));
+});
+
+test("WEB: POST /workspaces/:id/automations creates automation", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  const res = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/automations",
+      "POST",
+      {
+        name: "Night Lights Off",
+        trigger: { type: "time", value: "22:00" },
+        actions: [{ deviceId: "dev_light_001", state: { power: false } }],
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await res.json();
+  assert.equal(res.status, 201);
+  assert.equal(body.data.automation.name, "Night Lights Off");
+});
+
+test("WEB: POST /workspaces/:id/automations/:id/run runs automation", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  // Create first
+  const createRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/automations",
+      "POST",
+      {
+        name: "Run Test",
+        trigger: { type: "manual" },
+        actions: [{ deviceId: "dev_light_001", state: { power: false } }],
+      },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const created = await createRes.json();
+  const automationId = created.data.automation.automation_id;
+
+  const runRes = await runtime.api.handle(
+    createJsonRequest(
+      `http://localhost/v2/omniverse/workspaces/workspace_home_001/automations/${automationId}/run`,
+      "POST",
+      undefined,
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const runBody = await runRes.json();
+  assert.equal(runRes.status, 200);
+  assert.equal(runBody.data.automationId, automationId);
+  assert.ok(runBody.data.ranAt);
+});
+
+test("WEB: DELETE /workspaces/:id/automations/:id removes automation", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  const createRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/workspaces/workspace_home_001/automations",
+      "POST",
+      { name: "TempAuto", trigger: { type: "manual" }, actions: [] },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const created = await createRes.json();
+  const automationId = created.data.automation.automation_id;
+
+  const delRes = await runtime.api.handle(
+    createJsonRequest(
+      `http://localhost/v2/omniverse/workspaces/workspace_home_001/automations/${automationId}`,
+      "DELETE",
+      undefined,
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await delRes.json();
+  assert.equal(delRes.status, 200);
+  assert.equal(body.data.success, true);
+});
+
+test("WEB: DELETE /properties/:id removes property", async () => {
+  const runtime = await createTestRuntime();
+  const token = await loginGetToken(runtime);
+  // Create first
+  const createRes = await runtime.api.handle(
+    createJsonRequest(
+      "http://localhost/v2/omniverse/properties",
+      "POST",
+      { ownerUserId: "usr_omni_owner_001", name: "My Home" },
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const created = await createRes.json();
+  const propertyId = created.data.property_id;
+
+  const delRes = await runtime.api.handle(
+    createJsonRequest(
+      `http://localhost/v2/omniverse/properties/${propertyId}`,
+      "DELETE",
+      undefined,
+      { authorization: `Bearer ${token}` },
+    ),
+  );
+  const body = await delRes.json();
+  assert.equal(delRes.status, 200);
+  assert.equal(body.data.success, true);
+});

@@ -84,5 +84,53 @@ export function createDeviceService({
     async listDevices(roomId) {
       return dbAdapter.listRoomDevices(roomId);
     },
+
+    async listWorkspaceDevices(workspaceId, roomId) {
+      return dbAdapter.listWorkspaceDevices(workspaceId, roomId);
+    },
+
+    async getDevice(deviceId) {
+      return dbAdapter.getDeviceById(deviceId);
+    },
+
+    async onboardWorkspaceDevice({
+      workspaceId,
+      roomId,
+      name,
+      type,
+      externalId,
+    }) {
+      const deviceId =
+        externalId ||
+        `dev_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      // If roomId given, validate room belongs to workspace
+      if (roomId) {
+        const room = await dbAdapter.getRoomById(roomId);
+        if (!room || room.workspace_id !== workspaceId) {
+          throw new Error("ROOM_NOT_FOUND_IN_WORKSPACE");
+        }
+      }
+      const actualRoomId = roomId || null;
+      const d = await dbAdapter.addDevice(actualRoomId, {
+        deviceId,
+        name,
+        type,
+        state: {},
+      });
+      return {
+        id: d.device_id,
+        name: d.name,
+        type: d.type,
+        roomId: d.room_id,
+        workspaceId,
+        status: "online",
+        state: d.state_json || {},
+      };
+    },
+
+    async deleteDevice(deviceId) {
+      const removed = await dbAdapter.deleteDevice(deviceId);
+      return removed ? { success: true, deviceId } : null;
+    },
   };
 }

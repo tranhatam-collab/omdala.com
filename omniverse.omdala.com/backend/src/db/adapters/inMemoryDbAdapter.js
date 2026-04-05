@@ -76,9 +76,41 @@ export function createInMemoryDbAdapter(seed = DEFAULT_DATA) {
       return data.rooms.filter((r) => r.workspace_id === workspaceId);
     },
 
+    async createRoom(room) {
+      data.rooms.push(room);
+      return room;
+    },
+
+    async deleteRoom(roomId) {
+      const idx = data.rooms.findIndex((r) => r.room_id === roomId);
+      if (idx === -1) return null;
+      const [removed] = data.rooms.splice(idx, 1);
+      return removed;
+    },
+
     // ── Devices ─────────────────────────────────────────────────────────────
     async listRoomDevices(roomId) {
       return data.room_devices.filter((device) => device.room_id === roomId);
+    },
+
+    async listWorkspaceDevices(workspaceId, roomId) {
+      const roomIds = data.rooms
+        .filter((r) => r.workspace_id === workspaceId)
+        .map((r) => r.room_id);
+      let devs = data.room_devices.filter((d) => roomIds.includes(d.room_id));
+      if (roomId) devs = devs.filter((d) => d.room_id === roomId);
+      return devs;
+    },
+
+    async getDeviceById(deviceId) {
+      return data.room_devices.find((d) => d.device_id === deviceId) || null;
+    },
+
+    async deleteDevice(deviceId) {
+      const idx = data.room_devices.findIndex((d) => d.device_id === deviceId);
+      if (idx === -1) return null;
+      const [removed] = data.room_devices.splice(idx, 1);
+      return removed;
     },
 
     async addDevice(roomId, device) {
@@ -133,6 +165,31 @@ export function createInMemoryDbAdapter(seed = DEFAULT_DATA) {
       return { roomId, sceneId, sceneName, activatedAt: room.updated_at };
     },
 
+    // ── Scenes ──────────────────────────────────────────────────────────────
+    async createScene(scene) {
+      if (!data.scenes) data.scenes = [];
+      data.scenes.push(scene);
+      return scene;
+    },
+
+    async listScenes(workspaceId) {
+      if (!data.scenes) return [];
+      return data.scenes.filter((s) => s.workspace_id === workspaceId);
+    },
+
+    async getScene(sceneId) {
+      if (!data.scenes) return null;
+      return data.scenes.find((s) => s.scene_id === sceneId) || null;
+    },
+
+    async deleteScene(sceneId) {
+      if (!data.scenes) return null;
+      const idx = data.scenes.findIndex((s) => s.scene_id === sceneId);
+      if (idx === -1) return null;
+      const [removed] = data.scenes.splice(idx, 1);
+      return removed;
+    },
+
     // ── Automations ─────────────────────────────────────────────────────────
     async createAutomation(automation) {
       data.automations.push(automation);
@@ -153,6 +210,15 @@ export function createInMemoryDbAdapter(seed = DEFAULT_DATA) {
       const a = data.automations.find((a) => a.automation_id === automationId);
       if (a) a.last_run_at = lastRunAt;
       return a || null;
+    },
+
+    async deleteAutomation(automationId) {
+      const idx = data.automations.findIndex(
+        (a) => a.automation_id === automationId,
+      );
+      if (idx === -1) return null;
+      const [removed] = data.automations.splice(idx, 1);
+      return removed;
     },
 
     // ── Schedules ───────────────────────────────────────────────────────────
@@ -238,6 +304,15 @@ export function createInMemoryDbAdapter(seed = DEFAULT_DATA) {
 
     async listProperties(ownerUserId) {
       return data.properties.filter((p) => p.owner_user_id === ownerUserId);
+    },
+
+    async deleteProperty(propertyId) {
+      const idx = data.properties.findIndex(
+        (p) => p.property_id === propertyId,
+      );
+      if (idx === -1) return null;
+      const [removed] = data.properties.splice(idx, 1);
+      return removed;
     },
 
     async addPropertyWorkspace(propertyId, workspaceId) {

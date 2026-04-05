@@ -86,5 +86,43 @@ export function createMultiRoomService({ dbAdapter, roomRepository }) {
         results,
       };
     },
+
+    async listRooms({ workspaceId }) {
+      const rows = await dbAdapter.listRoomsByWorkspace(workspaceId);
+      return rows.map((r) => ({
+        id: r.room_id,
+        name: r.room_name,
+        workspaceId: r.workspace_id,
+      }));
+    },
+
+    async createRoom({ workspaceId, name }) {
+      if (!name) {
+        throw new HttpError(400, "ROOM_INVALID", "name is required");
+      }
+      const room = {
+        room_id: `room_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        workspace_id: workspaceId,
+        room_name: name,
+        active_scene_id: null,
+        active_scene_name: null,
+        updated_at: new Date().toISOString(),
+      };
+      await dbAdapter.createRoom(room);
+      return { id: room.room_id, name: room.room_name, workspaceId };
+    },
+
+    async deleteRoom({ workspaceId, roomId }) {
+      const room = await dbAdapter.getRoomById(roomId);
+      if (!room || room.workspace_id !== workspaceId) {
+        throw new HttpError(
+          404,
+          "ROOM_NOT_FOUND",
+          `Room ${roomId} not found in workspace`,
+        );
+      }
+      await dbAdapter.deleteRoom(roomId);
+      return { success: true, roomId };
+    },
   };
 }

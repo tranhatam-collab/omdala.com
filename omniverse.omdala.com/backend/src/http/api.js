@@ -79,6 +79,30 @@ export function createOmniverseApi({
           return json(200, { ok: true, data: auth, meta: { requestId } });
         }
 
+        // POST /v2/omniverse/auth/signup
+        if (
+          request.method === "POST" &&
+          pathname === "/v2/omniverse/auth/signup"
+        ) {
+          const body = await safeJson(request);
+          // Signup via sharedCoreClient if available, else create a local session
+          let auth;
+          if (loginService.signup) {
+            auth = await loginService.signup({
+              email: body.email,
+              password: body.password,
+              name: body.name,
+            });
+          } else {
+            // Fallback: treat signup as login (demo/dev mode)
+            auth = await loginService.login({
+              email: body.email,
+              password: body.password,
+            });
+          }
+          return json(201, { ok: true, data: auth, meta: { requestId } });
+        }
+
         if (
           request.method === "POST" &&
           pathname === "/v2/omniverse/flows/login-room-state"
@@ -208,45 +232,6 @@ export function createOmniverseApi({
             );
           }
           return json(200, { ok: true, data: updated, meta: { requestId } });
-        }
-
-        // ── O3: Multi-room ────────────────────────────────────────────────────
-
-        // GET /v2/omniverse/workspaces/:workspaceId/state
-        const workspaceStateMatch = pathname.match(
-          /^\/v2\/omniverse\/workspaces\/([^/]+)\/state$/,
-        );
-        if (request.method === "GET" && workspaceStateMatch) {
-          const workspaceId = workspaceStateMatch[1];
-          const accessToken = parseBearerToken(
-            request.headers.get("authorization"),
-          );
-          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
-          const state = await multiRoomService.getWorkspaceState({
-            authCtx,
-            workspaceId,
-          });
-          return json(200, { ok: true, data: state, meta: { requestId } });
-        }
-
-        // POST /v2/omniverse/workspaces/:workspaceId/preset
-        const workspacePresetMatch = pathname.match(
-          /^\/v2\/omniverse\/workspaces\/([^/]+)\/preset$/,
-        );
-        if (request.method === "POST" && workspacePresetMatch) {
-          const workspaceId = workspacePresetMatch[1];
-          const body = await safeJson(request);
-          const accessToken = parseBearerToken(
-            request.headers.get("authorization"),
-          );
-          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
-          const result = await multiRoomService.applyPreset({
-            authCtx,
-            workspaceId,
-            presetName: body.presetName,
-            presetScenes: body.presetScenes,
-          });
-          return json(200, { ok: true, data: result, meta: { requestId } });
         }
 
         // ── O3: Automations ───────────────────────────────────────────────────
@@ -514,6 +499,17 @@ export function createOmniverseApi({
           return json(200, { ok: true, data: property, meta: { requestId } });
         }
 
+        // DELETE /v2/omniverse/properties/:propertyId
+        if (request.method === "DELETE" && propertyMatch) {
+          const propertyId = propertyMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await propertyService.deleteProperty({ propertyId });
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
         // POST /v2/omniverse/properties/:propertyId/workspaces
         const propertyWorkspacesMatch = pathname.match(
           /^\/v2\/omniverse\/properties\/([^/]+)\/workspaces$/,
@@ -544,6 +540,431 @@ export function createOmniverseApi({
           });
           return json(200, { ok: true, data: list, meta: { requestId } });
         }
+
+        // ── Workspaces ────────────────────────────────────────────────────────
+
+        // GET /v2/omniverse/workspaces/:workspaceId  (single workspace info)
+        const workspaceSingleMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)$/,
+        );
+        if (request.method === "GET" && workspaceSingleMatch) {
+          const workspaceId = workspaceSingleMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          if (authCtx?.assertWorkspaceAccess) {
+            authCtx.assertWorkspaceAccess(workspaceId);
+          }
+          // Return minimal workspace object — could be enriched from propertyService
+          return json(200, {
+            ok: true,
+            data: { workspace: { id: workspaceId, name: workspaceId } },
+            meta: { requestId },
+          });
+        }
+
+        // GET /v2/omniverse/workspaces/:workspaceId/state
+        const workspaceStateMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/state$/,
+        );
+        if (request.method === "GET" && workspaceStateMatch) {
+          const workspaceId = workspaceStateMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const state = await multiRoomService.getWorkspaceState({
+            authCtx,
+            workspaceId,
+          });
+          return json(200, { ok: true, data: state, meta: { requestId } });
+        }
+
+        // POST /v2/omniverse/workspaces/:workspaceId/preset
+        const workspacePresetMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/preset$/,
+        );
+        if (request.method === "POST" && workspacePresetMatch) {
+          const workspaceId = workspacePresetMatch[1];
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await multiRoomService.applyPreset({
+            authCtx,
+            workspaceId,
+            presetName: body.presetName,
+            presetScenes: body.presetScenes,
+          });
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // ── Rooms ──────────────────────────────────────────────────────────────
+
+        // GET /v2/omniverse/workspaces/:workspaceId/rooms
+        const workspaceRoomsMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/rooms$/,
+        );
+        if (request.method === "GET" && workspaceRoomsMatch) {
+          const workspaceId = workspaceRoomsMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          if (authCtx?.assertWorkspaceAccess) {
+            authCtx.assertWorkspaceAccess(workspaceId);
+          }
+          const list = await multiRoomService.listRooms({ workspaceId });
+          return json(200, {
+            ok: true,
+            data: { rooms: list },
+            meta: { requestId },
+          });
+        }
+
+        // POST /v2/omniverse/workspaces/:workspaceId/rooms
+        if (request.method === "POST" && workspaceRoomsMatch) {
+          const workspaceId = workspaceRoomsMatch[1];
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          if (authCtx?.assertWorkspaceAccess) {
+            authCtx.assertWorkspaceAccess(workspaceId);
+          }
+          const room = await multiRoomService.createRoom({
+            workspaceId,
+            name: body.name,
+          });
+          return json(201, { ok: true, data: { room }, meta: { requestId } });
+        }
+
+        // DELETE /v2/omniverse/workspaces/:workspaceId/rooms/:roomId
+        const workspaceRoomMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/rooms\/([^/]+)$/,
+        );
+        if (request.method === "DELETE" && workspaceRoomMatch) {
+          const [, workspaceId, roomId] = workspaceRoomMatch;
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          if (authCtx?.assertWorkspaceAccess) {
+            authCtx.assertWorkspaceAccess(workspaceId);
+          }
+          const result = await multiRoomService.deleteRoom({
+            workspaceId,
+            roomId,
+          });
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // ── Devices (workspace-scoped) ─────────────────────────────────────────
+
+        // GET /v2/omniverse/workspaces/:workspaceId/devices[?roomId=...]
+        const workspaceDevicesMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/devices$/,
+        );
+        if (request.method === "GET" && workspaceDevicesMatch) {
+          const workspaceId = workspaceDevicesMatch[1];
+          const roomId =
+            new URL(request.url).searchParams.get("roomId") || undefined;
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          if (authCtx?.assertWorkspaceAccess) {
+            authCtx.assertWorkspaceAccess(workspaceId);
+          }
+          const devices = await deviceService.listWorkspaceDevices(
+            workspaceId,
+            roomId,
+          );
+          return json(200, {
+            ok: true,
+            data: { devices },
+            meta: { requestId },
+          });
+        }
+
+        // POST /v2/omniverse/workspaces/:workspaceId/devices  (onboard)
+        if (request.method === "POST" && workspaceDevicesMatch) {
+          const workspaceId = workspaceDevicesMatch[1];
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          if (authCtx?.assertWorkspaceAccess) {
+            authCtx.assertWorkspaceAccess(workspaceId);
+          }
+          const device = await deviceService.onboardWorkspaceDevice({
+            workspaceId,
+            roomId: body.roomId,
+            name: body.name,
+            type: body.type,
+            externalId: body.externalId,
+          });
+          return json(201, { ok: true, data: { device }, meta: { requestId } });
+        }
+
+        // GET /v2/omniverse/workspaces/:workspaceId/devices/:deviceId
+        const workspaceDeviceMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/devices\/([^/]+)$/,
+        );
+        if (request.method === "GET" && workspaceDeviceMatch) {
+          const [, workspaceId, deviceId] = workspaceDeviceMatch;
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          if (authCtx?.assertWorkspaceAccess) {
+            authCtx.assertWorkspaceAccess(workspaceId);
+          }
+          const device = await deviceService.getDevice(deviceId);
+          if (!device) {
+            throw new HttpError(
+              404,
+              "DEVICE_NOT_FOUND",
+              `Device ${deviceId} not found`,
+            );
+          }
+          return json(200, { ok: true, data: { device }, meta: { requestId } });
+        }
+
+        // DELETE /v2/omniverse/workspaces/:workspaceId/devices/:deviceId
+        if (request.method === "DELETE" && workspaceDeviceMatch) {
+          const [, workspaceId, deviceId] = workspaceDeviceMatch;
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          if (authCtx?.assertWorkspaceAccess) {
+            authCtx.assertWorkspaceAccess(workspaceId);
+          }
+          const result = await deviceService.deleteDevice(deviceId);
+          if (!result) {
+            throw new HttpError(
+              404,
+              "DEVICE_NOT_FOUND",
+              `Device ${deviceId} not found`,
+            );
+          }
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // GET /v2/omniverse/workspaces/:workspaceId/devices/:deviceId/state
+        const workspaceDeviceStateMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/devices\/([^/]+)\/state$/,
+        );
+        if (request.method === "GET" && workspaceDeviceStateMatch) {
+          const [, workspaceId, deviceId] = workspaceDeviceStateMatch;
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          if (authCtx?.assertWorkspaceAccess) {
+            authCtx.assertWorkspaceAccess(workspaceId);
+          }
+          const state = await deviceService.getDeviceState(deviceId);
+          if (!state) {
+            throw new HttpError(
+              404,
+              "DEVICE_NOT_FOUND",
+              `Device ${deviceId} not found`,
+            );
+          }
+          return json(200, { ok: true, data: { state }, meta: { requestId } });
+        }
+
+        // PUT /v2/omniverse/workspaces/:workspaceId/devices/:deviceId/state
+        if (request.method === "PUT" && workspaceDeviceStateMatch) {
+          const [, workspaceId, deviceId] = workspaceDeviceStateMatch;
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          if (authCtx?.assertWorkspaceAccess) {
+            authCtx.assertWorkspaceAccess(workspaceId);
+          }
+          const updated = await deviceService.updateDeviceState(
+            deviceId,
+            body,
+            { workspaceId },
+          );
+          if (!updated) {
+            throw new HttpError(
+              404,
+              "DEVICE_NOT_FOUND",
+              `Device ${deviceId} not found`,
+            );
+          }
+          return json(200, {
+            ok: true,
+            data: { state: updated.state },
+            meta: { requestId },
+          });
+        }
+
+        // ── Scenes ─────────────────────────────────────────────────────────────
+
+        // GET /v2/omniverse/workspaces/:workspaceId/scenes
+        const workspaceScenesMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/scenes$/,
+        );
+        if (request.method === "GET" && workspaceScenesMatch) {
+          const workspaceId = workspaceScenesMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const scenes = await sceneService.listScenes({
+            authCtx,
+            workspaceId,
+          });
+          return json(200, { ok: true, data: { scenes }, meta: { requestId } });
+        }
+
+        // POST /v2/omniverse/workspaces/:workspaceId/scenes
+        if (request.method === "POST" && workspaceScenesMatch) {
+          const workspaceId = workspaceScenesMatch[1];
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const scene = await sceneService.createScene({
+            authCtx,
+            workspaceId,
+            name: body.name,
+            actions: body.actions,
+          });
+          return json(201, { ok: true, data: { scene }, meta: { requestId } });
+        }
+
+        // POST /v2/omniverse/workspaces/:workspaceId/scenes/:sceneId/activate
+        const workspaceSceneActivateMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/scenes\/([^/]+)\/activate$/,
+        );
+        if (request.method === "POST" && workspaceSceneActivateMatch) {
+          const [, workspaceId, sceneId] = workspaceSceneActivateMatch;
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await sceneService.activateSceneById({
+            authCtx,
+            workspaceId,
+            sceneId,
+          });
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // DELETE /v2/omniverse/workspaces/:workspaceId/scenes/:sceneId
+        const workspaceSceneMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/scenes\/([^/]+)$/,
+        );
+        if (request.method === "DELETE" && workspaceSceneMatch) {
+          const [, workspaceId, sceneId] = workspaceSceneMatch;
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await sceneService.deleteScene({
+            authCtx,
+            workspaceId,
+            sceneId,
+          });
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // ── Automations (workspace-scoped) ────────────────────────────────────
+
+        // GET /v2/omniverse/workspaces/:workspaceId/automations
+        const workspaceAutomationsMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/automations$/,
+        );
+        if (request.method === "GET" && workspaceAutomationsMatch) {
+          const workspaceId = workspaceAutomationsMatch[1];
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const automations = await automationService.listAutomations({
+            authCtx,
+            workspaceId,
+          });
+          return json(200, {
+            ok: true,
+            data: { automations },
+            meta: { requestId },
+          });
+        }
+
+        // POST /v2/omniverse/workspaces/:workspaceId/automations
+        if (request.method === "POST" && workspaceAutomationsMatch) {
+          const workspaceId = workspaceAutomationsMatch[1];
+          const body = await safeJson(request);
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const automation = await automationService.createAutomation({
+            authCtx,
+            workspaceId,
+            name: body.name,
+            triggerType: body.trigger?.type || body.triggerType || "manual",
+            triggerJson: body.trigger || body.triggerJson || {},
+            actionsJson: body.actions || body.actionsJson || [],
+          });
+          return json(201, {
+            ok: true,
+            data: { automation },
+            meta: { requestId },
+          });
+        }
+
+        // POST /v2/omniverse/workspaces/:workspaceId/automations/:automationId/run
+        const workspaceAutomationRunMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/automations\/([^/]+)\/run$/,
+        );
+        if (request.method === "POST" && workspaceAutomationRunMatch) {
+          const [, , automationId] = workspaceAutomationRunMatch;
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await automationService.runAutomation({
+            authCtx,
+            automationId,
+          });
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // DELETE /v2/omniverse/workspaces/:workspaceId/automations/:automationId
+        const workspaceAutomationMatch = pathname.match(
+          /^\/v2\/omniverse\/workspaces\/([^/]+)\/automations\/([^/]+)$/,
+        );
+        if (request.method === "DELETE" && workspaceAutomationMatch) {
+          const [, , automationId] = workspaceAutomationMatch;
+          const accessToken = parseBearerToken(
+            request.headers.get("authorization"),
+          );
+          const authCtx = await loginService.buildAuthCtxFromToken(accessToken);
+          const result = await automationService.deleteAutomation({
+            authCtx,
+            automationId,
+          });
+          return json(200, { ok: true, data: result, meta: { requestId } });
+        }
+
+        // ── Events ─────────────────────────────────────────────────────────────
+
+        // GET /v2/omniverse/workspaces/:workspaceId/events  (already exists below, kept)
 
         // ── O4: Device capabilities ───────────────────────────────────────────
 

@@ -102,5 +102,21 @@ export function createAutomationService({ dbAdapter, deviceService }) {
         results,
       };
     },
+
+    async deleteAutomation({ authCtx, automationId }) {
+      const automation = await dbAdapter.getAutomation(automationId);
+      if (!automation) {
+        throw new HttpError(
+          404,
+          "AUTOMATION_NOT_FOUND",
+          `Automation ${automationId} not found`,
+        );
+      }
+      if (authCtx?.assertWorkspaceAccess) {
+        authCtx.assertWorkspaceAccess(automation.workspace_id);
+      }
+      await dbAdapter.deleteAutomation(automationId);
+      return { success: true, automationId };
+    },
   };
 }
