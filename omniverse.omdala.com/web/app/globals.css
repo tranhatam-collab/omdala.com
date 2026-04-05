@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+:root {
+  --font-geist: "Geist", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
