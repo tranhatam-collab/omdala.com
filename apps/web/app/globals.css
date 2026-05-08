@@ -401,3 +401,400 @@ h3 {
     font-size: clamp(1.8rem, 9vw, 2.6rem);
   }
 }
+
+/* ============================================================
+   OMDALA — BRAND v2.0 "SIGNAL & SUBSTRATE"
+   Append-only overlay. Existing tokens preserved as fallback.
+   Reference: docs/OMDALA_V2_SIGNAL_SUBSTRATE.md
+   Approved direction: B (Signal & Substrate) — 2026-05-08
+
+   Tinh thần: deep space + tín hiệu chính xác — terminal trong cabin tàu
+   vũ trụ. Calm, premium, intelligent, systemic, trustworthy, durable.
+   ============================================================ */
+
+:root {
+  /* ── NEW TOKENS — Signal Gold (verification only, < 5% UI) ── */
+  --omdala-gold-500: #D4AF37;       /* polished gold — verified state */
+  --omdala-gold-400: #E5C158;       /* lighter gold (highlight) */
+  --omdala-gold-bright: #FFD700;    /* 24K bright (success peak) */
+  --omdala-gold-soft: rgba(212, 175, 55, 0.18);
+
+  /* ── NEW TOKENS — Substrate (subtle grid + scan lines) ── */
+  --omdala-substrate-grid: rgba(126, 242, 255, 0.04);
+  --omdala-substrate-line: rgba(126, 242, 255, 0.08);
+  --omdala-substrate-scan: rgba(126, 242, 255, 0.06);
+
+  /* ── NEW TOKENS — Critical states (UI feedback only) ── */
+  --omdala-critical-500: #FF5E5B;   /* error / blocked */
+  --omdala-warning-500: #FFB800;    /* warning, distinct from gold-500 */
+
+  /* ── NEW TOKENS — Gradients ── */
+  --omdala-gradient-signal: linear-gradient(135deg, #3de7ff 0%, #6bb2ff 50%, #3de7ff 100%);
+  --omdala-gradient-gold:   linear-gradient(135deg, #FFD700 0%, #D4AF37 50%, #B8910C 100%);
+  --omdala-gradient-substrate:
+    linear-gradient(180deg, transparent 0%, var(--omdala-substrate-grid) 50%, transparent 100%);
+
+  /* ── NEW TOKENS — Shadow tuned to signal cyan ── */
+  --omdala-shadow-signal: 0 0 0 1px rgba(126, 242, 255, 0.18), 0 8px 32px rgba(0, 0, 0, 0.6);
+  --omdala-shadow-signal-strong: 0 0 0 1px rgba(126, 242, 255, 0.32), 0 16px 48px rgba(61, 231, 255, 0.18);
+  --omdala-shadow-gold-soft: 0 0 24px rgba(212, 175, 55, 0.22);
+
+  /* ── NEW TOKENS — Easing (luxury cubic) ── */
+  --omdala-ease-luxury: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* ─── Body — substrate grid background overlay ───────────────────── */
+
+body {
+  background-image:
+    /* Existing radial glow (keep) */
+    radial-gradient(circle at top right, rgba(99, 245, 255, 0.16), transparent 30%),
+    radial-gradient(circle at left center, rgba(61, 139, 255, 0.14), transparent 32%),
+    /* NEW: subtle grid lines (substrate) */
+    linear-gradient(0deg, var(--omdala-substrate-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--omdala-substrate-grid) 1px, transparent 1px),
+    /* Existing base gradient */
+    linear-gradient(180deg, var(--omdala-bg-secondary) 0%, var(--omdala-bg-primary) 100%);
+  background-size: auto, auto, 48px 48px, 48px 48px, auto;
+  background-attachment: fixed;
+}
+
+/* Subtle scan-line sweep (slow, non-distracting) */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    transparent 48%,
+    var(--omdala-substrate-scan) 50%,
+    transparent 52%,
+    transparent 100%);
+  background-size: 100% 200%;
+  animation: omdala-scan 18s linear infinite;
+  opacity: 0.4;
+}
+
+@keyframes omdala-scan {
+  0%   { background-position: 0% -100%; }
+  100% { background-position: 0% 200%; }
+}
+
+/* Make sure foreground sits above */
+.site-shell, .site-header, footer { position: relative; z-index: 1; }
+
+/* ─── Eyebrow upgraded — signal cyan with leading line ───────────── */
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--omdala-cyan-500);
+  margin-bottom: 12px;
+}
+
+.eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 1px;
+  background: var(--omdala-cyan-500);
+  flex-shrink: 0;
+}
+
+/* ─── Hero — display upgrade ─────────────────────────────────────── */
+
+.hero h1 {
+  font-size: clamp(2.4rem, 5vw, 4.4rem);
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--omdala-cyan-400) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.hero .lead {
+  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+  color: var(--omdala-text-secondary);
+  max-width: 56ch;
+  line-height: 1.65;
+  margin-top: 16px;
+}
+
+.hero {
+  position: relative;
+  padding: 96px 0 64px;
+}
+
+/* Hero edge — single-pixel signal line at top */
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 64px;
+  height: 1px;
+  background: var(--omdala-cyan-500);
+  box-shadow: 0 0 12px var(--omdala-cyan-500);
+}
+
+/* ─── Site button — signal upgrade with sheen on hover ───────────── */
+
+.site-button {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all var(--omdala-transition-base) var(--omdala-ease-luxury);
+}
+
+.site-button--primary {
+  background: var(--omdala-cyan-500);
+  color: var(--omdala-bg-primary);
+  border-color: var(--omdala-cyan-500);
+  box-shadow: var(--omdala-shadow-signal);
+}
+
+.site-button--primary::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -120%;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+  transition: left 0.7s var(--omdala-ease-luxury);
+}
+
+.site-button--primary:hover::after {
+  left: 130%;
+}
+
+.site-button--primary:hover {
+  background: var(--omdala-cyan-400);
+  border-color: var(--omdala-cyan-400);
+  box-shadow: var(--omdala-shadow-signal-strong);
+  transform: translateY(-1px);
+}
+
+.site-button--ghost {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--omdala-text-primary);
+  border: 1px solid var(--omdala-border-default);
+}
+
+.site-button--ghost:hover {
+  background: rgba(126, 242, 255, 0.06);
+  border-color: rgba(126, 242, 255, 0.4);
+  color: var(--omdala-cyan-400);
+}
+
+/* ─── Panel — substrate card with cyan corner accent ─────────────── */
+
+.panel {
+  position: relative;
+  padding: 56px 32px;
+  margin-top: 32px;
+  background:
+    linear-gradient(180deg, rgba(11, 19, 38, 0.6) 0%, rgba(8, 16, 31, 0.4) 100%);
+  border: 1px solid var(--omdala-border-subtle);
+  border-radius: var(--omdala-radius-lg);
+  backdrop-filter: blur(var(--omdala-blur-sm));
+  -webkit-backdrop-filter: blur(var(--omdala-blur-sm));
+  transition: border-color var(--omdala-transition-slow) var(--omdala-ease-luxury);
+}
+
+.panel.hero {
+  background: transparent;
+  border: 0;
+  padding-top: 96px;
+}
+
+.panel:not(.hero):hover {
+  border-color: rgba(126, 242, 255, 0.18);
+}
+
+/* Panel corner ticks — top-left + bottom-right cyan signals */
+.panel:not(.hero)::before,
+.panel:not(.hero)::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--omdala-cyan-500);
+  opacity: 0.55;
+  transition: opacity var(--omdala-transition-slow) var(--omdala-ease-luxury);
+}
+
+.panel:not(.hero)::before {
+  top: -1px; left: -1px;
+  border-right: 0;
+  border-bottom: 0;
+  border-top-left-radius: var(--omdala-radius-lg);
+}
+
+.panel:not(.hero)::after {
+  bottom: -1px; right: -1px;
+  border-left: 0;
+  border-top: 0;
+  border-bottom-right-radius: var(--omdala-radius-lg);
+}
+
+.panel:not(.hero):hover::before,
+.panel:not(.hero):hover::after {
+  opacity: 1;
+}
+
+/* ─── Section header ─────────────────────────────────────────────── */
+
+.section-header {
+  margin-bottom: 32px;
+  max-width: 720px;
+}
+
+.section-header h2 {
+  font-size: clamp(1.6rem, 2.4vw, 2.4rem);
+  letter-spacing: -0.02em;
+  margin-top: 8px;
+}
+
+.section-copy {
+  margin-top: 16px;
+  color: var(--omdala-text-secondary);
+  font-size: 1.02rem;
+  line-height: 1.7;
+  max-width: 64ch;
+}
+
+/* ─── Stack item (cards in stack-list) ───────────────────────────── */
+
+.stack-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.stack-item {
+  position: relative;
+  padding: 24px 24px 28px;
+  background: rgba(16, 28, 51, 0.45);
+  border: 1px solid var(--omdala-border-default);
+  border-radius: var(--omdala-radius-md);
+  transition: all var(--omdala-transition-slow) var(--omdala-ease-luxury);
+}
+
+.stack-item:hover {
+  border-color: rgba(126, 242, 255, 0.32);
+  transform: translateY(-2px);
+  box-shadow: var(--omdala-shadow-signal);
+}
+
+.stack-item h3 {
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+  color: var(--omdala-text-primary);
+}
+
+.stack-item p {
+  color: var(--omdala-text-secondary);
+  line-height: 1.7;
+  font-size: 0.96rem;
+}
+
+/* Top accent bar — cyan signal */
+.stack-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 24px;
+  width: 24px;
+  height: 2px;
+  background: var(--omdala-cyan-500);
+  border-radius: 0 0 2px 2px;
+  transition: width var(--omdala-transition-slow) var(--omdala-ease-luxury);
+}
+
+.stack-item:hover::before {
+  width: 56px;
+}
+
+/* ─── NEW: Verified badge (gold, only for trust signal) ──────────── */
+
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--omdala-gold-soft);
+  color: var(--omdala-gold-400);
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  border-radius: var(--omdala-radius-pill);
+}
+
+.verified-badge::before {
+  content: '✓';
+  font-weight: 700;
+  color: var(--omdala-gold-bright);
+}
+
+/* ─── NEW: Signal underline for inline links in content ──────────── */
+
+.panel p a,
+.panel li a,
+.section-copy a {
+  color: var(--omdala-cyan-400);
+  text-decoration: underline;
+  text-decoration-color: rgba(126, 242, 255, 0.45);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: all var(--omdala-transition-base);
+}
+
+.panel p a:hover,
+.panel li a:hover,
+.section-copy a:hover {
+  color: var(--omdala-cyan-500);
+  text-decoration-color: var(--omdala-cyan-500);
+  text-shadow: 0 0 12px rgba(61, 231, 255, 0.35);
+}
+
+/* ─── Scrollbar — signal cyan ────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--omdala-bg-primary); }
+::-webkit-scrollbar-thumb { background: rgba(61, 231, 255, 0.4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--omdala-cyan-500); }
+
+/* ─── Selection ─────────────────────────────────────────────────── */
+
+::selection {
+  background: var(--omdala-cyan-500);
+  color: var(--omdala-bg-primary);
+}
+
+/* ─── Reduce motion ─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  .site-button--primary::after,
+  .stack-item::before {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ============================================================
+   END OMDALA Brand v2.0 Signal & Substrate overlay
+   ============================================================ */
