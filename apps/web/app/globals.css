@@ -413,6 +413,12 @@ h3 {
    ============================================================ */
 
 :root {
+  /* ── NEW TOKENS — Deep space substrate core ── */
+  --omdala-space-950: #040816;
+  --omdala-space-900: #08101f;
+  --omdala-space-850: #0b1326;
+  --omdala-space-800: #101c33;
+
   /* ── NEW TOKENS — Signal Gold (verification only, < 5% UI) ── */
   --omdala-gold-500: #D4AF37;       /* polished gold — verified state */
   --omdala-gold-400: #E5C158;       /* lighter gold (highlight) */
@@ -441,6 +447,10 @@ h3 {
 
   /* ── NEW TOKENS — Easing (luxury cubic) ── */
   --omdala-ease-luxury: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+html {
+  color-scheme: dark;
 }
 
 /* ─── Body — substrate grid background overlay ───────────────────── */
