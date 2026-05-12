@@ -1,9 +1,9 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "OMDALA | The Operating Layer for Real-World Value",
+  title: "OMDALA | The Operating Layer for Real-World State Transitions",
   description:
-    "OMDALA is the master coordination layer for identity, trust, resources, and real-world activation."
+    "OMDALA is verified coordination infrastructure for identity, trust, resources, and real-world activation."
 };
 
 export default function RootLayout({ children }) {

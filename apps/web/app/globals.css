@@ -413,6 +413,14 @@ h3 {
    ============================================================ */
 
 :root {
+  --omdala-cyan-500: #3de7ff;
+  --omdala-cyan-400: #7ef2ff;
+  --omdala-blue-500: #3d8bff;
+  --omdala-glow: #63f5ff;
+  --omdala-white-100: #f7fbff;
+  --omdala-white-200: #dde8f5;
+  --omdala-white-300: #bfcde1;
+
   /* ── NEW TOKENS — Deep space substrate core ── */
   --omdala-space-950: #040816;
   --omdala-space-900: #08101f;
@@ -447,6 +455,19 @@ h3 {
 
   /* ── NEW TOKENS — Easing (luxury cubic) ── */
   --omdala-ease-luxury: cubic-bezier(0.32, 0.72, 0, 1);
+  --omdala-bg-primary: var(--omdala-space-950);
+  --omdala-bg-secondary: var(--omdala-space-900);
+  --omdala-text-primary: var(--omdala-white-100);
+  --omdala-text-secondary: var(--omdala-white-200);
+  --omdala-text-muted: var(--omdala-white-300);
+  --omdala-border-default: rgba(126, 242, 255, 0.14);
+  --omdala-border-subtle: rgba(247, 251, 255, 0.1);
+  --omdala-radius-lg: 8px;
+  --omdala-radius-md: 8px;
+  --omdala-radius-pill: 999px;
+  --omdala-blur-sm: 12px;
+  --omdala-transition-base: 180ms;
+  --omdala-transition-slow: 320ms;
 }
 
 html {
@@ -457,16 +478,13 @@ html {
 
 body {
   background-image:
-    /* Existing radial glow (keep) */
-    radial-gradient(circle at top right, rgba(99, 245, 255, 0.16), transparent 30%),
-    radial-gradient(circle at left center, rgba(61, 139, 255, 0.14), transparent 32%),
-    /* NEW: subtle grid lines (substrate) */
     linear-gradient(0deg, var(--omdala-substrate-grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--omdala-substrate-grid) 1px, transparent 1px),
-    /* Existing base gradient */
     linear-gradient(180deg, var(--omdala-bg-secondary) 0%, var(--omdala-bg-primary) 100%);
-  background-size: auto, auto, 48px 48px, 48px 48px, auto;
+  background-size: 48px 48px, 48px 48px, auto;
   background-attachment: fixed;
+  color: var(--omdala-text-primary);
+  font-family: Inter, "Avenir Next", "Helvetica Neue", Arial, sans-serif;
 }
 
 /* Subtle scan-line sweep (slow, non-distracting) */
@@ -495,6 +513,10 @@ body::before {
 /* Make sure foreground sits above */
 .site-shell, .site-header, footer { position: relative; z-index: 1; }
 
+.ambient {
+  display: none;
+}
+
 /* ─── Eyebrow upgraded — signal cyan with leading line ───────────── */
 
 .eyebrow {
@@ -521,8 +543,9 @@ body::before {
 /* ─── Hero — display upgrade ─────────────────────────────────────── */
 
 .hero h1 {
-  font-size: clamp(2.4rem, 5vw, 4.4rem);
-  letter-spacing: -0.025em;
+  max-width: 13ch;
+  font-size: 4.25rem;
+  letter-spacing: 0;
   line-height: 1.05;
   background: linear-gradient(180deg, #FFFFFF 0%, var(--omdala-cyan-400) 100%);
   -webkit-background-clip: text;
@@ -531,8 +554,9 @@ body::before {
   color: transparent;
 }
 
-.hero .lead {
-  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+.hero .lead,
+.hero .lede {
+  font-size: 1.12rem;
   color: var(--omdala-text-secondary);
   max-width: 56ch;
   line-height: 1.65;
@@ -541,7 +565,7 @@ body::before {
 
 .hero {
   position: relative;
-  padding: 96px 0 64px;
+  padding: 4rem 0 3.5rem;
 }
 
 /* Hero edge — single-pixel signal line at top */
@@ -565,6 +589,59 @@ body::before {
   font-weight: 600;
   letter-spacing: 0.01em;
   transition: all var(--omdala-transition-base) var(--omdala-ease-luxury);
+}
+
+.button {
+  border-radius: var(--omdala-radius-pill);
+  font-family: Inter, "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+  transition:
+    transform var(--omdala-transition-base) var(--omdala-ease-luxury),
+    box-shadow var(--omdala-transition-base) var(--omdala-ease-luxury),
+    border-color var(--omdala-transition-base) var(--omdala-ease-luxury),
+    background var(--omdala-transition-base) var(--omdala-ease-luxury);
+}
+
+.button-primary {
+  position: relative;
+  overflow: hidden;
+  background: var(--omdala-cyan-500);
+  color: var(--omdala-bg-primary);
+  border: 1px solid var(--omdala-cyan-500);
+  box-shadow: var(--omdala-shadow-signal);
+}
+
+.button-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transition: left 0.7s var(--omdala-ease-luxury);
+}
+
+.button-primary:hover::after {
+  left: 130%;
+}
+
+.button-primary:hover {
+  background: var(--omdala-cyan-400);
+  border-color: var(--omdala-cyan-400);
+  box-shadow: var(--omdala-shadow-signal-strong);
+  transform: translateY(-1px);
+}
+
+.button-secondary {
+  border: 1px solid var(--omdala-border-default);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--omdala-text-primary);
+}
+
+.button-secondary:hover {
+  background: rgba(126, 242, 255, 0.06);
+  border-color: rgba(126, 242, 255, 0.4);
+  color: var(--omdala-cyan-400);
 }
 
 .site-button--primary {
@@ -619,6 +696,55 @@ body::before {
   backdrop-filter: blur(var(--omdala-blur-sm));
   -webkit-backdrop-filter: blur(var(--omdala-blur-sm));
   transition: border-color var(--omdala-transition-slow) var(--omdala-ease-luxury);
+}
+
+.topbar,
+.hero-aside,
+.story,
+.pillar,
+.system,
+.module-card,
+.roadmap,
+.stack-row,
+.priority-card {
+  background:
+    linear-gradient(180deg, rgba(11, 19, 38, 0.72) 0%, rgba(8, 16, 31, 0.52) 100%);
+  border-color: var(--omdala-border-subtle);
+  border-radius: var(--omdala-radius-lg);
+  color: var(--omdala-text-primary);
+  box-shadow: var(--omdala-shadow-signal);
+}
+
+.topbar {
+  background: rgba(4, 8, 22, 0.86);
+}
+
+.topnav,
+.lede,
+.story p,
+.section-heading p,
+.pillar p,
+.priority-card p,
+.status-line span,
+.stack-row span,
+.lane span {
+  color: var(--omdala-text-secondary);
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: 0;
+}
+
+h2 {
+  max-width: 20ch;
+  font-size: 2.35rem;
+  color: var(--omdala-text-primary);
+}
+
+h3 {
+  font-size: 1.28rem;
 }
 
 .panel.hero {
@@ -736,6 +862,35 @@ body::before {
   width: 56px;
 }
 
+.stack-row,
+.priority-card,
+.module-card,
+.pillar {
+  position: relative;
+}
+
+.stack-row::before,
+.priority-card::before,
+.module-card::before,
+.pillar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 1rem;
+  width: 24px;
+  height: 2px;
+  background: var(--omdala-cyan-500);
+  border-radius: 0 0 2px 2px;
+  transition: width var(--omdala-transition-slow) var(--omdala-ease-luxury);
+}
+
+.stack-row:hover::before,
+.priority-card:hover::before,
+.module-card:hover::before,
+.pillar:hover::before {
+  width: 56px;
+}
+
 /* ─── NEW: Verified badge (gold, only for trust signal) ──────────── */
 
 .verified-badge {
@@ -799,9 +954,27 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   body::before,
   .site-button--primary::after,
-  .stack-item::before {
+  .button-primary::after,
+  .stack-item::before,
+  .stack-row::before,
+  .priority-card::before,
+  .module-card::before,
+  .pillar::before,
+  .reveal {
     animation: none;
     transition: none;
+  }
+}
+
+@media (max-width: 1080px) {
+  .hero h1 {
+    font-size: 3.35rem;
+  }
+}
+
+@media (max-width: 680px) {
+  .hero h1 {
+    font-size: 2.6rem;
   }
 }
 

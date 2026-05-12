@@ -1,26 +1,27 @@
 const pillars = [
   {
-    title: "Global Layer",
+    title: "Global operating layer",
     body:
-      "OMDALA is the system brand above product surfaces, trust rails, orchestration, and future city nodes."
+      "OMDALA owns the master language above product surfaces, trust rails, orchestration, and future city nodes."
   },
   {
-    title: "Human Coordination OS",
+    title: "Verified coordination",
     body:
-      "The category is not social media or marketplace. It is an operating system for underused value to become visible, trusted, and actionable."
+      "The category is not social media or marketplace. It is verified coordination infrastructure for real-world state transitions."
   },
   {
-    title: "First Proof Layer",
+    title: "First proof layer",
     body:
-      "OMDALAT is the first living implementation where density, proof, and local activation become measurable."
+      "OMDALAT is the first living implementation where local density, proof, and activation become measurable."
   }
 ];
 
 const stack = [
-  ["Brand", "OMDALA"],
+  ["Brand standard", "Brandpro-all lock"],
+  ["Master brand", "OMDALA"],
   ["Interfaces", "Web, App, Docs, Admin"],
-  ["Core Modules", "Identity, Resources, Matching, Trust, AI"],
-  ["Proof Layer", "OMDALAT and future city nodes"]
+  ["Core modules", "Identity, Resources, Matching, Trust, AI"],
+  ["Proof layer", "OMDALAT and future city nodes"]
 ];
 
 const modules = [
@@ -40,19 +41,19 @@ const modules = [
 
 const priorities = [
   {
-    phase: "P1",
-    focus: "Auth, node, homepage",
-    note: "Establish the front door, user entry, and system language."
+    phase: "Gate 1",
+    focus: "Brand lock",
+    note: "Keep naming, category language, palette, and proof signals consistent before new UI work."
   },
   {
-    phase: "P2",
-    focus: "Resources, offers, requests",
-    note: "Make value visible before adding more complexity."
+    phase: "Gate 2",
+    focus: "Surface parity",
+    note: "Apply the same public language and Signal & Substrate tokens across the static and Next web surfaces."
   },
   {
-    phase: "P3",
-    focus: "Matching, messaging",
-    note: "Turn visible value into coordination and response loops."
+    phase: "Gate 3",
+    focus: "Team handoff",
+    note: "Every team checks copy, UI state, and route decisions against the brand lock before merging."
   }
 ];
 
@@ -75,16 +76,16 @@ export default function HomePage() {
 
       <section className="hero panel reveal" id="top">
         <div className="hero-copy">
-          <p className="eyebrow">Master Brand / Human Coordination OS</p>
-          <h1>The operating layer for real-world value.</h1>
+          <p className="eyebrow">Master Brand / Verified Coordination</p>
+          <h1>The operating layer for real-world state transitions.</h1>
           <p className="lede">
-            OMDALA turns underused people, places, skills, and trust into visible
-            coordination. It is the system layer above products, nodes, and real-world
-            proof.
+            OMDALA turns underused people, places, skills, and trust into visible,
+            verifiable coordination. It is the master system layer above products,
+            city nodes, and real-world proof.
           </p>
           <div className="hero-actions">
             <a className="button button-primary" href="#system">
-              View system stack
+              View brand stack
             </a>
             <a className="button button-secondary" href="#modules">
               Explore modules
@@ -93,10 +94,11 @@ export default function HomePage() {
         </div>
 
         <aside className="hero-aside">
-          <p className="eyebrow">Current Build Direction</p>
+          <p className="eyebrow">Current Build Lock</p>
+          <span className="verified-badge">Brandpro-all applied</span>
           <div className="status-line">
             <span>Mode</span>
-            <strong>Static foundation evolving into platform surface</strong>
+            <strong>Signal & Substrate public web surface</strong>
           </div>
           <div className="status-line">
             <span>Primary role</span>
@@ -139,8 +141,8 @@ export default function HomePage() {
           <p className="eyebrow">System Stack</p>
           <h2>One calm interface above multiple execution layers.</h2>
           <p>
-            The homepage should communicate architecture without sounding abstract.
-            Every layer must connect to action, trust, and measurable reality.
+            The web surface communicates architecture without hype. Every layer must
+            connect to action, trust, and measurable reality.
           </p>
         </div>
 

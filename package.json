@@ -16,6 +16,8 @@
     "dev:api": "npm --prefix services/api run dev",
     "start:api": "npm --prefix services/api run start",
     "build:api": "npm --prefix services/api run check",
+    "brand:lint": "bash scripts/brand-lint-omdala.sh apps/web/app",
+    "brand:lint:static": "bash scripts/brand-lint-omdala.sh .",
     "dev:static": "node scripts/dev-server.mjs",
     "start:static": "node scripts/dev-server.mjs",
     "build:static": "node scripts/build-static.mjs",

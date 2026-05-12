@@ -1,9 +1,10 @@
 # OMDALA — BRAND v2.0 "SIGNAL & SUBSTRATE"
 
 **Version:** 2.0 — DEMO BRANCH (`brand/v2.0-signal-substrate`)
-**Status:** Founder review pending
+**Status:** Brandpro-all applied for dev lock; founder-facing review packet updated
 **Date:** 2026-05-08
 **Reference:** [BRAND_DEMO_PROPOSAL_2026-05-08.md](../BRAND_DEMO_PROPOSAL_2026-05-08.md)
+**Brandpro lock:** [OMDALA_BRANDPRO_LOCK_2026-05-12.md](OMDALA_BRANDPRO_LOCK_2026-05-12.md)
 **Supersedes:** none (overlay on top of [BRAND_ARCHITECTURE_OMDALA.md](BRAND_ARCHITECTURE_OMDALA.md) v1.1)
 
 ---
@@ -234,6 +235,8 @@ Mọi PR touch UI phải pass:
 - [ ] WCAG 2.1 AA contrast pass với mọi text/bg pair
 - [ ] Lighthouse Performance ≥ 90, LCP < 2.5s
 - [ ] Brand-lint script pass: `bash scripts/brand-lint-omdala.sh apps/web/app`
+- [ ] Static fallback pass: `npm run brand:lint:static`
+- [ ] Team report updated if score changes: `docs/OMDALA_BRANDPRO_APPLY_REPORT_2026-05-12.md`
 
 ---
 
@@ -241,6 +244,8 @@ Mọi PR touch UI phải pass:
 
 **LÀM:**
 - ✅ `apps/web/app/globals.css` (append-only overlay)
+- ✅ `apps/web/app/page.js` (copy and proof state aligned to Brandpro-all)
+- ✅ `index.html` + `styles.css` (static fallback aligned)
 - ✅ Tài liệu brand v2.0 (file này)
 - ✅ Brand-lint script
 

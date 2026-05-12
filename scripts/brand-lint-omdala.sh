@@ -16,6 +16,11 @@ if [ ! -d "$TARGET" ]; then
   exit 1
 fi
 
+SCAN_TARGETS=("$TARGET")
+if [ "$TARGET" = "." ] && [ -f "index.html" ] && [ -f "styles.css" ]; then
+  SCAN_TARGETS=("index.html" "styles.css")
+fi
+
 echo "🔍 OMDALA brand-lint scanning: $TARGET"
 echo ""
 
@@ -48,7 +53,7 @@ declare -a FORBIDDEN_PHRASES=(
 
 echo "─── Word filter check (forbidden category language) ───"
 for phrase in "${FORBIDDEN_PHRASES[@]}"; do
-  raw=$(grep -rIni "$phrase" "$TARGET" 2>/dev/null || true)
+  raw=$(grep -rIni "$phrase" "${SCAN_TARGETS[@]}" 2>/dev/null || true)
   if [ -z "$raw" ]; then
     continue
   fi
@@ -67,13 +72,18 @@ echo ""
 # 2. BRAND PALETTE TOKENS (must reference v2.0 tokens)
 # ─────────────────────────────────────────────────────────────
 echo "─── Palette token check ───"
-CSS_FILE="$TARGET/globals.css"
-if [ -f "$CSS_FILE" ]; then
+CSS_FILE=""
+if [ -f "$TARGET/globals.css" ]; then
+  CSS_FILE="$TARGET/globals.css"
+elif [ -f "$TARGET/styles.css" ]; then
+  CSS_FILE="$TARGET/styles.css"
+fi
+if [ -n "$CSS_FILE" ]; then
   # Substrate dark must exist
   if grep -qi "#040816" "$CSS_FILE"; then
     echo "✅ Space-950 (#040816) substrate present"
   else
-    echo "❌ Space-950 #040816 NOT FOUND in globals.css"
+    echo "❌ Space-950 #040816 NOT FOUND in $CSS_FILE"
     FAILED=1
   fi
 
@@ -81,7 +91,7 @@ if [ -f "$CSS_FILE" ]; then
   if grep -qi "#3de7ff" "$CSS_FILE"; then
     echo "✅ Cyan-500 (#3de7ff) signal present"
   else
-    echo "❌ Cyan-500 #3de7ff NOT FOUND"
+    echo "❌ Cyan-500 #3de7ff NOT FOUND in $CSS_FILE"
     FAILED=1
   fi
 
@@ -89,7 +99,7 @@ if [ -f "$CSS_FILE" ]; then
   if grep -qi "#D4AF37" "$CSS_FILE"; then
     echo "✅ Gold-500 (#D4AF37) verification present (v2.0)"
   else
-    echo "⚠️  Gold-500 #D4AF37 not yet present — v2.0 not fully applied"
+    echo "⚠️  Gold-500 #D4AF37 not yet present in $CSS_FILE — v2.0 not fully applied"
   fi
 
   # v2.0 animations
@@ -106,6 +116,9 @@ if [ -f "$CSS_FILE" ]; then
       echo "⚠️  Off-palette color found: $color (consider Signal & Substrate compliance)"
     fi
   done
+else
+  echo "❌ No globals.css or styles.css found under $TARGET"
+  FAILED=1
 fi
 echo ""
 
@@ -114,14 +127,14 @@ echo ""
 # ─────────────────────────────────────────────────────────────
 echo "─── Accessibility hints ───"
 # Reduced motion handler
-if grep -rq "prefers-reduced-motion" "$TARGET" 2>/dev/null; then
+if grep -rq "prefers-reduced-motion" "${SCAN_TARGETS[@]}" 2>/dev/null; then
   echo "✅ prefers-reduced-motion handler found"
 else
   echo "⚠️  No prefers-reduced-motion handler — required by brand v2.0 §6"
 fi
 
 # color-scheme dark
-if grep -rq "color-scheme:.*dark" "$TARGET" 2>/dev/null; then
+if grep -rq "color-scheme:.*dark" "${SCAN_TARGETS[@]}" 2>/dev/null; then
   echo "✅ color-scheme: dark declared"
 else
   echo "⚠️  color-scheme: dark not declared"
@@ -134,7 +147,7 @@ echo ""
 echo "─── Brand role consistency ───"
 # Must NOT use "Omdala" or "omdala" except in technical strings (URLs, classes)
 # Public-facing copy should say "OMDALA"
-mixed_case=$(grep -rIE "\bOmdala\b" "$TARGET" 2>/dev/null \
+mixed_case=$(grep -rIE "\bOmdala\b" "${SCAN_TARGETS[@]}" 2>/dev/null \
   | grep -vE "(href|className|class|id|css|tsx|aria-|data-|@omdala/)" \
   | grep -ivE "Omdala\.com" || true)
 if [ -n "$mixed_case" ]; then
