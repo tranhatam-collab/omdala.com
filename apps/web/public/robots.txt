@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+Disallow: /api/
+Disallow: /admin/
+Disallow: /internal/
+Disallow: /preview/
+Disallow: /_next/
+
+Sitemap: https://omdala.com/sitemap.xml

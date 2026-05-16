@@ -1,0 +1,716 @@
+{
+  "generatedAt": "2026-04-23T11:41:55.711Z",
+  "mode": "static",
+  "sourceRoot": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out",
+  "summary": {
+    "totalUrls": 20,
+    "passedUrls": 0,
+    "failedUrls": 20,
+    "blockingIssueCount": 28,
+    "warningCount": 0,
+    "metadataStandardizedUrls": 19,
+    "altStandardizedUrls": 16,
+    "blockedUrls": [
+      "/",
+      "/vi/",
+      "/what-is-omdala/",
+      "/vi/what-is-omdala/",
+      "/how-it-works/",
+      "/vi/how-it-works/",
+      "/for-experts/",
+      "/vi/for-experts/",
+      "/for-hosts/",
+      "/vi/for-hosts/",
+      "/for-communities/",
+      "/vi/for-communities/",
+      "/trust/",
+      "/vi/trust/",
+      "/vision/",
+      "/vi/vision/",
+      "/faq/",
+      "/vi/faq/",
+      "/contact/",
+      "/vi/contact/"
+    ],
+    "blockingIssueCounts": {
+      "logo_alt_language_mismatch": 8,
+      "page_html_missing": 16,
+      "canonical_mismatch": 1,
+      "hreflang_mismatch": 3
+    },
+    "warningIssueCounts": {},
+    "languageBreakdown": {
+      "en": {
+        "total": 10,
+        "passed": 0
+      },
+      "vi": {
+        "total": 10,
+        "passed": 0
+      }
+    },
+    "languageSwitcherContract": {
+      "sourcePath": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/app/components/LanguageSwitcher.tsx",
+      "valid": true,
+      "details": "language switcher source contract present"
+    }
+  },
+  "routes": [
+    {
+      "pageKey": "home",
+      "language": "en",
+      "localizedPath": "/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA — Independent Platform for Real-World Coordination",
+        "description": "OMDALA is an independent platform for real-world coordination, trust, and verified execution.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/",
+        "hreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/",
+          "x-default": "https://omdala.com/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi",
+          "x-default": "https://omdala.com/"
+        },
+        "ogTitle": "OMDALA — Independent Platform for Real-World Coordination",
+        "ogDescription": "OMDALA is an independent platform for real-world coordination, trust, and verified execution."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "home",
+      "language": "vi",
+      "localizedPath": "/vi/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "whatIsOmdala",
+      "language": "en",
+      "localizedPath": "/what-is-omdala/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "whatIsOmdala",
+      "language": "vi",
+      "localizedPath": "/vi/what-is-omdala/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "howItWorks",
+      "language": "en",
+      "localizedPath": "/how-it-works/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "howItWorks",
+      "language": "vi",
+      "localizedPath": "/vi/how-it-works/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forExperts",
+      "language": "en",
+      "localizedPath": "/for-experts/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forExperts",
+      "language": "vi",
+      "localizedPath": "/vi/for-experts/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forHosts",
+      "language": "en",
+      "localizedPath": "/for-hosts/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/for-hosts/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA — Independent Platform for Real-World Coordination",
+        "description": "OMDALA is an independent platform for real-world coordination, trust, and verified execution.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/for-hosts",
+        "hreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/",
+          "x-default": "https://omdala.com/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-hosts",
+          "vi": "https://omdala.com/vi/for-hosts",
+          "x-default": "https://omdala.com/for-hosts"
+        },
+        "ogTitle": "OMDALA — Independent Platform for Real-World Coordination",
+        "ogDescription": "OMDALA is an independent platform for real-world coordination, trust, and verified execution."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "canonical_mismatch",
+          "details": "Expected canonical https://omdala.com/for-hosts but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang en => https://omdala.com/for-hosts but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang vi => https://omdala.com/vi/for-hosts but found https://omdala.com/vi/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang x-default => https://omdala.com/for-hosts but found https://omdala.com/"
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forHosts",
+      "language": "vi",
+      "localizedPath": "/vi/for-hosts/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/for-hosts/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Dành cho host — OMDALA",
+        "description": "Điểm đón cần nhiều hơn danh sách hiển thị. Họ cần mức phù hợp, thời điểm, niềm tin và theo đuổi vận hành. OMDALA được thiết kế để cấu trúc toàn bộ vòng lặp đó.",
+        "canonical": "https://omdala.com/vi/for-hosts/",
+        "expectedCanonical": "https://omdala.com/vi/for-hosts",
+        "hreflang": {
+          "x-default": "https://omdala.com/for-hosts/",
+          "en": "https://omdala.com/for-hosts/",
+          "vi": "https://omdala.com/vi/for-hosts/",
+          "zh": "https://omdala.com/zh/for-hosts/",
+          "es": "https://omdala.com/es/for-hosts/",
+          "ja": "https://omdala.com/ja/for-hosts/",
+          "ko": "https://omdala.com/ko/for-hosts/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-hosts",
+          "vi": "https://omdala.com/vi/for-hosts",
+          "x-default": "https://omdala.com/for-hosts"
+        },
+        "ogTitle": "Dành cho host — OMDALA",
+        "ogDescription": "Điểm đón cần nhiều hơn danh sách hiển thị. Họ cần mức phù hợp, thời điểm, niềm tin và theo đuổi vận hành. OMDALA được thiết kế để cấu trúc toàn bộ vòng lặp đó."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forCommunities",
+      "language": "en",
+      "localizedPath": "/for-communities/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forCommunities",
+      "language": "vi",
+      "localizedPath": "/vi/for-communities/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "trust",
+      "language": "en",
+      "localizedPath": "/trust/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "trust",
+      "language": "vi",
+      "localizedPath": "/vi/trust/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "vision",
+      "language": "en",
+      "localizedPath": "/vision/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "vision",
+      "language": "vi",
+      "localizedPath": "/vi/vision/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "faq",
+      "language": "en",
+      "localizedPath": "/faq/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "faq",
+      "language": "vi",
+      "localizedPath": "/vi/faq/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "contact",
+      "language": "en",
+      "localizedPath": "/contact/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "contact",
+      "language": "vi",
+      "localizedPath": "/vi/contact/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/contact/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Liên hệ — OMDALA",
+        "description": "Liên hệ công khai hiện đi qua cùng hệ thống mail mà nền tảng dùng cho hỗ trợ, onboarding ứng dụng và phản hồi vận hành.",
+        "canonical": "https://omdala.com/vi/contact/",
+        "expectedCanonical": "https://omdala.com/vi/contact",
+        "hreflang": {
+          "x-default": "https://omdala.com/contact/",
+          "en": "https://omdala.com/contact/",
+          "vi": "https://omdala.com/vi/contact/",
+          "zh": "https://omdala.com/zh/contact/",
+          "es": "https://omdala.com/es/contact/",
+          "ja": "https://omdala.com/ja/contact/",
+          "ko": "https://omdala.com/ko/contact/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/contact",
+          "vi": "https://omdala.com/vi/contact",
+          "x-default": "https://omdala.com/contact"
+        },
+        "ogTitle": "Liên hệ — OMDALA",
+        "ogDescription": "Liên hệ công khai hiện đi qua cùng hệ thống mail mà nền tảng dùng cho hỗ trợ, onboarding ứng dụng và phản hồi vận hành."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    }
+  ],
+  "gate": {
+    "status": "fail",
+    "blockingReason": "metadata/alt/language-switch blocking issue detected"
+  }
+}

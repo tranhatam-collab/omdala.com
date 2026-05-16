@@ -1,0 +1,235 @@
+
+[2026-05-07T05:06:17Z] ==> bilingual gate
+
+> omdala@0.1.0 bilingual:gate
+> npm run bilingual:source-check && npm run bilingual:public-audit && npm run bilingual:hardcode-scan && npm run bilingual:founder-report
+
+
+> omdala@0.1.0 bilingual:source-check
+> node scripts/bilingual-source-check.mjs
+
+bilingual-source-check passed
+checked pages: 10
+
+> omdala@0.1.0 bilingual:public-audit
+> node scripts/bilingual-public-audit.mjs
+
+bilingual-public-audit summary
+- mode: static
+- total URLs: 20
+- passed URLs: 20
+- failed URLs: 0
+- blocking issues: 0
+- warnings: 0
+- report: /Users/tranhatam/Documents/Devnewproject/omdala.com/reports/bilingual/public-audit.latest.json
+bilingual-public-audit passed
+
+> omdala@0.1.0 bilingual:hardcode-scan
+> node scripts/bilingual-hardcode-scan.mjs
+
+bilingual-hardcode-scan summary
+- files scanned: 140
+- findings: 49
+- team2 inventory exists: true
+- team2 P0 findings: 0
+- team2 unresolved P0: 0
+- report: /Users/tranhatam/Documents/Devnewproject/omdala.com/reports/bilingual/hardcode-scan.latest.json
+bilingual-hardcode-scan passed
+
+> omdala@0.1.0 bilingual:founder-report
+> node scripts/bilingual-founder-report.mjs
+
+bilingual-founder-report summary
+- decision: GO
+- blockers: 0
+- founder doc: docs/OMDALA_BILINGUAL_PRELIVE_REPORT_2026-04-23.md
+- report: reports/bilingual/founder-prelive.latest.json
+bilingual-founder-report passed: release decision is GO
+
+[2026-05-07T05:06:17Z] ==> release verify
+
+> omdala@0.1.0 release:verify /Users/tranhatam/Documents/Devnewproject/omdala.com
+> bash scripts/release_verify.sh
+
+Starting release verification matrix...
+
+==> Bilingual source integrity
+
+> omdala@0.1.0 bilingual:source-check
+> node scripts/bilingual-source-check.mjs
+
+bilingual-source-check passed
+checked pages: 10
+
+==> Web build for bilingual static audit
+
+> @omdala/web@0.1.0 build /Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web
+> next build && node ./scripts/postprocess-locale-html.mjs
+
+   ▲ Next.js 15.5.14
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 11.9s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/25) ...
+   Generating static pages (6/25) 
+   Generating static pages (12/25) 
+   Generating static pages (18/25) 
+ ✓ Generating static pages (25/25)
+   Finalizing page optimization ...
+   Collecting build traces ...
+   Exporting (0/2) ...
+ ✓ Exporting (2/2)
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    1.17 kB         113 kB
+├ ○ /_not-found                            131 B         102 kB
+├ ● /[lang]                              1.17 kB         113 kB
+├   └ /vi
+├ ● /[lang]/contact                        131 B         116 kB
+├   └ /vi/contact
+├ ● /[lang]/faq                          1.17 kB         113 kB
+├   └ /vi/faq
+├ ● /[lang]/for-communities              1.17 kB         113 kB
+├   └ /vi/for-communities
+├ ● /[lang]/for-experts                  1.17 kB         113 kB
+├   └ /vi/for-experts
+├ ● /[lang]/for-hosts                    1.17 kB         113 kB
+├   └ /vi/for-hosts
+├ ● /[lang]/how-it-works                 1.17 kB         113 kB
+├   └ /vi/how-it-works
+├ ● /[lang]/trust                        1.17 kB         113 kB
+├   └ /vi/trust
+├ ● /[lang]/vision                       1.17 kB         113 kB
+├   └ /vi/vision
+├ ● /[lang]/what-is-omdala               1.17 kB         113 kB
+├   └ /vi/what-is-omdala
+├ ○ /contact                               132 B         116 kB
+├ ○ /faq                                 1.17 kB         113 kB
+├ ○ /for-communities                     1.17 kB         113 kB
+├ ○ /for-experts                         1.17 kB         113 kB
+├ ○ /for-hosts                           1.17 kB         113 kB
+├ ○ /how-it-works                        1.17 kB         113 kB
+├ ○ /robots.txt                            131 B         102 kB
+├ ○ /sitemap.xml                           131 B         102 kB
+├ ○ /trust                               1.17 kB         113 kB
+├ ○ /vision                              1.17 kB         113 kB
+└ ○ /what-is-omdala                      1.17 kB         113 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/824-35fa2de9ffea24b9.js       46.2 kB
+  ├ chunks/a4f3bcc6-c81023aa5332ab1f.js  54.2 kB
+  └ other shared chunks (total)          1.92 kB
+
+
+○  (Static)  prerendered as static content
+●  (SSG)     prerendered as static HTML (uses generateStaticParams)
+
+skipped locale zh: directory not present in out/
+skipped locale es: directory not present in out/
+skipped locale ja: directory not present in out/
+skipped locale ko: directory not present in out/
+patched 10 locale HTML files for vi
+patched 0 locale HTML files for zh
+patched 0 locale HTML files for es
+patched 0 locale HTML files for ja
+patched 0 locale HTML files for ko
+
+==> Bilingual public crawl audit
+
+> omdala@0.1.0 bilingual:public-audit
+> node scripts/bilingual-public-audit.mjs
+
+bilingual-public-audit summary
+- mode: static
+- total URLs: 20
+- passed URLs: 20
+- failed URLs: 0
+- blocking issues: 0
+- warnings: 0
+- report: /Users/tranhatam/Documents/Devnewproject/omdala.com/reports/bilingual/public-audit.latest.json
+bilingual-public-audit passed
+
+==> Bilingual hard-code scan
+
+> omdala@0.1.0 bilingual:hardcode-scan
+> node scripts/bilingual-hardcode-scan.mjs
+
+bilingual-hardcode-scan summary
+- files scanned: 140
+- findings: 49
+- team2 inventory exists: true
+- team2 P0 findings: 0
+- team2 unresolved P0: 0
+- report: /Users/tranhatam/Documents/Devnewproject/omdala.com/reports/bilingual/hardcode-scan.latest.json
+bilingual-hardcode-scan passed
+
+==> Bilingual founder pre-live report
+
+> omdala@0.1.0 bilingual:founder-report
+> node scripts/bilingual-founder-report.mjs
+
+bilingual-founder-report summary
+- decision: GO
+- blockers: 0
+- founder doc: docs/OMDALA_BILINGUAL_PRELIVE_REPORT_2026-04-23.md
+- report: reports/bilingual/founder-prelive.latest.json
+bilingual-founder-report passed: release decision is GO
+
+==> API health + envelope checks
+Verifying API base URL: https://api.omdala.com
+curl: (6) Could not resolve host: api.omdala.com
+ ELIFECYCLE  Command failed with exit code 6.
+[2026-05-07T05:06:17Z] NO-GO remains, cron schedule stays active
+[proof] now=2026-05-07 12:07:51 +07
+[proof] last_state={  "timestamp": "2026-05-07T05:06:17Z",  "status": "NO-GO",  "message": "release verify failed",  "consecutiveGoCount": 0}
+
+[2026-05-07T14:30:46Z] ==> bilingual gate
+
+> omdala@0.1.0 bilingual:gate
+> npm run bilingual:source-check && npm run bilingual:public-audit && npm run bilingual:hardcode-scan && npm run bilingual:founder-report
+
+
+> omdala@0.1.0 bilingual:source-check
+> node scripts/bilingual-source-check.mjs
+
+bilingual-source-check passed
+checked pages: 10
+
+> omdala@0.1.0 bilingual:public-audit
+> node scripts/bilingual-public-audit.mjs
+
+bilingual-public-audit summary
+- mode: static
+- total URLs: 20
+- passed URLs: 20
+- failed URLs: 0
+- blocking issues: 0
+- warnings: 0
+- report: /Users/tranhatam/Documents/Devnewproject/omdala.com/reports/bilingual/public-audit.latest.json
+bilingual-public-audit passed
+
+> omdala@0.1.0 bilingual:hardcode-scan
+> node scripts/bilingual-hardcode-scan.mjs
+
+bilingual-hardcode-scan summary
+- files scanned: 140
+- findings: 49
+- team2 inventory exists: true
+- team2 P0 findings: 0
+- team2 unresolved P0: 0
+- report: /Users/tranhatam/Documents/Devnewproject/omdala.com/reports/bilingual/hardcode-scan.latest.json
+bilingual-hardcode-scan passed
+
+> omdala@0.1.0 bilingual:founder-report
+> node scripts/bilingual-founder-report.mjs
+
+bilingual-founder-report summary
+- decision: GO
+- blockers: 0
+- founder doc: docs/OMDALA_BILINGUAL_PRELIVE_REPORT_2026-04-23.md
+- report: reports/bilingual/founder-prelive.latest.json
+bilingual-founder-report passed: release decision is GO
+Verifying API base URL: https://api.omdala.com
+curl: (6) Could not resolve host: api.omdala.com
+[2026-05-07T14:30:46Z] BLOCKED_INFRA detected, cron schedule stays active

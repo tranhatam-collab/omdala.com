@@ -1,0 +1,32 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      - PORT=3001
+      - AUTH_MODE=dev
+      - DEV_AUTH_BYPASS=1
+    ports:
+      - '3001:3001'
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: ./web
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '8080:80'
+
+  gateway:
+    build:
+      context: ./gateway
+    environment:
+      - GATEWAY_ID=gateway_docker_01
