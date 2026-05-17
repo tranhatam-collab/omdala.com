@@ -9,5 +9,10 @@
   },
   "devDependencies": {
     "wrangler": "4.75.0"
+  },
+  "dependencies": {
+    "@types/pg": "^8.20.0",
+    "hono": "^4.12.19",
+    "pg": "^8.20.0"
   }
 }

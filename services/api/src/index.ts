@@ -1100,13 +1100,21 @@ async function sendMail(env: ApiBindings, payload: MailRequest) {
     throw new Error("MAIL_API_KEY is not configured");
   }
 
+  // Auto-generate idempotency key if not provided (required by IAI Mail API)
+  const enrichedPayload = {
+    ...payload,
+    message_idempotency_key: payload.message_idempotency_key ?? crypto.randomUUID(),
+    workspace_id: payload.workspace_id ?? (env.MAIL_API_WORKSPACE_ID ?? "omdala.com"),
+  };
+
   const response = await fetch(`${getMailApiUrl(env)}/emails`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${env.MAIL_API_KEY}`,
       "Content-Type": "application/json",
+      "X-Workspace-Id": env.MAIL_API_WORKSPACE_ID ?? "omdala.com",
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(enrichedPayload),
   });
 
   if (!response.ok) {

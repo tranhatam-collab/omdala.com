@@ -11,6 +11,7 @@ export interface ApiBindings {
   AUTH_BASE_URL?: string;
   MAIL_API_URL?: string;
   MAIL_API_KEY?: string;
+  MAIL_API_WORKSPACE_ID?: string;
   MAGIC_LINK_SECRET?: string;
 }
 
@@ -64,6 +65,8 @@ export type MailRequest = {
   html: string;
   text: string;
   reply_to?: string;
+  message_idempotency_key?: string;
+  workspace_id?: string;
 };
 
 export interface RealityCommitmentRequest {
