@@ -1,15 +1,12 @@
 import { listModerationCases } from '@omdala/core'
-import { ADMIN_COPY, resolveAdminLanguage, t } from '../lib/admin-copy'
+import type { OmdalaLanguage } from '@omdala/core'
+import { ADMIN_COPY, t } from '../lib/admin-copy'
 
-export default async function AdminVerificationsPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
-}) {
-  const cases = listModerationCases().filter((item) =>
-    item.subjectType === 'node' || item.subjectType === 'proof'
-  )
-  const language = await resolveAdminLanguage(searchParams)
+export const dynamic = 'force-static'
+
+export default async function AdminVerificationsPage() {
+  const language: OmdalaLanguage = 'en'
+  const cases = listModerationCases()
 
   return (
     <section className="admin-card">

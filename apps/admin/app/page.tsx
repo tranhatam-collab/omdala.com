@@ -1,16 +1,15 @@
 import Link from 'next/link'
+import type { OmdalaLanguage } from '@omdala/core'
 import { listModerationCases } from '@omdala/core'
-import { ADMIN_COPY, resolveAdminLanguage, t } from './lib/admin-copy'
+import { ADMIN_COPY, t } from './lib/admin-copy'
 
-export default async function AdminPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
-}) {
+export const dynamic = 'force-static'
+
+export default async function AdminPage() {
+  const language: OmdalaLanguage = 'en'
   const cases = listModerationCases()
   const openCases = cases.filter((item) => item.status === 'open')
   const highSeverity = openCases.filter((item) => item.severity === 'high')
-  const language = await resolveAdminLanguage(searchParams)
 
   return (
     <>

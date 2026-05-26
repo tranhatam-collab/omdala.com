@@ -1,0 +1,385 @@
+{
+  "site": {
+    "brandLogoAlt": "Biểu tượng thương hiệu OMDALA",
+    "chrome": {
+      "primaryNavAriaLabel": "Điều hướng chính",
+      "helpfulLinksAriaLabel": "Liên kết hữu ích",
+      "nav": {
+        "what": "OMDALA Là Gì",
+        "how": "Cách Vận Hành",
+        "experts": "Chuyên Gia",
+        "hosts": "Người Tổ Chức",
+        "communities": "Cộng Đồng",
+        "trust": "Niềm Tin",
+        "vision": "Tầm Nhìn"
+      },
+      "labels": {
+        "languageSwitcher": "Chọn ngôn ngữ",
+        "legalEmail": "Email:",
+        "legalWeb": "Website:"
+      },
+      "enterApp": "Vào Ứng Dụng",
+      "footerEyebrow": "Nền tảng độc lập",
+      "footerLead": "OMDALA là nền tảng độc lập cho điều phối có kiểm chứng — đưa con người, địa điểm, tài nguyên và thực thi vào một hệ thống nơi giá trị được kích hoạt, kết quả được chứng minh và niềm tin tích lũy theo thời gian.",
+      "sections": {
+        "platform": "Nền tảng",
+        "surfaces": "Giao diện",
+        "legal": "Pháp lý"
+      },
+      "links": {
+        "whatIsOmdala": "OMDALA Là Gì",
+        "howItWorks": "Cách Vận Hành",
+        "trustArchitecture": "Kiến trúc Niềm Tin",
+        "app": "Ứng Dụng",
+        "docs": "Tài Liệu",
+        "apiHealth": "Tình Trạng API"
+      }
+    },
+    "notFound": {
+      "metadataTitle": "404 — Không Tìm Thấy Trang",
+      "title": "Không Tìm Thấy Trang",
+      "description": "Trang bạn đang tìm kiếm không tồn tại hoặc đã được di chuyển.",
+      "returnHome": "Về Trang Chủ"
+    }
+  },
+  "pages": {
+    "home": {
+      "seoTitle": "OMDALA — Nền tảng độc lập cho điều phối có kiểm chứng",
+      "seoDescription": "OMDALA là nền tảng độc lập cho điều phối có kiểm chứng. Đưa con người, địa điểm, tài nguyên và thực thi vào một hệ thống nơi giá trị được kích hoạt, kết quả được chứng minh và niềm tin tích lũy.",
+      "breadcrumbLabel": "Trang Chủ",
+      "heroEyebrow": "Trang Chủ"
+    },
+    "whatIsOmdala": {
+      "seoTitle": "OMDALA Là Gì — Nền tảng độc lập cho điều phối có kiểm chứng",
+      "seoDescription": "OMDALA là nền tảng độc lập cho điều phối có kiểm chứng. Tìm hiểu kiến trúc hệ thống, mô hình niềm tin và cách điều phối đời thực được chuyển đổi.",
+      "breadcrumbLabel": "OMDALA Là Gì",
+      "heroEyebrow": "OMDALA Là Gì"
+    },
+    "howItWorks": {
+      "seoTitle": "Cách OMDALA Vận Hành — Hạ tầng điều phối có kiểm chứng",
+      "seoDescription": "Tìm hiểu cách OMDALA vận hành: thấy giá trị, kích hoạt tài nguyên, chứng minh kết quả và tích lũy niềm tin qua mạng lưới điều phối của bạn.",
+      "breadcrumbLabel": "Cách Vận Hành",
+      "heroEyebrow": "Cách Vận Hành"
+    },
+    "forExperts": {
+      "seoTitle": "Chuyên Gia — Nền tảng điều phối có kiểm chứng OMDALA",
+      "seoDescription": "OMDALA dành cho chuyên gia: đóng góp chuyên môn của bạn vào mạng lưới điều phối có kiểm chứng và xây dựng tác động có thể chứng minh.",
+      "breadcrumbLabel": "Chuyên Gia",
+      "heroEyebrow": "Chuyên Gia"
+    },
+    "forHosts": {
+      "seoTitle": "Người Tổ Chức — Nền tảng điều phối OMDALA",
+      "seoDescription": "OMDALA dành cho người tổ chức: tổ chức không gian và sự kiện trên nền tảng điều phối có kiểm chứng. Cấu trúc tài nguyên và xác định kết quả.",
+      "breadcrumbLabel": "Người Tổ Chức",
+      "heroEyebrow": "Người Tổ Chức"
+    },
+    "forCommunities": {
+      "seoTitle": "Cộng Đồng — Nền tảng OMDALA",
+      "seoDescription": "OMDALA dành cho cộng đồng: đưa cộng đồng của bạn vào mạng lưới điều phối có kiểm chứng. Phối hợp tài nguyên, thực thi cam kết và xây dựng niềm tin tập thể.",
+      "breadcrumbLabel": "Cộng Đồng",
+      "heroEyebrow": "Cộng Đồng"
+    },
+    "trust": {
+      "seoTitle": "Kiến trúc Niềm Tin — Điều phối có kiểm chứng OMDALA",
+      "seoDescription": "Kiến trúc niềm tin OMDALA: cách kiểm chứng, bằng chứng và niềm tin tích lũy tạo nên nền tảng đáng tin cậy cho điều phối đời thực.",
+      "breadcrumbLabel": "Niềm Tin",
+      "heroEyebrow": "Niềm Tin"
+    },
+    "vision": {
+      "seoTitle": "Tầm Nhìn — Nền tảng điều phối độc lập OMDALA",
+      "seoDescription": "Tầm nhìn OMDALA: một lớp điều phối độc lập cho giá trị đời thực. Đọc về sứ mệnh, nguyên tắc và định hướng dài hạn của chúng tôi.",
+      "breadcrumbLabel": "Tầm Nhìn",
+      "heroEyebrow": "Tầm Nhìn"
+    },
+    "faq": {
+      "seoTitle": "FAQ — Nền tảng điều phối có kiểm chứng OMDALA",
+      "seoDescription": "Các câu hỏi thường gặp về OMDALA: nó là gì, kiểm chứng hoạt động thế nào, cách bắt đầu và điều gì làm nền tảng độc lập.",
+      "breadcrumbLabel": "FAQ",
+      "heroEyebrow": "FAQ"
+    },
+    "contact": {
+      "seoTitle": "Liên Hệ — OMDALA",
+      "seoDescription": "Liên hệ với đội ngũ OMDALA. Gửi thắc mắc về đối tác, hỗ trợ hoặc câu hỏi chung về nền tảng điều phối có kiểm chứng.",
+      "breadcrumbLabel": "Liên Hệ",
+      "heroEyebrow": "Liên Hệ"
+    }
+  },
+  "publicPages": {
+    "home": {
+      "heroEyebrow": "Hạ tầng điều phối có kiểm chứng",
+      "heroTitle": "OMDALA — Nền tảng độc lập cho điều phối đời thực.",
+      "heroLead": "OMDALA là nền tảng độc lập cho điều phối có kiểm chứng. Nền tảng này đưa con người, địa điểm, tài nguyên và thực thi vào một hệ thống nơi giá trị được kích hoạt, kết quả được chứng minh và niềm tin tích lũy theo thời gian.",
+      "heroCtaPrimary": "Bắt đầu kiến tạo",
+      "heroCtaSecondary": "Khám phá hệ thống",
+      "heroCtaDocs": "Mở tài liệu",
+      "loop": {
+        "eyebrow": "Vòng lặp cốt lõi",
+        "title": "Cách OMDALA vận hành",
+        "items": [
+          { "title": "1. Thấy giá trị", "copy": "Khám phá con người, địa điểm và tài nguyên xung quanh bạn." },
+          { "title": "2. Kích hoạt", "copy": "Cấu trúc hóa tài nguyên và xác định kết quả mong muốn." },
+          { "title": "3. Chứng minh", "copy": "Thực thi cam kết và đính kèm bằng chứng có thể kiểm chứng." },
+          { "title": "4. Tích lũy", "copy": "Xây dựng niềm tin lớn mạnh sau mỗi hành động hoàn tất." }
+        ]
+      },
+      "projectRoadmap": {
+        "eyebrow": "Lộ Trình Dự Án",
+        "title": "Các Mốc và Tiến Độ",
+        "copy": "Phát triển OMDALA được tổ chức thành các giai đoạn xây dựng hướng tới nền tảng điều phối độc lập hoàn chỉnh.",
+        "milestones": [
+          { "title": "Giai đoạn 1: Nền tảng", "copy": "Hạ tầng cốt lõi: cam kết, bằng chứng, điểm tin cậy và vòng lặp điều phối cơ bản." },
+          { "title": "Giai đoạn 2: Mạng lưới", "copy": "Mở rộng mạng lưới người tham gia với giao diện đa ngôn ngữ, ứng dụng di động và điều phối xuyên cộng đồng." },
+          { "title": "Giai đoạn 3: Tự động", "copy": "Điều phối hỗ trợ AI, kiểm chứng tự động và mô hình tin cậy nâng cao." }
+        ]
+      },
+      "realWorldApplications": {
+        "eyebrow": "Ứng Dụng Thực Tế",
+        "title": "Trường Hợp Sử Dụng",
+        "copy": "OMDALA cho phép điều phối trong nhiều bối cảnh đời thực đa dạng.",
+        "cases": [
+          "Điều phối nhiệm vụ có kiểm chứng cho nhóm phân tán",
+          "Chia sẻ tài nguyên dựa trên tin cậy trong cộng đồng địa phương",
+          "Theo dõi tác động dựa trên bằng chứng cho sáng kiến xã hội",
+          "Điều phối có trách nhiệm cho chương trình giáo dục"
+        ]
+      },
+      "releaseReadiness": {
+        "eyebrow": "Sẵn Sàng Phát Hành",
+        "title": "Trạng Thái Hiện Tại",
+        "checks": [
+          "API cam kết và bằng chứng đang hoạt động",
+          "Giao diện web song ngữ đã triển khai",
+          "Quy trình điểm tin cậy đã xác thực",
+          "Xác thực Google OAuth đã cấu hình",
+          "Ứng dụng di động đang thử nghiệm beta"
+        ]
+      },
+      "stateTransition": {
+        "eyebrow": "Mô Hình Trạng Thái",
+        "title": "Trạng Thái Điều Phối",
+        "copy": "Mọi hành động điều phối di chuyển qua một cỗ máy trạng thái xác định, đảm bảo minh bạch và khả kiểm chứng.",
+        "concepts": [
+          "Nháp — giai đoạn đề xuất ban đầu",
+          "Đang hoạt động — cam kết được chấp nhận và đang tiến hành",
+          "Hoàn tất — hành động đã thực thi chờ bằng chứng",
+          "Đã kiểm chứng — bằng chứng đã đính kèm và xác thực",
+          "Tranh chấp — bằng chứng bị thách thức",
+          "Đã giải quyết — quyết định cuối cùng được áp dụng"
+        ]
+      },
+      "commitments": {
+        "eyebrow": "Khung Cam Kết",
+        "title": "Cam Kết Hoạt Động Thế Nào",
+        "copy": "Cam kết là đơn vị nguyên tử của điều phối trên OMDALA. Mỗi cam kết đại diện cho một lời hứa hành động với kết quả có thể kiểm chứng.",
+        "features": [
+          "Hồ sơ cam kết bất biến",
+          "Đính kèm bằng chứng có thể kiểm chứng",
+          "Chứng thực đa bên",
+          "Cửa sổ thực thi có thời hạn",
+          "Chuyển đổi trạng thái tự động",
+          "Điểm tin cậy tích lũy"
+        ]
+      },
+      "trust": {
+        "eyebrow": "Mô Hình Tin Cậy",
+        "title": "Tín Hiệu Xây Dựng Niềm Tin",
+        "copy": "Niềm tin trên OMDALA được xây dựng từ nhiều tín hiệu có thể kiểm chứng tích lũy theo thời gian.",
+        "signals": [
+          "Tỷ lệ cam kết hoàn tất",
+          "Chất lượng bằng chứng đã kiểm chứng",
+          "Độ sâu tham gia mạng lưới",
+          "Trọng số chứng thực ngang hàng",
+          "Lịch sử giải quyết tranh chấp",
+          "Nhất quán điều phối"
+        ]
+      },
+      "governance": {
+        "eyebrow": "Quản Trị",
+        "title": "Giám Sát Độc Lập",
+        "copy": "OMDALA hoạt động dưới sự quản lý của Angel Edu Tam Foundation, đảm bảo quản trị độc lập và phù hợp với sứ mệnh điều phối có kiểm chứng."
+      },
+      "systemMap": {
+        "eyebrow": "Kiến Trúc Hệ Thống",
+        "title": "Các Lớp Hệ Thống OMDALA",
+        "layers": [
+          "Lớp Thực tế — cam kết và bằng chứng",
+          "Lớp Tin cậy — uy tín và điểm số",
+          "Lớp Điều phối — định tuyến tài nguyên và hành động",
+          "Lớp Ứng dụng — giao diện người dùng và API"
+        ]
+      },
+      "useCases": {
+        "eyebrow": "Trường Hợp Sử Dụng",
+        "title": "Cách OMDALA Được Sử Dụng",
+        "examples": [
+          "Điều phối dịch vụ ngang hàng có kiểm chứng",
+          "Gộp tài nguyên cộng đồng với theo dõi tin cậy",
+          "Điều phối chương trình giáo dục với bằng chứng hoàn tất",
+          "Tổ chức sự kiện với tham dự và kết quả đã kiểm chứng"
+        ]
+      },
+      "finalCta": {
+        "title": "Sẵn Sàng Bắt Đầu Điều Phối?",
+        "primary": "Bắt Đầu",
+        "secondary": "Liên Hệ"
+      }
+    },
+    "whatIsOmdala": {
+      "heroEyebrow": "OMDALA Là Gì",
+      "heroTitle": "Nền tảng độc lập cho điều phối có kiểm chứng.",
+      "heroLead": "OMDALA cung cấp hạ tầng cho điều phối đời thực đáng tin cậy. Mọi hành động đều được ghi lại, kiểm chứng và xây dựng trên đó.",
+      "heroCtaPrimary": "Tìm hiểu thêm",
+      "heroCtaSecondary": "Cách vận hành",
+      "heroCtaDocs": "Đọc tài liệu",
+      "cards": [
+        { "title": "Điều phối được kiểm chứng", "copy": "Mọi hành động điều phối được ghi lại như một cam kết bất biến trên mạng lưới tin cậy OMDALA." },
+        { "title": "Kết quả được chứng minh", "copy": "Kết quả được chứng minh qua bằng chứng có thể kiểm chứng gắn với mỗi cam kết hoàn tất." },
+        { "title": "Niềm tin tích lũy", "copy": "Niềm tin tích lũy qua mỗi tương tác, tạo nền tảng đáng tin cậy cho điều phối trong tương lai." },
+        { "title": "Lớp độc lập", "copy": "OMDALA hoạt động như một lớp độc lập, không thuộc sở hữu của bất kỳ nền tảng hay tập đoàn nào." }
+      ],
+      "layers": {
+        "eyebrow": "Kiến trúc Hệ thống",
+        "title": "Các lớp hoạt động cùng nhau",
+        "items": [
+          "Lớp Thực tế — nơi cam kết và bằng chứng được ghi lại",
+          "Lớp Niềm tin — nơi uy tín và điểm tin cậy tích lũy",
+          "Lớp Điều phối — nơi con người, tài nguyên và thực thi kết nối",
+          "Lớp Ứng dụng — nơi người dùng tương tác qua ứng dụng và giao diện"
+        ]
+      }
+    },
+    "howItWorks": {
+      "heroEyebrow": "Cách Vận Hành",
+      "heroTitle": "Thấy, Kích hoạt, Chứng minh, Tích lũy.",
+      "heroLead": "Vòng lặp OMDALA biến điều phối thành quy trình có thể kiểm chứng, xây dựng niềm tin qua kết quả đã được chứng minh.",
+      "heroCtaPrimary": "Bắt đầu",
+      "heroCtaSecondary": "Chuyên gia",
+      "heroCtaDocs": "Xem tài liệu",
+      "steps": [
+        { "title": "1. Thấy giá trị", "copy": "Khám phá con người, địa điểm và tài nguyên xung quanh bạn muốn phối hợp." },
+        { "title": "2. Kích hoạt", "copy": "Cấu trúc tài nguyên và xác định kết quả mong muốn đạt được cùng nhau." },
+        { "title": "3. Chứng minh", "copy": "Thực thi cam kết và đính kèm bằng chứng có thể kiểm chứng." },
+        { "title": "4. Tích lũy", "copy": "Niềm tin lớn mạnh sau mỗi hành động hoàn tất, giúp điều phối tương lai dễ dàng hơn." }
+      ]
+    },
+    "forExperts": {
+      "heroEyebrow": "Chuyên Gia",
+      "heroTitle": "Đóng góp chuyên môn của bạn.",
+      "heroLead": "Chuyên gia có thể tham gia mạng lưới điều phối có kiểm chứng, đóng góp kiến thức và xây dựng tác động có thể chứng minh.",
+      "heroCtaPrimary": "Tham gia",
+      "heroCtaSecondary": "Tìm hiểu thêm",
+      "heroCtaDocs": "Hướng dẫn",
+      "cards": [
+        { "title": "Chứng chỉ được kiểm chứng", "copy": "Chuyên môn của bạn được kiểm chứng và ghi lại như một phần hồ sơ tin cậy trên mạng lưới." },
+        { "title": "Tác động có thể chứng minh", "copy": "Mọi đóng góp được theo dõi, tạo hồ sơ kiểm chứng về tác động đời thực của bạn." },
+        { "title": "Hiệu ứng mạng lưới", "copy": "Khi niềm tin tích lũy, uy tín của bạn mở ra cơ hội điều phối giá trị cao hơn." }
+      ]
+    },
+    "forHosts": {
+      "heroEyebrow": "Người Tổ Chức",
+      "heroTitle": "Tổ chức không gian có giá trị.",
+      "heroLead": "Người tổ chức tạo không gian nơi điều phối diễn ra. Cấu trúc tài nguyên và xác định kết quả.",
+      "heroCtaPrimary": "Trở thành người tổ chức",
+      "heroCtaSecondary": "Câu chuyện",
+      "heroCtaDocs": "Hướng dẫn",
+      "items": [
+        "Xác định không gian và khả năng điều phối của bạn",
+        "Mời người tham gia với hồ sơ tin cậy đã kiểm chứng",
+        "Cấu trúc tài nguyên và đặt kết quả mong muốn",
+        "Thu thập bằng chứng kiểm chứng rằng cam kết đã hoàn thành",
+        "Xây dựng uy tín tin cậy tích lũy qua các không gian tổ chức"
+      ]
+    },
+    "forCommunities": {
+      "heroEyebrow": "Cộng Đồng",
+      "heroTitle": "Phối hợp ở quy mô lớn.",
+      "heroLead": "Đưa cộng đồng của bạn vào mạng lưới điều phối có kiểm chứng. Phối hợp tài nguyên, cùng thực thi và xây dựng niềm tin tập thể.",
+      "heroCtaPrimary": "Tham gia mạng lưới",
+      "heroCtaSecondary": "Câu chuyện cộng đồng",
+      "heroCtaDocs": "Hướng dẫn",
+      "cards": [
+        { "title": "Điều phối chung", "copy": "Thành viên cộng đồng phối hợp quanh tài nguyên chung và mục tiêu trên nền tảng tin cậy." },
+        { "title": "Niềm tin tập thể", "copy": "Niềm tin tích lũy trong cộng đồng, giúp hợp tác hiệu quả hơn theo thời gian." },
+        { "title": "Quản trị minh bạch", "copy": "Mọi hành động điều phối được ghi lại và kiểm chứng, đảm bảo ra quyết định minh bạch." }
+      ]
+    },
+    "trust": {
+      "heroEyebrow": "Kiến Trúc Niềm Tin",
+      "heroTitle": "Kiểm chứng tạo niềm tin tích lũy.",
+      "heroLead": "Kiến trúc niềm tin OMDALA đảm bảo mọi hành động đều có thể kiểm chứng. Bằng chứng tích lũy, niềm tin lớn dần và điều phối trở nên đáng tin cậy.",
+      "heroCtaPrimary": "Khám phá mô hình",
+      "heroCtaSecondary": "Cách kiểm chứng",
+      "heroCtaDocs": "Tài liệu",
+      "cards": [
+        { "title": "Hồ sơ bất biến", "copy": "Mọi cam kết và bằng chứng được ghi lại bất biến, tạo chuỗi tin cậy có thể kiểm toán." },
+        { "title": "Bằng chứng kiểm chứng", "copy": "Mỗi hành động có thể kèm bằng chứng độc lập, có thể kiểm chứng bởi bất kỳ người tham gia nào." },
+        { "title": "Điểm tích lũy", "copy": "Điểm tin cậy tăng sau mỗi hành động được kiểm chứng thành công, khuyến khích người tham gia đáng tin cậy." },
+        { "title": "Kiểm chứng phi tập trung", "copy": "Kiểm chứng không phụ thuộc vào một thẩm quyền duy nhất — mạng lưới tự xác thực kết quả." }
+      ]
+    },
+    "vision": {
+      "heroEyebrow": "Tầm Nhìn",
+      "heroTitle": "Lớp điều phối độc lập cho thế giới.",
+      "heroLead": "Tầm nhìn của OMDALA là tạo ra một lớp điều phối toàn cầu độc lập, có thể kiểm chứng và tiếp cận được với mọi người.",
+      "heroCtaPrimary": "Đọc tầm nhìn",
+      "heroCtaSecondary": "Nguyên tắc cốt lõi",
+      "heroCtaDocs": "Tuyên ngôn",
+      "horizons": [
+        { "title": "Giai đoạn 1: Nền tảng", "copy": "Xây dựng hạ tầng cốt lõi cho điều phối có kiểm chứng với cam kết, bằng chứng và điểm tin cậy." },
+        { "title": "Giai đoạn 2: Phát triển mạng lưới", "copy": "Mở rộng mạng lưới người tham gia, cho phép điều phối xuyên cộng đồng ở quy mô lớn." },
+        { "title": "Giai đoạn 3: Điều phối tự động", "copy": "Cho phép điều phối tự động và hỗ trợ AI trong ranh giới tin cậy đã kiểm chứng." },
+        { "title": "Giai đoạn 4: Lớp toàn cầu", "copy": "Thiết lập OMDALA như lớp điều phối độc lập toàn cầu cho giá trị đời thực." }
+      ]
+    },
+    "faq": {
+      "heroEyebrow": "FAQ",
+      "heroTitle": "Câu hỏi thường gặp.",
+      "heroLead": "Tìm câu trả lời cho các câu hỏi phổ biến về OMDALA, điều phối có kiểm chứng và cách tham gia.",
+      "heroCtaPrimary": "Xem tất cả FAQ",
+      "heroCtaSecondary": "Liên hệ",
+      "heroCtaDocs": "Kiến thức",
+      "questions": [
+        { "question": "OMDALA là gì?", "answer": "OMDALA là nền tảng độc lập cho điều phối đời thực có kiểm chứng. Nó cung cấp hạ tầng cho con người, địa điểm, tài nguyên và thực thi kết nối một cách đáng tin cậy." },
+        { "question": "Kiểm chứng hoạt động thế nào?", "answer": "Người tham gia tạo cam kết, thực thi hành động và đính kèm bằng chứng có thể kiểm chứng. Mạng lưới xác thực các bằng chứng này và cập nhật điểm tin cậy." },
+        { "question": "Ai có thể sử dụng OMDALA?", "answer": "Bất kỳ ai — cá nhân, chuyên gia, người tổ chức, cộng đồng và tổ chức đều có thể tham gia mạng lưới điều phối có kiểm chứng." },
+        { "question": "OMDALA có miễn phí không?", "answer": "Các tính năng điều phối cơ bản được miễn phí. Tính năng nâng cao có thể yêu cầu đăng ký." },
+        { "question": "Làm thế nào để bắt đầu?", "answer": "Tạo tài khoản trên app.omdala.com, thiết lập hồ sơ và bắt đầu khám phá cơ hội điều phối." }
+      ]
+    },
+    "contact": {
+      "heroEyebrow": "Liên Hệ",
+      "heroTitle": "Giữ liên lạc.",
+      "heroLead": "Có câu hỏi về OMDALA? Liên hệ với đội ngũ của chúng tôi để được hỗ trợ.",
+      "heroCtaPrimary": "Gửi tin nhắn",
+      "heroCtaSecondary": "Đăng ký bản tin",
+      "heroCtaDocs": "Trung tâm trợ giúp",
+      "form": {
+        "title": "Gửi Tin Nhắn",
+        "copy": "Điền vào biểu mẫu bên dưới và chúng tôi sẽ phản hồi sớm nhất có thể."
+      },
+      "inboxes": {
+        "title": "Liên Hệ Trực Tiếp",
+        "copy": "Liên hệ trực tiếp với các nhóm qua email.",
+        "labels": {
+          "hello": "Thắc Mắc Chung",
+          "support": "Hỗ Trợ Kỹ Thuật",
+          "app": "Đội Ngũ Ứng Dụng",
+          "docs": "Tài Liệu",
+          "trust": "Niềm Tin & Bảo Mật",
+          "admin": "Quản Trị",
+          "noreply": "Thông Báo Tự Động"
+        }
+      },
+      "notes": {
+        "noreply": "Mail xác thực và magic-link",
+        "docs": "Điều hướng tài liệu và API",
+        "admin": "Vận hành quản trị"
+      },
+      "legal": {
+        "title": "Pháp Lý",
+        "emailLabel": "Email",
+        "webLabel": "Trang Web"
+      }
+    }
+  }
+}

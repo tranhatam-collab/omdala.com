@@ -1,0 +1,385 @@
+{
+  "site": {
+    "brandLogoAlt": "OMDALA brand mark",
+    "chrome": {
+      "primaryNavAriaLabel": "Primary navigation",
+      "helpfulLinksAriaLabel": "Helpful links",
+      "nav": {
+        "what": "What Is OMDALA",
+        "how": "How It Works",
+        "experts": "For Experts",
+        "hosts": "For Hosts",
+        "communities": "For Communities",
+        "trust": "Trust",
+        "vision": "Vision"
+      },
+      "labels": {
+        "languageSwitcher": "Select language",
+        "legalEmail": "Email:",
+        "legalWeb": "Website:"
+      },
+      "enterApp": "Enter App",
+      "footerEyebrow": "Independent Platform",
+      "footerLead": "OMDALA is an independent platform for verified coordination — bringing people, places, resources, and execution into one system where value is activated, outcomes are proven, and trust compounds over time.",
+      "sections": {
+        "platform": "Platform",
+        "surfaces": "Surfaces",
+        "legal": "Legal"
+      },
+      "links": {
+        "whatIsOmdala": "What Is OMDALA",
+        "howItWorks": "How It Works",
+        "trustArchitecture": "Trust Architecture",
+        "app": "App",
+        "docs": "Docs",
+        "apiHealth": "API Health"
+      }
+    },
+    "notFound": {
+      "metadataTitle": "404 — Page Not Found",
+      "title": "Page Not Found",
+      "description": "The page you are looking for does not exist or has been moved.",
+      "returnHome": "Return Home"
+    }
+  },
+  "pages": {
+    "home": {
+      "seoTitle": "OMDALA — Independent Platform for Verified Coordination",
+      "seoDescription": "OMDALA is an independent platform for verified coordination. Bring people, places, resources, and execution into one system where value is activated, outcomes are proven, and trust compounds.",
+      "breadcrumbLabel": "Home",
+      "heroEyebrow": "Home"
+    },
+    "whatIsOmdala": {
+      "seoTitle": "What Is OMDALA — Independent Platform for Verified Coordination",
+      "seoDescription": "OMDALA is a standalone platform for verified coordination. Understand the system architecture, trust model, and how real-world coordination is transformed.",
+      "breadcrumbLabel": "What Is OMDALA",
+      "heroEyebrow": "What Is OMDALA"
+    },
+    "howItWorks": {
+      "seoTitle": "How OMDALA Works — Verified Coordination Infrastructure",
+      "seoDescription": "Learn how OMDALA works: see value, activate resources, prove outcomes, and compound trust across your coordination network.",
+      "breadcrumbLabel": "How It Works",
+      "heroEyebrow": "How It Works"
+    },
+    "forExperts": {
+      "seoTitle": "For Experts — OMDALA Verified Coordination Platform",
+      "seoDescription": "OMDALA for experts: contribute your expertise to verified coordination networks and build provable impact across real-world systems.",
+      "breadcrumbLabel": "For Experts",
+      "heroEyebrow": "For Experts"
+    },
+    "forHosts": {
+      "seoTitle": "For Hosts — OMDALA Coordination Platform",
+      "seoDescription": "OMDALA for hosts: host spaces and events on a verified coordination platform. Structure resources and define outcomes with provable results.",
+      "breadcrumbLabel": "For Hosts",
+      "heroEyebrow": "For Hosts"
+    },
+    "forCommunities": {
+      "seoTitle": "For Communities — OMDALA Platform",
+      "seoDescription": "OMDALA for communities: bring your community onto a verified coordination network. Coordinate resources, execute commitments, and build collective trust.",
+      "breadcrumbLabel": "For Communities",
+      "heroEyebrow": "For Communities"
+    },
+    "trust": {
+      "seoTitle": "Trust Architecture — OMDALA Verified Coordination",
+      "seoDescription": "OMDALA trust architecture: how verification, proof, and compounding trust create a reliable foundation for real-world coordination.",
+      "breadcrumbLabel": "Trust",
+      "heroEyebrow": "Trust"
+    },
+    "vision": {
+      "seoTitle": "Vision — OMDALA Independent Coordination Platform",
+      "seoDescription": "The OMDALA vision: an independent coordination layer for real-world value. Read about our mission, principles, and long-term direction.",
+      "breadcrumbLabel": "Vision",
+      "heroEyebrow": "Vision"
+    },
+    "faq": {
+      "seoTitle": "FAQ — OMDALA Verified Coordination Platform",
+      "seoDescription": "Frequently asked questions about OMDALA: what it is, how verification works, how to get started, and what makes the platform independent.",
+      "breadcrumbLabel": "FAQ",
+      "heroEyebrow": "FAQ"
+    },
+    "contact": {
+      "seoTitle": "Contact — OMDALA",
+      "seoDescription": "Contact the OMDALA team. Get in touch for partnership inquiries, support, or general questions about the verified coordination platform.",
+      "breadcrumbLabel": "Contact",
+      "heroEyebrow": "Contact"
+    }
+  },
+  "publicPages": {
+    "home": {
+      "heroEyebrow": "Verified Coordination Infrastructure",
+      "heroTitle": "OMDALA — Independent Platform for Real-World Coordination.",
+      "heroLead": "OMDALA is a standalone platform for verified coordination. It brings people, places, resources, and execution into one system where value is activated, outcomes are proven, and trust compounds over time.",
+      "heroCtaPrimary": "Start Building Reality",
+      "heroCtaSecondary": "Explore the System",
+      "heroCtaDocs": "Open Docs",
+      "loop": {
+        "eyebrow": "Core Loop",
+        "title": "How OMDALA Works",
+        "items": [
+          { "title": "1. See Value", "copy": "Discover people, places, and resources around you." },
+          { "title": "2. Activate It", "copy": "Structure resources and define desired outcomes." },
+          { "title": "3. Prove It", "copy": "Execute commitments and attach verifiable proof." },
+          { "title": "4. Compound It", "copy": "Build trust that grows with every completed action." }
+        ]
+      },
+      "projectRoadmap": {
+        "eyebrow": "Project Roadmap",
+        "title": "Milestones and Progress",
+        "copy": "OMDALA development is organized into phases that build toward a complete independent coordination platform.",
+        "milestones": [
+          { "title": "Phase 1: Foundation", "copy": "Core infrastructure: commitments, proofs, trust scoring, and the basic coordination loop." },
+          { "title": "Phase 2: Network", "copy": "Expand the participant network with multilingual surfaces, mobile apps, and cross-community coordination." },
+          { "title": "Phase 3: Autonomy", "copy": "AI-assisted coordination, automated verification, and advanced trust models." }
+        ]
+      },
+      "realWorldApplications": {
+        "eyebrow": "Real-World Applications",
+        "title": "Use Cases",
+        "copy": "OMDALA enables coordination across diverse real-world contexts.",
+        "cases": [
+          "Verified task coordination for distributed teams",
+          "Trust-based resource sharing in local communities",
+          "Proof-based impact tracking for social initiatives",
+          "Accountable coordination for educational programs"
+        ]
+      },
+      "releaseReadiness": {
+        "eyebrow": "Release Readiness",
+        "title": "Current Status",
+        "checks": [
+          "Core commitment and proof API operational",
+          "Bilingual public web surfaces deployed",
+          "Trust scoring pipeline validated",
+          "OAuth Google authentication configured",
+          "Mobile application in beta testing"
+        ]
+      },
+      "stateTransition": {
+        "eyebrow": "State Model",
+        "title": "Coordination States",
+        "copy": "Every coordination action moves through a defined state machine, ensuring transparency and verifiability.",
+        "concepts": [
+          "Draft — initial proposal stage",
+          "Active — commitment accepted and in progress",
+          "Completed — action executed awaiting proof",
+          "Verified — proof attached and validated",
+          "Disputed — evidence challenged",
+          "Resolved — final determination applied"
+        ]
+      },
+      "commitments": {
+        "eyebrow": "Commitment Framework",
+        "title": "How Commitments Work",
+        "copy": "Commitments are the atomic unit of coordination on OMDALA. Each commitment represents a promise to act, with verifiable outcomes.",
+        "features": [
+          "Immutable commitment records",
+          "Verifiable proof attachment",
+          "Multi-party attestation",
+          "Time-bound execution windows",
+          "Automated state transitions",
+          "Compounding trust scoring"
+        ]
+      },
+      "trust": {
+        "eyebrow": "Trust Model",
+        "title": "Signals That Build Trust",
+        "copy": "Trust on OMDALA is built from multiple verifiable signals that compound over time.",
+        "signals": [
+          "Completed commitment ratio",
+          "Verified proof quality",
+          "Network participation depth",
+          "Peer attestation weight",
+          "Dispute resolution history",
+          "Coordination consistency"
+        ]
+      },
+      "governance": {
+        "eyebrow": "Governance",
+        "title": "Independent Oversight",
+        "copy": "OMDALA operates under the Angel Edu Tam Foundation, ensuring independent governance and alignment with its mission of verified coordination."
+      },
+      "systemMap": {
+        "eyebrow": "System Architecture",
+        "title": "OMDALA System Layers",
+        "layers": [
+          "Reality Layer — commitments and proofs",
+          "Trust Layer — reputation and scoring",
+          "Coordination Layer — resource and action routing",
+          "Application Layer — user interfaces and APIs"
+        ]
+      },
+      "useCases": {
+        "eyebrow": "Use Cases",
+        "title": "How OMDALA Is Used",
+        "examples": [
+          "Verified peer-to-peer service coordination",
+          "Community resource pooling with trust tracking",
+          "Educational program coordination with proof of completion",
+          "Event hosting with verified attendance and outcomes"
+        ]
+      },
+      "finalCta": {
+        "title": "Ready to Start Coordinating?",
+        "primary": "Get Started",
+        "secondary": "Contact Us"
+      }
+    },
+    "whatIsOmdala": {
+      "heroEyebrow": "What Is OMDALA",
+      "heroTitle": "Independent Platform for Verified Coordination.",
+      "heroLead": "OMDALA provides the infrastructure for trustworthy real-world coordination. Every action is recorded, verified, and built upon.",
+      "heroCtaPrimary": "Learn More",
+      "heroCtaSecondary": "How It Works",
+      "heroCtaDocs": "Read Docs",
+      "cards": [
+        { "title": "Proven Coordination", "copy": "Every coordination action is recorded as an immutable commitment on the OMDALA trust network." },
+        { "title": "Verified Outcomes", "copy": "Outcomes are proven through verifiable evidence attached to each completed commitment." },
+        { "title": "Compounding Trust", "copy": "Trust accumulates across every interaction, creating a reliable foundation for future coordination." },
+        { "title": "Independent Layer", "copy": "OMDALA operates as an independent layer, not owned by any platform or corporation." }
+      ],
+      "layers": {
+        "eyebrow": "System Architecture",
+        "title": "How the Layers Work Together",
+        "items": [
+          "Reality Layer — where commitments and proofs are recorded",
+          "Trust Layer — where reputation and trust scores compound",
+          "Coordination Layer — where people, resources, and execution connect",
+          "Application Layer — where users interact through apps and interfaces"
+        ]
+      }
+    },
+    "howItWorks": {
+      "heroEyebrow": "How It Works",
+      "heroTitle": "See, Activate, Prove, Compound.",
+      "heroLead": "The OMDALA loop turns coordination into a verifiable process, building trust through proven outcomes.",
+      "heroCtaPrimary": "Get Started",
+      "heroCtaSecondary": "For Experts",
+      "heroCtaDocs": "View Documentation",
+      "steps": [
+        { "title": "1. See Value", "copy": "Discover people, places, and resources around you that want to coordinate." },
+        { "title": "2. Activate It", "copy": "Structure your resources and define the outcomes you want to achieve together." },
+        { "title": "3. Prove It", "copy": "Execute commitments and attach verifiable proof that outcomes were delivered." },
+        { "title": "4. Compound It", "copy": "Trust grows with every completed action, making future coordination easier and more reliable." }
+      ]
+    },
+    "forExperts": {
+      "heroEyebrow": "For Experts",
+      "heroTitle": "Contribute Your Expertise.",
+      "heroLead": "Subject matter experts can participate in verified coordination networks, contribute knowledge, and build provable impact.",
+      "heroCtaPrimary": "Join as Expert",
+      "heroCtaSecondary": "Learn More",
+      "heroCtaDocs": "Expert Guide",
+      "cards": [
+        { "title": "Verified Credentials", "copy": "Your expertise is verified and recorded as part of your trust profile on the network." },
+        { "title": "Provable Impact", "copy": "Every contribution is tracked, creating a verifiable record of your real-world impact." },
+        { "title": "Network Effects", "copy": "As trust compounds, your reputation opens doors to higher-value coordination opportunities." }
+      ]
+    },
+    "forHosts": {
+      "heroEyebrow": "For Hosts",
+      "heroTitle": "Host Spaces That Matter.",
+      "heroLead": "Hosts create spaces where coordination happens — from venues to programs. Structure your resources and define outcomes.",
+      "heroCtaPrimary": "Become a Host",
+      "heroCtaSecondary": "Host Stories",
+      "heroCtaDocs": "Host Guide",
+      "items": [
+        "Define your space and its capabilities for coordination",
+        "Invite participants with verified trust profiles",
+        "Structure resources and set desired outcomes for each event",
+        "Collect verifiable proof that commitments were met",
+        "Build a compounding trust reputation across all hosted spaces"
+      ]
+    },
+    "forCommunities": {
+      "heroEyebrow": "For Communities",
+      "heroTitle": "Coordinate at Scale.",
+      "heroLead": "Bring your community onto a verified coordination network. Coordinate resources, execute together, and build collective trust.",
+      "heroCtaPrimary": "Join the Network",
+      "heroCtaSecondary": "Community Stories",
+      "heroCtaDocs": "Community Guide",
+      "cards": [
+        { "title": "Shared Coordination", "copy": "Community members coordinate around shared resources and common goals on a trusted platform." },
+        { "title": "Collective Trust", "copy": "Trust accumulates across the community, making collaboration more efficient over time." },
+        { "title": "Transparent Governance", "copy": "All coordination actions are recorded and verifiable, ensuring transparent decision-making." }
+      ]
+    },
+    "trust": {
+      "heroEyebrow": "Trust Architecture",
+      "heroTitle": "Verification Creates Trust That Compounds.",
+      "heroLead": "OMDALA trust architecture ensures every action is verifiable. Proofs accumulate, trust compounds, and coordination becomes reliable.",
+      "heroCtaPrimary": "Explore Trust Model",
+      "heroCtaSecondary": "How Verification Works",
+      "heroCtaDocs": "Trust Docs",
+      "cards": [
+        { "title": "Immutable Records", "copy": "All commitments and proofs are recorded immutably, creating an auditable chain of trust." },
+        { "title": "Verifiable Proofs", "copy": "Each action can be accompanied by proof that is independently verifiable by any network participant." },
+        { "title": "Compounding Scores", "copy": "Trust scores increase with every successfully verified action, rewarding reliable participants." },
+        { "title": "Decentralized Verification", "copy": "Verification does not depend on a single authority — the network itself validates outcomes." }
+      ]
+    },
+    "vision": {
+      "heroEyebrow": "Vision",
+      "heroTitle": "An Independent Coordination Layer for the World.",
+      "heroLead": "OMDALA's vision is to create a universal coordination layer that is independent, verifiable, and accessible to everyone.",
+      "heroCtaPrimary": "Read Our Vision",
+      "heroCtaSecondary": "Core Principles",
+      "heroCtaDocs": "Manifesto",
+      "horizons": [
+        { "title": "Phase 1: Foundation", "copy": "Build the core infrastructure for verified coordination with commitments, proofs, and trust scoring." },
+        { "title": "Phase 2: Network Growth", "copy": "Expand the network of participants, enabling cross-community coordination at scale." },
+        { "title": "Phase 3: Autonomous Coordination", "copy": "Enable automated and AI-assisted coordination within verified trust boundaries." },
+        { "title": "Phase 4: Global Layer", "copy": "Establish OMDALA as the universal independent coordination layer for real-world value." }
+      ]
+    },
+    "faq": {
+      "heroEyebrow": "FAQ",
+      "heroTitle": "Frequently Asked Questions.",
+      "heroLead": "Find answers to common questions about OMDALA, verified coordination, and how to get involved.",
+      "heroCtaPrimary": "Browse All FAQs",
+      "heroCtaSecondary": "Contact Us",
+      "heroCtaDocs": "Knowledge Base",
+      "questions": [
+        { "question": "What is OMDALA?", "answer": "OMDALA is an independent platform for verified real-world coordination. It provides the infrastructure for people, places, resources, and execution to connect in a trustable way." },
+        { "question": "How does verification work?", "answer": "Participants make commitments, execute actions, and attach verifiable proof. The network validates these proofs and updates trust scores accordingly." },
+        { "question": "Who can use OMDALA?", "answer": "Anyone — individuals, experts, hosts, communities, and organizations can participate in verified coordination networks." },
+        { "question": "Is OMDALA free?", "answer": "Basic coordination features are available. Premium features and advanced verification capabilities may require a subscription." },
+        { "question": "How do I get started?", "answer": "Create an account on app.omdala.com, set up your profile, and start exploring coordination opportunities in your area." }
+      ]
+    },
+    "contact": {
+      "heroEyebrow": "Contact",
+      "heroTitle": "Get in Touch.",
+      "heroLead": "Have questions about OMDALA? Reach out to our team for partnership inquiries, support, or general questions.",
+      "heroCtaPrimary": "Send Message",
+      "heroCtaSecondary": "Join Newsletter",
+      "heroCtaDocs": "Help Center",
+      "form": {
+        "title": "Send Us a Message",
+        "copy": "Fill out the form below and we will get back to you as soon as possible."
+      },
+      "inboxes": {
+        "title": "Direct Contact",
+        "copy": "Reach specific teams directly via email.",
+        "labels": {
+          "hello": "General Inquiries",
+          "support": "Technical Support",
+          "app": "App Team",
+          "docs": "Documentation",
+          "trust": "Trust & Security",
+          "admin": "Administration",
+          "noreply": "Automated Notifications"
+        }
+      },
+      "notes": {
+        "noreply": "Auth and magic-link mail",
+        "docs": "Docs and API routing",
+        "admin": "Admin operations"
+      },
+      "legal": {
+        "title": "Legal",
+        "emailLabel": "Email",
+        "webLabel": "Web"
+      }
+    }
+  }
+}

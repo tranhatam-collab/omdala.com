@@ -1,13 +1,12 @@
 import { listMockNodes } from '@omdala/core'
-import { ADMIN_COPY, resolveAdminLanguage, t } from '../lib/admin-copy'
+import type { OmdalaLanguage } from '@omdala/core'
+import { ADMIN_COPY, t } from '../lib/admin-copy'
 
-export default async function AdminNodesPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
-}) {
+export const dynamic = 'force-static'
+
+export default async function AdminNodesPage() {
+  const language: OmdalaLanguage = 'en'
   const nodes = listMockNodes()
-  const language = await resolveAdminLanguage(searchParams)
 
   return (
     <section className="admin-card">

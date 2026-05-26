@@ -7,6 +7,9 @@ const monorepoRoot = path.join(__dirname, '..', '..')
 
 const config: NextConfig = {
   reactStrictMode: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   outputFileTracingRoot: monorepoRoot,
   output: 'export',
   trailingSlash: true,

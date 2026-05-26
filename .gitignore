@@ -18,3 +18,10 @@ playwright-report
 apps/app/out/
 apps/app/test-results/
 apps/web/out/
+apps/auth/out/
+apps/admin/out/
+apps/docs/out/
+apps/*/out/
+apps/*/.next/
+reports/
+

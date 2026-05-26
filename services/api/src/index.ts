@@ -2463,4 +2463,112 @@ app.get("/robots.txt", (c) => {
   return c.text("User-agent: *\nDisallow: /");
 });
 
+// ── Google OAuth ─────────────────────────────────────────────────────────────
+
+const GOOGLE_STATE_TTL_S = 10 * 60;
+
+async function hmacHex(secret: string, msg: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function b64url(s: string): string {
+  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function fromb64url(s: string): string {
+  return atob(s.replace(/-/g, "+").replace(/_/g, "/"));
+}
+
+async function buildGoogleState(secret: string): Promise<string> {
+  const payload = b64url(JSON.stringify({ nonce: crypto.randomUUID().replace(/-/g, ""), exp: Math.floor(Date.now() / 1000) + GOOGLE_STATE_TTL_S }));
+  const sig = await hmacHex(secret, payload);
+  return `${payload}.${sig}`;
+}
+
+async function verifyGoogleState(secret: string, token: string): Promise<boolean> {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return false;
+  const expected = await hmacHex(secret, parts[0]);
+  if (expected !== parts[1]) return false;
+  try {
+    const p = JSON.parse(fromb64url(parts[0])) as { exp?: number };
+    return typeof p.exp === "number" && p.exp > Math.floor(Date.now() / 1000);
+  } catch { return false; }
+}
+
+app.get("/v1/auth/google/start", async (c) => {
+  const clientId = (c.env.GOOGLE_CLIENT_ID ?? "").trim();
+  const redirectUri = (c.env.GOOGLE_REDIRECT_URI ?? "").trim();
+  const stateSecret = (c.env.GOOGLE_OAUTH_STATE_SECRET ?? c.env.MAGIC_LINK_SECRET ?? "").trim();
+
+  if (!clientId || !redirectUri || !stateSecret) {
+    return jsonError(c, 501, "oauth_not_configured", "Google OAuth is not configured.");
+  }
+
+  const state = await buildGoogleState(stateSecret);
+  const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  url.searchParams.set("client_id", clientId);
+  url.searchParams.set("redirect_uri", redirectUri);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", "openid email profile");
+  url.searchParams.set("state", state);
+  url.searchParams.set("prompt", "select_account");
+  return Response.redirect(url.toString(), 302);
+});
+
+app.get("/v1/auth/google/callback", async (c) => {
+  const appBase = getAppBaseUrl(c.env);
+  const errRedirect = (r: string) => Response.redirect(`${appBase}/login?error=${encodeURIComponent(r)}`, 302);
+
+  const clientId = (c.env.GOOGLE_CLIENT_ID ?? "").trim();
+  const clientSecret = (c.env.GOOGLE_CLIENT_SECRET ?? "").trim();
+  const redirectUri = (c.env.GOOGLE_REDIRECT_URI ?? "").trim();
+  const stateSecret = (c.env.GOOGLE_OAUTH_STATE_SECRET ?? c.env.MAGIC_LINK_SECRET ?? "").trim();
+
+  if (!clientId || !clientSecret || !redirectUri || !stateSecret) return errRedirect("provider_not_configured");
+
+  const code = c.req.query("code") ?? "";
+  const state = c.req.query("state") ?? "";
+  const providerError = c.req.query("error") ?? "";
+
+  if (providerError) return errRedirect("oauth_provider_error");
+  if (!code || !state) return errRedirect("missing_code_or_state");
+  if (!await verifyGoogleState(stateSecret, state)) return errRedirect("invalid_oauth_state");
+
+  // Exchange code for tokens
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: "authorization_code" }),
+  });
+  const tokenData = await tokenRes.json().catch(() => ({})) as Record<string, unknown>;
+  if (!tokenRes.ok || !tokenData.access_token) return errRedirect("oauth_exchange_failed");
+
+  // Get user profile
+  const profileRes = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+    headers: { Authorization: `Bearer ${tokenData.access_token}` },
+  });
+  const profile = await profileRes.json().catch(() => ({})) as Record<string, unknown>;
+  if (!profileRes.ok || !profile.email) return errRedirect("oauth_profile_failed");
+  if (profile.email_verified === false) return errRedirect("oauth_email_unverified");
+
+  const email = String(profile.email).trim().toLowerCase();
+
+  // Create session tokens (stateless, HMAC-based — same as magic-link flow)
+  if (!c.env.MAGIC_LINK_SECRET) return errRedirect("session_secret_missing");
+  const now = Date.now();
+  const [accessToken, refreshToken] = await Promise.all([
+    createSessionToken(c.env, { email, type: "access", exp: now + 60 * 60 * 1000 }),
+    createSessionToken(c.env, { email, type: "refresh", exp: now + 7 * 24 * 60 * 60 * 1000 }),
+  ]);
+
+  setSessionCookies(c, accessToken, refreshToken);
+  return Response.redirect(`${appBase}/`, 302);
+});
+
 export default app;

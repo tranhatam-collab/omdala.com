@@ -1,52 +1,42 @@
 # OMDALA Project Execution Board
 
-Version: 1.1
-Status: Active
-Last update: 2026-05-09
-Owner: Team Admin
+Version: 2.0
+Status: Active — consolidated to single dev team
+Last update: 2026-05-19
+Owner: Team Admin (Supervisor / QA / Reporter)
+Executor: OMDALA Dev Team (1 team)
 Scope: Omdala.com only
 
 ## Current Program State
 
-- Release gate: `GO`
-- Public bilingual audit: `20/20`, `0` blocking
-- Main blocker: Git hygiene / publish stability
+- Release gate: `HOLD` (build integrity unresolved)
+- Public bilingual audit: historical packet exists, but current source lock is incomplete in repo (`content/en.json`, `content/vi.json` missing)
+- Main blocker: build toolchain integrity + bilingual source gap
 - Verified composite `.git` backup: present
 - Secondary review lane: brand v2.0 demo branch
 
-## Team 1
+## Authoritative Work Order
 
-Active lane:
+All backlog has been consolidated into a single master plan for one dev team:
 
-- Git hygiene recovery planning and verification
-- safe coordination around `apps/app`, `apps/auth`, and user-facing `apps/web` only when clearly inside Omdala.com scope
-- detailed remaining-team packet:
-  - `docs/OMDALA_REMAINING_TEAMS_EXECUTION_PLAN_2026-05-09.md`
+- `docs/OMDALA_SINGLE_TEAM_MASTER_PLAN_2026-05-19.md`
+
+The earlier 3-team split is preserved as historical reference only:
+
+- `docs/OMDALA_FULL_PROJECT_DEV_COMPLETION_BOARD_2026-05-19.md` (reference)
+- `docs/OMDALA_REMAINING_TEAMS_EXECUTION_PLAN_2026-05-09.md` (reference)
+
+## OMDALA Dev Team — current lane
+
+Executing the master plan in strict order:
+
+1. **P0** Build & toolchain integrity (package manager normalization, `next` binary recovery, duplicate file cleanup, `.gitignore` for build outputs).
+2. **P1** Bilingual source + SEO surface (`content/en.json`/`vi.json`, 4 audit scripts, 9 `[lang]/*/page.tsx`, sitemap/switcher, Omdalat drift cleanup).
+3. **P2** Auth/API hardening + release evidence (remove hard-coded OAuth URL, OAuth runbook, API tests, gate evidence packet).
 
 Blocked by:
 
-- historical reflog/object integrity failures concentrated in non-canonical side-lane remote refs
-
-## Team 2
-
-Active lane:
-
-- admin/docs/report reconciliation only when clearly owned and Omdala.com-scoped
-
-Current note:
-
-- do not drift into historical Omniverse scope from older planning docs
-
-## Team 3
-
-Active lane:
-
-- maintain release truth, blocker truth, and evidence truth
-
-Current note:
-
-- release gate is already `GO`
-- do not reopen already-green gates without a new verified blocker
+- unresolved dependency/runtime corruption (`next/dist/bin/next` missing) — first P0 task.
 
 ## Brand v2.0 Demo Lane
 
@@ -75,6 +65,7 @@ Still needed:
 
 ## Next Action
 
-1. Keep destructive Git cleanup paused and preserve canonical lanes
-2. Use `docs/OMDALA_GIT_ISOLATION_RECOMMENDATION_2026-05-08.md` as the founder-gated next Git option for the two broken non-canonical side-lane remote refs
-3. Preserve brand v2.0 as demo-only until evidence closes, using `docs/OMDALA_V2_FOUNDER_REVIEW_CHECKLIST_2026-05-09.md` as the review packet
+1. Dev Team executes Phase P0 of `docs/OMDALA_SINGLE_TEAM_MASTER_PLAN_2026-05-19.md` (package manager normalization → restore `next` binaries → clean duplicates → `.gitignore`).
+2. Then Phase P1 (bilingual source + 9 `[lang]/*/page.tsx` + audit scripts).
+3. Then Phase P2 (OAuth hardening + release evidence packet).
+4. Re-open `GO` only after the 10-line Final Verification Matrix passes end-to-end.

@@ -1,13 +1,12 @@
 import { listMockOffers } from '@omdala/core'
-import { ADMIN_COPY, resolveAdminLanguage, t } from '../lib/admin-copy'
+import type { OmdalaLanguage } from '@omdala/core'
+import { ADMIN_COPY, t } from '../lib/admin-copy'
 
-export default async function AdminOffersPage({
-  searchParams,
-}: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>
-}) {
+export const dynamic = 'force-static'
+
+export default async function AdminOffersPage() {
+  const language: OmdalaLanguage = 'en'
   const offers = listMockOffers()
-  const language = await resolveAdminLanguage(searchParams)
 
   return (
     <section className="admin-card">

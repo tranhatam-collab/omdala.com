@@ -154,3 +154,39 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* Google OAuth button */
+.auth-button--google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--auth-text);
+  font-weight: 600;
+  transition: background 0.15s ease;
+}
+
+.auth-button--google:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Or divider */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0;
+  color: var(--auth-muted);
+  font-size: 0.8rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--auth-border);
+}

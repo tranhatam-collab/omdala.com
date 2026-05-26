@@ -1,0 +1,33 @@
+=== 1. bilingual-source-check ===
+PASS: en.json and vi.json have identical structure (195 keys)
+=== 2. bilingual-hardcode-scan ===
+POTENTIAL HARDCODE: ./apps/web/app/contact/ContactForm.tsx -> 'Trust'
+POTENTIAL HARDCODE: ./apps/web/app/lib/content.ts -> 'Trust'
+POTENTIAL HARDCODE: ./apps/web/app/page.js -> "Trust"
+=== 3. bilingual-public-audit ===
+EN publicPages keys: home, whatIsOmdala, howItWorks, forExperts, forHosts, forCommunities, trust, vision, faq, contact
+VI publicPages keys: home, whatIsOmdala, howItWorks, forExperts, forHosts, forCommunities, trust, vision, faq, contact
+PASS: Both locales have 10 public pages with matching keys
+=== 4. bilingual-founder-report ===
+=== BILINGUAL SOURCE FOUNDER REPORT ===
+Generated: 2026-05-26
+
+Locale pages (EN): 11
+Public page bodies (EN): 10
+Public page bodies (VI): 10
+
+Public page keys:
+  home: EN="(no hero)" VI="(no hero)" [SAME]
+  whatIsOmdala: EN="(no hero)" VI="(no hero)" [SAME]
+  howItWorks: EN="(no hero)" VI="(no hero)" [SAME]
+  forExperts: EN="(no hero)" VI="(no hero)" [SAME]
+  forHosts: EN="(no hero)" VI="(no hero)" [SAME]
+  forCommunities: EN="(no hero)" VI="(no hero)" [SAME]
+  trust: EN="(no hero)" VI="(no hero)" [SAME]
+  vision: EN="(no hero)" VI="(no hero)" [SAME]
+  faq: EN="(no hero)" VI="(no hero)" [SAME]
+  contact: EN="(no hero)" VI="(no hero)" [SAME]
+
+Chrome sections: primaryNavAriaLabel, helpfulLinksAriaLabel, nav, labels, enterApp, footerEyebrow, footerLead, sections, links
+
+Build status: rebuild web to verify -> npm run build:web
