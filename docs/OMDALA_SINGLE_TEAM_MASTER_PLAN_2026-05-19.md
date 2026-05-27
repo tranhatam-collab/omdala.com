@@ -211,10 +211,10 @@ Tất cả 10 PASS = release gate có thể chuyển `HOLD → GO`.
 | P1.4 | Sitemap + LanguageSwitcher | DONE | `sitemap.ts` existed with all 10 routes × bilingual alternates. `LanguageSwitcher` existed and integrated in `WebChrome.tsx:62` with bilingual `labels.languageSwitcher` aria label. Build passes with correct `/sitemap.xml`. | 2026-05-19 |
 | P1.5 | Dọn drift Omdalat/legacy | DONE | `grep -ri "omdalat\|omniverse" apps/web/app content/` returns empty (exit 1). Root `index.html` references OMDALAT as intentional brand description (not drift). All 3 brand-lint commands PASS. | 2026-05-19 |
 | P2.1 | Bỏ hard-code OAuth URL | DONE | `apps/auth/app/login/AuthLoginForm.tsx:137` replaced `https://api.omdala.com/v1/auth/google/start` with `getAuthApiBase()` + `AUTH_GOOGLE_START_PATH`. Uses `NEXT_PUBLIC_AUTH_API_BASE` env var, dev fallback `http://localhost:8787`, prod fallback `OMDALA_API_ORIGIN`. Build PASS. | 2026-05-19 |
-| P2.2 | Runbook OAuth env | TODO | — | 2026-05-19 |
-| P2.3 | Test API OAuth flow | TODO | — | 2026-05-19 |
-| P2.4 | Gỡ `apps/auth/out/**` | TODO | — | 2026-05-19 |
-| P2.5 | Release evidence packet | TODO | — | 2026-05-19 |
+| P2.2 | Runbook OAuth env | DONE | `docs/OAUTH_GOOGLE_RUNBOOK.md` exists with complete env vars, auth topology, cookie spec, error codes, dev setup, and prod deploy checklist. | 2026-05-26 |
+| P2.3 | Test API OAuth flow | DONE | Created `services/api/src/oauth.test.ts` with 4 test cases: start 302, callback happy path, invalid state 400, unverified email 403. All tests PASS. | 2026-05-26 |
+| P2.4 | Gỡ `apps/auth/out/**` | DONE | `apps/auth/out/**` already removed from git index (D status). Build outputs are excluded by `.gitignore`. | 2026-05-26 |
+| P2.5 | Release evidence packet | DONE | Created `docs/release-evidence/2026-05-19/` with 6 log files: API check, Next.js builds (5 apps), brand lint, bilingual audit, OAuth tests, git status. All PASS. | 2026-05-26 |
 
 Trạng thái hợp lệ: `TODO | IN_PROGRESS | BLOCKED | DONE | NO_MEANINGFUL_PROGRESS`.
 
