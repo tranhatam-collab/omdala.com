@@ -28,6 +28,13 @@
 - Mandatory scroll-to-agree modal
 - 3 risk banners: Terminal, Apply Code, Delete File
 
+### ✅ Workspace Policy Engine (Windsurf-style)
+- `lib/policy-engine.ts` — 7 permissions, localStorage persistence, default deny rename
+- `lib/permission-layer.ts` — `checkAgentPermission()` wrapper, `getAgentSystemPrompt()` injection
+- `.omcode/rules.md` — workspace-specific AI agent rules template
+- `AIChatPanel.tsx` — system prompt injection trước mỗi AI request
+- `SettingsPanel.tsx` — UI toggle 5 rename permissions
+
 ### ✅ Audit Report 100% (trước đó)
 - 24/24 features implemented
 - Architecture 10/10, Security 7/7, Performance 6/6
@@ -75,6 +82,7 @@
 ### Chưa fix (non-blocking)
 4. **AIChatPanel `setTimeout` hack** — dùng `setTimeout(..., 2000)` để save assistant message sau streaming. Cần refactor thành callback khi streaming xong.
 5. **Floating panels z-index** — Cost/Chat/Code/Tracker panels có thể overlap. Cần `zIndex` management.
+6. **SettingsPanel policy labels** — Checkbox labels trong Workspace Policy section chưa wire i18n (hardcoded VI). Non-blocking vì section mới và ít text.
 
 ---
 
@@ -109,7 +117,7 @@
 
 | Tiêu chí | Trước May 29 | Sau May 29 | Target v0.2 |
 |----------|-------------|-----------|-------------|
-| Features | 24/24 ✅ | 28/28 ✅ | 28/28 ✅ |
+| Features | 24/24 ✅ | 29/29 ✅ | 29/29 ✅ |
 | i18n VI | 40% | **100%** ✅ | 100% ✅ |
 | Security | 100% ✅ | **100%** ✅ | 100% ✅ |
 | Error Handling | 20% | **80%** ✅ | 100% ✅ |

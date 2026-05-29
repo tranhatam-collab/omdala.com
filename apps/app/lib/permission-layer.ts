@@ -1,7 +1,7 @@
 // ─── Permission Layer — Wrapper for Agent Orchestrator ─────────────────────
 // Intercepts AI agent actions and checks workspace policy before execution
 
-import { checkRenamePermission, getPolicySystemPrompt, type WorkspacePolicy } from "./policy-engine";
+import { checkRenamePermission, getPolicySystemPrompt } from "./policy-engine";
 
 export type AgentAction =
   | "rename_session"
