@@ -131,7 +131,7 @@ export function ChatHistoryPanel() {
           >
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: h.role === "user" ? "#7ef2ff" : "#4ade80" }}>
-                {h.role === "user" ? "Bạn" : "AI"}
+                {h.role === "user" ? t("you") : t("ai")}
               </span>
               <span style={{ fontSize: 9, color: "#6b7f99" }}>
                 {new Date(h.timestamp).toLocaleString()}

@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { dict, type Lang } from "../hooks/useI18n";
 
 interface Props {
   children: React.ReactNode;
@@ -14,15 +15,28 @@ interface State {
 
 const ERROR_LOG_KEY = "omcode:error:log";
 
+function getCurrentLang(): Lang {
+  try {
+    return (localStorage.getItem("omcode:lang") as Lang) || "vi";
+  } catch {
+    return "vi";
+  }
+}
+
+function t(key: string) {
+  const lang = getCurrentLang();
+  return dict[lang][key] || key;
+}
+
 function saveError(error: Error, info: React.ErrorInfo) {
   try {
     const all: Array<{ id: string; message: string; stack?: string; componentStack?: string; timestamp: number }> =
-      JSON.parse(localStorage.getItem(ERROR_LOG_KEY) || "[]");
+      JSON.parse((localStorage.getItem(ERROR_LOG_KEY) as string) || "[]");
     all.push({
       id: `err-${Date.now()}`,
       message: error.message,
       stack: error.stack,
-      componentStack: info.componentStack,
+      componentStack: info.componentStack || undefined,
       timestamp: Date.now(),
     });
     localStorage.setItem(ERROR_LOG_KEY, JSON.stringify(all.slice(-100)));
@@ -78,10 +92,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
           }}>
             <div style={{ fontSize: 32, marginBottom: 12 }}>💥</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: "#ef4444", marginBottom: 8 }}>
-              Đã xảy ra lỗi nghiêm trọng
+              {t("errorTitle")}
             </div>
             <div style={{ fontSize: 12, color: "#a8b9d0", marginBottom: 16, lineHeight: 1.5 }}>
-              OMCODE gặp lỗi không mong đợi. Lỗi đã được lưu vào localStorage để báo cáo.
+              {t("errorDesc")}
             </div>
             <div style={{
               fontSize: 10,
@@ -110,7 +124,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
                 cursor: "pointer",
               }}
             >
-              Thử lại
+              {t("retry")}
             </button>
           </div>
         </div>

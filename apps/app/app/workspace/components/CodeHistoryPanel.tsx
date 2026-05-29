@@ -54,6 +54,7 @@ export function CodeHistoryPanel() {
 
   const actionIcon: Record<string, string> = { edit: "✏️", create: "📄", delete: "🗑️", apply: "🤖" };
   const actionColor: Record<string, string> = { edit: "#7ef2ff", create: "#4ade80", delete: "#ef4444", apply: "#a78bfa" };
+  const actionLabels: Record<string, string> = { edit: t("actionEdit"), create: t("actionCreate"), delete: t("actionDelete"), apply: t("actionApply") };
 
   return (
     <div style={{ padding: 16, color: "#dbe7f5", fontSize: 12, overflow: "auto", height: "100%" }}>
@@ -113,7 +114,7 @@ export function CodeHistoryPanel() {
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ fontSize: 12 }}>{actionIcon[h.action] || "•"}</span>
               <span style={{ fontSize: 10, fontWeight: 700, color: actionColor[h.action] || "#a8b9d0" }}>
-                {h.action.toUpperCase()}
+                {actionLabels[h.action] || h.action.toUpperCase()}
               </span>
               <span style={{ fontSize: 10, color: "#6b7f99", flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>
                 {h.path}

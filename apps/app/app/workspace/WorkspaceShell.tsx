@@ -23,6 +23,7 @@ import { AccountPanel } from "./components/AccountPanel";
 import { TermsAcceptance, hasAcceptedTerms } from "./components/TermsAcceptance";
 import { TerminalRiskBanner, ApplyCodeRiskBanner } from "./components/RiskBanner";
 import { ProjectTrackerPanel } from "./components/ProjectTrackerPanel";
+import { ErrorLogPanel } from "./components/ErrorLogPanel";
 
 type Panel = "explorer" | "editor" | "terminal" | "git";
 
@@ -47,6 +48,7 @@ export function WorkspaceShell() {
   const [projectLogo, setProjectLogo] = React.useState<string | undefined>();
   const [termsAccepted, setTermsAccepted] = React.useState(true);
   const [trackerOpen, setTrackerOpen] = React.useState(false);
+  const [errorLogOpen, setErrorLogOpen] = React.useState(false);
   const [projectKey, setProjectKey] = React.useState<string | null>(null);
 
   // Apply persisted settings to model router on mount
@@ -63,7 +65,7 @@ export function WorkspaceShell() {
   React.useEffect(() => {
     async function detect() {
       if (fileSystem.rootHandle) {
-        const allPaths = fileSystem.fileTree.map((f: any) => f.path || "");
+        const allPaths = fileSystem.fileTree.map((f: { path?: string }) => f.path || "");
         const meta = detectProjectType(allPaths);
         setProjectMeta(meta);
         const logo = await detectProjectLogo(fileSystem.rootHandle);
@@ -183,7 +185,7 @@ export function WorkspaceShell() {
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
           <button
             onClick={toggleLang}
-            title={lang === "vi" ? "Switch to English" : "Chuyển sang Tiếng Anh"}
+            title={lang === "vi" ? t("switchToEnglish") : t("switchToVietnamese")}
             style={{
               padding: "4px 8px",
               borderRadius: 6,
@@ -199,7 +201,7 @@ export function WorkspaceShell() {
           </button>
           <button
             onClick={() => fileSystem.openFolder()}
-            title="Mở dự án khác"
+            title={t("openOtherProject")}
             style={{
               padding: "6px 12px",
               borderRadius: 6,
@@ -211,11 +213,11 @@ export function WorkspaceShell() {
               fontWeight: 600,
             }}
           >
-            🗂 Mở dự án
+            🗂 {t("openProject")}
           </button>
           <button
             onClick={() => setAiPaletteOpen(true)}
-            title="AI Command Palette (⌘K)"
+            title={t("aiPaletteTitle")}
             style={{
               padding: "6px 12px",
               borderRadius: 6,
@@ -241,7 +243,7 @@ export function WorkspaceShell() {
               cursor: "pointer",
             }}
           >
-            💬 AI Chat
+            💬 {t("aiChat")}
           </button>
           <button
             onClick={() => setSettingsOpen(true)}
@@ -270,7 +272,7 @@ export function WorkspaceShell() {
               cursor: "pointer",
             }}
           >
-            Terminal
+            {t("terminal")}
           </button>
           <button
             onClick={() => setBottomPanel(bottomPanel === "git" ? null : "git")}
@@ -284,7 +286,7 @@ export function WorkspaceShell() {
               cursor: "pointer",
             }}
           >
-            Git
+            {t("git")}
           </button>
           <button
             onClick={() => setCostPanelOpen((v) => !v)}
@@ -359,7 +361,22 @@ export function WorkspaceShell() {
               cursor: "pointer",
             }}
           >
-            📊 Tracker
+            📊 {t("trackerTitle")}
+          </button>
+          <button
+            onClick={() => setErrorLogOpen((v) => !v)}
+            title={t("errorLog")}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 6,
+              border: "none",
+              background: errorLogOpen ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.05)",
+              color: errorLogOpen ? "#ef4444" : "#a8b9d0",
+              fontSize: 11,
+              cursor: "pointer",
+            }}
+          >
+            🐛
           </button>
         </div>
       </div>
@@ -391,7 +408,7 @@ export function WorkspaceShell() {
                 borderBottom: sidebarPanel === "explorer" ? "2px solid #7ef2ff" : "none",
               }}
             >
-              Explorer
+              {t("explorer")}
             </button>
             <button
               onClick={() => setSidebarPanel("git")}
@@ -406,7 +423,7 @@ export function WorkspaceShell() {
                 borderBottom: sidebarPanel === "git" ? "2px solid #7ef2ff" : "none",
               }}
             >
-              Git
+              {t("git")}
             </button>
           </div>
 
@@ -606,7 +623,7 @@ export function WorkspaceShell() {
         }}>
           <AIChatPanel
             workspaceFiles={fileSystem.openFiles.map((f) => ({ path: f.path, content: f.content }))}
-            workspaceName={fileSystem.rootHandle?.name ?? "untitled"}
+            workspaceName={fileSystem.rootHandle?.name ?? t("untitled")}
             activePath={fileSystem.activePath}
             onApplyCode={(code, targetPath) => {
               const path = targetPath ?? fileSystem.activePath;
@@ -618,13 +635,40 @@ export function WorkspaceShell() {
                   path,
                   timestamp: Date.now(),
                   action: "apply",
-                  description: `Applied AI code to ${path.split("/").pop()}`,
+                  description: t("appliedAiCode") + " " + path.split("/").pop(),
                   before,
                   after: code,
                 });
               }
             }}
           />
+        </div>
+      )}
+
+      {/* Error Log */}
+      {errorLogOpen && (
+        <div style={{
+          position: "fixed",
+          right: chatOpen ? 370 : 10,
+          top: 50,
+          width: 360,
+          height: "calc(100% - 60px)",
+          background: "rgba(10,20,36,0.98)",
+          border: "1px solid rgba(239,68,68,0.15)",
+          borderRadius: 10,
+          zIndex: 60,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#ef4444" }}>🐛 {t("errorLog")}</span>
+            <span style={{ flex: 1 }} />
+            <button onClick={() => setErrorLogOpen(false)} style={{ background: "transparent", border: "none", color: "#6b7f99", fontSize: 14, cursor: "pointer" }}>✕</button>
+          </div>
+          <div style={{ flex: 1, overflow: "auto" }}>
+            <ErrorLogPanel />
+          </div>
         </div>
       )}
 
@@ -655,7 +699,7 @@ export function WorkspaceShell() {
           <div style={{ flex: 1, overflow: "auto" }}>
             <ProjectTrackerPanel
               currentProjectKey={projectKey}
-              currentProjectName={fileSystem.rootHandle?.name ?? "untitled"}
+              currentProjectName={fileSystem.rootHandle?.name ?? t("untitled")}
               currentProjectType={projectMeta?.type ?? "generic"}
               currentModel={loadSettings().defaultModel ?? "auto"}
             />
@@ -672,7 +716,7 @@ export function WorkspaceShell() {
         onClose={() => setAiPaletteOpen(false)}
         workspaceFiles={fileSystem.openFiles.map((f) => ({ path: f.path, content: f.content }))}
         onExecuteAction={(action, params) => {
-          console.log("AI Action:", action, params);
+          // AI action handled silently
         }}
       />
 

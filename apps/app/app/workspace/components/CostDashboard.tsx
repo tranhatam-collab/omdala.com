@@ -84,7 +84,7 @@ export function CostDashboard() {
   return (
     <div style={{ padding: 16, color: "#dbe7f5", fontSize: 12, overflow: "auto", height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#7ef2ff" }}>📊 Cost Dashboard</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#7ef2ff" }}>📊 {t("costDashboard")}</span>
         <span style={{ flex: 1 }} />
         {(["all", "today", "week"] as const).map((r) => (
           <button
