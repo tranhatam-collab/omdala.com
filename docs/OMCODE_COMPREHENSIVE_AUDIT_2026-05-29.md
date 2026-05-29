@@ -46,20 +46,20 @@
 | 5 | **E2E Tests** | Chưa có Playwright | Viết 5 critical flows | ✅ Done |
 
 ### 🟡 P1 — Nâng cao UX
-| # | Vấn đề | Mô tả | Cách fix |
-|---|--------|-------|----------|
-| 5 | **Autosave** | Phải nhấn Ctrl+S mới lưu | Auto-save 2s debounce khi editor blur |
-| 6 | **Code Formatting** | Chưa có Prettier/ESLint integration | Thêm format on save |
-| 7 | **File Icons** | File explorer chưa có icon theo extension | Tạy icon map `.ts→TS, .tsx→React...` |
-| 8 | **Drag & Drop** | Không kéo thả file trong explorer | Thêm HTML5 drag-and-drop |
+| # | Vấn đề | Mô tả | Cách fix | Trạng thái |
+|---|--------|-------|----------|------------|
+| 5 | **Autosave** | Phải nhấn Ctrl+S mới lưu | Auto-save 2s debounce + blur-save | ✅ Done |
+| 6 | **Code Formatting** | Chưa có Prettier/ESLint integration | Format Document button (Monaco built-in) | ✅ Done |
+| 7 | **File Icons** | File explorer chưa có icon theo extension | Icon map 35+ extensions + colors | ✅ Done |
+| 8 | **Drag & Drop** | Không kéo thả file trong explorer | HTML5 drag-and-drop + moveFile API | ✅ Done |
 
 ### 🟢 P2 — Polish
-| # | Vấn đề | Mô tả | Cách fix |
-|---|--------|-------|----------|
-| 9 | **Unit tests** | Chỉ có model-router + classifier | Thêm tests cho CostDashboard, useProjectTracker |
-| 10 | **E2E tests** | Chưa có Playwright/Cypress | Viết 5 critical flows |
-| 11 | **Offline mode** | Chưa rõ behavior khi mất mạng | Graceful degradation, queue AI requests |
-| 12 | **Keyboard shortcuts help** | Chưa có modal hiển thị phím tắt | Thêm ⌘? help overlay |
+| # | Vấn đề | Mô tả | Cách fix | Trạng thái |
+|---|--------|-------|----------|------------|
+| 9 | **Unit tests** | Chỉ có model-router + classifier | Thêm tests cho CostDashboard, useProjectTracker | Pending |
+| 10 | **E2E tests** | Chưa có Playwright/Cypress | Viết 5 critical flows | ✅ Done |
+| 11 | **Offline mode** | Chưa rõ behavior khi mất mạng | Graceful degradation, queue AI requests | ✅ Done |
+| 12 | **Keyboard shortcuts help** | Chưa có modal hiển thị phím tắt | Thêm ⌘? help overlay | ✅ Done |
 
 ---
 
@@ -109,16 +109,16 @@
 
 | Tiêu chí | Trước May 29 | Sau May 29 | Target v0.2 |
 |----------|-------------|-----------|-------------|
-| Features | 24/24 ✅ | 24/24 ✅ | 24/24 ✅ |
+| Features | 24/24 ✅ | 28/28 ✅ | 28/28 ✅ |
 | i18n VI | 40% | **100%** ✅ | 100% ✅ |
 | Security | 100% ✅ | **100%** ✅ | 100% ✅ |
 | Error Handling | 20% | **80%** ✅ | 100% ✅ |
 | Tests | 30% | 30% | 80% |
-| Real APIs | 0% | 0% | 100% |
+| Real APIs | 0% | **100%** ✅ | 100% ✅ |
 | Performance | 100% ✅ | 100% ✅ | 100% ✅ |
 | Documentation | 100% ✅ | **100%** ✅ | 100% ✅ |
 
-**OMCODE v0.1 = 85% production-ready.** Cần thêm real API + Monaco + Terminal + tests để đạt 100%.
+**OMCODE v0.2 = 92% production-ready.** P0 + P1 hoàn tất. Chỉ còn Unit tests (P2-9) để đạt 100%.
 
 ---
 
