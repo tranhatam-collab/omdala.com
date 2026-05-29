@@ -14,6 +14,7 @@
     "dev:app": "npm --prefix apps/app run dev",
     "start:app": "npm --prefix apps/app run start",
     "build:app": "npm --prefix apps/app run build",
+    "omcode": "bash scripts/omcode-launch.sh",
     "dev:api": "npm --prefix services/api run dev",
     "start:api": "npm --prefix services/api run start",
     "build:api": "npm --prefix services/api run check",

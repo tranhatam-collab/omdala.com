@@ -2,6 +2,24 @@
 
 ## Quick Start
 
+### Cách 1: Từ Terminal (khuyến nghị)
+
+```bash
+npm run omcode
+```
+
+Hoặc từ root repo:
+```bash
+bash scripts/omcode-launch.sh
+```
+
+Script tự động:
+- Kiểm tra dev server đang chạy chưa
+- Khởi động nếu chưa có
+- Mở browser với `http://localhost:3000/omcode`
+
+### Cách 2: Thủ công
+
 1. Mở Chrome/Edge trên MacBook
 2. Truy cập: `http://localhost:3000/omcode`
 3. Click **"🗂 Mở dự án"** → chọn folder code
