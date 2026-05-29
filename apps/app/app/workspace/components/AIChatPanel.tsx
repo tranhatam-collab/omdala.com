@@ -11,6 +11,8 @@ import {
 import { ModelPickerWithAuto } from "./ModelPicker";
 import { loadSettings } from "./SettingsPanel";
 import { SlashMenu, SLASH_COMMANDS } from "./SlashCommands";
+import { recordUsage } from "./CostDashboard";
+import { saveChatMessage } from "./ChatHistoryPanel";
 
 interface ChatMessage {
   id: string;
@@ -236,6 +238,17 @@ Trả lời ngắn gọn, dùng tiếng Việt.`;
         classification,
       );
 
+      // Track usage
+      const providerId = result.modelUsed?.split(":")[0] || "unknown";
+      recordUsage(
+        result.modelUsed || "unknown",
+        providerId,
+        result.response.usage?.promptTokens || 0,
+        result.response.usage?.completionTokens || 0,
+        result.totalCost || 0,
+      );
+      saveChatMessage({ id: `u-${Date.now()}`, role: "user", content: text, timestamp: Date.now(), workspace: workspaceName, model: result.modelUsed });
+
       // Streaming reveal
       const msgId = `m-${Date.now() + 1}`;
       setMessages((m) => [
@@ -252,6 +265,11 @@ Trả lời ngắn gọn, dùng tiếng Việt.`;
           },
         },
       ]);
+
+      // Save assistant message after streaming (approximate)
+      setTimeout(() => {
+        saveChatMessage({ id: msgId, role: "assistant", content: result.response.content, timestamp: Date.now(), workspace: workspaceName, model: result.modelUsed });
+      }, 2000);
 
       const fullText = result.response.content;
       const words = fullText.split(/(\s+)/);

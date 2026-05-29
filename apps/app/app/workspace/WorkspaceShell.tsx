@@ -22,6 +22,7 @@ import { CodeHistoryPanel, recordCodeEdit } from "./components/CodeHistoryPanel"
 import { AccountPanel } from "./components/AccountPanel";
 import { TermsAcceptance, hasAcceptedTerms } from "./components/TermsAcceptance";
 import { TerminalRiskBanner, ApplyCodeRiskBanner } from "./components/RiskBanner";
+import { ProjectTrackerPanel } from "./components/ProjectTrackerPanel";
 
 type Panel = "explorer" | "editor" | "terminal" | "git";
 
@@ -45,6 +46,7 @@ export function WorkspaceShell() {
   const [projectMeta, setProjectMeta] = React.useState<ProjectMeta | null>(null);
   const [projectLogo, setProjectLogo] = React.useState<string | undefined>();
   const [termsAccepted, setTermsAccepted] = React.useState(true);
+  const [trackerOpen, setTrackerOpen] = React.useState(false);
 
   // Apply persisted settings to model router on mount
   React.useEffect(() => {
@@ -341,6 +343,21 @@ export function WorkspaceShell() {
           >
             👤
           </button>
+          <button
+            onClick={() => setTrackerOpen((v) => !v)}
+            title="Project Tracker"
+            style={{
+              padding: "6px 12px",
+              borderRadius: 6,
+              border: "none",
+              background: trackerOpen ? "rgba(126,242,255,0.15)" : "rgba(255,255,255,0.05)",
+              color: trackerOpen ? "#7ef2ff" : "#a8b9d0",
+              fontSize: 11,
+              cursor: "pointer",
+            }}
+          >
+            📊 Tracker
+          </button>
         </div>
       </div>
 
@@ -610,6 +627,38 @@ export function WorkspaceShell() {
 
       {/* Account */}
       <AccountPanel isOpen={accountOpen} onClose={() => setAccountOpen(false)} />
+
+      {/* Project Tracker */}
+      {trackerOpen && (
+        <div style={{
+          position: "fixed",
+          right: chatOpen ? 370 : 10,
+          top: 50,
+          width: 360,
+          height: "calc(100% - 60px)",
+          background: "rgba(10,20,36,0.98)",
+          border: "1px solid rgba(126,242,255,0.15)",
+          borderRadius: 10,
+          zIndex: 60,
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>📊 Project Tracker</span>
+            <span style={{ flex: 1 }} />
+            <button onClick={() => setTrackerOpen(false)} style={{ background: "transparent", border: "none", color: "#6b7f99", fontSize: 14, cursor: "pointer" }}>✕</button>
+          </div>
+          <div style={{ flex: 1, overflow: "auto" }}>
+            <ProjectTrackerPanel
+              currentProjectPath={fileSystem.rootHandle ? fileSystem.rootHandle.name : null}
+              currentProjectName={fileSystem.rootHandle?.name ?? "untitled"}
+              currentProjectType={projectMeta?.type ?? "generic"}
+              currentModel={loadSettings().defaultModel ?? "auto"}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Settings */}
       <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} t={t} />

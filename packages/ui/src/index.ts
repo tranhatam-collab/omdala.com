@@ -5,6 +5,10 @@ export { LinkSEO } from './components/LinkSEO'
 export type { LinkSEOProps } from './components/LinkSEO'
 export { DocumentLanguageSync } from './components/DocumentLanguageSync'
 export { SchemaScript } from './components/SchemaScript'
+export { AICommandPalette } from './components/AICommandPalette'
+export { SmartButton } from './components/SmartButton'
+export { SmartCard } from './components/SmartCard'
+export { SmartInput } from './components/SmartInput'
 
 export {
   pickBilingualValue,

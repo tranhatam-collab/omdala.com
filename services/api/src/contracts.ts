@@ -18,6 +18,22 @@ export interface ApiBindings {
   GOOGLE_CLIENT_SECRET?: string;
   GOOGLE_REDIRECT_URI?: string;
   GOOGLE_OAUTH_STATE_SECRET?: string;
+  // Custom Security API
+  API_KEY_SECRET?: string;
+  WEBHOOK_SECRET?: string;
+  SERVICE_TOKEN_SECRET?: string;
+  CSRF_SECRET?: string;
+  // AI Provider Keys (auto-connect)
+  OPENAI_API_KEY?: string;
+  ANTHROPIC_API_KEY?: string;
+  GEMINI_API_KEY?: string;
+  AZURE_OPENAI_KEY?: string;
+  AZURE_OPENAI_ENDPOINT?: string;
+  MISTRAL_API_KEY?: string;
+  GROQ_API_KEY?: string;
+  COHERE_API_KEY?: string;
+  CUSTOM_AI_ENDPOINT?: string;
+  CUSTOM_AI_KEY?: string;
 }
 
 export interface ContactRequest {

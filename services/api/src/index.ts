@@ -60,6 +60,26 @@ import {
 } from "./db/reality-repository";
 import { DbQueryError, mapDbErrorToHttp } from "./db/errors";
 import { createApiContractStub } from "./stub";
+// ─── Custom Security & AI Connectors ───────────────────────────────────
+import {
+  buildClearCookie as buildSecureClearCookie,
+  buildSecureCookie,
+  createApiKeyRecord,
+  createServiceToken,
+  generateCsrfToken,
+  getTrustedClientIp,
+  RateLimiter,
+  resolveAllowedOrigin,
+  verifyApiKey,
+  verifyCsrfToken,
+  verifyServiceToken,
+  verifyWebhookSignature,
+} from "./security";
+import {
+  aiCompleteWithFallback,
+  checkAiProviderHealth,
+  discoverConnectors,
+} from "./ai-connectors";
 
 export type {
   AccessRequest,
@@ -100,7 +120,7 @@ type RateLimitBucket = {
   resetAt: number;
 };
 
-const rateLimitStore = new Map<string, RateLimitBucket>();
+const rateLimiter = new RateLimiter();
 const accountProfileStore = new Map<string, OmAiAccountProfile>();
 const accountPreferencesStore = new Map<string, OmAiAccountPreferences>();
 const billingSubscriptionStore = new Map<string, OmAiBillingSubscription>();
@@ -120,16 +140,19 @@ const localOrigins = [
 const contactTopicLabels = Object.fromEntries(
   OMDALA_CONTACT_TOPICS.map((topic) => [topic.value, topic.label]),
 );
+const ALLOWED_ORIGINS = new Set([
+  OMDALA_WEB_ORIGIN,
+  OMDALA_APP_ORIGIN,
+  OMDALA_AUTH_ORIGIN,
+  "https://docs.omdala.com",
+  "https://trust.omdala.com",
+  "https://admin.omdala.com",
+  "https://*.omdala.com",
+  ...localOrigins,
+]);
+
 const apiContract = createApiContractStub({
-  allowedOrigins: [
-    OMDALA_WEB_ORIGIN,
-    OMDALA_APP_ORIGIN,
-    OMDALA_AUTH_ORIGIN,
-    "https://docs.omdala.com",
-    "https://trust.omdala.com",
-    "https://admin.omdala.com",
-    ...localOrigins,
-  ],
+  allowedOrigins: Array.from(ALLOWED_ORIGINS),
 });
 
 function jsonError(
@@ -194,28 +217,11 @@ function escapeHtml(value: string) {
 }
 
 function getClientIp(c: ApiContext): string {
-  return (
-    c.req.header("cf-connecting-ip")?.trim() ||
-    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "unknown"
-  );
+  return getTrustedClientIp(c.req.raw.headers);
 }
 
 function isRateLimited(key: string, limit: number, windowMs: number): boolean {
-  const now = Date.now();
-  const bucket = rateLimitStore.get(key);
-  if (!bucket || bucket.resetAt <= now) {
-    rateLimitStore.set(key, { count: 1, resetAt: now + windowMs });
-    return false;
-  }
-
-  if (bucket.count >= limit) {
-    return true;
-  }
-
-  bucket.count += 1;
-  rateLimitStore.set(key, bucket);
-  return false;
+  return rateLimiter.isLimited(key, limit, windowMs);
 }
 
 function bytesToBase64Url(bytes: Uint8Array) {
@@ -372,16 +378,31 @@ function getWebBaseUrl(env: ApiBindings) {
   return (env.WEB_BASE_URL ?? OMDALA_WEB_ORIGIN).replace(/\/+$/g, "");
 }
 
+function getCookieDomain(_c: ApiContext): string | undefined {
+  // Use env-specific domain if needed; default to .omdala.com for prod
+  return undefined; // let browser infer (host-only) or set via env
+}
+
 function buildSetCookie(
+  c: ApiContext,
   name: string,
   value: string,
   maxAgeSeconds: number,
 ): string {
-  return `${name}=${value}; Path=/; Max-Age=${maxAgeSeconds}; HttpOnly; Secure; SameSite=Lax; Domain=.omdala.com`;
+  return buildSecureCookie({
+    name,
+    value,
+    maxAgeSeconds,
+    domain: getCookieDomain(c),
+    path: "/",
+    httpOnly: true,
+    secure: true,
+    sameSite: "Lax",
+  });
 }
 
-function buildClearCookie(name: string): string {
-  return `${name}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax; Domain=.omdala.com`;
+function buildClearCookie(c: ApiContext, name: string): string {
+  return buildSecureClearCookie(name, getCookieDomain(c), "/");
 }
 
 function setSessionCookies(
@@ -391,21 +412,21 @@ function setSessionCookies(
 ): void {
   c.header(
     "Set-Cookie",
-    buildSetCookie("omdala_access_token", accessToken, 60 * 60),
+    buildSetCookie(c, "omdala_access_token", accessToken, 60 * 60),
     { append: true },
   );
   c.header(
     "Set-Cookie",
-    buildSetCookie("omdala_refresh_token", refreshToken, 7 * 24 * 60 * 60),
+    buildSetCookie(c, "omdala_refresh_token", refreshToken, 7 * 24 * 60 * 60),
     { append: true },
   );
 }
 
 function clearSessionCookies(c: ApiContext): void {
-  c.header("Set-Cookie", buildClearCookie("omdala_access_token"), {
+  c.header("Set-Cookie", buildClearCookie(c, "omdala_access_token"), {
     append: true,
   });
-  c.header("Set-Cookie", buildClearCookie("omdala_refresh_token"), {
+  c.header("Set-Cookie", buildClearCookie(c, "omdala_refresh_token"), {
     append: true,
   });
 }
@@ -536,8 +557,13 @@ function getBillingSubscriptionForEmail(email: string): OmAiBillingSubscription 
   return subscription;
 }
 
-function getBillingUsageForEmail(_email: string): OmAiBillingUsage {
-  const usedMinutes = 12;
+function getBillingUsageForEmail(email: string): OmAiBillingUsage {
+  const events = getAnalyticsEventsForEmail(email);
+  const today = new Date().toISOString().slice(0, 10);
+  const usedMinutes = events
+    .filter((e) => e.eventName === "om-ai.usage.minute-recorded")
+    .filter((e) => e.occurredAt.startsWith(today))
+    .reduce((sum, e) => sum + Number((e.properties as any)?.minutes ?? 0), 0);
   return {
     appId: OM_AI_APP_ID,
     quota: {
@@ -1070,29 +1096,34 @@ function applySeedTrustDeltaForProofSubmission(commitmentId: string): void {
     .map((value) => value.trim())
     .filter(Boolean);
 
+  // Immutable update: create new trust array to avoid race conditions
+  const updatedTrust = [...realitySeed.trust];
   for (const nodeId of candidateNodeIds) {
-    const existing = realitySeed.trust.find((item) => item.nodeId === nodeId);
-    if (existing) {
-      existing.score = Math.min(100, Number(existing.score) + 0.2);
-      existing.updatedAt = now;
-      existing.explanation = [
-        "Trust adjusted after proof submission.",
-        "Pending verification may increase confidence further.",
-      ];
-      continue;
+    const idx = updatedTrust.findIndex((item) => item.nodeId === nodeId);
+    if (idx >= 0) {
+      updatedTrust[idx] = {
+        ...updatedTrust[idx],
+        score: Math.min(100, Number(updatedTrust[idx].score) + 0.2),
+        updatedAt: now,
+        explanation: [
+          "Trust adjusted after proof submission.",
+          "Pending verification may increase confidence further.",
+        ],
+      };
+    } else {
+      updatedTrust.unshift({
+        nodeId,
+        score: 50,
+        level: "basic",
+        explanation: [
+          "Trust adjusted after proof submission.",
+          "Pending verification may increase confidence further.",
+        ],
+        updatedAt: now,
+      });
     }
-
-    realitySeed.trust.unshift({
-      nodeId,
-      score: 50,
-      level: "basic",
-      explanation: [
-        "Trust adjusted after proof submission.",
-        "Pending verification may increase confidence further.",
-      ],
-      updatedAt: now,
-    });
   }
+  realitySeed.trust = updatedTrust;
 }
 
 async function sendMail(env: ApiBindings, payload: MailRequest) {
@@ -1287,9 +1318,16 @@ function buildAccessRequestAckEmail(payload: Required<AccessRequest>) {
 app.use(
   "/*",
   cors({
-    origin: (origin) => apiContract.resolveAllowedOrigin(origin),
+    origin: (origin) => resolveAllowedOrigin(origin, ALLOWED_ORIGINS),
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "x-request-id"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-request-id",
+      "x-api-key",
+      "x-csrf-token",
+      "x-service-token",
+    ],
     exposeHeaders: ["x-request-id"],
     maxAge: 86400,
     credentials: true,
@@ -2461,6 +2499,201 @@ app.post("/v1/auth/logout", async (c) => {
 // Robots — API must never be indexed
 app.get("/robots.txt", (c) => {
   return c.text("User-agent: *\nDisallow: /");
+});
+
+// ── Custom Security API ────────────────────────────────────────────────────
+
+app.get("/v1/security/csrf", async (c) => {
+  const secret = c.env.CSRF_SECRET ?? c.env.MAGIC_LINK_SECRET ?? "";
+  if (!secret) {
+    return jsonError(c, 501, "not_configured", "CSRF secret is not configured.");
+  }
+  try {
+    const pair = await generateCsrfToken(secret);
+    return jsonOk(c, { token: pair.token, expiresAt: new Date(pair.expiresAt).toISOString() });
+  } catch (error) {
+    return jsonError(c, 500, "csrf_generation_failed", error instanceof Error ? error.message : "Unknown error");
+  }
+});
+
+app.post("/v1/security/api-keys", async (c) => {
+  const session = await requireAuthenticatedSession(c);
+  if (session instanceof Response) return session;
+
+  const body = await c.req.json<{ name?: string; scopes?: string[]; expiresInDays?: number }>().catch(() => null);
+  if (!body?.name) {
+    return jsonError(c, 400, "invalid_request", "API key name is required.");
+  }
+
+  try {
+    const result = await createApiKeyRecord(body.name, body.scopes, body.expiresInDays);
+    return jsonOk(c, { keyId: result.record.keyId, rawKey: result.rawKey, scopes: result.record.scopes }, 201);
+  } catch (error) {
+    return jsonError(c, 500, "api_key_creation_failed", error instanceof Error ? error.message : "Unknown error");
+  }
+});
+
+app.post("/v1/security/webhooks/verify", async (c) => {
+  const body = await c.req.json<{
+    payload?: string;
+    signature?: string;
+    secret?: string;
+    algorithm?: "sha256";
+  }>().catch(() => null);
+  if (!body?.payload || !body.signature || !body.secret) {
+    return jsonError(c, 400, "invalid_request", "payload, signature, and secret are required.");
+  }
+
+  try {
+    const valid = await verifyWebhookSignature(body.payload, body.signature, body.secret, body.algorithm);
+    return jsonOk(c, { valid });
+  } catch (error) {
+    return jsonError(c, 500, "verification_failed", error instanceof Error ? error.message : "Unknown error");
+  }
+});
+
+app.post("/v1/security/service-token", async (c) => {
+  const secret = c.env.SERVICE_TOKEN_SECRET ?? c.env.MAGIC_LINK_SECRET ?? "";
+  if (!secret) {
+    return jsonError(c, 501, "not_configured", "Service token secret is not configured.");
+  }
+
+  const body = await c.req.json<{ serviceId?: string; ttlSeconds?: number }>().catch(() => null);
+  if (!body?.serviceId) {
+    return jsonError(c, 400, "invalid_request", "serviceId is required.");
+  }
+
+  try {
+    const token = await createServiceToken(body.serviceId, secret, body.ttlSeconds);
+    return jsonOk(c, { token }, 201);
+  } catch (error) {
+    return jsonError(c, 500, "token_creation_failed", error instanceof Error ? error.message : "Unknown error");
+  }
+});
+
+app.post("/v1/security/service-token/verify", async (c) => {
+  const secret = c.env.SERVICE_TOKEN_SECRET ?? c.env.MAGIC_LINK_SECRET ?? "";
+  if (!secret) {
+    return jsonError(c, 501, "not_configured", "Service token secret is not configured.");
+  }
+
+  const body = await c.req.json<{ token?: string }>().catch(() => null);
+  if (!body?.token) {
+    return jsonError(c, 400, "invalid_request", "token is required.");
+  }
+
+  try {
+    const payload = await verifyServiceToken(body.token, secret);
+    if (!payload) {
+      return jsonError(c, 401, "invalid_token", "Service token is invalid or expired.");
+    }
+    return jsonOk(c, { valid: true, serviceId: payload.sub, jti: payload.jti });
+  } catch (error) {
+    return jsonError(c, 500, "verification_failed", error instanceof Error ? error.message : "Unknown error");
+  }
+});
+
+// ── AI Auto-Connect API ────────────────────────────────────────────────────
+
+app.get("/v1/ai/connectors", async (c) => {
+  const session = await requireAuthenticatedSession(c);
+  if (session instanceof Response) return session;
+
+  const connectors = discoverConnectors({
+    openaiKey: c.env.OPENAI_API_KEY,
+    anthropicKey: c.env.ANTHROPIC_API_KEY,
+    geminiKey: c.env.GEMINI_API_KEY,
+    azureKey: c.env.AZURE_OPENAI_KEY,
+    azureEndpoint: c.env.AZURE_OPENAI_ENDPOINT,
+    mistralKey: c.env.MISTRAL_API_KEY,
+    groqKey: c.env.GROQ_API_KEY,
+    cohereKey: c.env.COHERE_API_KEY,
+    customEndpoint: c.env.CUSTOM_AI_ENDPOINT,
+    customKey: c.env.CUSTOM_AI_KEY,
+  });
+
+  return jsonOk(c, {
+    providers: connectors.map((c) => c.provider),
+    total: connectors.length,
+  });
+});
+
+app.get("/v1/ai/health", async (c) => {
+  const session = await requireAuthenticatedSession(c);
+  if (session instanceof Response) return session;
+
+  const connectors = discoverConnectors({
+    openaiKey: c.env.OPENAI_API_KEY,
+    anthropicKey: c.env.ANTHROPIC_API_KEY,
+    geminiKey: c.env.GEMINI_API_KEY,
+    azureKey: c.env.AZURE_OPENAI_KEY,
+    azureEndpoint: c.env.AZURE_OPENAI_ENDPOINT,
+    mistralKey: c.env.MISTRAL_API_KEY,
+    groqKey: c.env.GROQ_API_KEY,
+    cohereKey: c.env.COHERE_API_KEY,
+    customEndpoint: c.env.CUSTOM_AI_ENDPOINT,
+    customKey: c.env.CUSTOM_AI_KEY,
+  });
+
+  const results = await Promise.all(
+    connectors.map(async (config) => {
+      try {
+        return await checkAiProviderHealth(config);
+      } catch (error) {
+        return {
+          provider: config.provider,
+          ok: false,
+          latencyMs: 0,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    }),
+  );
+
+  return jsonOk(c, { providers: results, total: results.length });
+});
+
+app.post("/v1/ai/complete", async (c) => {
+  const session = await requireAuthenticatedSession(c);
+  if (session instanceof Response) return session;
+
+  const body = await c.req.json<{
+    messages?: Array<{ role: string; content: string }>;
+    maxTokens?: number;
+    temperature?: number;
+  }>().catch(() => null);
+
+  if (!body?.messages?.length) {
+    return jsonError(c, 400, "invalid_request", "messages array is required.");
+  }
+
+  const connectors = discoverConnectors({
+    openaiKey: c.env.OPENAI_API_KEY,
+    anthropicKey: c.env.ANTHROPIC_API_KEY,
+    geminiKey: c.env.GEMINI_API_KEY,
+    azureKey: c.env.AZURE_OPENAI_KEY,
+    azureEndpoint: c.env.AZURE_OPENAI_ENDPOINT,
+    mistralKey: c.env.MISTRAL_API_KEY,
+    groqKey: c.env.GROQ_API_KEY,
+    cohereKey: c.env.COHERE_API_KEY,
+    customEndpoint: c.env.CUSTOM_AI_ENDPOINT,
+    customKey: c.env.CUSTOM_AI_KEY,
+  });
+
+  if (!connectors.length) {
+    return jsonError(c, 501, "no_providers", "No AI providers are configured.");
+  }
+
+  try {
+    const result = await aiCompleteWithFallback(connectors, {
+      messages: body.messages.map((m) => ({ role: m.role as any, content: m.content })),
+      maxTokens: body.maxTokens,
+      temperature: body.temperature,
+    });
+    return jsonOk(c, result);
+  } catch (error) {
+    return jsonError(c, 502, "all_providers_failed", error instanceof Error ? error.message : "Unknown error");
+  }
 });
 
 // ── Google OAuth ─────────────────────────────────────────────────────────────

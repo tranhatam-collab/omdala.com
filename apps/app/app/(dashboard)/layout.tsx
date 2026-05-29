@@ -1,10 +1,7 @@
 "use client";
 
-import { APP_PRIMARY_NAV } from "@omdala/core";
-import { resolveLanguage, type OmdalaLanguage } from "@omdala/core";
-import { Suspense, useEffect, useState } from "react";
-import { LocaleLink } from "../components/LocaleLink";
-import { APP_COPY, t } from "@/lib/bilingual-copy";
+import { SmartLayout } from "../components/SmartLayout";
+import { Suspense } from "react";
 import { DashboardAuthGate } from "./DashboardAuthGate";
 
 export default function DashboardLayout({
@@ -12,57 +9,30 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [language, setLanguage] = useState<OmdalaLanguage>("en");
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    setLanguage(resolveLanguage(new URLSearchParams(window.location.search).get("lang")));
-  }, []);
-
   return (
     <Suspense
       fallback={
-        <main className="app-shell">
-          <section className="dashboard-panel">
-            <p className="app-eyebrow">{t(language, APP_COPY.layout.fallbackEyebrow)}</p>
-            <h1>{t(language, APP_COPY.layout.fallbackTitle)}</h1>
-          </section>
+        <main style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "#060d1a" }}>
+          <div style={{ textAlign: "center" }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                border: "3px solid rgba(126,242,255,0.15)",
+                borderTopColor: "#7ef2ff",
+                borderRadius: "50%",
+                animation: "spin 0.8s linear infinite",
+                margin: "0 auto 16px",
+              }}
+            />
+            <p style={{ color: "#a8b9d0", fontSize: 14 }}>Đang tải...</p>
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
         </main>
       }
     >
       <DashboardAuthGate>
-        <main className="app-shell dashboard-layout">
-          <aside className="dashboard-sidebar">
-            <section className="dashboard-card">
-              <p className="app-eyebrow">{t(language, APP_COPY.layout.productSurface)}</p>
-              <LocaleLink href="/dashboard" className="dashboard-brand">
-                OMDALA App
-              </LocaleLink>
-            </section>
-
-            <nav
-              className="dashboard-card dashboard-nav"
-              aria-label={t(language, APP_COPY.layout.appNavigation)}
-            >
-              {APP_PRIMARY_NAV.map((item) => {
-                const itemLabel = APP_COPY.layout.navLabels[
-                  item.label as keyof typeof APP_COPY.layout.navLabels
-                ];
-
-                return (
-                  <LocaleLink key={item.href} href={item.href}>
-                    {itemLabel ? t(language, itemLabel) : item.label}
-                  </LocaleLink>
-                );
-              })}
-            </nav>
-          </aside>
-
-          <section className="dashboard-main">{children}</section>
-        </main>
+        <SmartLayout>{children}</SmartLayout>
       </DashboardAuthGate>
     </Suspense>
   );
