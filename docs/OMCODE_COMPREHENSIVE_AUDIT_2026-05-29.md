@@ -37,12 +37,13 @@
 ## 2. Những gì CÒN THIẾU để thực sự 100%
 
 ### 🔴 P0 — Chặn production
-| # | Vấn đề | Mô tả | Cách fix |
-|---|--------|-------|----------|
-| 1 | **Real API Gateway** | AccountPanel đang dùng mock fetch | Kết nối thật với `aiagent.iai.one` API |
-| 2 | **Monaco Editor tích hợp** | EditorPanel có thể là placeholder | Cài `@monaco-editor/react`, wire language detection |
-| 3 | **Terminal thực thi** | useTerminal có thể mock | Tích hợp `node-pty` hoặc xterm.js với shell thật |
-| 4 | **File Watchers** | Không phát hiện file thay đổi bên ngoài | Thêm `window.addEventListener('focus')` + compare mtime |
+| # | Vấn đề | Mô tả | Cách fix | Trạng thái |
+|---|--------|-------|----------|------------|
+| 1 | **Real API Gateway** | AccountPanel đang dùng mock fetch | Kết nối thật với `aiagent.iai.one` API | ✅ Done |
+| 2 | **Monaco Editor tích hợp** | EditorPanel có thể là placeholder | Cài `@monaco-editor/react`, wire language detection | ✅ Done |
+| 3 | **Terminal thực thi** | useTerminal có thể mock | Tích hợp `node-pty` hoặc xterm.js với shell thật | ✅ Done (enhanced + i18n) |
+| 4 | **File Watchers** | Không phát hiện file thay đổi bên ngoài | Thêm `window.addEventListener('focus')` + compare mtime | ✅ Done |
+| 5 | **E2E Tests** | Chưa có Playwright | Viết 5 critical flows | ✅ Done |
 
 ### 🟡 P1 — Nâng cao UX
 | # | Vấn đề | Mô tả | Cách fix |
