@@ -15,6 +15,13 @@ import { WelcomeScreen, saveRecentProject } from "./components/WelcomeScreen";
 import { StatusBar } from "./components/StatusBar";
 import { AICommandPalette } from "../ai/AICommandPalette";
 import { useI18n } from "./hooks/useI18n";
+import { detectProjectType, detectProjectLogo, type ProjectMeta } from "./hooks/useProjectType";
+import { CostDashboard, recordUsage } from "./components/CostDashboard";
+import { ChatHistoryPanel } from "./components/ChatHistoryPanel";
+import { CodeHistoryPanel, recordCodeEdit } from "./components/CodeHistoryPanel";
+import { AccountPanel } from "./components/AccountPanel";
+import { TermsAcceptance, hasAcceptedTerms } from "./components/TermsAcceptance";
+import { TerminalRiskBanner, ApplyCodeRiskBanner } from "./components/RiskBanner";
 
 type Panel = "explorer" | "editor" | "terminal" | "git";
 
@@ -31,11 +38,37 @@ export function WorkspaceShell() {
   const [aiPaletteOpen, setAiPaletteOpen] = React.useState(false);
   const [chatOpen, setChatOpen] = React.useState(true);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [accountOpen, setAccountOpen] = React.useState(false);
+  const [costPanelOpen, setCostPanelOpen] = React.useState(false);
+  const [chatHistoryOpen, setChatHistoryOpen] = React.useState(false);
+  const [codeHistoryOpen, setCodeHistoryOpen] = React.useState(false);
+  const [projectMeta, setProjectMeta] = React.useState<ProjectMeta | null>(null);
+  const [projectLogo, setProjectLogo] = React.useState<string | undefined>();
+  const [termsAccepted, setTermsAccepted] = React.useState(true);
 
   // Apply persisted settings to model router on mount
   React.useEffect(() => {
     applySettingsToRouter(loadSettings());
   }, []);
+
+  // Check terms acceptance
+  React.useEffect(() => {
+    setTermsAccepted(hasAcceptedTerms());
+  }, []);
+
+  // Detect project type & logo when folder opens
+  React.useEffect(() => {
+    async function detect() {
+      if (fileSystem.rootHandle) {
+        const allPaths = fileSystem.fileTree.map((f: any) => f.path || "");
+        const meta = detectProjectType(allPaths);
+        setProjectMeta(meta);
+        const logo = await detectProjectLogo(fileSystem.rootHandle);
+        if (logo) setProjectLogo(logo);
+      }
+    }
+    detect();
+  }, [fileSystem.rootHandle, fileSystem.fileTree]);
 
   // Check git repo on mount
   React.useEffect(() => {
@@ -112,6 +145,10 @@ export function WorkspaceShell() {
     );
   }
 
+  if (!termsAccepted) {
+    return <TermsAcceptance onAccept={() => setTermsAccepted(true)} />;
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: "#060d1a", fontFamily: "var(--font-sans, 'Inter', system-ui, sans-serif)" }}>
       {/* Top bar */}
@@ -127,9 +164,16 @@ export function WorkspaceShell() {
           OMDALA Workspace
         </span>
         {fileSystem.rootHandle && (
-          <span style={{ marginLeft: 16, fontSize: 12, color: "#6b7f99" }}>
-            {fileSystem.rootHandle.name}
-          </span>
+          <>
+            {projectLogo ? (
+              <img src={projectLogo} alt="logo" style={{ marginLeft: 12, width: 18, height: 18, borderRadius: 4, objectFit: "cover" }} />
+            ) : projectMeta ? (
+              <span style={{ marginLeft: 12, fontSize: 14 }} title={projectMeta.type}>{projectMeta.icon}</span>
+            ) : null}
+            <span style={{ marginLeft: 8, fontSize: 12, color: "#6b7f99" }}>
+              {fileSystem.rootHandle.name}
+            </span>
+          </>
         )}
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
           <button
@@ -237,6 +281,66 @@ export function WorkspaceShell() {
           >
             Git
           </button>
+          <button
+            onClick={() => setCostPanelOpen((v) => !v)}
+            title="Cost Dashboard"
+            style={{
+              padding: "6px 12px",
+              borderRadius: 6,
+              border: "none",
+              background: costPanelOpen ? "rgba(126,242,255,0.15)" : "rgba(255,255,255,0.05)",
+              color: costPanelOpen ? "#7ef2ff" : "#a8b9d0",
+              fontSize: 11,
+              cursor: "pointer",
+            }}
+          >
+            📊
+          </button>
+          <button
+            onClick={() => setChatHistoryOpen((v) => !v)}
+            title="Chat History"
+            style={{
+              padding: "6px 12px",
+              borderRadius: 6,
+              border: "none",
+              background: chatHistoryOpen ? "rgba(126,242,255,0.15)" : "rgba(255,255,255,0.05)",
+              color: chatHistoryOpen ? "#7ef2ff" : "#a8b9d0",
+              fontSize: 11,
+              cursor: "pointer",
+            }}
+          >
+            🗨️
+          </button>
+          <button
+            onClick={() => setCodeHistoryOpen((v) => !v)}
+            title="Code History"
+            style={{
+              padding: "6px 12px",
+              borderRadius: 6,
+              border: "none",
+              background: codeHistoryOpen ? "rgba(126,242,255,0.15)" : "rgba(255,255,255,0.05)",
+              color: codeHistoryOpen ? "#7ef2ff" : "#a8b9d0",
+              fontSize: 11,
+              cursor: "pointer",
+            }}
+          >
+            📝
+          </button>
+          <button
+            onClick={() => setAccountOpen(true)}
+            title="Account & Subscription"
+            style={{
+              padding: "6px 12px",
+              borderRadius: 6,
+              border: "none",
+              background: "rgba(255,255,255,0.05)",
+              color: "#a8b9d0",
+              fontSize: 11,
+              cursor: "pointer",
+            }}
+          >
+            👤
+          </button>
         </div>
       </div>
 
@@ -324,6 +428,7 @@ export function WorkspaceShell() {
 
         {/* Editor + Bottom Panel */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", marginRight: chatOpen ? 360 : 0 }}>
+          {bottomPanel === "terminal" && <TerminalRiskBanner />}
           {/* Editor */}
           <div style={{ flex: bottomPanel ? `calc(100% - ${bottomPanelHeight}px)` : "100%", overflow: "hidden" }}>
             <EditorPanel
@@ -383,6 +488,85 @@ export function WorkspaceShell() {
               </div>
             </>
           )}
+
+          {/* Floating panels */}
+          {costPanelOpen && (
+            <div style={{
+              position: "fixed",
+              right: chatOpen ? 370 : 10,
+              top: 50,
+              width: 320,
+              height: "calc(100% - 60px)",
+              background: "rgba(10,20,36,0.98)",
+              border: "1px solid rgba(126,242,255,0.15)",
+              borderRadius: 10,
+              zIndex: 60,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>📊 Cost Dashboard</span>
+                <span style={{ flex: 1 }} />
+                <button onClick={() => setCostPanelOpen(false)} style={{ background: "transparent", border: "none", color: "#6b7f99", fontSize: 14, cursor: "pointer" }}>✕</button>
+              </div>
+              <div style={{ flex: 1, overflow: "auto" }}>
+                <CostDashboard />
+              </div>
+            </div>
+          )}
+
+          {chatHistoryOpen && (
+            <div style={{
+              position: "fixed",
+              right: chatOpen ? 370 : 10,
+              top: 50,
+              width: 320,
+              height: "calc(100% - 60px)",
+              background: "rgba(10,20,36,0.98)",
+              border: "1px solid rgba(126,242,255,0.15)",
+              borderRadius: 10,
+              zIndex: 60,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>💬 Chat History</span>
+                <span style={{ flex: 1 }} />
+                <button onClick={() => setChatHistoryOpen(false)} style={{ background: "transparent", border: "none", color: "#6b7f99", fontSize: 14, cursor: "pointer" }}>✕</button>
+              </div>
+              <div style={{ flex: 1, overflow: "auto" }}>
+                <ChatHistoryPanel />
+              </div>
+            </div>
+          )}
+
+          {codeHistoryOpen && (
+            <div style={{
+              position: "fixed",
+              right: chatOpen ? 370 : 10,
+              top: 50,
+              width: 340,
+              height: "calc(100% - 60px)",
+              background: "rgba(10,20,36,0.98)",
+              border: "1px solid rgba(126,242,255,0.15)",
+              borderRadius: 10,
+              zIndex: 60,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>📝 Code History</span>
+                <span style={{ flex: 1 }} />
+                <button onClick={() => setCodeHistoryOpen(false)} style={{ background: "transparent", border: "none", color: "#6b7f99", fontSize: 14, cursor: "pointer" }}>✕</button>
+              </div>
+              <div style={{ flex: 1, overflow: "auto" }}>
+                <CodeHistoryPanel />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -407,12 +591,25 @@ export function WorkspaceShell() {
             onApplyCode={(code, targetPath) => {
               const path = targetPath ?? fileSystem.activePath;
               if (path) {
+                const before = fileSystem.openFiles.find((f) => f.path === path)?.content ?? "";
                 fileSystem.updateFileContent(path, code);
+                recordCodeEdit({
+                  id: `edit-${Date.now()}`,
+                  path,
+                  timestamp: Date.now(),
+                  action: "apply",
+                  description: `Applied AI code to ${path.split("/").pop()}`,
+                  before,
+                  after: code,
+                });
               }
             }}
           />
         </div>
       )}
+
+      {/* Account */}
+      <AccountPanel isOpen={accountOpen} onClose={() => setAccountOpen(false)} />
 
       {/* Settings */}
       <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} t={t} />
