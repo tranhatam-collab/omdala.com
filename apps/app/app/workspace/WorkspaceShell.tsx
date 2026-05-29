@@ -47,6 +47,7 @@ export function WorkspaceShell() {
   const [projectLogo, setProjectLogo] = React.useState<string | undefined>();
   const [termsAccepted, setTermsAccepted] = React.useState(true);
   const [trackerOpen, setTrackerOpen] = React.useState(false);
+  const [projectKey, setProjectKey] = React.useState<string | null>(null);
 
   // Apply persisted settings to model router on mount
   React.useEffect(() => {
@@ -58,7 +59,7 @@ export function WorkspaceShell() {
     setTermsAccepted(hasAcceptedTerms());
   }, []);
 
-  // Detect project type & logo when folder opens
+  // Detect project type & logo + assign unique project key when folder opens
   React.useEffect(() => {
     async function detect() {
       if (fileSystem.rootHandle) {
@@ -67,6 +68,8 @@ export function WorkspaceShell() {
         setProjectMeta(meta);
         const logo = await detectProjectLogo(fileSystem.rootHandle);
         if (logo) setProjectLogo(logo);
+        // Generate unique project key to avoid name collisions across folders
+        setProjectKey(crypto.randomUUID ? crypto.randomUUID() : `pk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
       }
     }
     detect();
@@ -651,7 +654,7 @@ export function WorkspaceShell() {
           </div>
           <div style={{ flex: 1, overflow: "auto" }}>
             <ProjectTrackerPanel
-              currentProjectPath={fileSystem.rootHandle ? fileSystem.rootHandle.name : null}
+              currentProjectKey={projectKey}
               currentProjectName={fileSystem.rootHandle?.name ?? "untitled"}
               currentProjectType={projectMeta?.type ?? "generic"}
               currentModel={loadSettings().defaultModel ?? "auto"}

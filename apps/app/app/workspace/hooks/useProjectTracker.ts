@@ -66,14 +66,15 @@ export function savePlans(plans: ProjectPlan[]) {
   localStorage.setItem(PLANS_KEY, JSON.stringify(plans));
 }
 
-export function getOrCreatePlan(projectPath: string, projectName: string, projectType: string, aiModel: string): ProjectPlan {
+export function getOrCreatePlan(projectKey: string | null, projectName: string, projectType: string, aiModel: string): ProjectPlan | null {
+  if (!projectKey) return null;
   const plans = loadAllPlans();
-  let plan = plans.find((p) => p.path === projectPath);
+  let plan = plans.find((p) => p.id === projectKey);
   if (!plan) {
     plan = {
-      id: `proj-${Date.now()}`,
+      id: projectKey,
       name: projectName,
-      path: projectPath,
+      path: projectName,
       type: projectType,
       createdAt: Date.now(),
       updatedAt: Date.now(),

@@ -37,8 +37,8 @@ const PRIORITY_COLOR: Record<string, string> = {
   critical: "#ef4444",
 };
 
-export function ProjectTrackerPanel({ currentProjectPath, currentProjectName, currentProjectType, currentModel }: {
-  currentProjectPath: string | null;
+export function ProjectTrackerPanel({ currentProjectKey, currentProjectName, currentProjectType, currentModel }: {
+  currentProjectKey: string | null;
   currentProjectName: string;
   currentProjectType: string;
   currentModel: string;
@@ -59,11 +59,11 @@ export function ProjectTrackerPanel({ currentProjectPath, currentProjectName, cu
 
   // Auto-select current project
   React.useEffect(() => {
-    if (currentProjectPath) {
-      const plan = getOrCreatePlan(currentProjectPath, currentProjectName, currentProjectType, currentModel);
-      setSelectedPlanId(plan.id);
+    if (currentProjectKey) {
+      const plan = getOrCreatePlan(currentProjectKey, currentProjectName, currentProjectType, currentModel);
+      if (plan) setSelectedPlanId(plan.id);
     }
-  }, [currentProjectPath, currentProjectName, currentProjectType, currentModel]);
+  }, [currentProjectKey, currentProjectName, currentProjectType, currentModel]);
 
   const selectedPlan = plans.find((p) => p.id === selectedPlanId);
 
