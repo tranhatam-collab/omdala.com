@@ -52,6 +52,7 @@ export function WorkspaceShell() {
   const [errorLogOpen, setErrorLogOpen] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [projectKey, setProjectKey] = React.useState<string | null>(null);
+  const [isOnline, setIsOnline] = React.useState(true);
 
   // Apply persisted settings to model router on mount
   React.useEffect(() => {
@@ -61,6 +62,19 @@ export function WorkspaceShell() {
   // Check terms acceptance
   React.useEffect(() => {
     setTermsAccepted(hasAcceptedTerms());
+  }, []);
+
+  // Network status
+  React.useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const on = () => setIsOnline(true);
+    const off = () => setIsOnline(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+    };
   }, []);
 
   // Detect project type & logo + assign unique project key when folder opens
@@ -403,6 +417,20 @@ export function WorkspaceShell() {
           </button>
         </div>
       </div>
+
+      {/* Offline Banner */}
+      {!isOnline && (
+        <div style={{
+          padding: "4px 16px",
+          background: "rgba(239,68,68,0.1)",
+          borderBottom: "1px solid rgba(239,68,68,0.2)",
+          color: "#ef4444",
+          fontSize: 11,
+          textAlign: "center",
+        }}>
+          ⚠️ {t("offline")} — {t("offlineWarning")}
+        </div>
+      )}
 
       {/* Main content */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>

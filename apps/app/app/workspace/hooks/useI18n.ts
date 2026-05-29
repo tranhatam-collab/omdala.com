@@ -47,6 +47,7 @@ export const dict: Record<Lang, Record<string, string>> = {
     apply: "Apply",
     online: "Online",
     offline: "Offline",
+    offlineWarning: "Some features may be limited.",
     files: "files",
     changes: "changes",
     totalCost: "Total Cost",
@@ -170,6 +171,8 @@ export const dict: Record<Lang, Record<string, string>> = {
     shortcutHelp: "Show shortcuts help",
     shortcutNewFile: "New file",
     shortcutCloseTab: "Close tab",
+    formatDocument: "Format Document",
+    formatShortcut: "⌘⇧F Format",
   },
   vi: {
     workspace: "OMCODE Workspace",
@@ -212,6 +215,7 @@ export const dict: Record<Lang, Record<string, string>> = {
     apply: "Áp dụng",
     online: "Trực tuyến",
     offline: "Ngoại tuyến",
+    offlineWarning: "Một số tính năng có thể bị hạn chế.",
     files: "file",
     changes: "thay đổi",
     totalCost: "Tổng chi phí",
@@ -335,6 +339,8 @@ export const dict: Record<Lang, Record<string, string>> = {
     shortcutHelp: "Hiển thị phím tắt",
     shortcutNewFile: "File mới",
     shortcutCloseTab: "Đóng tab",
+    formatDocument: "Định dạng Document",
+    formatShortcut: "⌘⇧F Định dạng",
   },
 };
 

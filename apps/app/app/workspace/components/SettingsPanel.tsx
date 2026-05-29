@@ -4,6 +4,7 @@
 import * as React from "react";
 import { modelRouter } from "@omdala/core";
 import { ModelPickerWithAuto } from "./ModelPicker";
+import { loadWorkspacePolicy, saveWorkspacePolicy, type WorkspacePolicy } from "@/lib/policy-engine";
 
 interface ProviderKey {
   id: string;
@@ -80,6 +81,7 @@ interface SettingsPanelProps {
 export function SettingsPanel({ isOpen, onClose, t: _t }: SettingsPanelProps) {
   const t = _t ?? ((k: string) => k);
   const [settings, setSettings] = React.useState<Settings>(() => loadSettings());
+  const [policy, setPolicy] = React.useState<WorkspacePolicy>(() => loadWorkspacePolicy());
   const [saved, setSaved] = React.useState(false);
   const [customName, setCustomName] = React.useState("");
   const [customProvider, setCustomProvider] = React.useState("");
@@ -88,6 +90,7 @@ export function SettingsPanel({ isOpen, onClose, t: _t }: SettingsPanelProps) {
   React.useEffect(() => {
     if (isOpen) {
       setSettings(loadSettings());
+      setPolicy(loadWorkspacePolicy());
       setSaved(false);
     }
   }, [isOpen]);
@@ -106,6 +109,7 @@ export function SettingsPanel({ isOpen, onClose, t: _t }: SettingsPanelProps) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
       applySettingsToRouter(settings);
+      saveWorkspacePolicy(policy);
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
     } catch (e) {
@@ -428,6 +432,66 @@ export function SettingsPanel({ isOpen, onClose, t: _t }: SettingsPanelProps) {
                 }}
               />
             </label>
+          </div>
+
+          {/* Workspace Policy */}
+          <div
+            style={{
+              border: "1px solid rgba(126,242,255,0.15)",
+              borderRadius: 8,
+              padding: 12,
+              background: "rgba(126,242,255,0.03)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>Workspace Policy</span>
+            <span style={{ fontSize: 10, color: "#6b7f99" }}>
+              Kiểm soát AI agent — ngăn đổi tên session/space/project
+            </span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#dbe7f5" }}>
+                <input
+                  type="checkbox"
+                  checked={policy.allowRenameSession}
+                  onChange={(e) => setPolicy((p) => ({ ...p, allowRenameSession: e.target.checked }))}
+                />
+                Cho phép AI đổi tên session
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#dbe7f5" }}>
+                <input
+                  type="checkbox"
+                  checked={policy.allowRenameSpace}
+                  onChange={(e) => setPolicy((p) => ({ ...p, allowRenameSpace: e.target.checked }))}
+                />
+                Cho phép AI đổi tên space
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#dbe7f5" }}>
+                <input
+                  type="checkbox"
+                  checked={policy.allowRenameProject}
+                  onChange={(e) => setPolicy((p) => ({ ...p, allowRenameProject: e.target.checked }))}
+                />
+                Cho phép AI đổi tên project
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#dbe7f5" }}>
+                <input
+                  type="checkbox"
+                  checked={policy.allowRenameFolder}
+                  onChange={(e) => setPolicy((p) => ({ ...p, allowRenameFolder: e.target.checked }))}
+                />
+                Cho phép AI đổi tên folder
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: "#dbe7f5" }}>
+                <input
+                  type="checkbox"
+                  checked={policy.allowRenameRepository}
+                  onChange={(e) => setPolicy((p) => ({ ...p, allowRenameRepository: e.target.checked }))}
+                />
+                Cho phép AI đổi tên repository
+              </label>
+            </div>
           </div>
         </div>
 

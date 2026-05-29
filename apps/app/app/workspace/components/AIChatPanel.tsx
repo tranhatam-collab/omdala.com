@@ -13,6 +13,7 @@ import { loadSettings } from "./SettingsPanel";
 import { SlashMenu, SLASH_COMMANDS } from "./SlashCommands";
 import { recordUsage } from "./CostDashboard";
 import { saveChatMessage } from "./ChatHistoryPanel";
+import { getAgentSystemPrompt } from "@/lib/permission-layer";
 
 interface ChatMessage {
   id: string;
@@ -207,7 +208,7 @@ export function AIChatPanel({ workspaceFiles, workspaceName, activePath, onApply
         ? mentionFiles.map((f) => `// ${f.path}\n${f.content.slice(0, 2000)}`).join("\n\n")
         : "";
 
-      const systemPrompt = `Bạn là OMCODE AI, trợ lý lập trình. Workspace: ${workspaceName}. Task: ${classification.type}.
+      const baseSystemPrompt = `Bạn là OMCODE AI, trợ lý lập trình. Workspace: ${workspaceName}. Task: ${classification.type}.
 
 Active files context:
 ${activeContext || "(no files open)"}
@@ -215,6 +216,8 @@ ${activeContext || "(no files open)"}
 ${mentionContext ? `Mentioned files context:\n${mentionContext}` : ""}
 
 Trả lời ngắn gọn, dùng tiếng Việt.`;
+
+      const systemPrompt = getAgentSystemPrompt(baseSystemPrompt);
 
       // Override recommended model if user picked specific
       const effectiveClassification =

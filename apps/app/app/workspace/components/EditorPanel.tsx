@@ -35,6 +35,7 @@ export function EditorPanel({
   const [theme, setTheme] = React.useState<"vs-dark" | "vs">("vs-dark");
   const [saving, setSaving] = React.useState(false);
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editorRef = React.useRef<any>(null);
 
   // Autosave: debounce 2s after last change
   React.useEffect(() => {
@@ -240,6 +241,7 @@ export function EditorPanel({
               if (value !== undefined) onChange(activeFile.path, value);
             }}
             onMount={(editor, monaco) => {
+              editorRef.current = editor;
               // Autosave on blur
               editor.onDidBlurEditorWidget(() => {
                 if (activeFile && hasUnsaved(activeFile.path)) {
@@ -319,7 +321,21 @@ export function EditorPanel({
             {saving && (
               <span style={{ color: "#4ade80" }}>◌ {t("saving")}</span>
             )}
-            <span style={{ marginLeft: "auto" }}>{t("saveShortcut")}</span>
+            <button
+              onClick={() => {
+                editorRef.current?.getAction("editor.action.formatDocument")?.run();
+              }}
+              style={{
+                marginLeft: "auto",
+                background: "transparent",
+                border: "none",
+                color: "#6b7f99",
+                fontSize: 11,
+                cursor: "pointer",
+              }}
+            >
+              {t("formatShortcut")}
+            </button>
           </>
         )}
       </div>
