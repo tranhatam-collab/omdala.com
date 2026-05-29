@@ -56,7 +56,7 @@
 ### 🟢 P2 — Polish
 | # | Vấn đề | Mô tả | Cách fix | Trạng thái |
 |---|--------|-------|----------|------------|
-| 9 | **Unit tests** | Chỉ có model-router + classifier | Thêm tests cho CostDashboard, useProjectTracker | Pending |
+| 9 | **Unit tests** | Chỉ có model-router + classifier | Thêm tests cho CostDashboard, useProjectTracker | ✅ Done |
 | 10 | **E2E tests** | Chưa có Playwright/Cypress | Viết 5 critical flows | ✅ Done |
 | 11 | **Offline mode** | Chưa rõ behavior khi mất mạng | Graceful degradation, queue AI requests | ✅ Done |
 | 12 | **Keyboard shortcuts help** | Chưa có modal hiển thị phím tắt | Thêm ⌘? help overlay | ✅ Done |
@@ -113,12 +113,12 @@
 | i18n VI | 40% | **100%** ✅ | 100% ✅ |
 | Security | 100% ✅ | **100%** ✅ | 100% ✅ |
 | Error Handling | 20% | **80%** ✅ | 100% ✅ |
-| Tests | 30% | 30% | 80% |
+| Tests | 30% | **80%** ✅ | 80% ✅ |
 | Real APIs | 0% | **100%** ✅ | 100% ✅ |
 | Performance | 100% ✅ | 100% ✅ | 100% ✅ |
 | Documentation | 100% ✅ | **100%** ✅ | 100% ✅ |
 
-**OMCODE v0.2 = 92% production-ready.** P0 + P1 hoàn tất. Chỉ còn Unit tests (P2-9) để đạt 100%.
+**OMCODE v0.2 = 96% production-ready.** P0 + P1 + P2 hoàn tất. Audit backlog 100% complete.
 
 ---
 
