@@ -14,6 +14,7 @@ import { SettingsPanel, loadSettings, applySettingsToRouter } from "./components
 import { WelcomeScreen, saveRecentProject } from "./components/WelcomeScreen";
 import { StatusBar } from "./components/StatusBar";
 import { AICommandPalette } from "../ai/AICommandPalette";
+import { useI18n } from "./hooks/useI18n";
 
 type Panel = "explorer" | "editor" | "terminal" | "git";
 
@@ -21,6 +22,7 @@ export function WorkspaceShell() {
   const fileSystem = useFileSystem();
   const terminal = useTerminal(fileSystem.rootHandle);
   const git = useGit(fileSystem.rootHandle);
+  const { lang, t, toggleLang } = useI18n();
 
   const [activePanel, setActivePanel] = React.useState<Panel>("editor");
   const [sidebarPanel, setSidebarPanel] = React.useState<"explorer" | "git">("explorer");
@@ -129,7 +131,23 @@ export function WorkspaceShell() {
             {fileSystem.rootHandle.name}
           </span>
         )}
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            onClick={toggleLang}
+            title={lang === "vi" ? "Switch to English" : "Chuyển sang Tiếng Việt"}
+            style={{
+              padding: "4px 8px",
+              borderRadius: 6,
+              border: "1px solid rgba(126,242,255,0.25)",
+              background: "rgba(126,242,255,0.08)",
+              color: "#7ef2ff",
+              fontSize: 11,
+              cursor: "pointer",
+              fontWeight: 700,
+            }}
+          >
+            {lang === "vi" ? "VI 🇻🇳" : "EN 🇺🇸"}
+          </button>
           <button
             onClick={() => fileSystem.openFolder()}
             title="Mở dự án khác"
@@ -397,7 +415,7 @@ export function WorkspaceShell() {
       )}
 
       {/* Settings */}
-      <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} t={t} />
 
       {/* AI Command Palette */}
       <AICommandPalette
