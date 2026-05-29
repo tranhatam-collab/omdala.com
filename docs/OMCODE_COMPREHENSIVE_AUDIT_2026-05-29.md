@@ -9,8 +9,8 @@
 ## 1. Tổng kết những gì đã làm hôm nay (May 29)
 
 ### ✅ i18n 100% Tiếng Việt
-- Dictionary mở rộng từ 40 → **110+ keys** (EN/VI)
-- 7 components được wire `useI18n`: CostDashboard, ChatHistoryPanel, CodeHistoryPanel, RiskBanner, TermsAcceptance, WorkspaceShell, SettingsPanel
+- Dictionary mở rộng từ 40 → **128+ keys** (EN/VI)
+- 8 components được wire `useI18n`: CostDashboard, ChatHistoryPanel, CodeHistoryPanel, RiskBanner, TermsAcceptance, WorkspaceShell, SettingsPanel, ErrorBoundary
 - Khi chọn VI: toàn bộ UI hiển thị tiếng Việt, người dùng không biết tiếng Anh vẫn dùng được 100%
 
 ### ✅ Bug #3 Fix — Project Path Collision
@@ -20,7 +20,8 @@
 ### ✅ ErrorBoundary + Auto Error Reporter
 - React ErrorBoundary bao bọc toàn app
 - Auto-save 100 lỗi gần nhất vào localStorage
-- UI lỗi bằng tiếng Việt với nút "Thử lại"
+- UI lỗi dùng i18n (EN/VI) qua dict + localStorage
+- ErrorLogPanel mới: xem, sao chép, xóa log lỗi từ UI
 
 ### ✅ Terms of Service + Risk Management
 - Full EULA (8 sections) với risk acknowledgment
@@ -65,8 +66,10 @@
 
 ### Đã fix
 1. **Project collision** — `getOrCreatePlan` dùng `path` (folder name) → UUID
-2. **console.log còn sót** — `WorkspaceShell.tsx:675` còn `console.log("AI Action:")`
+2. **console.log còn sót** — `WorkspaceShell.tsx:675` `console.log("AI Action:")` đã remove
 3. **Type null** — `projectLogo` type `string | undefined` nhưng khởi tạo `undefined`, assign `string` ✓
+4. **i18n hardcoded strings** — Toàn bộ WorkspaceShell, CostDashboard, ChatHistoryPanel, CodeHistoryPanel, ErrorBoundary đã wire `t()`
+5. **TS `any`** — `fileSystem.fileTree.map((f: any) => ...)` → `({ path?: string })`
 
 ### Chưa fix (non-blocking)
 4. **AIChatPanel `setTimeout` hack** — dùng `setTimeout(..., 2000)` để save assistant message sau streaming. Cần refactor thành callback khi streaming xong.
