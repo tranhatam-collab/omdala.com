@@ -197,6 +197,50 @@ export function useFileSystem() {
     }
   }, [rootHandle, refreshFileTree]);
 
+  const moveFile = useCallback(async (fromPath: string, toDirPath: string, newName: string) => {
+    if (!rootHandle) return;
+    try {
+      // Read source file
+      const srcParts = fromPath.split("/").filter(Boolean);
+      const srcFileName = srcParts.pop()!;
+      let srcDir = rootHandle;
+      for (const part of srcParts) {
+        srcDir = await (srcDir as any).getDirectoryHandle(part);
+      }
+      const srcHandle = await (srcDir as any).getFileHandle(srcFileName);
+      const srcFile = await (srcHandle as any).getFile();
+      const content = await srcFile.text();
+
+      // Create destination file
+      let dstDir = rootHandle;
+      const dstParts = toDirPath.split("/").filter(Boolean);
+      for (const part of dstParts) {
+        dstDir = await (dstDir as any).getDirectoryHandle(part);
+      }
+      const dstHandle = await (dstDir as any).getFileHandle(newName, { create: true });
+      const writable = await (dstHandle as any).createWritable();
+      await writable.write(content);
+      await writable.close();
+
+      // Remove source
+      await (srcDir as any).removeEntry(srcFileName);
+
+      // Update open files if moved file was open
+      setOpenFiles((prev) =>
+        prev.map((f) =>
+          f.path === fromPath
+            ? { ...f, path: `${toDirPath}/${newName}`, name: newName }
+            : f
+        ),
+      );
+      if (activePath === fromPath) setActivePath(`${toDirPath}/${newName}`);
+
+      await refreshFileTree();
+    } catch (err: any) {
+      setError(err.message || "Không thể di chuyển file");
+    }
+  }, [rootHandle, refreshFileTree, activePath]);
+
   const deleteEntry = useCallback(async (node: FileSystemNode) => {
     if (!rootHandle) return;
     try {
@@ -273,6 +317,7 @@ export function useFileSystem() {
     createFile,
     createDirectory,
     deleteEntry,
+    moveFile,
     hasUnsavedChanges,
     clearError: () => setError(null),
   };

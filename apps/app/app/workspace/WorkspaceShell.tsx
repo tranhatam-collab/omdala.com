@@ -486,6 +486,7 @@ export function WorkspaceShell() {
               onCreateFile={fileSystem.createFile}
               onCreateDir={fileSystem.createDirectory}
               onDelete={fileSystem.deleteEntry}
+              onMoveFile={fileSystem.moveFile}
               onRefresh={fileSystem.refreshFileTree}
               isLoading={fileSystem.isLoading}
               onOpenFolder={fileSystem.openFolder}

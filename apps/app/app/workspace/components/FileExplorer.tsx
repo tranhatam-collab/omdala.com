@@ -11,6 +11,7 @@ interface FileExplorerProps {
   onCreateFile: (dirPath: string, name: string) => void;
   onCreateDir: (dirPath: string, name: string) => void;
   onDelete: (node: FileSystemNode) => void;
+  onMoveFile?: (fromPath: string, toDirPath: string, newName: string) => void;
   onRefresh: () => void;
   isLoading: boolean;
   onOpenFolder: () => void;
@@ -74,6 +75,7 @@ function TreeNode({
   onCreateFile,
   onCreateDir,
   onDelete,
+  onMoveFile,
 }: {
   node: FileSystemNode;
   depth: number;
@@ -82,11 +84,13 @@ function TreeNode({
   onCreateFile: (dirPath: string, name: string) => void;
   onCreateDir: (dirPath: string, name: string) => void;
   onDelete: (node: FileSystemNode) => void;
+  onMoveFile?: (fromPath: string, toDirPath: string, newName: string) => void;
 }) {
   const [expanded, setExpanded] = React.useState(depth < 1);
   const [contextMenu, setContextMenu] = React.useState<{ x: number; y: number } | null>(null);
   const [creating, setCreating] = React.useState<"file" | "dir" | null>(null);
   const [newName, setNewName] = React.useState("");
+  const [dragOver, setDragOver] = React.useState(false);
   const isActive = activePath === node.path;
 
   const handleClick = () => {
@@ -102,6 +106,34 @@ function TreeNode({
     setContextMenu({ x: e.clientX, y: e.clientY });
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("text/plain", node.path);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (node.kind === "directory" && onMoveFile) {
+      e.dataTransfer.dropEffect = "move";
+      setDragOver(true);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const fromPath = e.dataTransfer.getData("text/plain");
+    if (!fromPath || !onMoveFile) return;
+    if (node.kind === "directory") {
+      const name = fromPath.split("/").pop() || fromPath;
+      onMoveFile(fromPath, node.path, name);
+    }
+  };
+
   const handleCreate = () => {
     if (!newName.trim()) return;
     if (creating === "file") onCreateFile(node.path, newName.trim());
@@ -113,6 +145,11 @@ function TreeNode({
   return (
     <div>
       <div
+        draggable={node.kind === "file"}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         style={{
@@ -122,7 +159,7 @@ function TreeNode({
           paddingLeft: 12 + depth * 16,
           cursor: "pointer",
           borderRadius: 6,
-          background: isActive ? "rgba(126,242,255,0.1)" : "transparent",
+          background: dragOver ? "rgba(126,242,255,0.15)" : isActive ? "rgba(126,242,255,0.1)" : "transparent",
           color: isActive ? "#7ef2ff" : node.kind === "directory" ? "#f7fbff" : "#a8b9d0",
           fontSize: 13,
           fontWeight: isActive ? 600 : 400,
@@ -132,10 +169,10 @@ function TreeNode({
           textOverflow: "ellipsis",
         }}
         onMouseEnter={(e) => {
-          if (!isActive) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+          if (!isActive && !dragOver) e.currentTarget.style.background = "rgba(255,255,255,0.04)";
         }}
         onMouseLeave={(e) => {
-          if (!isActive) e.currentTarget.style.background = "transparent";
+          if (!isActive && !dragOver) e.currentTarget.style.background = "transparent";
         }}
       >
         <span style={{ display: "inline-block", width: 14, transition: "transform 150ms", transform: node.kind === "directory" && expanded ? "rotate(90deg)" : "none" }}>
@@ -186,6 +223,7 @@ function TreeNode({
           onCreateFile={onCreateFile}
           onCreateDir={onCreateDir}
           onDelete={onDelete}
+          onMoveFile={onMoveFile}
         />
       ))}
 
@@ -268,6 +306,7 @@ export function FileExplorer({
   onCreateFile,
   onCreateDir,
   onDelete,
+  onMoveFile,
   onRefresh,
   isLoading,
   onOpenFolder,
@@ -352,6 +391,7 @@ export function FileExplorer({
               onCreateFile={onCreateFile}
               onCreateDir={onCreateDir}
               onDelete={onDelete}
+              onMoveFile={onMoveFile}
             />
           ))
         )}
