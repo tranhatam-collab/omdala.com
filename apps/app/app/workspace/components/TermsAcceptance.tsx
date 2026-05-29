@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { useI18n } from "../hooks/useI18n";
 
 const TERMS_KEY = "omcode:terms:accepted:v1";
 
@@ -16,6 +17,7 @@ export function acceptTerms() {
 }
 
 export function TermsAcceptance({ onAccept }: { onAccept: () => void }) {
+  const { t } = useI18n();
   const [scrolled, setScrolled] = React.useState(false);
 
   return (
@@ -52,10 +54,10 @@ export function TermsAcceptance({ onAccept }: { onAccept: () => void }) {
           }}
         >
           <div style={{ fontSize: 16, fontWeight: 800, color: "#ef4444" }}>
-            ⚠️ Terms of Service & Risk Acknowledgment
+            ⚠️ {t("termsTitle")}
           </div>
           <div style={{ fontSize: 11, color: "#6b7f99", marginTop: 4 }}>
-            You must read and accept before using OMCODE. This is a local-first tool with direct filesystem access.
+            {t("termsSubtitle")}
           </div>
         </div>
 
@@ -76,7 +78,7 @@ export function TermsAcceptance({ onAccept }: { onAccept: () => void }) {
           }}
         >
           <div style={{ fontSize: 13, fontWeight: 700, color: "#f7fbff", marginBottom: 12 }}>
-            🚨 CRITICAL RISKS — READ CAREFULLY
+            🚨 {t("riskFileSystem")} / {t("riskTerminal")} / {t("riskApply")} / {t("riskNoWarranty")}
           </div>
 
           <RiskSection
@@ -105,7 +107,7 @@ export function TermsAcceptance({ onAccept }: { onAccept: () => void }) {
           />
 
           <div style={{ marginTop: 16, padding: 12, background: "rgba(126,242,255,0.05)", border: "1px solid rgba(126,242,255,0.15)", borderRadius: 8 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#7ef2ff" }}>✅ Best Practices</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#7ef2ff" }}>✅ {t("bestPractices")}</div>
             <ul style={{ fontSize: 11, color: "#a8b9d0", marginTop: 6, paddingLeft: 16 }}>
               <li>Always initialize Git before opening a project in OMCODE</li>
               <li>Review every AI-generated command before execution</li>
@@ -130,7 +132,7 @@ export function TermsAcceptance({ onAccept }: { onAccept: () => void }) {
           }}
         >
           {!scrolled && (
-            <span style={{ fontSize: 10, color: "#f59e0b" }}>⬆️ Scroll to bottom to enable</span>
+            <span style={{ fontSize: 10, color: "#f59e0b" }}>⬆️ {t("scrollToEnable")}</span>
           )}
           <span style={{ flex: 1 }} />
           <button
@@ -152,7 +154,7 @@ export function TermsAcceptance({ onAccept }: { onAccept: () => void }) {
               cursor: scrolled ? "pointer" : "not-allowed",
             }}
           >
-            {scrolled ? "I Understand the Risks & Agree to Terms" : "Scroll down to agree"}
+            {scrolled ? t("iUnderstand") : t("scrollToEnable")}
           </button>
         </div>
       </div>

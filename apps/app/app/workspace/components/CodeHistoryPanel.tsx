@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { useI18n } from "../hooks/useI18n";
 
 interface CodeEdit {
   id: string;
@@ -34,6 +35,7 @@ export function clearCodeHistory() {
 }
 
 export function CodeHistoryPanel() {
+  const { t } = useI18n();
   const [history, setHistory] = React.useState<CodeEdit[]>([]);
   const [search, setSearch] = React.useState("");
   const [selectedEdit, setSelectedEdit] = React.useState<CodeEdit | null>(null);
@@ -56,9 +58,9 @@ export function CodeHistoryPanel() {
   return (
     <div style={{ padding: 16, color: "#dbe7f5", fontSize: 12, overflow: "auto", height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#7ef2ff" }}>📝 Code History</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#7ef2ff" }}>📝 {t("history")}</span>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 10, color: "#6b7f99" }}>{history.length} edits</span>
+        <span style={{ fontSize: 10, color: "#6b7f99" }}>{history.length} {t("edits")}</span>
         <button
           onClick={() => { clearCodeHistory(); setHistory([]); }}
           style={{
@@ -71,7 +73,7 @@ export function CodeHistoryPanel() {
             cursor: "pointer",
           }}
         >
-          Clear
+          {t("clear")}
         </button>
       </div>
 
@@ -79,7 +81,7 @@ export function CodeHistoryPanel() {
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search file or description..."
+        placeholder={t("searchFile")}
         style={{
           width: "100%",
           marginBottom: 12,
@@ -126,16 +128,16 @@ export function CodeHistoryPanel() {
 
             {selectedEdit?.id === h.id && h.before && h.after && (
               <div style={{ marginTop: 8, padding: 8, background: "rgba(0,0,0,0.3)", borderRadius: 6 }}>
-                <div style={{ fontSize: 9, color: "#6b7f99", marginBottom: 4 }}>DIFF PREVIEW</div>
+                <div style={{ fontSize: 9, color: "#6b7f99", marginBottom: 4 }}>{t("diffPreview")}</div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 9, color: "#ef4444", marginBottom: 2 }}>BEFORE</div>
+                    <div style={{ fontSize: 9, color: "#ef4444", marginBottom: 2 }}>{t("before")}</div>
                     <pre style={{ margin: 0, fontSize: 9, color: "#a8b9d0", maxHeight: 120, overflow: "auto", whiteSpace: "pre-wrap" }}>
                       {h.before.slice(0, 500)}
                     </pre>
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 9, color: "#4ade80", marginBottom: 2 }}>AFTER</div>
+                    <div style={{ fontSize: 9, color: "#4ade80", marginBottom: 2 }}>{t("after")}</div>
                     <pre style={{ margin: 0, fontSize: 9, color: "#a8b9d0", maxHeight: 120, overflow: "auto", whiteSpace: "pre-wrap" }}>
                       {h.after.slice(0, 500)}
                     </pre>
@@ -148,7 +150,7 @@ export function CodeHistoryPanel() {
       </div>
 
       {filtered.length === 0 && (
-        <div style={{ textAlign: "center", padding: 40, color: "#6b7f99" }}>No code edits yet.</div>
+        <div style={{ textAlign: "center", padding: 40, color: "#6b7f99" }}>{t("noEdits")}</div>
       )}
     </div>
   );

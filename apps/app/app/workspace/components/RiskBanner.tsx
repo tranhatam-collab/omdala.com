@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { useI18n } from "../hooks/useI18n";
 
 const RISK_KEYS = {
   terminal: "omcode:risk:terminal",
@@ -18,6 +19,7 @@ function dismiss(key: string) {
 }
 
 export function TerminalRiskBanner() {
+  const { t } = useI18n();
   const [show, setShow] = React.useState(!hasDismissed(RISK_KEYS.terminal));
   if (!show) return null;
   return (
@@ -33,19 +35,20 @@ export function TerminalRiskBanner() {
     }}>
       <span style={{ fontSize: 14 }}>⚠️</span>
       <span style={{ flex: 1, fontSize: 11, color: "#fca5a5" }}>
-        Terminal runs commands with your user privileges. Review every command before execution.
+        {t("terminalWarning")}
       </span>
       <button
         onClick={() => { dismiss(RISK_KEYS.terminal); setShow(false); }}
         style={{ background: "transparent", border: "none", color: "#fca5a5", fontSize: 10, cursor: "pointer" }}
       >
-        Dismiss
+        {t("dismiss")}
       </button>
     </div>
   );
 }
 
 export function ApplyCodeRiskBanner() {
+  const { t } = useI18n();
   const [show, setShow] = React.useState(!hasDismissed(RISK_KEYS.applyCode));
   if (!show) return null;
   return (
@@ -61,19 +64,20 @@ export function ApplyCodeRiskBanner() {
     }}>
       <span style={{ fontSize: 14 }}>⚠️</span>
       <span style={{ flex: 1, fontSize: 10, color: "#fcd34d" }}>
-        AI-generated code may contain bugs or security issues. Use Git before applying.
+        {t("applyWarning")}
       </span>
       <button
         onClick={() => { dismiss(RISK_KEYS.applyCode); setShow(false); }}
         style={{ background: "transparent", border: "none", color: "#fcd34d", fontSize: 10, cursor: "pointer" }}
       >
-        Dismiss
+        {t("dismiss")}
       </button>
     </div>
   );
 }
 
 export function DeleteFileRiskBanner() {
+  const { t } = useI18n();
   const [show, setShow] = React.useState(!hasDismissed(RISK_KEYS.deleteFile));
   if (!show) return null;
   return (
@@ -89,13 +93,13 @@ export function DeleteFileRiskBanner() {
     }}>
       <span style={{ fontSize: 14 }}>🗑️</span>
       <span style={{ flex: 1, fontSize: 10, color: "#fca5a5" }}>
-        Deleting files cannot be undone. Ensure you have a backup.
+        {t("deleteWarning")}
       </span>
       <button
         onClick={() => { dismiss(RISK_KEYS.deleteFile); setShow(false); }}
         style={{ background: "transparent", border: "none", color: "#fca5a5", fontSize: 10, cursor: "pointer" }}
       >
-        Dismiss
+        {t("dismiss")}
       </button>
     </div>
   );

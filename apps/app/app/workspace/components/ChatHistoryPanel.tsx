@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { useI18n } from "../hooks/useI18n";
 
 interface ChatMessage {
   id: string;
@@ -33,6 +34,7 @@ export function clearChatHistory() {
 }
 
 export function ChatHistoryPanel() {
+  const { t } = useI18n();
   const [history, setHistory] = React.useState<ChatMessage[]>([]);
   const [search, setSearch] = React.useState("");
   const [workspaceFilter, setWorkspaceFilter] = React.useState<string>("all");
@@ -58,9 +60,9 @@ export function ChatHistoryPanel() {
   return (
     <div style={{ padding: 16, color: "#dbe7f5", fontSize: 12, overflow: "auto", height: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#7ef2ff" }}>💬 Chat History</span>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#7ef2ff" }}>💬 {t("history")}</span>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 10, color: "#6b7f99" }}>{history.length} messages</span>
+        <span style={{ fontSize: 10, color: "#6b7f99" }}>{history.length} {t("messages")}</span>
         <button
           onClick={() => { clearChatHistory(); setHistory([]); }}
           style={{
@@ -73,7 +75,7 @@ export function ChatHistoryPanel() {
             cursor: "pointer",
           }}
         >
-          Clear
+          {t("clear")}
         </button>
       </div>
 
@@ -81,7 +83,7 @@ export function ChatHistoryPanel() {
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search messages..."
+        placeholder={t("search") + "..."}
         style={{
           width: "100%",
           marginBottom: 8,
@@ -112,7 +114,7 @@ export function ChatHistoryPanel() {
         }}
       >
         {workspaces.map((w) => (
-          <option key={w} value={w}>{w === "all" ? "All workspaces" : w}</option>
+          <option key={w} value={w}>{w === "all" ? t("allWorkspaces") : w}</option>
         ))}
       </select>
 
@@ -129,7 +131,7 @@ export function ChatHistoryPanel() {
           >
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: h.role === "user" ? "#7ef2ff" : "#4ade80" }}>
-                {h.role === "user" ? "You" : "AI"}
+                {h.role === "user" ? "Bạn" : "AI"}
               </span>
               <span style={{ fontSize: 9, color: "#6b7f99" }}>
                 {new Date(h.timestamp).toLocaleString()}
@@ -146,7 +148,7 @@ export function ChatHistoryPanel() {
       </div>
 
       {filtered.length === 0 && (
-        <div style={{ textAlign: "center", padding: 40, color: "#6b7f99" }}>No messages found.</div>
+        <div style={{ textAlign: "center", padding: 40, color: "#6b7f99" }}>{t("noMessages")}</div>
       )}
     </div>
   );

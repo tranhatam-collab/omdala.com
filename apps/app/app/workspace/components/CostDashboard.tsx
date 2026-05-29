@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import { useI18n } from "../hooks/useI18n";
 
 interface UsageEntry {
   timestamp: number;
@@ -56,6 +57,7 @@ function groupByModel(entries: UsageEntry[]) {
 }
 
 export function CostDashboard() {
+  const { t } = useI18n();
   const [entries, setEntries] = React.useState<UsageEntry[]>([]);
   const [range, setRange] = React.useState<"all" | "today" | "week">("all");
 
@@ -98,7 +100,7 @@ export function CostDashboard() {
               cursor: "pointer",
             }}
           >
-            {r === "all" ? "All time" : r === "today" ? "24h" : "7 days"}
+            {r === "all" ? t("allTime") : r === "today" ? t("h24") : t("days7")}
           </button>
         ))}
       </div>
@@ -106,9 +108,9 @@ export function CostDashboard() {
       {/* Summary cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
         {[
-          { label: "Total Cost", value: formatCost(totalCost), color: "#7ef2ff" },
-          { label: "Total Tokens", value: totalTokens.toLocaleString(), color: "#4ade80" },
-          { label: "Requests", value: totalRequests.toString(), color: "#f59e0b" },
+          { label: t("totalCost"), value: formatCost(totalCost), color: "#7ef2ff" },
+          { label: t("totalTokens"), value: totalTokens.toLocaleString(), color: "#4ade80" },
+          { label: t("requests"), value: totalRequests.toString(), color: "#f59e0b" },
         ].map((c) => (
           <div
             key={c.label}
@@ -129,7 +131,7 @@ export function CostDashboard() {
       {/* Daily chart */}
       {daily.length > 0 && (
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#f7fbff", marginBottom: 8 }}>Daily Cost</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#f7fbff", marginBottom: 8 }}>{t("dailyCost")}</div>
           <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 80, padding: "4px 0" }}>
             {daily.map(([date, data]) => (
               <div key={date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
@@ -155,7 +157,7 @@ export function CostDashboard() {
       {/* Model breakdown */}
       {byModel.length > 0 && (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#f7fbff", marginBottom: 8 }}>By Model</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#f7fbff", marginBottom: 8 }}>{t("byModel")}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {byModel.map(([model, data]) => (
               <div
@@ -196,7 +198,7 @@ export function CostDashboard() {
 
       {entries.length === 0 && (
         <div style={{ textAlign: "center", padding: 40, color: "#6b7f99", fontSize: 12 }}>
-          No API usage yet. Start chatting with AI to see stats.
+          {t("noUsage")}
         </div>
       )}
     </div>

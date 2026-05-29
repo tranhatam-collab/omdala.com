@@ -183,7 +183,7 @@ export function WorkspaceShell() {
         <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
           <button
             onClick={toggleLang}
-            title={lang === "vi" ? "Switch to English" : "Chuyển sang Tiếng Việt"}
+            title={lang === "vi" ? "Switch to English" : "Chuyển sang Tiếng Anh"}
             style={{
               padding: "4px 8px",
               borderRadius: 6,
@@ -230,7 +230,7 @@ export function WorkspaceShell() {
           </button>
           <button
             onClick={() => setChatOpen((v) => !v)}
-            title="Toggle AI Chat"
+            title={t("aiChat")}
             style={{
               padding: "6px 12px",
               borderRadius: 6,
@@ -245,7 +245,7 @@ export function WorkspaceShell() {
           </button>
           <button
             onClick={() => setSettingsOpen(true)}
-            title="Settings"
+            title={t("settings")}
             style={{
               padding: "6px 12px",
               borderRadius: 6,
@@ -288,7 +288,7 @@ export function WorkspaceShell() {
           </button>
           <button
             onClick={() => setCostPanelOpen((v) => !v)}
-            title="Cost Dashboard"
+            title={t("totalCost")}
             style={{
               padding: "6px 12px",
               borderRadius: 6,
@@ -303,7 +303,7 @@ export function WorkspaceShell() {
           </button>
           <button
             onClick={() => setChatHistoryOpen((v) => !v)}
-            title="Chat History"
+            title={t("history")}
             style={{
               padding: "6px 12px",
               borderRadius: 6,
@@ -318,7 +318,7 @@ export function WorkspaceShell() {
           </button>
           <button
             onClick={() => setCodeHistoryOpen((v) => !v)}
-            title="Code History"
+            title={t("history")}
             style={{
               padding: "6px 12px",
               borderRadius: 6,
@@ -333,7 +333,7 @@ export function WorkspaceShell() {
           </button>
           <button
             onClick={() => setAccountOpen(true)}
-            title="Account & Subscription"
+            title={t("plans")}
             style={{
               padding: "6px 12px",
               borderRadius: 6,
@@ -348,7 +348,7 @@ export function WorkspaceShell() {
           </button>
           <button
             onClick={() => setTrackerOpen((v) => !v)}
-            title="Project Tracker"
+            title={t("trackerTitle")}
             style={{
               padding: "6px 12px",
               borderRadius: 6,
@@ -526,7 +526,7 @@ export function WorkspaceShell() {
               flexDirection: "column",
             }}>
               <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>📊 Cost Dashboard</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>📊 {t("totalCost")}</span>
                 <span style={{ flex: 1 }} />
                 <button onClick={() => setCostPanelOpen(false)} style={{ background: "transparent", border: "none", color: "#6b7f99", fontSize: 14, cursor: "pointer" }}>✕</button>
               </div>
@@ -552,7 +552,7 @@ export function WorkspaceShell() {
               flexDirection: "column",
             }}>
               <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>💬 Chat History</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>💬 {t("history")}</span>
                 <span style={{ flex: 1 }} />
                 <button onClick={() => setChatHistoryOpen(false)} style={{ background: "transparent", border: "none", color: "#6b7f99", fontSize: 14, cursor: "pointer" }}>✕</button>
               </div>
@@ -578,7 +578,7 @@ export function WorkspaceShell() {
               flexDirection: "column",
             }}>
               <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>📝 Code History</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>📝 {t("history")}</span>
                 <span style={{ flex: 1 }} />
                 <button onClick={() => setCodeHistoryOpen(false)} style={{ background: "transparent", border: "none", color: "#6b7f99", fontSize: 14, cursor: "pointer" }}>✕</button>
               </div>
@@ -648,7 +648,7 @@ export function WorkspaceShell() {
           flexDirection: "column",
         }}>
           <div style={{ display: "flex", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>📊 Project Tracker</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#7ef2ff" }}>📊 {t("trackerTitle")}</span>
             <span style={{ flex: 1 }} />
             <button onClick={() => setTrackerOpen(false)} style={{ background: "transparent", border: "none", color: "#6b7f99", fontSize: 14, cursor: "pointer" }}>✕</button>
           </div>
