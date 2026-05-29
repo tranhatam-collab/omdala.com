@@ -1,6 +1,7 @@
 // ─── OMCODE — AI Code OS standalone (no auth) ───────────────────────────
 // Local-first AI coding workspace cho MacBook. Không cần đăng nhập.
 import { WorkspaceShell } from "../workspace/WorkspaceShell";
+import { ErrorBoundary } from "../workspace/components/ErrorBoundary";
 
 export const metadata = {
   title: "OMCODE — AI Code OS",
@@ -8,5 +9,9 @@ export const metadata = {
 };
 
 export default function OmCodePage() {
-  return <WorkspaceShell />;
+  return (
+    <ErrorBoundary>
+      <WorkspaceShell />
+    </ErrorBoundary>
+  );
 }
