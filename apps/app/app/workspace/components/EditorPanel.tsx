@@ -4,6 +4,7 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import type { OpenFileEntry } from "../hooks/useFileSystem";
+import { useI18n } from "../hooks/useI18n";
 
 const MonacoEditor = dynamic(
   () => import("@monaco-editor/react"),
@@ -29,6 +30,7 @@ export function EditorPanel({
   onSave,
   hasUnsaved,
 }: EditorPanelProps) {
+  const { t } = useI18n();
   const activeFile = openFiles.find((f) => f.path === activePath);
   const [theme, setTheme] = React.useState<"vs-dark" | "vs">("vs-dark");
 
@@ -68,10 +70,10 @@ export function EditorPanel({
         </div>
         <div style={{ textAlign: "center" }}>
           <p style={{ fontSize: 16, fontWeight: 600, color: "#f7fbff", margin: 0 }}>
-            Chưa có file nào được mở
+            {t("noOpenFile")}
           </p>
           <p style={{ fontSize: 13, color: "#6b7f99", margin: "8px 0 0" }}>
-            Chọn file từ Explorer hoặc nhấn ⌘K để mở Command Palette
+            {t("openFileHint")}
           </p>
         </div>
       </div>
@@ -285,12 +287,12 @@ export function EditorPanel({
           <>
             <span>{activeFile.language}</span>
             <span>UTF-8</span>
-            <span>{activeFile.content.split("\n").length} dòng</span>
-            <span>{activeFile.content.length} ký tự</span>
+            <span>{activeFile.content.split("\n").length} {t("lines")}</span>
+            <span>{activeFile.content.length} {t("chars")}</span>
             {hasUnsaved(activeFile.path) && (
-              <span style={{ color: "#fbbf24" }}>● Chưa lưu</span>
+              <span style={{ color: "#fbbf24" }}>● {t("unsaved")}</span>
             )}
-            <span style={{ marginLeft: "auto" }}>⌘S Lưu</span>
+            <span style={{ marginLeft: "auto" }}>{t("saveShortcut")}</span>
           </>
         )}
       </div>

@@ -28,10 +28,10 @@ import { ErrorLogPanel } from "./components/ErrorLogPanel";
 type Panel = "explorer" | "editor" | "terminal" | "git";
 
 export function WorkspaceShell() {
-  const fileSystem = useFileSystem();
-  const terminal = useTerminal(fileSystem.rootHandle);
-  const git = useGit(fileSystem.rootHandle);
   const { lang, t, toggleLang } = useI18n();
+  const fileSystem = useFileSystem();
+  const terminal = useTerminal(fileSystem.rootHandle, t);
+  const git = useGit(fileSystem.rootHandle);
 
   const [activePanel, setActivePanel] = React.useState<Panel>("editor");
   const [sidebarPanel, setSidebarPanel] = React.useState<"explorer" | "git">("explorer");

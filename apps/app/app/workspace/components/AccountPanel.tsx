@@ -2,6 +2,8 @@
 "use client";
 
 import * as React from "react";
+import { useI18n } from "../hooks/useI18n";
+import { loginToGateway, registerOnGateway } from "../api/gateway";
 
 const ACCOUNT_KEY = "omcode:account";
 
@@ -25,12 +27,14 @@ function saveAccount(a: Account) {
 }
 
 export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const { t } = useI18n();
   const [account, setAccount] = React.useState<Account | null>(null);
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [apiUrl, setApiUrl] = React.useState("https://aiagent.iai.one/api/v1");
   const [mode, setMode] = React.useState<"login" | "register" | "connected">("login");
   const [status, setStatus] = React.useState("");
+  const [isLoading, setIsLoading] = React.useState(false);
 
   React.useEffect(() => {
     const a = loadAccount();
@@ -40,21 +44,29 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   if (!isOpen) return null;
 
   const handleConnect = async () => {
-    setStatus("Connecting…");
-    // Mock connection — replace with real aiagent.iai.one API
-    await new Promise((r) => setTimeout(r, 800));
-    const newAccount: Account = {
-      email,
-      token: `omcode_${Date.now()}`,
-      plan: "free",
-      apiGatewayUrl: apiUrl,
-      expiresAt: Date.now() + 30 * 86400000,
-    };
-    saveAccount(newAccount);
-    setAccount(newAccount);
-    setMode("connected");
-    setStatus("Connected!");
-    setTimeout(() => setStatus(""), 2000);
+    setIsLoading(true);
+    setStatus(t("connectGateway") + "…");
+    const payload = { email, password, apiGatewayUrl: apiUrl };
+    const res = mode === "register"
+      ? await registerOnGateway(apiUrl, payload)
+      : await loginToGateway(apiUrl, payload);
+    setIsLoading(false);
+    if (res.success && res.account) {
+      const a: Account = {
+        email: res.account.email,
+        token: res.account.token,
+        plan: res.account.plan,
+        apiGatewayUrl: res.account.apiGatewayUrl,
+        expiresAt: res.account.expiresAt,
+      };
+      saveAccount(a);
+      setAccount(a);
+      setMode("connected");
+      setStatus(t("connected"));
+      setTimeout(() => setStatus(""), 2000);
+    } else {
+      setStatus(res.error || "Connection failed");
+    }
   };
 
   const handleDisconnect = () => {
@@ -92,14 +104,14 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
       >
         <div style={{ padding: "14px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center" }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#7ef2ff" }}>🔑 Account & Subscription</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#7ef2ff" }}>🔑 {t("accountTitle")}</div>
             <div style={{ fontSize: 11, color: "#6b7f99", marginTop: 2 }}>
-              Link with aiagent.iai.one API Gateway for premium AI access.
+              {t("accountSubtitle")}
             </div>
           </div>
           <span style={{ flex: 1 }} />
           <button onClick={onClose} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#a8b9d0", padding: "4px 10px", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>
-            Close
+            {t("close")}
           </button>
         </div>
 
@@ -107,12 +119,12 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           {mode === "connected" && account ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ padding: 12, background: "rgba(74,222,128,0.05)", border: "1px solid rgba(74,222,128,0.15)", borderRadius: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "#4ade80" }}>✓ Connected</div>
-                <div style={{ fontSize: 11, color: "#a8b9d0", marginTop: 4 }}>Email: {account.email}</div>
-                <div style={{ fontSize: 11, color: "#a8b9d0" }}>Plan: <span style={{ color: "#7ef2ff", fontWeight: 700 }}>{account.plan?.toUpperCase()}</span></div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "#4ade80" }}>✓ {t("connected")}</div>
+                <div style={{ fontSize: 11, color: "#a8b9d0", marginTop: 4 }}>{t("email")}: {account.email}</div>
+                <div style={{ fontSize: 11, color: "#a8b9d0" }}>{t("planLabel")}: <span style={{ color: "#7ef2ff", fontWeight: 700 }}>{account.plan?.toUpperCase()}</span></div>
                 <div style={{ fontSize: 11, color: "#a8b9d0" }}>Gateway: {account.apiGatewayUrl}</div>
                 <div style={{ fontSize: 10, color: "#6b7f99", marginTop: 4 }}>
-                  Expires: {account.expiresAt ? new Date(account.expiresAt).toLocaleDateString() : "N/A"}
+                  {t("expires")}: {account.expiresAt ? new Date(account.expiresAt).toLocaleDateString() : "N/A"}
                 </div>
               </div>
               <button
@@ -128,7 +140,7 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                   cursor: "pointer",
                 }}
               >
-                Disconnect Account
+                {t("disconnect")}
               </button>
             </div>
           ) : (
@@ -147,7 +159,7 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     cursor: "pointer",
                   }}
                 >
-                  Login
+                  {t("login")}
                 </button>
                 <button
                   onClick={() => setMode("register")}
@@ -162,7 +174,7 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                     cursor: "pointer",
                   }}
                 >
-                  Register
+                  {t("register")}
                 </button>
               </div>
 
@@ -170,7 +182,7 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
+                placeholder={t("email")}
                 style={{
                   width: "100%",
                   background: "rgba(0,0,0,0.3)",
@@ -186,7 +198,7 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
+                placeholder={t("password")}
                 style={{
                   width: "100%",
                   background: "rgba(0,0,0,0.3)",
@@ -202,7 +214,7 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                 type="text"
                 value={apiUrl}
                 onChange={(e) => setApiUrl(e.target.value)}
-                placeholder="API Gateway URL"
+                placeholder={t("gatewayUrl")}
                 style={{
                   width: "100%",
                   background: "rgba(0,0,0,0.3)",
@@ -216,6 +228,7 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
               />
               <button
                 onClick={handleConnect}
+                disabled={isLoading}
                 style={{
                   padding: "10px",
                   borderRadius: 6,
@@ -227,7 +240,7 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                   cursor: "pointer",
                 }}
               >
-                {mode === "register" ? "Create Account & Connect" : "Connect to AI Gateway"}
+                {mode === "register" ? t("createAccount") : t("connectGateway")}
               </button>
               {status && <div style={{ fontSize: 11, color: "#7ef2ff", textAlign: "center" }}>{status}</div>}
             </div>

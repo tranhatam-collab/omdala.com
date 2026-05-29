@@ -1,7 +1,7 @@
 // ─── useFileSystem — File System Access API wrapper ─────────────────────
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 export interface FileSystemNode {
   name: string;
@@ -220,6 +220,41 @@ export function useFileSystem() {
     const file = openFiles.find((f) => f.path === path);
     return file ? file.content !== file.originalContent : false;
   };
+
+  // File watchers: refresh on window focus + poll every 3s
+  useEffect(() => {
+    if (!rootHandle) return;
+    const onFocus = () => refreshFileTree();
+    window.addEventListener("focus", onFocus);
+    const iv = setInterval(() => refreshFileTree(), 3000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      clearInterval(iv);
+    };
+  }, [rootHandle, refreshFileTree]);
+
+  // Detect external changes to open files on window focus
+  useEffect(() => {
+    if (openFiles.length === 0) return;
+    async function checkOpenFiles() {
+      for (const file of openFiles) {
+        try {
+          const current = await readFileContent(file.handle);
+          if (current !== file.originalContent && current !== file.content) {
+            // File changed externally — auto-reload to match disk
+            setOpenFiles((prev) =>
+              prev.map((f) =>
+                f.path === file.path ? { ...f, content: current, originalContent: current } : f
+              ),
+            );
+          }
+        } catch {}
+      }
+    }
+    const onFocus = () => checkOpenFiles();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [openFiles]);
 
   return {
     rootHandle,
