@@ -24,6 +24,7 @@ import { TermsAcceptance, hasAcceptedTerms } from "./components/TermsAcceptance"
 import { TerminalRiskBanner, ApplyCodeRiskBanner } from "./components/RiskBanner";
 import { ProjectTrackerPanel } from "./components/ProjectTrackerPanel";
 import { ErrorLogPanel } from "./components/ErrorLogPanel";
+import { ShortcutsHelpPanel } from "./components/ShortcutsHelpPanel";
 
 type Panel = "explorer" | "editor" | "terminal" | "git";
 
@@ -49,6 +50,7 @@ export function WorkspaceShell() {
   const [termsAccepted, setTermsAccepted] = React.useState(true);
   const [trackerOpen, setTrackerOpen] = React.useState(false);
   const [errorLogOpen, setErrorLogOpen] = React.useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [projectKey, setProjectKey] = React.useState<string | null>(null);
 
   // Apply persisted settings to model router on mount
@@ -114,6 +116,12 @@ export function WorkspaceShell() {
       }
       if (e.key === "Escape") {
         setAiPaletteOpen(false);
+      }
+      if (e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const target = e.target as HTMLElement;
+        if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
+        e.preventDefault();
+        setShortcutsOpen((v) => !v);
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -377,6 +385,21 @@ export function WorkspaceShell() {
             }}
           >
             🐛
+          </button>
+          <button
+            onClick={() => setShortcutsOpen(true)}
+            title={t("shortcutHelp")}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 6,
+              border: "none",
+              background: "rgba(255,255,255,0.05)",
+              color: "#a8b9d0",
+              fontSize: 11,
+              cursor: "pointer",
+            }}
+          >
+            ?
           </button>
         </div>
       </div>
@@ -674,6 +697,9 @@ export function WorkspaceShell() {
 
       {/* Account */}
       <AccountPanel isOpen={accountOpen} onClose={() => setAccountOpen(false)} />
+
+      {/* Shortcuts Help */}
+      <ShortcutsHelpPanel isOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       {/* Project Tracker */}
       {trackerOpen && (

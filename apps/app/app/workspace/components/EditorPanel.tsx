@@ -33,6 +33,22 @@ export function EditorPanel({
   const { t } = useI18n();
   const activeFile = openFiles.find((f) => f.path === activePath);
   const [theme, setTheme] = React.useState<"vs-dark" | "vs">("vs-dark");
+  const [saving, setSaving] = React.useState(false);
+  const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Autosave: debounce 2s after last change
+  React.useEffect(() => {
+    if (!activeFile || !hasUnsaved(activeFile.path)) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      setSaving(true);
+      onSave(activeFile.path);
+      setTimeout(() => setSaving(false), 600);
+    }, 2000);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [activeFile?.content, activeFile?.path]);
 
   // Keyboard shortcuts
   React.useEffect(() => {
@@ -224,6 +240,14 @@ export function EditorPanel({
               if (value !== undefined) onChange(activeFile.path, value);
             }}
             onMount={(editor, monaco) => {
+              // Autosave on blur
+              editor.onDidBlurEditorWidget(() => {
+                if (activeFile && hasUnsaved(activeFile.path)) {
+                  setSaving(true);
+                  onSave(activeFile.path);
+                  setTimeout(() => setSaving(false), 600);
+                }
+              });
               // Define custom theme
               monaco.editor.defineTheme("omdala-dark", {
                 base: "vs-dark",
@@ -289,8 +313,11 @@ export function EditorPanel({
             <span>UTF-8</span>
             <span>{activeFile.content.split("\n").length} {t("lines")}</span>
             <span>{activeFile.content.length} {t("chars")}</span>
-            {hasUnsaved(activeFile.path) && (
+            {hasUnsaved(activeFile.path) && !saving && (
               <span style={{ color: "#fbbf24" }}>● {t("unsaved")}</span>
+            )}
+            {saving && (
+              <span style={{ color: "#4ade80" }}>◌ {t("saving")}</span>
             )}
             <span style={{ marginLeft: "auto" }}>{t("saveShortcut")}</span>
           </>

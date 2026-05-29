@@ -29,9 +29,19 @@ function FileIcon({ kind, name }: { kind: string; name: string }) {
 
 function getFileColor(ext: string): string {
   const map: Record<string, string> = {
-    ts: "#60a5fa", tsx: "#60a5fa", js: "#fbbf24", jsx: "#fbbf24",
-    json: "#a8b9d0", css: "#a78bfa", scss: "#a78bfa", html: "#f87171",
-    md: "#f7fbff", py: "#4ade80", go: "#7ef2ff", rs: "#f87171",
+    ts: "#60a5fa", tsx: "#60a5fa", js: "#fbbf24", jsx: "#fbbf24", mjs: "#fbbf24",
+    json: "#a8b9d0", css: "#a78bfa", scss: "#a78bfa", sass: "#a78bfa", less: "#a78bfa", html: "#f87171", htm: "#f87171",
+    md: "#f7fbff", mdx: "#f7fbff",
+    py: "#4ade80", ipynb: "#4ade80",
+    go: "#7ef2ff", rs: "#f87171", c: "#a8b9d0", cpp: "#a8b9d0", h: "#a8b9d0", hpp: "#a8b9d0",
+    java: "#f87171", kt: "#a78bfa", swift: "#f87171", cs: "#a78bfa", php: "#6b7f99",
+    rb: "#ef4444", r: "#4ade80", lua: "#60a5fa", sh: "#4ade80", bash: "#4ade80", zsh: "#4ade80",
+    sql: "#fbbf24", graphql: "#f87171", gql: "#f87171",
+    dockerfile: "#7ef2ff", vue: "#4ade80", svelte: "#f87171", astro: "#f87171",
+    yaml: "#a8b9d0", yml: "#a8b9d0", toml: "#a8b9d0", ini: "#a8b9d0", conf: "#a8b9d0",
+    xml: "#fbbf24", svg: "#fbbf24",
+    tex: "#f7fbff", pdf: "#ef4444",
+    lock: "#6b7f99", gitignore: "#6b7f99", env: "#4ade80",
   };
   return map[ext] || "#a8b9d0";
 }
@@ -39,9 +49,19 @@ function getFileColor(ext: string): string {
 function getFileIcon(name: string): string {
   const ext = name.split(".").pop()?.toLowerCase() || "";
   const map: Record<string, string> = {
-    ts: "◈", tsx: "◈", js: "◇", jsx: "◇", json: "◉", css: "◊",
-    scss: "◊", html: "◆", md: "◆", py: "◈", go: "◈", rs: "◈",
-    yaml: "◉", yml: "◉", toml: "◉", dockerfile: "◆",
+    ts: "◈", tsx: "◈", js: "◇", jsx: "◇", mjs: "◇",
+    json: "◉", css: "◊", scss: "◊", sass: "◊", less: "◊", html: "◆", htm: "◆",
+    md: "◆", mdx: "◆",
+    py: "◈", ipynb: "◈",
+    go: "◈", rs: "◈", c: "◇", cpp: "◇", h: "◇", hpp: "◇",
+    java: "◆", kt: "◊", swift: "◆", cs: "◊", php: "◇",
+    rb: "◆", r: "◈", lua: "◈", sh: "◈", bash: "◈", zsh: "◈",
+    sql: "◉", graphql: "◆", gql: "◆",
+    dockerfile: "◆", vue: "◈", svelte: "◆", astro: "◆",
+    yaml: "◉", yml: "◉", toml: "◉", ini: "◉", conf: "◉",
+    xml: "◉", svg: "◉",
+    tex: "◆", pdf: "◆",
+    lock: "◉", gitignore: "◉", env: "◈",
   };
   return map[ext] || "◆";
 }
