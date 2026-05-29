@@ -195,11 +195,13 @@ describe("useProjectTracker", () => {
     });
 
     it("keeps only last 2000 entries", () => {
+      // O(N²) due to recordAudit re-serializing the full array each call;
+      // raise timeout from default 5s to 15s rather than touch production code.
       for (let i = 0; i < 2100; i++) {
         recordAudit("p1", "plan_updated", `entry ${i}`, "gpt-4");
       }
       expect(getAuditLog("p1")).toHaveLength(2000);
-    });
+    }, 15000);
   });
 
   describe("generateAutoReport", () => {

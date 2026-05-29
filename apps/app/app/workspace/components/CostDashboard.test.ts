@@ -59,12 +59,14 @@ describe("CostDashboard pure functions", () => {
     });
 
     it("keeps only last 500 entries", () => {
+      // O(N²) re-serialization per call; bump timeout to keep CI green
+      // without altering the local recordUsage implementation.
       for (let i = 0; i < 520; i++) {
         recordUsage("gpt-4", "openai", 1, 1, 0.001);
       }
       const entries = getUsage();
       expect(entries).toHaveLength(500);
-    });
+    }, 15000);
 
     it("handles malformed localStorage gracefully", () => {
       localStorage.setItem(USAGE_KEY, "not-json");

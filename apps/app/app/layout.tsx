@@ -5,11 +5,26 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'OMDALA App',
-    template: '%s — OMDALA App',
+    default: 'OMCode — AI Coding Workspace',
+    template: '%s — OMCode',
   },
-  description: 'Hệ sinh thái thông minh cho cộng đồng và doanh nghiệp.',
-  robots: { index: false, follow: false },
+  description: 'Không gian lập trình AI đầu tiên cho Việt Nam. Viết code, trò chuyện với AI, quản lý dự án và triển khai — tất cả trong một nền tảng.',
+  keywords: ['AI coding', 'lập trình AI', 'workspace', 'code editor', 'OMCode', 'OMDALA'],
+  openGraph: {
+    title: 'OMCode — AI Coding Workspace',
+    description: 'Không gian lập trình AI đầu tiên cho Việt Nam.',
+    type: 'website',
+    locale: 'vi_VN',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'OMCode — AI Coding Workspace',
+    description: 'Không gian lập trình AI đầu tiên cho Việt Nam.',
+  },
+  robots: { index: true, follow: true },
+  alternates: {
+    canonical: 'https://code.omdala.com',
+  },
 }
 
 export const viewport: Viewport = {
@@ -76,7 +91,12 @@ export default function AppRootLayout({
       </head>
       <body>
         <DocumentLanguageSync />
-        <div className="app-shell app-layout-topbar">
+        <div style={{
+          position: 'fixed',
+          top: '1rem',
+          right: '1rem',
+          zIndex: 1000,
+        }}>
           <LanguageSwitcher />
         </div>
         {children}
