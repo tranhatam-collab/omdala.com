@@ -1,0 +1,264 @@
+version: "3.9"
+
+# OMDALA Infra — Docker Compose Base (P3)
+# Phase 1: single-node. Phase 2: Docker Swarm or k3s.
+#
+# Usage:
+#   cp .env.example .env
+#   # edit .env with real values from Vault
+#   docker compose up -d
+
+services:
+  # ----------------------------------------------------------------
+  # Caddy — Reverse Proxy + Automatic HTTPS
+  # ----------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    container_name: omdala-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - omdala-public
+      - omdala-internal
+    environment:
+      - INFRA_DOMAIN=${INFRA_DOMAIN}
+      - ACME_EMAIL=${ACME_EMAIL}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ----------------------------------------------------------------
+  # PostgreSQL 17 — Core Database (P4)
+  # ----------------------------------------------------------------
+  postgres:
+    image: postgres:17-alpine
+    container_name: omdala-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init-scripts:/docker-entrypoint-initdb.d:ro
+    networks:
+      - omdala-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ----------------------------------------------------------------
+  # Valkey 8 — Cache + Queue + Sessions (P6)
+  # ----------------------------------------------------------------
+  valkey:
+    image: valkey/valkey:8-alpine
+    container_name: omdala-valkey
+    restart: unless-stopped
+    command: >
+      valkey-server
+      --requirepass ${VALKEY_PASSWORD}
+      --appendonly yes
+    volumes:
+      - valkey_data:/data
+    networks:
+      - omdala-internal
+    healthcheck:
+      test: ["CMD", "valkey-cli", "-a", "${VALKEY_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ----------------------------------------------------------------
+  # MinIO — Internal S3-compatible Storage (P3 warm)
+  # ----------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: omdala-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    networks:
+      - omdala-internal
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ----------------------------------------------------------------
+  # API Gateway — Node.js (P5)
+  # ----------------------------------------------------------------
+  api-gateway:
+    build:
+      context: ./infra/services/api-gateway
+      dockerfile: Dockerfile
+    container_name: omdala-api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=${API_PORT}
+      - DATABASE_URL=postgresql://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://:${VALKEY_PASSWORD}@valkey:6379
+      - JWT_PUBLIC_KEY_URL=${API_JWT_PUBLIC_KEY_URL}
+      - RATE_LIMIT=${API_RATE_LIMIT}
+      - RATE_LIMIT_WINDOW_MS=${API_RATE_LIMIT_WINDOW_MS}
+    networks:
+      - omdala-public
+      - omdala-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${API_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ----------------------------------------------------------------
+  # Worker — Background Job Processor (P6)
+  # ----------------------------------------------------------------
+  worker:
+    build:
+      context: ./infra/services/worker
+      dockerfile: Dockerfile
+    container_name: omdala-worker
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_APP_USER}:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - REDIS_URL=redis://:${VALKEY_PASSWORD}@valkey:6379
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_ENDPOINT=${R2_ENDPOINT}
+    networks:
+      - omdala-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ----------------------------------------------------------------
+  # Uptime Kuma — Monitoring (P7)
+  # ----------------------------------------------------------------
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: omdala-uptime
+    restart: unless-stopped
+    volumes:
+      - uptime_data:/app/data
+    networks:
+      - omdala-public
+      - omdala-internal
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ----------------------------------------------------------------
+  # Keycloak 25 — Auth (P8)
+  # ----------------------------------------------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: omdala-keycloak
+    restart: unless-stopped
+    command: start-dev --http-port=8080 --hostname-url=https://auth.${INFRA_DOMAIN} --proxy=edge
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      KC_DB_USERNAME: ${POSTGRES_APP_USER}
+      KC_DB_PASSWORD: ${POSTGRES_APP_PASSWORD}
+      KC_DB_SCHEMA: keycloak
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME: auth.${INFRA_DOMAIN}
+      KC_PROXY: edge
+      KC_FEATURES: token-exchange,admin-fine-grained-authz
+    networks:
+      - omdala-public
+      - omdala-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080; echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n' >&3; timeout 2 cat <&3 | grep -q '200 OK'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ----------------------------------------------------------------
+  # Backup Service — pg_dump + WAL-G (P4)
+  # ----------------------------------------------------------------
+  backup:
+    build:
+      context: ./infra/backup
+      dockerfile: Dockerfile
+    container_name: omdala-backup
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_BACKUP_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_BACKUP_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=postgres
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_ENDPOINT=${R2_ENDPOINT}
+      - WALG_S3_PREFIX=${WALG_S3_PREFIX}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS}
+    volumes:
+      - backup_data:/backups
+    networks:
+      - omdala-internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+    driver: local
+  valkey_data:
+    driver: local
+  minio_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
+  uptime_data:
+    driver: local
+  backup_data:
+    driver: local
+
+networks:
+  omdala-public:
+    driver: bridge
+  omdala-internal:
+    driver: bridge
+    internal: true
