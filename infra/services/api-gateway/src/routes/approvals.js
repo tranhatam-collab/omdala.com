@@ -1,11 +1,9 @@
 // Approval Request Routes
-import { Pool } from 'pg';
-
-const pg = new Pool({ connectionString: process.env.DATABASE_URL, ssl: false });
+import { pg } from '../lib/db.js';
 
 export default async function approvalRoutes(app) {
   // List approvals for tenant
-  app.get('/approvals', async (request, reply) => {
+  app.get('/', async (request, reply) => {
     const { tenant } = request;
     const { status = 'pending', limit = 20, offset = 0 } = request.query;
 
@@ -21,7 +19,7 @@ export default async function approvalRoutes(app) {
   });
 
   // Create approval request
-  app.post('/approvals', async (request, reply) => {
+  app.post('/', async (request, reply) => {
     const { tenant, user } = request;
     const { request_type, title, description, task_id, approvers } = request.body;
 
@@ -54,7 +52,7 @@ export default async function approvalRoutes(app) {
   });
 
   // Approve request
-  app.post('/approvals/:id/approve', async (request, reply) => {
+  app.post('/:id/approve', async (request, reply) => {
     const { tenant, user } = request;
     const { id } = request.params;
 
@@ -98,7 +96,7 @@ export default async function approvalRoutes(app) {
   });
 
   // Reject request
-  app.post('/approvals/:id/reject', async (request, reply) => {
+  app.post('/:id/reject', async (request, reply) => {
     const { tenant, user } = request;
     const { id } = request.params;
     const { reason } = request.body;

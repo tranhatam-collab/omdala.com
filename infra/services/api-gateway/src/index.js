@@ -5,6 +5,8 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 
 import { jwtVerifyMiddleware } from './middleware/jwt-verify.js';
 import { tenantRouterMiddleware } from './middleware/tenant-router.js';
@@ -32,6 +34,35 @@ await app.register(rateLimit, {
   max: parseInt(process.env.RATE_LIMIT) || 100,
   timeWindow: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
   keyGenerator: (req) => req.headers['x-tenant-id'] || req.ip,
+});
+
+// OpenAPI / Swagger documentation
+await app.register(swagger, {
+  swagger: {
+    info: {
+      title: 'OMDALA API Gateway',
+      description: 'Autonomous backend platform for AI agent orchestration',
+      version: '0.1.0',
+    },
+    schemes: ['https'],
+    consumes: ['application/json'],
+    produces: ['application/json'],
+    securityDefinitions: {
+      bearerAuth: {
+        type: 'apiKey',
+        name: 'Authorization',
+        in: 'header',
+      },
+    },
+  },
+});
+
+await app.register(swaggerUi, {
+  routePrefix: '/docs',
+  uiConfig: {
+    docExpansion: 'list',
+    deepLinking: false,
+  },
 });
 
 // Authentication + Tenant routing (onRequest)

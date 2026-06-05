@@ -1,11 +1,9 @@
 // Agent Task Routes
-import { Pool } from 'pg';
-
-const pg = new Pool({ connectionString: process.env.DATABASE_URL, ssl: false });
+import { pg } from '../lib/db.js';
 
 export default async function taskRoutes(app) {
   // List tasks for tenant
-  app.get('/tasks', async (request, reply) => {
+  app.get('/', async (request, reply) => {
     const { tenant } = request;
     const { status, limit = 20, offset = 0 } = request.query;
 
@@ -25,7 +23,7 @@ export default async function taskRoutes(app) {
   });
 
   // Get single task
-  app.get('/tasks/:id', async (request, reply) => {
+  app.get('/:id', async (request, reply) => {
     const { tenant } = request;
     const { id } = request.params;
 
@@ -42,7 +40,7 @@ export default async function taskRoutes(app) {
   });
 
   // Create task
-  app.post('/tasks', async (request, reply) => {
+  app.post('/', async (request, reply) => {
     const { tenant, user } = request;
     const { title, description, task_type, priority, input_payload, assigned_agent } = request.body;
 
@@ -57,7 +55,7 @@ export default async function taskRoutes(app) {
   });
 
   // Update task status
-  app.patch('/tasks/:id', async (request, reply) => {
+  app.patch('/:id', async (request, reply) => {
     const { tenant } = request;
     const { id } = request.params;
     const { status, output_payload, error_message } = request.body;
@@ -81,7 +79,7 @@ export default async function taskRoutes(app) {
   });
 
   // Delete task (soft delete)
-  app.delete('/tasks/:id', async (request, reply) => {
+  app.delete('/:id', async (request, reply) => {
     const { tenant, user } = request;
     const { id } = request.params;
 

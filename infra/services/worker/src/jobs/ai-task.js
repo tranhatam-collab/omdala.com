@@ -1,12 +1,7 @@
 // AI Task Job Handler
 // Processes agent tasks: calls model API, records usage, stores results.
 
-import { Pool } from 'pg';
-
-const pg = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false, // Internal network only
-});
+import { pg } from '../lib/db.js';
 
 export async function aiTaskJob(job) {
   const { taskId, model, prompt, maxTokens } = job.data;

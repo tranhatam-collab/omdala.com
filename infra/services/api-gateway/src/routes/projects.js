@@ -1,11 +1,9 @@
 // Project Routes
-import { Pool } from 'pg';
-
-const pg = new Pool({ connectionString: process.env.DATABASE_URL, ssl: false });
+import { pg } from '../lib/db.js';
 
 export default async function projectRoutes(app) {
   // List projects for tenant
-  app.get('/projects', async (request, reply) => {
+  app.get('/', async (request, reply) => {
     const { tenant } = request;
     const { status = 'active', limit = 20, offset = 0 } = request.query;
 
@@ -22,7 +20,7 @@ export default async function projectRoutes(app) {
   });
 
   // Get single project
-  app.get('/projects/:id', async (request, reply) => {
+  app.get('/:id', async (request, reply) => {
     const { tenant } = request;
     const { id } = request.params;
 
@@ -40,7 +38,7 @@ export default async function projectRoutes(app) {
   });
 
   // Create project
-  app.post('/projects', async (request, reply) => {
+  app.post('/', async (request, reply) => {
     const { tenant } = request;
     const { slug, name, description, config } = request.body;
 

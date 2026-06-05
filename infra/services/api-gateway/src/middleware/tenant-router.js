@@ -1,12 +1,7 @@
 // Tenant Router Middleware
 // Extracts tenant from X-Tenant-ID header or JWT, validates access.
 
-import { Pool } from 'pg';
-
-const pg = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false,
-});
+import { pg } from '../lib/db.js';
 
 export async function tenantRouterMiddleware(request, reply) {
   const tenantSlug = request.headers['x-tenant-id'];

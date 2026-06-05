@@ -1,11 +1,9 @@
 // User Routes
-import { Pool } from 'pg';
-
-const pg = new Pool({ connectionString: process.env.DATABASE_URL, ssl: false });
+import { pg } from '../lib/db.js';
 
 export default async function userRoutes(app) {
   // List users for tenant
-  app.get('/users', async (request, reply) => {
+  app.get('/', async (request, reply) => {
     const { tenant } = request;
     const { status = 'active', limit = 20, offset = 0 } = request.query;
 
@@ -22,7 +20,7 @@ export default async function userRoutes(app) {
   });
 
   // Get single user
-  app.get('/users/:id', async (request, reply) => {
+  app.get('/:id', async (request, reply) => {
     const { tenant } = request;
     const { id } = request.params;
 
@@ -41,7 +39,7 @@ export default async function userRoutes(app) {
   });
 
   // Create user
-  app.post('/users', async (request, reply) => {
+  app.post('/', async (request, reply) => {
     const { tenant, user: creator } = request;
     const { email, display_name, role, external_id, metadata } = request.body;
 

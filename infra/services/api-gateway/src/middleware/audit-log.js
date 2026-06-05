@@ -2,13 +2,7 @@
 // Uses Fastify onResponse hook for reliable post-request logging.
 // Do NOT use reply.raw.on('finish') — it misses responses that Fastify handles internally.
 
-import { Pool } from 'pg';
-
-const pg = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: false,
-  max: 5, // Limit connections for audit logging
-});
+import { pg } from '../lib/db.js';
 
 /**
  * Register this function as a Fastify onResponse hook:
