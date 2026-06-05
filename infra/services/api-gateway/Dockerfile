@@ -4,6 +4,9 @@
 FROM node:22-alpine AS base
 WORKDIR /app
 
+# System deps: aws-cli for R2 health checks
+RUN apk add --no-cache aws-cli
+
 # Dependencies
 COPY package*.json ./
 RUN npm ci --only=production && npm cache clean --force

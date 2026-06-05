@@ -11,10 +11,10 @@ R2_KEY="backups/postgres/omdala_backup_${TIMESTAMP}.sql.gz"
 
 echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Starting backup..."
 
-# pg_dump
-PGPASSWORD="${POSTGRES_PASSWORD}" pg_dump \
+# pg_dump (uses backup role credentials)
+PGPASSWORD="${POSTGRES_BACKUP_PASSWORD:-${POSTGRES_PASSWORD}}" pg_dump \
   -h "${POSTGRES_HOST}" \
-  -U "${POSTGRES_USER}" \
+  -U "${POSTGRES_BACKUP_USER:-${POSTGRES_USER}}" \
   -d "${POSTGRES_DB}" \
   --no-owner --no-privileges \
   | gzip > "${DUMP_FILE}"
