@@ -1,30 +1,35 @@
-# Migration from Supabase / Render to OMDALA Infra (P10)
+# Migration from Supabase / Render to OMDALA Infra v2 (P10)
 
 > **Status:** PLAN — DO NOT EXECUTE WITHOUT FOUNDER APPROVAL  
 > **Date:** 2026-06-05  
 > **Author:** Chief Infrastructure Architect  
-> **Gate:** Must pass P4 (restore test) before executing any migration step.
+> **Gate:** Must pass P0 (Cloudflare inventory) AND L1.4 (restore test) before executing any migration step.
+> **Strategy:** Cloudflare-first, Agent-Control-Plane-first, Auth-last.
 
 ---
 
 ## Principles
 
-1. **Zero downtime.** Always run parallel, never cut over immediately.
-2. **Rollback-ready.** Every step must be reversible within 30 minutes.
-3. **Data integrity.** Checksum validation at every handoff.
-4. **No Supabase decommission until 30-day burn-in.**
+1. **Cloudflare-first.** Keep CF Pages, Workers, R2, Queues, KV. Only migrate what needs sovereignty.
+2. **Agent Control Plane first.** `aiagent.iai.one` is the highest-value target.
+3. **Auth last.** Auth migration is hardest to rollback; do it only after all else is stable.
+4. **Zero downtime.** Always run parallel, never cut over immediately.
+5. **Rollback-ready.** Every step must be reversible within 30 minutes.
+6. **Data integrity.** Checksum validation at every handoff.
+7. **No Supabase decommission until 30-day burn-in.**
 
 ---
 
 ## Pre-Migration Checklist
 
-- [ ] P4 complete: PostgreSQL running, backup daily, **restore test passes**
-- [ ] P8 complete: Keycloak running, OAuth clients registered
-- [ ] P5 complete: API Gateway `/health` < 100ms p95
-- [ ] P6 complete: Worker queues active, DLQ configured
-- [ ] All secrets migrated to Vault (no `.env` in production)
+- [ ] **P0 complete:** `CLOUDFLARE_INVENTORY_AND_MIGRATION_MAP_2026.md` committed, Founder signed off
+- [ ] **L1.4 complete:** PostgreSQL sovereign core running, Hyperdrive connects, **restore test passes**
+- [ ] **L2.2 complete:** Agent Control Plane schema deployed, task tables active
+- [ ] **L3.1 complete:** Auth bridge working for at least 1 test app
+- [ ] All secrets in Cloudflare Secrets Store + GitHub Actions (no `.env` in production)
 - [ ] Migration runbook reviewed by Founder
 - [ ] Rollback script tested on staging
+- [ ] First D1 export + R2 bucket inventory completed (`/backup-index.json`)
 
 ---
 
@@ -126,15 +131,15 @@ supabase sql -c "SELECT tablename, MD5(string_agg(ctid::text, ',' ORDER BY ctid)
 
 ## Phase 4: Gradual Cutover (Week 4–6)
 
-### 4.1 Cutover Order (Lowest Risk First)
+### 4.1 Cutover Order (Agent-First, Auth-Last)
 
-| # | System | Complexity | Reason |
-|---|--------|------------|--------|
-| 1 | `computer.iai.one` | Low | Smallest user base, simplest schema |
-| 2 | `aiagent.iai.one` | High | Requires agent control plane, run parallel 2 weeks |
-| 3 | `maytinhai.org` | Medium | Hybrid: keep CF Workers, switch auth to Keycloak |
-| 4 | `tranhatam.com` | Medium | Hybrid: keep CF Workers, switch auth to Keycloak |
-| 5 | `aiaccountingloop.com` | High | Multi-worker consolidation, do last |
+| # | System | Complexity | Layer | Reason |
+|---|--------|------------|-------|--------|
+| 1 | `aiagent.iai.one` | High | L2 | **Highest value.** Agent Control Plane must run on sovereign core first. |
+| 2 | `computer.iai.one` | Low | L2 | Simplest schema, smallest user base. Test sovereign auth + DB. |
+| 3 | `maytinhai.org` | Medium | L3 | Hybrid: keep CF Workers, bridge DB via Hyperdrive. |
+| 4 | `tranhatam.com` | Medium | L3 | Hybrid: keep CF Workers, bridge auth first, DB later. |
+| 5 | `aiaccountingloop.com` | High | L3 | Multi-worker consolidation, do last. Requires all prior systems stable. |
 
 ### 4.2 Cutover Steps per System
 
@@ -257,20 +262,26 @@ supabase projects pause <project-ref>
 
 ---
 
-## Migration Schedule
+## Migration Schedule (3-Layer)
 
-| Week | Phase | System | Gate |
-|------|-------|--------|------|
-| 1 | Export | All | Schema + data exported, checksums match |
-| 2 | Import | All | Row counts match ±0% |
-| 3 | Parallel | `computer.iai.one` | Read-only queries pass |
-| 4 | Cutover | `computer.iai.one` | Smoke tests pass, 2h monitoring green |
-| 5 | Parallel | `aiagent.iai.one` | Agent tasks log to infra |
-| 6 | Cutover | `aiagent.iai.one` | 2 weeks parallel, no mismatch |
-| 7 | Auth cutover | `maytinhai.org`, `tranhatam.com` | Keycloak login success > 99% |
-| 8 | Worker migration | `aiaccountingloop.com` | All jobs run on infra |
-| 9 | Decommission prep | All | 30-day burn-in complete |
-| 10 | Decommission | Supabase | Founder approval |
+| Week | Layer | Phase | System / Task | Gate |
+|------|-------|-------|---------------|------|
+| 1 | L1 | P0 Inventory | Cloudflare resources mapped | `CLOUDFLARE_INVENTORY_AND_MIGRATION_MAP_2026.md` committed |
+| 1 | L1 | P0 Backup | D1 export + R2 inventory + KV export | `/backup-index.json` exists |
+| 2 | L1 | L1.4 | PostgreSQL sovereign core | Hyperdrive connects, restore test passes |
+| 2 | L1 | L1.5 | Backup automation | Daily pg_dump, weekly WAL-G |
+| 3 | L2 | L2.1 | PostgreSQL schema | Row counts match export |
+| 3 | L2 | L2.2 | Agent Control Plane schema | Task, run, tool_call, approval, evidence tables active |
+| 4 | L2 | L2.3 | Agent roles | Planner, Context, Code, DB, Deploy, Verifier, Reporter |
+| 4 | L2 | L2.4 | Model router + cost tracking | Per-tenant quota enforced |
+| 5 | L2 | Cutover 1 | `aiagent.iai.one` | Agent tasks run on sovereign core, 2 weeks parallel |
+| 5 | L2 | Cutover 2 | `computer.iai.one` | Smoke tests pass, auth + DB on sovereign |
+| 6 | L3 | L3.1 | Auth bridge | SSO works for 1 test app |
+| 6–7 | L3 | Cutover 3 | `maytinhai.org` | Hybrid: CF Workers + sovereign DB |
+| 7–8 | L3 | Cutover 4 | `tranhatam.com` | Auth bridge first, DB later |
+| 8–9 | L3 | Cutover 5 | `aiaccountingloop.com` | Multi-worker consolidation |
+| 9 | L3 | Decommission prep | All systems | 30-day burn-in complete |
+| 10+ | L3 | Decommission | Supabase | Founder approval |
 
 ---
 
