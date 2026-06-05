@@ -1,23 +1,69 @@
-// OMDALA API Gateway — Stub (P5)
+// OMDALA API Gateway (P5)
 // Full implementation: JWT verification, tenant routing, audit log, rate limit.
 
 import Fastify from 'fastify';
+import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
+
+import { jwtVerifyMiddleware } from './middleware/jwt-verify.js';
+import { tenantRouterMiddleware } from './middleware/tenant-router.js';
+import { auditLogMiddleware } from './middleware/audit-log.js';
+
+import healthRoutes from './routes/health.js';
+import taskRoutes from './routes/tasks.js';
+import approvalRoutes from './routes/approvals.js';
 
 const app = Fastify({ logger: true });
 
-// Health endpoint (required for all services)
-app.get('/health', async (_req, reply) => {
-  return reply.send({
-    status: 'ok',
-    service: 'api-gateway',
+// Security plugins
+await app.register(cors, {
+  origin: [/\.omdala\.com$/, /\.iai\.one$/, /\.muonnoi\.org$/, /\.tranhatam\.com$/],
+  credentials: true,
+});
+
+await app.register(helmet, {
+  contentSecurityPolicy: false, // Allow frontend frameworks
+});
+
+await app.register(rateLimit, {
+  max: parseInt(process.env.RATE_LIMIT) || 100,
+  timeWindow: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
+  keyGenerator: (req) => req.headers['x-tenant-id'] || req.ip,
+});
+
+// Global middleware
+app.addHook('onRequest', async (request, reply) => {
+  // Skip JWT for health endpoints
+  if (request.url.startsWith('/health')) return;
+
+  await jwtVerifyMiddleware(request, reply);
+  await tenantRouterMiddleware(request, reply);
+  await auditLogMiddleware(request, reply);
+});
+
+// Register routes
+await app.register(healthRoutes);
+await app.register(taskRoutes, { prefix: '/tasks' });
+await app.register(approvalRoutes, { prefix: '/approvals' });
+
+// 404 handler
+app.setNotFoundHandler(async (request, reply) => {
+  reply.code(404).send({
+    error: 'Not Found',
+    path: request.url,
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || '0.1.0'
   });
 });
 
-// Placeholder: will be implemented with JWT + tenant routing
-app.get('/', async (_req, reply) => {
-  return reply.send({ message: 'OMDALA API Gateway — coming soon' });
+// Error handler
+app.setErrorHandler((err, request, reply) => {
+  app.log.error(err);
+  reply.code(err.statusCode || 500).send({
+    error: err.message || 'Internal Server Error',
+    code: err.code,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 const PORT = process.env.PORT || 3000;
