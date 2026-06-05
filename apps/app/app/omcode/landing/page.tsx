@@ -166,9 +166,9 @@ export default function OmcCodeLanding() {
           OMCODE v0.1 · Local-first AI Code OS · Angel Edu Tam Foundation · IAI ONE
         </div>
         <div style={{ fontSize: 11, color: "#6b7f99", marginTop: 8 }}>
-          <a href="/docs/OMCODE_TERMS_OF_SERVICE.md" style={{ color: "#7ef2ff", textDecoration: "none" }}>Terms</a>
+          <a href="https://docs.omdala.com/omcode/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#7ef2ff", textDecoration: "none" }}>Terms</a>
           {" · "}
-          <a href="/docs/OMCODE_USER_GUIDE.md" style={{ color: "#7ef2ff", textDecoration: "none" }}>Docs</a>
+          <a href="https://docs.omdala.com/omcode/guide" target="_blank" rel="noopener noreferrer" style={{ color: "#7ef2ff", textDecoration: "none" }}>Docs</a>
           {" · "}
           <a href="mailto:omcode@iai.one" style={{ color: "#7ef2ff", textDecoration: "none" }}>Contact</a>
         </div>

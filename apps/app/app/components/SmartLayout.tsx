@@ -14,8 +14,8 @@ const NAV_ITEMS = [
   { id: "nodes", label: VI.nav.nodes, icon: "◈", href: "/nodes" },
   { id: "resources", label: VI.nav.resources, icon: "▣", href: "/resources" },
   { id: "trust", label: VI.nav.trust, icon: "◉", href: "/trust" },
-  { id: "commitments", label: VI.nav.commitments, icon: "◊", href: "/commitments" },
-  { id: "analytics", label: VI.nav.analytics, icon: "◫", href: "/analytics" },
+  // { id: "commitments", label: VI.nav.commitments, icon: "◊", href: "/commitments" },
+  // { id: "analytics", label: VI.nav.analytics, icon: "◫", href: "/analytics" },
 ];
 
 export function SmartLayout({ children }: SmartLayoutProps) {
@@ -63,7 +63,9 @@ export function SmartLayout({ children }: SmartLayoutProps) {
         icon: "→",
         section: "Hành động",
         action: () => {
-          window.location.href = "/auth/logout";
+          localStorage.removeItem("omcode:account");
+          localStorage.removeItem("omcode:session-id");
+          window.location.href = "/";
         },
       },
     ],

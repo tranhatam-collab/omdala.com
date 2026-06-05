@@ -158,6 +158,19 @@ export class ModelRouter {
     }
   }
 
+  private createTimeoutSignal(ms: number): AbortSignal {
+    if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
+      return (AbortSignal as any).timeout(ms);
+    }
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), ms);
+    // Best-effort cleanup; fetch may keep signal alive
+    if (typeof (controller.signal as any).addEventListener === "function") {
+      (controller.signal as any).addEventListener("abort", () => clearTimeout(id));
+    }
+    return controller.signal;
+  }
+
   private async callOpenAI(request: AIRequest, modelId: string, config: { apiKey?: string; baseUrl?: string }): Promise<AIResponse> {
     const baseUrl = config.baseUrl || "https://api.openai.com/v1";
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -173,7 +186,7 @@ export class ModelRouter {
         max_tokens: request.maxTokens ?? 4096,
         stream: false,
       }),
-      signal: AbortSignal.timeout(this.config.timeoutMs),
+      signal: this.createTimeoutSignal(this.config.timeoutMs),
     });
 
     if (!response.ok) {
@@ -181,19 +194,20 @@ export class ModelRouter {
       throw new Error(`OpenAI API error: ${response.status} - ${error}`);
     }
 
-    const data = await response.json();
-    const choice = data.choices[0];
+    const data = (await response.json()) as Record<string, any>;
+    const choice = data?.choices?.[0];
+    if (!choice) throw new Error("OpenAI response missing choices");
 
     return {
-      content: choice.message.content,
+      content: choice.message?.content ?? "",
       model: modelId,
       usage: {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens,
+        promptTokens: data.usage?.prompt_tokens ?? 0,
+        completionTokens: data.usage?.completion_tokens ?? 0,
+        totalTokens: data.usage?.total_tokens ?? 0,
       },
-      finishReason: choice.finish_reason,
-      toolCalls: choice.message.tool_calls,
+      finishReason: choice.finish_reason ?? "stop",
+      toolCalls: choice.message?.tool_calls,
     };
   }
 
@@ -212,7 +226,7 @@ export class ModelRouter {
         max_tokens: request.maxTokens ?? 4096,
         temperature: request.temperature ?? 0.7,
       }),
-      signal: AbortSignal.timeout(this.config.timeoutMs),
+      signal: this.createTimeoutSignal(this.config.timeoutMs),
     });
 
     if (!response.ok) {
@@ -220,17 +234,19 @@ export class ModelRouter {
       throw new Error(`Anthropic API error: ${response.status} - ${error}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as Record<string, any>;
+    const contentBlock = data?.content?.[0];
+    if (!contentBlock) throw new Error("Anthropic response missing content");
 
     return {
-      content: data.content[0].text,
+      content: contentBlock.text ?? "",
       model: modelId,
       usage: {
-        promptTokens: data.usage.input_tokens,
-        completionTokens: data.usage.output_tokens,
-        totalTokens: data.usage.input_tokens + data.usage.output_tokens,
+        promptTokens: data.usage?.input_tokens ?? 0,
+        completionTokens: data.usage?.output_tokens ?? 0,
+        totalTokens: (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0),
       },
-      finishReason: data.stop_reason,
+      finishReason: data.stop_reason ?? "stop",
     };
   }
 
@@ -248,7 +264,7 @@ export class ModelRouter {
           maxOutputTokens: request.maxTokens ?? 4096,
         },
       }),
-      signal: AbortSignal.timeout(this.config.timeoutMs),
+      signal: this.createTimeoutSignal(this.config.timeoutMs),
     });
 
     if (!response.ok) {
@@ -256,18 +272,19 @@ export class ModelRouter {
       throw new Error(`Google API error: ${response.status} - ${error}`);
     }
 
-    const data = await response.json();
-    const candidate = data.candidates[0];
+    const data = (await response.json()) as Record<string, any>;
+    const candidate = data?.candidates?.[0];
+    if (!candidate) throw new Error("Google response missing candidates");
 
     return {
-      content: candidate.content.parts[0].text,
+      content: candidate.content?.parts?.[0]?.text ?? "",
       model: modelId,
       usage: {
         promptTokens: data.usageMetadata?.promptTokenCount ?? 0,
         completionTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
         totalTokens: data.usageMetadata?.totalTokenCount ?? 0,
       },
-      finishReason: candidate.finishReason,
+      finishReason: candidate.finishReason ?? "stop",
     };
   }
 
@@ -285,7 +302,7 @@ export class ModelRouter {
         temperature: request.temperature ?? 0.7,
         max_tokens: request.maxTokens ?? 4096,
       }),
-      signal: AbortSignal.timeout(this.config.timeoutMs),
+      signal: this.createTimeoutSignal(this.config.timeoutMs),
     });
 
     if (!response.ok) {
@@ -293,22 +310,24 @@ export class ModelRouter {
       throw new Error(`Groq API error: ${response.status} - ${error}`);
     }
 
-    const data = await response.json();
-    const choice = data.choices[0];
+    const data = (await response.json()) as Record<string, any>;
+    const choice = data?.choices?.[0];
+    if (!choice) throw new Error("Groq response missing choices");
 
     return {
-      content: choice.message.content,
+      content: choice.message?.content ?? "",
       model: modelId,
       usage: {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens,
+        promptTokens: data.usage?.prompt_tokens ?? 0,
+        completionTokens: data.usage?.completion_tokens ?? 0,
+        totalTokens: data.usage?.total_tokens ?? 0,
       },
-      finishReason: choice.finish_reason,
+      finishReason: choice.finish_reason ?? "stop",
     };
   }
 
   private async callDeepSeek(request: AIRequest, modelId: string, config: { apiKey?: string; baseUrl?: string }): Promise<AIResponse> {
+    if (!config.apiKey) throw new Error("DeepSeek API key is required");
     const baseUrl = config.baseUrl || "https://api.deepseek.com/v1";
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
@@ -322,7 +341,7 @@ export class ModelRouter {
         temperature: request.temperature ?? 0.7,
         max_tokens: request.maxTokens ?? 4096,
       }),
-      signal: AbortSignal.timeout(this.config.timeoutMs),
+      signal: this.createTimeoutSignal(this.config.timeoutMs),
     });
 
     if (!response.ok) {
@@ -330,25 +349,27 @@ export class ModelRouter {
       throw new Error(`DeepSeek API error: ${response.status} - ${error}`);
     }
 
-    const data = await response.json();
-    const choice = data.choices[0];
+    const data = (await response.json()) as Record<string, any>;
+    const choice = data?.choices?.[0];
+    if (!choice) throw new Error("DeepSeek response missing choices");
 
     return {
-      content: choice.message.content,
+      content: choice.message?.content ?? "",
       model: modelId,
       usage: {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens,
+        promptTokens: data.usage?.prompt_tokens ?? 0,
+        completionTokens: data.usage?.completion_tokens ?? 0,
+        totalTokens: data.usage?.total_tokens ?? 0,
       },
-      finishReason: choice.finish_reason,
+      finishReason: choice.finish_reason ?? "stop",
     };
   }
 
   private async callCloudflare(request: AIRequest, modelId: string, config: { apiKey?: string; baseUrl?: string }): Promise<AIResponse> {
+    if (!config.apiKey) throw new Error("Cloudflare account ID (apiKey) is required");
     const baseUrl = config.baseUrl || "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run";
     // Cloudflare Workers AI requires account ID in URL
-    const accountId = config.apiKey; // Reuse apiKey field for account ID
+    const accountId = config.apiKey;
     const response = await fetch(`${baseUrl.replace("{account_id}", accountId || "")}/${modelId}`, {
       method: "POST",
       headers: {
@@ -359,7 +380,7 @@ export class ModelRouter {
         messages: request.messages,
         max_tokens: request.maxTokens ?? 4096,
       }),
-      signal: AbortSignal.timeout(this.config.timeoutMs),
+      signal: this.createTimeoutSignal(this.config.timeoutMs),
     });
 
     if (!response.ok) {
@@ -367,10 +388,10 @@ export class ModelRouter {
       throw new Error(`Cloudflare API error: ${response.status} - ${error}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as Record<string, any>;
 
     return {
-      content: data.result?.response || "",
+      content: data?.result?.response ?? "",
       model: modelId,
       usage: {
         promptTokens: 0, // Cloudflare doesn't return token count
@@ -382,6 +403,11 @@ export class ModelRouter {
   }
 
   private async callLocal(request: AIRequest, modelId: string, config: { apiKey?: string; baseUrl?: string }): Promise<AIResponse> {
+    if (!Array.isArray(request.messages) || request.messages.length === 0) {
+      throw new Error("AIRequest.messages must be a non-empty array");
+    }
+    const safeTemperature = typeof request.temperature === "number" && !isNaN(request.temperature) ? request.temperature : 0.7;
+    const safeMaxTokens = typeof request.maxTokens === "number" && request.maxTokens > 0 ? request.maxTokens : 4096;
     const baseUrl = config.baseUrl || "http://localhost:11434/api";
     const response = await fetch(`${baseUrl}/generate`, {
       method: "POST",
@@ -393,11 +419,11 @@ export class ModelRouter {
         prompt: request.messages.map((m) => `${m.role}: ${m.content}`).join("\n"),
         stream: false,
         options: {
-          temperature: request.temperature ?? 0.7,
-          num_predict: request.maxTokens ?? 4096,
+          temperature: safeTemperature,
+          num_predict: safeMaxTokens,
         },
       }),
-      signal: AbortSignal.timeout(this.config.timeoutMs),
+      signal: this.createTimeoutSignal(this.config.timeoutMs),
     });
 
     if (!response.ok) {
@@ -405,15 +431,15 @@ export class ModelRouter {
       throw new Error(`Local API error: ${response.status} - ${error}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as Record<string, any>;
 
     return {
-      content: data.response,
+      content: data?.response ?? "",
       model: modelId,
       usage: {
-        promptTokens: data.eval_count ?? 0,
+        promptTokens: data?.eval_count ?? 0,
         completionTokens: 0,
-        totalTokens: data.eval_count ?? 0,
+        totalTokens: data?.eval_count ?? 0,
       },
       finishReason: "stop",
     };

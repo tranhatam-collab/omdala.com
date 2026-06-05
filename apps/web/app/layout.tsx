@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     locale: "vi_VN",
     images: [
       {
-        url: "/og-default.svg",
+        url: "/og-default.png",
         width: 1200,
         height: 630,
         alt: `OMDALA — ${homeSeo.seoTitle}`,

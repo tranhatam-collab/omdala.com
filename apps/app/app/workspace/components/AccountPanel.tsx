@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { useI18n } from "../hooks/useI18n";
-import { loginToGateway, registerOnGateway } from "../api/gateway";
+import { loginToGateway, registerOnGateway, verifyGatewayToken } from "../api/gateway";
 
 const ACCOUNT_KEY = "omcode:account";
 
@@ -38,7 +38,22 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
   React.useEffect(() => {
     const a = loadAccount();
-    if (a) { setAccount(a); setMode("connected"); setApiUrl(a.apiGatewayUrl || apiUrl); }
+    if (a?.token && a?.apiGatewayUrl) {
+      setStatus("Verifying session…");
+      verifyGatewayToken(a.apiGatewayUrl, a.token).then((res) => {
+        if (res.success && res.account) {
+          setAccount(res.account);
+          setMode("connected");
+          setApiUrl(res.account.apiGatewayUrl || apiUrl);
+          setStatus("");
+        } else {
+          localStorage.removeItem(ACCOUNT_KEY);
+          setAccount(null);
+          setMode("login");
+          setStatus("Session expired. Please log in again.");
+        }
+      });
+    }
   }, []);
 
   if (!isOpen) return null;

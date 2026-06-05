@@ -1,64 +1,27 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-const configDir = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const monorepoRoot = path.join(__dirname, '..', '..')
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  poweredByHeader: false,
+const config = {
   reactStrictMode: true,
-  swcMinify: true,
-  output: "standalone",
-  productionBrowserSourceMaps: false,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: false,
-  },
+  output: 'export',
+  trailingSlash: true,
   images: {
-    formats: ["image/avif", "image/webp"],
-    minimumCacheTTL: 60,
+    unoptimized: true,
   },
-  experimental: {
-    optimizePackageImports: [
-      "@omdala/core",
-      "@omdala/ui",
-      "@omdala/types",
-    ],
-    webpackBuildWorker: true,
-    parallelServerCompiles: true,
-    parallelServerBuildTraces: true,
-  },
-  turbopack: {
-    root: path.resolve(configDir, "../..")
-  },
-  devIndicators: false,
-  // Bundle optimization for lightweight MacBook usage
-  webpack: (config, { dev }) => {
-    if (!dev) {
-      config.optimization.splitChunks = {
-        chunks: "all",
-        maxInitialRequests: 25,
-        minSize: 20000,
-        cacheGroups: {
-          vendor: {
-            test: /[\\/]node_modules[\\/]/,
-            name: "vendors",
-            chunks: "all",
-            priority: 10,
-          },
-          common: {
-            minChunks: 2,
-            chunks: "all",
-            enforce: true,
-            priority: 5,
-          },
-        },
-      };
-    }
-    return config;
-  },
-};
+  transpilePackages: [
+    '@omdala/ui',
+    '@omdala/types',
+    '@omdala/core',
+    '@omdala/ai-service',
+    '@omdala/auth-service',
+    '@omdala/notifications-service',
+    '@omdala/trust-service',
+    '@omdala/matching-service',
+  ],
+}
 
-export default nextConfig;
+export default config

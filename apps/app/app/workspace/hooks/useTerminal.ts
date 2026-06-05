@@ -213,6 +213,10 @@ export function useTerminal(
               addEntry("error", "mv: thiếu đối số. Cú pháp: mv <src> <dst>");
               return;
             }
+            if (!confirm(`Bạn có chắc muốn di chuyển "${args[1]}" → "${args[2]}"?`)) {
+              addEntry("info", "mv: đã hủy.");
+              return;
+            }
             const current = await resolveCurrentDir();
             if (!current) return;
             const srcHandle = await (current as any).getFileHandle(args[1]);
@@ -257,6 +261,10 @@ export function useTerminal(
           case "rm": {
             if (!args[1]) {
               addEntry("error", "rm: thiếu tên file/thư mục.");
+              return;
+            }
+            if (!confirm(`Bạn có chắc muốn xóa "${args[1]}"? Thao tác này không thể hoàn tác.`)) {
+              addEntry("info", "rm: đã hủy.");
               return;
             }
             const current = await resolveCurrentDir();

@@ -129,14 +129,25 @@ export function AuthLoginForm() {
         ),
       });
     } catch (error) {
+      const rawMessage =
+        error instanceof ApiClientError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : pickBilingualValue(language, copy.genericSendError);
+
+      // Friendly message when mail service is down (502/522/503/504)
+      const isMailUnavailable = /mail api|522|503|504|502|unreachable|timeout/i.test(rawMessage);
+      const friendlyMessage = isMailUnavailable
+        ? pickBilingualValue(language, {
+            en: "Mail service is temporarily unavailable. Please retry shortly or contact support.",
+            vi: "Dịch vụ gửi mail tạm thời không khả dụng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.",
+          })
+        : rawMessage;
+
       setStatus({
         tone: "error",
-        message:
-          error instanceof ApiClientError
-            ? error.message
-            : error instanceof Error
-              ? error.message
-              : pickBilingualValue(language, copy.genericSendError),
+        message: friendlyMessage,
       });
     } finally {
       setIsSubmitting(false);

@@ -1128,6 +1128,14 @@ function applySeedTrustDeltaForProofSubmission(commitmentId: string): void {
 
 async function sendMail(env: ApiBindings, payload: MailRequest) {
   if (!env.MAIL_API_KEY) {
+    // Dev/test fallback: log email to console instead of failing
+    if (env.ENVIRONMENT !== "production") {
+      console.warn("[sendMail] MAIL_API_KEY not set — logging email to console (dev fallback)");
+      console.log("[sendMail] To:", payload.to);
+      console.log("[sendMail] Subject:", payload.subject);
+      console.log("[sendMail] Text:\n", payload.text);
+      return;
+    }
     throw new Error("MAIL_API_KEY is not configured");
   }
 
@@ -1138,20 +1146,61 @@ async function sendMail(env: ApiBindings, payload: MailRequest) {
     workspace_id: payload.workspace_id ?? (env.MAIL_API_WORKSPACE_ID ?? "omdala.com"),
   };
 
-  const response = await fetch(`${getMailApiUrl(env)}/emails`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.MAIL_API_KEY}`,
-      "Content-Type": "application/json",
-      "X-Workspace-Id": env.MAIL_API_WORKSPACE_ID ?? "omdala.com",
-    },
-    body: JSON.stringify(enrichedPayload),
-  });
+  const mailApiUrl = getMailApiUrl(env);
 
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`Mail API returned ${response.status}: ${detail}`);
+  // Retry up to 2 times for transient failures
+  let lastError: Error | undefined;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      const response = await fetch(`${mailApiUrl}/emails`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.MAIL_API_KEY}`,
+          "Content-Type": "application/json",
+          "X-Workspace-Id": env.MAIL_API_WORKSPACE_ID ?? "omdala.com",
+        },
+        body: JSON.stringify(enrichedPayload),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        return;
+      }
+
+      const detail = await response.text();
+      // 5xx errors are retryable; 4xx are not
+      if (response.status >= 500) {
+        lastError = new Error(`Mail API returned ${response.status}: ${detail}`);
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+          continue;
+        }
+      } else {
+        throw new Error(`Mail API returned ${response.status}: ${detail}`);
+      }
+    } catch (err: any) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (attempt < 2) {
+        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+      }
+    }
   }
+
+  // Final fallback for non-production: log instead of crashing
+  if (env.ENVIRONMENT !== "production") {
+    console.warn("[sendMail] Mail API unreachable after retries — logging email to console (dev fallback)");
+    console.log("[sendMail] To:", payload.to);
+    console.log("[sendMail] Subject:", payload.subject);
+    console.log("[sendMail] Text:\n", payload.text);
+    return;
+  }
+
+  throw lastError ?? new Error("Mail API unreachable after retries");
 }
 
 function formatTopicLabel(topic: string) {

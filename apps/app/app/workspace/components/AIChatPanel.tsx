@@ -15,6 +15,42 @@ import { recordUsage } from "./CostDashboard";
 import { saveChatMessage } from "./ChatHistoryPanel";
 import { getAgentSystemPrompt } from "@/lib/permission-layer";
 
+// ── Gateway account helper (minimal bridge) ──────────────────────────────────
+function loadGatewayAccount(): { token: string; url: string } | null {
+  try {
+    const raw = localStorage.getItem("omcode:account");
+    if (!raw) return null;
+    const a = JSON.parse(raw);
+    if (a?.token && a?.apiGatewayUrl) return { token: a.token, url: a.apiGatewayUrl };
+  } catch {}
+  return null;
+}
+
+async function routeViaGateway(
+  gateway: { token: string; url: string },
+  body: { model: string; messages: Array<{ role: string; content: string }>; maxTokens: number },
+): Promise<{ content: string; usage?: { promptTokens: number; completionTokens: number; totalTokens: number }; modelUsed: string } | null> {
+  try {
+    const res = await fetch(`${gateway.url.replace(/\/$/, "")}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${gateway.token}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      content: data.choices?.[0]?.message?.content ?? "",
+      usage: data.usage,
+      modelUsed: data.model ?? body.model,
+    };
+  } catch {
+    return null;
+  }
+}
+
 interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
@@ -225,8 +261,11 @@ Trả lời ngắn gọn, dùng tiếng Việt.`;
           ? { ...classification, recommendedModel: selectedModel }
           : classification;
 
-      const result = await modelRouter.route(
-        {
+      const gateway = loadGatewayAccount();
+      let result: { response: { content: string; usage?: { promptTokens: number; completionTokens: number; totalTokens: number } }; modelUsed: string; totalCost?: number };
+
+      if (gateway) {
+        const gatewayRes = await routeViaGateway(gateway, {
           model: effectiveClassification.recommendedModel,
           messages: [
             { role: "system", content: systemPrompt },
@@ -237,9 +276,44 @@ Trả lời ngắn gọn, dùng tiếng Việt.`;
             { role: "user", content: text },
           ],
           maxTokens: 1024,
-        },
-        classification,
-      );
+        });
+        if (gatewayRes) {
+          result = { response: { content: gatewayRes.content, usage: gatewayRes.usage }, modelUsed: gatewayRes.modelUsed, totalCost: 0 };
+        } else {
+          // Gateway fail → fallback local
+          result = await modelRouter.route(
+            {
+              model: effectiveClassification.recommendedModel,
+              messages: [
+                { role: "system", content: systemPrompt },
+                ...messages.slice(-6).map((m) => ({
+                  role: (m.role === "system" ? "user" : m.role) as "user" | "assistant",
+                  content: m.content,
+                })),
+                { role: "user", content: text },
+              ],
+              maxTokens: 1024,
+            },
+            classification,
+          );
+        }
+      } else {
+        result = await modelRouter.route(
+          {
+            model: effectiveClassification.recommendedModel,
+            messages: [
+              { role: "system", content: systemPrompt },
+              ...messages.slice(-6).map((m) => ({
+                role: (m.role === "system" ? "user" : m.role) as "user" | "assistant",
+                content: m.content,
+              })),
+              { role: "user", content: text },
+            ],
+            maxTokens: 1024,
+          },
+          classification,
+        );
+      }
 
       // Track usage
       const providerId = result.modelUsed?.split(":")[0] || "unknown";
