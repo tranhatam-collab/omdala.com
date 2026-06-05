@@ -48,7 +48,18 @@ export default async function healthRoutes(app) {
           properties: {
             status: { type: 'string' },
             timestamp: { type: 'string' },
-            services: { type: 'object' },
+            services: {
+              type: 'object',
+              additionalProperties: {
+                type: 'object',
+                properties: {
+                  status: { type: 'string' },
+                  latency: { type: 'string' },
+                  error: { type: 'string' },
+                },
+                additionalProperties: true,
+              },
+            },
           },
         },
         503: {
@@ -56,7 +67,18 @@ export default async function healthRoutes(app) {
           properties: {
             status: { type: 'string' },
             timestamp: { type: 'string' },
-            services: { type: 'object' },
+            services: {
+              type: 'object',
+              additionalProperties: {
+                type: 'object',
+                properties: {
+                  status: { type: 'string' },
+                  latency: { type: 'string' },
+                  error: { type: 'string' },
+                },
+                additionalProperties: true,
+              },
+            },
           },
         },
       },
