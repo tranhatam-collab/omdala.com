@@ -1,0 +1,76 @@
+{
+  "name": "OMDALA Incident Create",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incident",
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "incident-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.body;\nreturn [{ json: { title: data.title, severity: data.severity || 'medium', service: data.service, description: data.description } }];"
+      },
+      "name": "Parse Incident",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.omdala.com/approvals",
+        "method": "POST",
+        "body": {
+          "request_type": "open_incident",
+          "title": "Incident: {{ $json.title }}",
+          "description": "{{ $json.description }}",
+          "approvers": ["on-call-lead"]
+        },
+        "options": {
+          "headers": {
+            "Authorization": "Bearer {{ $env.API_INTERNAL_TOKEN }}",
+            "X-Tenant-ID": "system"
+          }
+        }
+      },
+      "name": "Create Approval",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "🔥 OMDALA Incident Created\nTitle: {{ $json.title }}\nSeverity: {{ $json.severity }}\nService: {{ $json.service }}\nApproval: {{ $json.approvalId }}"
+      },
+      "name": "Notify Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [850, 300],
+      "credentials": { "telegramApi": { "id": "telegram", "name": "Telegram Bot" } }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{"node": "Parse Incident", "type": "main", "index": 0}]] },
+    "Parse Incident": { "main": [[{"node": "Create Approval", "type": "main", "index": 0}]] },
+    "Create Approval": { "main": [[{"node": "Notify Telegram", "type": "main", "index": 0}]] },
+    "Notify Telegram": { "main": [[{"node": "Webhook Response", "type": "main", "index": 0}]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{"name": "omdala", "id": "omdala"}]
+}

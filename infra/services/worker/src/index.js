@@ -8,6 +8,9 @@ import http from 'http';
 import { backupJob } from './jobs/backup.js';
 import { emailJob } from './jobs/email.js';
 import { aiTaskJob } from './jobs/ai-task.js';
+import { deployJob } from './jobs/deploy.js';
+import { dbQueryJob } from './jobs/db-query.js';
+import { codeReviewJob } from './jobs/code-review.js';
 
 const redis = new IORedis(process.env.REDIS_URL || 'redis://valkey:6379');
 
@@ -38,6 +41,9 @@ const jobHandlers = {
   'backup': backupJob,
   'email': emailJob,
   'ai-task': aiTaskJob,
+  'deploy': deployJob,
+  'db-query': dbQueryJob,
+  'code-review': codeReviewJob,
 };
 
 const worker = new Worker('omdala-queue', async (job) => {
