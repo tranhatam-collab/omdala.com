@@ -1,0 +1,82 @@
+{
+  "name": "OMDALA Cost Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "hours", "hoursInterval": 168}]
+        }
+      },
+      "name": "Weekly Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://api.cloudflare.com/client/v4/graphql",
+        "method": "POST",
+        "body": {
+          "query": "query { viewer { accounts { name usage: billingHistory { amount, currency, date } } } }"
+        },
+        "options": {
+          "headers": {
+            "Authorization": "Bearer {{ $env.CLOUDFLARE_API_TOKEN }}"
+          }
+        }
+      },
+      "name": "Fetch CF Billing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const total = $input.all()[0].json.data.viewer.accounts.reduce((sum, a) => sum + (a.usage?.[0]?.amount || 0), 0);\nreturn [{ json: { totalUsd: total, threshold: 50 } }];"
+      },
+      "name": "Calc Total",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.totalUsd }}",
+              "rightValue": "={{ $json.threshold }}",
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "name": "Over Threshold?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "💰 OMDALA Cost Alert\nWeekly spend: ${{ $json.totalUsd }}\nThreshold: ${{ $json.threshold }}\nReview billing dashboard."
+      },
+      "name": "Alert Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [1050, 200],
+      "credentials": { "telegramApi": { "id": "telegram", "name": "Telegram Bot" } }
+    }
+  ],
+  "connections": {
+    "Weekly Trigger": { "main": [[{"node": "Fetch CF Billing", "type": "main", "index": 0}]] },
+    "Fetch CF Billing": { "main": [[{"node": "Calc Total", "type": "main", "index": 0}]] },
+    "Calc Total": { "main": [[{"node": "Over Threshold?", "type": "main", "index": 0}]] },
+    "Over Threshold?": { "main": [[{"node": "Alert Telegram", "type": "main", "index": 0}]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": [{"name": "omdala", "id": "omdala"}]
+}

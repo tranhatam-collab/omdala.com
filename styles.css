@@ -1,35 +1,69 @@
 :root {
-  --bg: #f3f1ea;
-  --surface: rgba(255, 255, 255, 0.78);
-  --surface-strong: rgba(255, 255, 255, 0.92);
-  --text: #141412;
-  --muted: #5d5a55;
-  --line: rgba(20, 20, 18, 0.08);
-  --accent: #0b5c58;
-  --accent-soft: rgba(11, 92, 88, 0.1);
-  --shadow: 0 24px 80px rgba(20, 20, 18, 0.08);
+  --omdala-space-950: #040816;
+  --omdala-space-900: #08101f;
+  --omdala-space-850: #0b1326;
+  --omdala-space-800: #101c33;
+  --omdala-cyan-500: #3de7ff;
+  --omdala-cyan-400: #7ef2ff;
+  --omdala-blue-500: #3d8bff;
+  --omdala-gold-500: #D4AF37;
+  --omdala-gold-400: #E5C158;
+  --omdala-gold-bright: #FFD700;
+  --omdala-gold-soft: rgba(212, 175, 55, 0.18);
+  --omdala-white-100: #f7fbff;
+  --omdala-white-200: #dde8f5;
+  --omdala-white-300: #bfcde1;
+  --omdala-substrate-grid: rgba(126, 242, 255, 0.04);
+  --omdala-substrate-line: rgba(126, 242, 255, 0.1);
+  --omdala-substrate-scan: rgba(126, 242, 255, 0.06);
+  --omdala-shadow-signal: 0 0 0 1px rgba(126, 242, 255, 0.18), 0 8px 32px rgba(0, 0, 0, 0.6);
+  --omdala-shadow-signal-strong: 0 0 0 1px rgba(126, 242, 255, 0.32), 0 16px 48px rgba(61, 231, 255, 0.18);
+  --omdala-ease-luxury: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 * {
   box-sizing: border-box;
 }
 
-html,
-body {
-  margin: 0;
-  padding: 0;
-  background:
-    radial-gradient(circle at top left, rgba(11, 92, 88, 0.1), transparent 34rem),
-    linear-gradient(180deg, #f5f2eb 0%, #ece8de 100%);
-  color: var(--text);
-  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
 }
 
 body {
+  margin: 0;
   min-height: 100vh;
+  background-color: var(--omdala-space-950);
+  background-image:
+    linear-gradient(0deg, var(--omdala-substrate-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--omdala-substrate-grid) 1px, transparent 1px),
+    linear-gradient(180deg, var(--omdala-space-900) 0%, var(--omdala-space-950) 100%);
+  background-size: 48px 48px, 48px 48px, auto;
+  background-attachment: fixed;
+  color: var(--omdala-white-100);
+  font-family: Inter, "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 0%, transparent 48%, var(--omdala-substrate-scan) 50%, transparent 52%, transparent 100%);
+  background-size: 100% 200%;
+  animation: omdala-scan 18s linear infinite;
+  opacity: 0.38;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 .page {
+  position: relative;
+  z-index: 1;
   width: min(1120px, calc(100% - 2rem));
   margin: 0 auto;
   padding: 3rem 0 5rem;
@@ -37,55 +71,94 @@ body {
 
 .hero,
 .card,
-.stack {
-  backdrop-filter: blur(14px);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
+.stack,
+.lane {
+  border: 1px solid rgba(247, 251, 255, 0.1);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(11, 19, 38, 0.72) 0%, rgba(8, 16, 31, 0.52) 100%);
+  box-shadow: var(--omdala-shadow-signal);
 }
 
 .hero {
-  border-radius: 32px;
-  padding: 3rem;
+  position: relative;
+  padding: 4rem 3rem;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.hero::before,
+.card::before,
+.lane::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 1rem;
+  width: 24px;
+  height: 2px;
+  background: var(--omdala-cyan-500);
+  border-radius: 0 0 2px 2px;
+  transition: width 320ms var(--omdala-ease-luxury);
+}
+
+.hero::before {
+  left: 0;
+  box-shadow: 0 0 12px var(--omdala-cyan-500);
 }
 
 .eyebrow {
-  margin: 0 0 0.8rem;
-  font-family: "Helvetica Neue", "Arial Narrow", sans-serif;
-  font-size: 0.8rem;
-  letter-spacing: 0.2em;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 0.85rem;
+  color: var(--omdala-cyan-500);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0;
   text-transform: uppercase;
-  color: var(--accent);
+}
+
+.eyebrow::before {
+  content: "";
+  display: inline-block;
+  width: 24px;
+  height: 1px;
+  background: var(--omdala-cyan-500);
 }
 
 h1,
 h2 {
   margin: 0;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0;
   line-height: 1.05;
 }
 
 h1 {
-  max-width: 12ch;
-  font-size: clamp(2.9rem, 7vw, 5.4rem);
+  max-width: 13ch;
+  font-size: 4.25rem;
+  background: linear-gradient(180deg, #ffffff 0%, var(--omdala-cyan-400) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 h2 {
-  font-size: clamp(1.6rem, 4vw, 2.3rem);
+  font-size: 2rem;
 }
 
 .lede,
 .card p,
 .stack-copy p,
 .lane span {
-  color: var(--muted);
+  color: var(--omdala-white-200);
   line-height: 1.7;
 }
 
 .lede {
   max-width: 64ch;
   margin: 1.25rem 0 0;
-  font-size: 1.1rem;
+  font-size: 1.12rem;
 }
 
 .actions {
@@ -96,26 +169,62 @@ h2 {
 }
 
 .button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 48px;
+  overflow: hidden;
   padding: 0.85rem 1.2rem;
   border-radius: 999px;
-  text-decoration: none;
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-weight: 600;
+  border: 1px solid transparent;
+  font-weight: 700;
+  transition:
+    transform 180ms var(--omdala-ease-luxury),
+    box-shadow 180ms var(--omdala-ease-luxury),
+    border-color 180ms var(--omdala-ease-luxury),
+    background 180ms var(--omdala-ease-luxury);
 }
 
 .button.primary {
-  background: var(--accent);
-  color: #f7f5ef;
+  background: var(--omdala-cyan-500);
+  color: var(--omdala-space-950);
+  border-color: var(--omdala-cyan-500);
+  box-shadow: var(--omdala-shadow-signal);
+}
+
+.button.primary::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transition: left 0.7s var(--omdala-ease-luxury);
+}
+
+.button.primary:hover::after {
+  left: 130%;
+}
+
+.button.primary:hover {
+  background: var(--omdala-cyan-400);
+  border-color: var(--omdala-cyan-400);
+  box-shadow: var(--omdala-shadow-signal-strong);
+  transform: translateY(-1px);
 }
 
 .button.secondary {
-  background: var(--surface-strong);
-  color: var(--text);
-  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--omdala-white-100);
+  border-color: rgba(126, 242, 255, 0.14);
+}
+
+.button.secondary:hover {
+  background: rgba(126, 242, 255, 0.06);
+  border-color: rgba(126, 242, 255, 0.4);
+  color: var(--omdala-cyan-400);
 }
 
 .grid-section {
@@ -125,9 +234,15 @@ h2 {
   margin-top: 1.25rem;
 }
 
-.card {
-  border-radius: 24px;
+.card,
+.lane {
+  position: relative;
   padding: 1.5rem;
+}
+
+.card:hover::before,
+.lane:hover::before {
+  width: 56px;
 }
 
 .card h2 {
@@ -139,7 +254,6 @@ h2 {
   grid-template-columns: 1.1fr 0.9fr;
   gap: 1.25rem;
   margin-top: 1.25rem;
-  border-radius: 28px;
   padding: 1.75rem;
 }
 
@@ -148,17 +262,40 @@ h2 {
   gap: 0.9rem;
 }
 
-.lane {
-  border-radius: 22px;
-  padding: 1rem 1.1rem;
-  background: var(--surface-strong);
-  border: 1px solid var(--line);
-}
-
 .lane strong {
   display: block;
   margin-top: 0.25rem;
+  color: var(--omdala-white-100);
   font-size: 1.05rem;
+}
+
+.lane.verified {
+  border-color: rgba(212, 175, 55, 0.32);
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.12) 0%, rgba(11, 19, 38, 0.52) 100%);
+}
+
+.lane.verified::before {
+  background: var(--omdala-gold-500);
+}
+
+@keyframes omdala-scan {
+  0% {
+    background-position: 0% -100%;
+  }
+
+  100% {
+    background-position: 0% 200%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  .button.primary::after,
+  .card::before,
+  .lane::before {
+    animation: none;
+    transition: none;
+  }
 }
 
 @media (max-width: 900px) {
@@ -168,6 +305,24 @@ h2 {
   }
 
   .hero {
-    padding: 2rem 1.25rem;
+    padding: 3rem 0 2rem;
+  }
+
+  h1 {
+    font-size: 3.2rem;
+  }
+}
+
+@media (max-width: 680px) {
+  .page {
+    width: min(100% - 1rem, 1120px);
+  }
+
+  h1 {
+    font-size: 2.55rem;
+  }
+
+  h2 {
+    font-size: 1.65rem;
   }
 }

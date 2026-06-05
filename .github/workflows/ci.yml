@@ -1,0 +1,71 @@
+name: OMDALA CI
+
+on:
+  push:
+    branches: [main, audit-omdala-infra]
+  pull_request:
+    branches: [main]
+
+jobs:
+  tsc:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - run: npx tsc --noEmit --project packages/core/tsconfig.json
+      - run: npx tsc --noEmit --project packages/seo/tsconfig.json
+      - run: npx tsc --noEmit --project packages/types/tsconfig.json
+      - run: npx tsc --noEmit --project packages/ui/tsconfig.json
+
+  test-api:
+    name: API Gateway Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+        working-directory: infra/services/api-gateway
+      - run: npm test
+        working-directory: infra/services/api-gateway
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+          PORT: 9999
+
+  test-worker:
+    name: Worker Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+        working-directory: infra/services/worker
+      - run: npm test
+        working-directory: infra/services/worker
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+
+  build-nextjs:
+    name: Next.js Builds
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [web, app, docs, admin, auth]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - run: cd apps/${{ matrix.app }} && npx next build
