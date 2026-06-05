@@ -29,6 +29,13 @@ aws s3 cp "${DUMP_FILE}" "s3://${R2_BUCKET_BACKUPS}/${R2_KEY}" \
 
 echo "Upload complete: ${R2_KEY}"
 
+# Optional: upload to Backblaze B2 (secondary copy)
+if [ -n "${B2_BUCKET}" ] && [ -n "${B2_APPLICATION_KEY}" ]; then
+  echo "Uploading to B2..."
+  b2 upload-file "${B2_BUCKET}" "${DUMP_FILE}" "backups/postgres/${R2_KEY}" || echo "B2 upload failed (non-critical)"
+  echo "B2 upload complete."
+fi
+
 # Cleanup old backups (retention)
 find /backups -type f -name "*.sql.gz" -mtime +${BACKUP_RETENTION_DAYS} -delete
 

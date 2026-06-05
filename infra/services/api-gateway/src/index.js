@@ -11,6 +11,8 @@ import { tenantRouterMiddleware } from './middleware/tenant-router.js';
 import { auditLogHook } from './middleware/audit-log.js';
 
 import healthRoutes from './routes/health.js';
+import userRoutes from './routes/users.js';
+import projectRoutes from './routes/projects.js';
 import taskRoutes from './routes/tasks.js';
 import approvalRoutes from './routes/approvals.js';
 
@@ -46,6 +48,8 @@ app.addHook('onResponse', auditLogHook);
 
 // Register routes
 await app.register(healthRoutes);
+await app.register(userRoutes, { prefix: '/users' });
+await app.register(projectRoutes, { prefix: '/projects' });
 await app.register(taskRoutes, { prefix: '/tasks' });
 await app.register(approvalRoutes, { prefix: '/approvals' });
 
