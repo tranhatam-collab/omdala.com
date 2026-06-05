@@ -56,7 +56,10 @@ echo "[2/4] Docker containers..."
 check_docker "Caddy" "omdala-caddy"
 check_docker "PostgreSQL" "omdala-postgres"
 check_docker "Valkey" "omdala-valkey"
-check_docker "MinIO" "omdala-minio"
+# MinIO is dev-only (profile: dev). Only check if explicitly requested.
+if [[ "${INCLUDE_MINIO:-false}" == "true" ]]; then
+  check_docker "MinIO" "omdala-minio"
+fi
 check_docker "API Gateway" "omdala-api"
 check_docker "Worker" "omdala-worker"
 check_docker "Uptime Kuma" "omdala-uptime"

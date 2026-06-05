@@ -8,7 +8,7 @@ import rateLimit from '@fastify/rate-limit';
 
 import { jwtVerifyMiddleware } from './middleware/jwt-verify.js';
 import { tenantRouterMiddleware } from './middleware/tenant-router.js';
-import { auditLogMiddleware } from './middleware/audit-log.js';
+import { auditLogHook } from './middleware/audit-log.js';
 
 import healthRoutes from './routes/health.js';
 import taskRoutes from './routes/tasks.js';
@@ -32,15 +32,17 @@ await app.register(rateLimit, {
   keyGenerator: (req) => req.headers['x-tenant-id'] || req.ip,
 });
 
-// Global middleware
+// Authentication + Tenant routing (onRequest)
 app.addHook('onRequest', async (request, reply) => {
   // Skip JWT for health endpoints
   if (request.url.startsWith('/health')) return;
 
   await jwtVerifyMiddleware(request, reply);
   await tenantRouterMiddleware(request, reply);
-  await auditLogMiddleware(request, reply);
 });
+
+// Audit logging (onResponse — fires after response is fully sent)
+app.addHook('onResponse', auditLogHook);
 
 // Register routes
 await app.register(healthRoutes);

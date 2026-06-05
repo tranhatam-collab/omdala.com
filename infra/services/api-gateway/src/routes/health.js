@@ -40,17 +40,16 @@ export default async function healthRoutes(app) {
       checks.services.valkey = { status: 'fail', error: err.message };
     }
 
-    // R2 connectivity (simple list)
+    // R2 connectivity (check via aws-cli list or env check)
     try {
-      const r2Response = await fetch(`${process.env.R2_ENDPOINT}/`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `AWS4-HMAC-SHA256 ...`, // Simplified
-        },
-      });
-      checks.services.r2 = { status: r2Response.ok ? 'ok' : 'fail' };
+      const { execSync } = await import('child_process');
+      execSync(
+        `aws s3 ls s3://${process.env.R2_BUCKET_BACKUPS}/ --endpoint-url ${process.env.R2_ENDPOINT} --region auto --max-items 1`,
+        { stdio: 'pipe', timeout: 5000 }
+      );
+      checks.services.r2 = { status: 'ok' };
     } catch (err) {
-      checks.services.r2 = { status: 'fail', error: err.message };
+      checks.services.r2 = { status: 'fail', error: err.message || 'R2 check failed' };
     }
 
     const allOk = Object.values(checks.services).every(s => s.status === 'ok');

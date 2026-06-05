@@ -3,12 +3,23 @@
 -- Run AFTER 01-create-users.sql
 
 -- ------------------------------------------------------------------
+-- Extensions
+-- ------------------------------------------------------------------
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- ------------------------------------------------------------------
 -- Core Schema
 -- ------------------------------------------------------------------
 
 CREATE SCHEMA IF NOT EXISTS omdala;
 GRANT USAGE ON SCHEMA omdala TO omdala_app;
+GRANT USAGE ON SCHEMA omdala TO omdala_readonly;
 GRANT CREATE ON SCHEMA omdala TO omdala_migration;
+
+-- Default privileges for future tables
+ALTER DEFAULT PRIVILEGES IN SCHEMA omdala GRANT SELECT, INSERT, UPDATE ON TABLES TO omdala_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA omdala GRANT SELECT ON TABLES TO omdala_readonly;
+ALTER DEFAULT PRIVILEGES IN SCHEMA omdala GRANT USAGE, SELECT ON SEQUENCES TO omdala_app;
 
 SET search_path TO omdala, public;
 
@@ -310,7 +321,8 @@ CREATE TRIGGER update_projects_updated_at BEFORE UPDATE ON projects
 CREATE TRIGGER update_agent_tasks_updated_at BEFORE UPDATE ON agent_tasks
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Evidence hash chain
+-- Evidence hash chain (immutable chain of SHA-256 hashes)
+-- Requires pgcrypto extension (created above)
 CREATE OR REPLACE FUNCTION compute_evidence_hash()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -334,12 +346,14 @@ CREATE TRIGGER evidence_hash_chain BEFORE INSERT ON evidence_logs
   FOR EACH ROW EXECUTE FUNCTION compute_evidence_hash();
 
 -- ------------------------------------------------------------------
--- Permissions
+-- Permissions (apply to existing tables + default for future)
 -- ------------------------------------------------------------------
 
-GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA omdala TO omdala_app;
+-- App user: full CRUD on existing tables
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA omdala TO omdala_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA omdala TO omdala_app;
 
+-- Readonly user: SELECT only
 GRANT SELECT ON ALL TABLES IN SCHEMA omdala TO omdala_readonly;
 
 -- Evidence logs: immutable (no UPDATE, no DELETE)
@@ -354,8 +368,16 @@ GRANT INSERT, SELECT ON audit_logs TO omdala_app;
 REVOKE UPDATE, DELETE ON model_usage FROM omdala_app;
 GRANT INSERT, SELECT ON model_usage TO omdala_app;
 
--- Approval requests: limited update
+-- Approval requests: limited update (no DELETE)
 REVOKE DELETE ON approval_requests FROM omdala_app;
+
+-- Ensure default privileges for tables created after this script
+ALTER DEFAULT PRIVILEGES IN SCHEMA omdala GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO omdala_app;
+ALTER DEFAULT PRIVILEGES IN SCHEMA omdala GRANT SELECT ON TABLES TO omdala_readonly;
+ALTER DEFAULT PRIVILEGES IN SCHEMA omdala GRANT USAGE, SELECT ON SEQUENCES TO omdala_app;
+
+-- Reset search_path
+RESET search_path;
 
 -- ------------------------------------------------------------------
 -- Comments
