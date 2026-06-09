@@ -5,8 +5,12 @@
   "scripts": {
     "dev": "NODE_OPTIONS='--max-old-space-size=2048' next dev --turbo",
     "build": "next build",
+    "build:static": "next build && next export",
     "start": "next start",
-    "test": "vitest run"
+    "test": "vitest run",
+    "electron": "electron .",
+    "electron:dev": "NODE_ENV=development electron .",
+    "electron:build": "npm run build:static && electron-builder"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
@@ -30,8 +34,11 @@
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
+    "electron": "^32.0.0",
+    "electron-builder": "^25.0.0",
     "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.7"
-  }
+  },
+  "main": "electron.js"
 }

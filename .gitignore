@@ -27,3 +27,7 @@ apps/*/out/
 apps/*/.next/
 reports/
 
+
+# Database secrets
+.env.db*
+.env.local
