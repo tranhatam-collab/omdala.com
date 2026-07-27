@@ -31,3 +31,6 @@ reports/
 # Database secrets
 .env.db*
 .env.local
+# Build artifacts
+*.tsbuildinfo
+out/

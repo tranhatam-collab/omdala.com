@@ -1,0 +1,21 @@
+name = "omdala-d1-migrations"
+compatibility_date = "2026-03-17"
+account_id = "f3f9e76222dcb488d5e303e29e8ba192"
+
+[[d1_databases]]
+binding = "DB_GLOBAL"
+database_name = "omdala-global-staging"
+database_id = "643b4782-e486-4acf-883a-5a5b90161565"
+migrations_dir = "migrations-global"
+
+[[d1_databases]]
+binding = "DB_AUTH"
+database_name = "omdala-auth-staging"
+database_id = "277e770f-536f-4814-98fb-3df7c63d65f2"
+migrations_dir = "migrations-auth"
+
+[[d1_databases]]
+binding = "DB_AUDIT"
+database_name = "omdala-audit-staging"
+database_id = "1f2e0b16-7267-441b-9a48-34fe20a0026b"
+migrations_dir = "migrations-audit"

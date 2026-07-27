@@ -42,6 +42,15 @@ export {
   OM_AI_PROVIDER_RUNTIME_METRICS,
   resolveOmAiProviderRoute,
 } from "./om-ai-provider-routing";
+export {
+  assertSameTenant,
+  assertTenantId,
+  isTenantScopedTable,
+  listTenantScopedTables,
+  TenantScopeError,
+  withTenantFilter,
+} from "./tenant-isolation";
+export type { TenantScopeErrorCode } from "./tenant-isolation";
 export { ANGEL_EDU_TAM_FOUNDATION } from "./foundation";
 export {
   findNodeById,

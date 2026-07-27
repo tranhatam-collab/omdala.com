@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "wrangler dev --port 8789",
     "start": "wrangler dev --port 8789",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260526.1",

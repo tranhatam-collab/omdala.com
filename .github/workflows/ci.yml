@@ -2,7 +2,7 @@ name: OMDALA CI
 
 on:
   push:
-    branches: [main, audit-omdala-infra]
+    branches: [main, feat/pricing-promo-engine]
   pull_request:
     branches: [main]
 
@@ -12,25 +12,72 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
-      - run: npm ci
-      - run: npx tsc --noEmit --project packages/core/tsconfig.json
-      - run: npx tsc --noEmit --project packages/seo/tsconfig.json
-      - run: npx tsc --noEmit --project packages/types/tsconfig.json
-      - run: npx tsc --noEmit --project packages/ui/tsconfig.json
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsc --noEmit --project packages/core/tsconfig.json
+      - run: pnpm exec tsc --noEmit --project packages/seo/tsconfig.json
+      - run: pnpm exec tsc --noEmit --project packages/types/tsconfig.json
+      - run: pnpm exec tsc --noEmit --project packages/ui/tsconfig.json
 
   test-api:
-    name: API Gateway Tests
+    name: API Tests (32 tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @omdala/api test
+
+  test-app:
+    name: App Tests (27 tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @omdala/app test
+
+  test-core:
+    name: Core + D1 Tenant Isolation Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @omdala/core test
+
+  test-infra-gateway:
+    name: Infra API Gateway Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
       - run: npm ci
         working-directory: infra/services/api-gateway
       - run: npm test
@@ -39,15 +86,14 @@ jobs:
           DATABASE_URL: postgresql://test:test@localhost:5432/test
           PORT: 9999
 
-  test-worker:
-    name: Worker Tests
+  test-infra-worker:
+    name: Infra Worker Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
       - run: npm ci
         working-directory: infra/services/worker
       - run: npm test
@@ -63,9 +109,62 @@ jobs:
         app: [web, app, docs, admin, auth]
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
-      - run: npm ci
-      - run: cd apps/${{ matrix.app }} && npx next build
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: cd apps/${{ matrix.app }} && pnpm exec next build
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @omdala/web exec next lint --max-warnings=0
+        continue-on-error: true
+      - run: pnpm --filter @omdala/admin exec next lint --max-warnings=0
+        continue-on-error: true
+      - run: pnpm --filter @omdala/auth exec next lint --max-warnings=0
+        continue-on-error: true
+      - run: pnpm --filter @omdala/app exec next lint --max-warnings=0
+        continue-on-error: true
+      - run: pnpm --filter @omdala/docs exec next lint --max-warnings=0
+        continue-on-error: true
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Check for secrets in code
+        run: |
+          ! grep -rE "(sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|AKIA[A-Z0-9]{16})" \
+            --exclude-dir=node_modules \
+            --exclude-dir=.git \
+            --exclude-dir=out \
+            --exclude-dir=.next \
+            --exclude='pnpm-lock.yaml' \
+            . && echo "No hardcoded secrets found"
+      - name: Audit dependencies
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
