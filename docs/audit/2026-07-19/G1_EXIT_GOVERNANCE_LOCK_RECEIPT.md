@@ -1,5 +1,7 @@
 # G1 EXIT — Governance Lock Receipt
 
+> **HISTORICAL:** Auth.js rows below are **stale**. Current auth decision: ADR-005 REVISED (custom auth). See `ADRS_G1_4.md`.
+
 ## Date: 2026-07-19
 ## Status: G1 COMPLETE
 

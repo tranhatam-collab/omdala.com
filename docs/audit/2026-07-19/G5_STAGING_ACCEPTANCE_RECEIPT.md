@@ -1,5 +1,9 @@
 # G5 — Staging Acceptance Receipt
 
+> **HISTORICAL / PARTIAL:** Staging D1 databases exist but were empty shells at verification time.  
+> Auth stack references to Auth.js below are **stale** — see ADR-005 REVISED (custom auth).  
+> Do not treat this receipt as G5 EXIT without redeploy + migration apply receipts.
+
 ## Date: 2026-07-19
 ## Status: PARTIAL — Infrastructure provisioned, deployment pending wrangler API token
 

@@ -1,5 +1,7 @@
 # G6.1 — Release Packet for Founder Approval
 
+> **HISTORICAL / NOT VALID FOR `57910b7`:** Auth.js ADR-005 row below is stale. See `QA_SELF_AUDIT_2026-07-27.md`.
+
 ## Date: 2026-07-19
 ## Status: PRESENTED — awaiting Founder decision (G6.2)
 

@@ -1,7 +1,7 @@
 # Corrections Receipt — Per Independent Verification
 
 ## Date: 2026-07-19
-## Status: Corrections applied to clean worktree (NOT committed, NOT pushed)
+## Status: Corrections committed in `57910b7`; self-audit follow-up pending commit
 
 ## Corrections Applied
 

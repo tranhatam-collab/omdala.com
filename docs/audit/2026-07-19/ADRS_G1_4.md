@@ -92,7 +92,7 @@ ACCEPTED — 2026-07-19 (G1.3, Founder-locked)
 
 ## Context
 Need database for multi-tenant platform. Options were:
-1. Cloudflare D1 (edge, serverless, SQLite, 5GB limit per DB)
+1. Cloudflare D1 (edge, serverless, SQLite; 10 GB Paid / 500 MB Free per database)
 2. VPS PostgreSQL (sovereign, full control, RLS)
 3. Hybrid D1 + PostgreSQL
 

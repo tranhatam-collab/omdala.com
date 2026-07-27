@@ -1,5 +1,8 @@
 # G1.3 — Decision Lock Receipt
 
+> **SUPERSEDED for auth/D1/OMCODE:** See `ADRS_G1_4.md` (REVISED 2026-07-19) and `CORRECTIONS_RECEIPT.md`.  
+> Auth.js and 5GB D1 claims in this file are **not** current implementation truth.
+
 ## Date: 2026-07-19
 ## Status: LOCKED by Founder
 
