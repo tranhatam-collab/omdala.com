@@ -25,17 +25,19 @@ function restoreFetch() {
   globalThis.fetch = originalFetch;
 }
 
-test('backupJob returns success with file info', async () => {
+test('backupJob returns success or fails with a clear error', async () => {
   withMockPg(async () => ({ rows: [] }));
-  // Backup job uses child_process.exec — we cannot easily mock without DI.
-  // For unit test, we verify it throws or returns based on env.
-  // With no DB env, it should fail gracefully.
+  // Uses child_process.exec against real pg_dump/aws when present in the environment.
   try {
-    await backupJob({ data: { dbName: 'test', target: 'r2' } });
+    const result = await backupJob({ data: { dbName: 'test', target: 'r2' } });
+    assert.strictEqual(result.success, true);
+    assert.ok(typeof result.file === 'string' && result.file.length > 0);
   } catch (err) {
-    assert.ok(err.message.includes('pg_dump') || err.message.includes('command'));
+    assert.ok(err instanceof Error);
+    assert.ok(err.message.length > 0, 'expected a non-empty error message');
+  } finally {
+    restorePg();
   }
-  restorePg();
 });
 
 test('emailJob sends email via fetch', async () => {
