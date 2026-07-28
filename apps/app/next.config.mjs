@@ -8,6 +8,9 @@ const monorepoRoot = path.join(__dirname, '..', '..')
 const config = {
   reactStrictMode: true,
   output: 'export',
+  turbopack: {
+    root: monorepoRoot,
+  },
   trailingSlash: true,
   images: {
     unoptimized: true,

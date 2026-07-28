@@ -26,6 +26,7 @@
     "security:audit": "pnpm audit --prod --audit-level=high && pnpm audit --dev --audit-level=critical",
     "e2e:app": "pnpm --filter @omdala/app exec playwright test",
     "e2e:web": "pnpm --filter @omdala/app exec playwright test --config ../../apps/web/playwright.config.ts",
+    "e2e:brand-exchange": "pnpm --filter @omdala/brand-marketplace run test:e2e",
     "brand:lint": "bash scripts/brand-lint-omdala.sh apps/web/app",
     "brand:lint:static": "bash scripts/brand-lint-omdala.sh .",
     "dev:static": "node scripts/dev-server.mjs",
@@ -37,6 +38,7 @@
     "test:app": "pnpm --filter @omdala/app test",
     "test:core": "pnpm --filter @omdala/core test",
     "test:d1": "pnpm --filter @omdala/core test -- tenant-isolation",
+    "test:brand-core": "pnpm --filter @omdala/brand-core run test",
     "build:all": "pnpm run build:web && pnpm --filter @omdala/app run build && pnpm --filter @omdala/docs run build && pnpm --filter @omdala/admin run build && pnpm --filter @omdala/auth run build"
   },
   "devDependencies": {
