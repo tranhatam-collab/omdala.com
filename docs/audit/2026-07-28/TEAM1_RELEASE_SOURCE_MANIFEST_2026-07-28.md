@@ -4,6 +4,8 @@ Date: 2026-07-28
 Owner: Team 1 - Source, CI/CD, Cloudflare, DNS, release control
 Baseline: `71f3f32f45f499b7a3bce4fbd6b753319a939779`
 Working branch: `OMCODE/team1-release-foundation-20260728`
+Current candidate before this update: `528a0e47420e8135cd6d12b045738e52a9959c67`
+Canonical release checkout: `/Users/tranhatam/Documents/Devnewproject/omdala-release-clean-20260728`
 Release verdict: `HOLD`
 
 ## Source lock
@@ -11,6 +13,7 @@ Release verdict: `HOLD`
 The release source is the clean clone of `git@github.com:tranhatam-collab/omdala.com.git`.
 The damaged checkout at `/Users/tranhatam/Documents/Devnewproject/omdala.com` is evidence-only until Git recovery is completed.
 No release may be created from an uncommitted or untraceable working tree.
+Release commands require Node `22.x` and pnpm `9.15.x`; `.nvmrc`, `.node-version`, package-manager and engine constraints are source-controlled.
 
 ## Surface registry
 
