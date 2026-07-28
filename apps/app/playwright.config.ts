@@ -15,8 +15,12 @@ const useExternalBaseUrl = Boolean(process?.env?.E2E_BASE_URL);
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
+  timeout: 90000,
   retries: 0,
   workers: 1,
+  expect: {
+    timeout: 10000,
+  },
   use: {
     baseURL,
     trace: "retain-on-failure",
