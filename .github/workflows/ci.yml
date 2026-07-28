@@ -2,7 +2,7 @@ name: OMDALA CI
 
 on:
   push:
-    branches: [main, feat/pricing-promo-engine]
+    branches: [main, feat/pricing-promo-engine, "OMCODE/**"]
   pull_request:
     branches: [main]
 
@@ -132,16 +132,45 @@ jobs:
           node-version: 22
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @omdala/web exec next lint --max-warnings=0
-        continue-on-error: true
-      - run: pnpm --filter @omdala/admin exec next lint --max-warnings=0
-        continue-on-error: true
-      - run: pnpm --filter @omdala/auth exec next lint --max-warnings=0
-        continue-on-error: true
-      - run: pnpm --filter @omdala/app exec next lint --max-warnings=0
-        continue-on-error: true
-      - run: pnpm --filter @omdala/docs exec next lint --max-warnings=0
-        continue-on-error: true
+      - run: pnpm lint
+
+  e2e-app:
+    name: App Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @omdala/app exec playwright install --with-deps chromium
+      - run: pnpm e2e:app
+        env:
+          CI: 'true'
+
+  e2e-web:
+    name: Web Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @omdala/app exec playwright install --with-deps chromium
+      - run: pnpm e2e:web
+        env:
+          CI: 'true'
 
   security-scan:
     name: Security Scan
@@ -166,5 +195,5 @@ jobs:
             --exclude='pnpm-lock.yaml' \
             . && echo "No hardcoded secrets found"
       - name: Audit dependencies
-        run: pnpm audit --audit-level=high
-        continue-on-error: true
+        run: pnpm security:audit
+        timeout-minutes: 5

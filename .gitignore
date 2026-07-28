@@ -19,6 +19,7 @@ playwright-report
 **/tsconfig.tsbuildinfo
 apps/app/out/
 apps/app/test-results/
+apps/web/test-results/
 apps/web/out/
 apps/auth/out/
 apps/admin/out/
