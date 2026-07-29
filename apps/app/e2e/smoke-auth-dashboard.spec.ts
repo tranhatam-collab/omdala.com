@@ -122,48 +122,57 @@ test("login screen submits and shows status", async ({ page }) => {
   await page.goto("/login?lang=en");
 
   await expect(page.locator("h1")).toContainText(
-    "Continue on the dedicated OMDALA auth surface.",
+    "Continue to the dedicated OMDALA auth surface.",
   );
   await expect(
     page.locator('a[href^="https://auth.omdala.com/login?next="]'),
   ).toBeVisible();
 });
 
-test("dashboard redirects to login when session missing", async ({ page }) => {
+test("dashboard hands off to auth when session is missing", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
     window.localStorage.removeItem("omdala_app_session_v1");
     window.sessionStorage.clear();
   });
   await page.context().clearCookies();
+  await page.route("https://auth.omdala.com/**", async (route) => {
+    const url = new URL(route.request().url());
+    await route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: `
+        <main>
+          <h1>Secure login for OMDALA operator surfaces.</h1>
+          <p data-lang="${url.searchParams.get("lang") ?? ""}">
+            ${url.searchParams.get("next") ?? ""}
+          </p>
+        </main>
+      `,
+    });
+  });
 
   await page.goto("/dashboard?lang=en");
   await expect
     .poll(
       () => {
         const current = new URL(page.url());
-        return {
-          origin: current.origin,
-          pathname: current.pathname,
-          lang: current.searchParams.get("lang"),
-          next: current.searchParams.get("next"),
-        };
+        return (
+          current.origin === "https://auth.omdala.com" &&
+          (current.pathname === "/login" || current.pathname === "/login/") &&
+          current.searchParams.get("lang") === "en" &&
+          current.searchParams.get("next") === "/dashboard/?lang=en"
+        );
       },
       { timeout: 12000 },
     )
-    .toMatchObject({
-      origin: "https://auth.omdala.com",
-      pathname: "/login/",
-      lang: "en",
-      next: "/dashboard/",
-    });
-
+    .toBeTruthy();
   await expect(page.locator("h1")).toContainText(
     "Secure login for OMDALA operator surfaces.",
   );
 });
 
-test("profile renders Team 1 account/profile contract markers when session is valid", async ({
+test("profile renders current profile runtime details when session is valid", async ({
   page,
 }) => {
   await mockAuthedSession(page);
@@ -173,16 +182,19 @@ test("profile renders Team 1 account/profile contract markers when session is va
   await expect(
     page.getByRole("heading", { name: "OMDALA Operator" }),
   ).toBeVisible();
-  await expect(page.getByText("Profile is now the Team 1 entry point")).toBeVisible();
-  await expect(page.getByText("Account identity")).toBeVisible();
+  await expect(page.getByText("Profile Runtime")).toBeVisible();
+  await expect(
+    page.getByText(
+      "Profile now reads from auth session + node graph and exposes role, trust, and operational context instead of a shell placeholder.",
+    ),
+  ).toBeVisible();
+  await expect(page.getByText("Identity")).toBeVisible();
   await expect(page.getByText("Email: operator@omdala.com")).toBeVisible();
-  await expect(page.getByText("Timezone: Asia/Ho_Chi_Minh")).toBeVisible();
-  await expect(page.getByText("Theme: system")).toBeVisible();
-  await expect(page.getByText("Profile update flow")).toBeVisible();
-  await expect(page.getByText("Save profile contract")).toBeVisible();
+  await expect(page.locator("body")).toContainText("Roles: expert");
+  await expect(page.getByText("Primary trust")).toBeVisible();
 });
 
-test("settings renders Team 1 billing/usage markers when session is valid", async ({
+test("settings renders current runtime metrics when session is valid", async ({
   page,
 }) => {
   await mockAuthedSession(page);
@@ -190,30 +202,17 @@ test("settings renders Team 1 billing/usage markers when session is valid", asyn
 
   await page.goto("/settings?lang=en");
 
+  await expect(page.getByText("Settings Runtime")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
-  await expect(page.getByText("Settings is the Team 1 entry point")).toBeVisible();
-  await expect(page.getByText("Billing contract summary")).toBeVisible();
-  await expect(page.getByText("App ID: om-ai")).toBeVisible();
-  await expect(page.getByText("Billing cycle: monthly")).toBeVisible();
   await expect(
-    page.getByText("Subscription visibility: full"),
+    page.getByText(
+      "Settings now reflects active app state: language, notification load, and trust review pressure from the current runtime graph.",
+    ),
   ).toBeVisible();
+  await expect(page.getByText("Language mode")).toBeVisible();
+  await expect(page.getByText("Unread notifications")).toBeVisible();
+  await expect(page.getByText("Proof queue pressure")).toBeVisible();
   await expect(
-    page.getByText("12/30 call minutes used today."),
-  ).toBeVisible();
-  await expect(
-    page.getByText("5 billing-aware Om AI events are now locked."),
-  ).toBeVisible();
-  await expect(page.getByText("Preferences update flow")).toBeVisible();
-  await expect(
-    page.locator(".dashboard-stat strong", { hasText: "Beta gate" }),
-  ).toBeVisible();
-  await expect(page.getByText("Provider routing snapshot")).toBeVisible();
-  await expect(page.getByText(/Provider source: API live\./)).toBeVisible();
-  await expect(
-    page.getByText("live-call: openai-realtime (dự phòng: fallback-mock) — điểm số 0.944"),
-  ).toBeVisible();
-  await expect(
-    page.getByText("persona-response: none (dự phòng: none) — điểm số 0.000"),
+    page.getByText("AI assist cadence"),
   ).toBeVisible();
 });
