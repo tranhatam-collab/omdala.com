@@ -136,21 +136,40 @@ test("dashboard hands off to auth when session is missing", async ({ page }) => 
     window.sessionStorage.clear();
   });
   await page.context().clearCookies();
+  await page.route("https://auth.omdala.com/**", async (route) => {
+    const url = new URL(route.request().url());
+    await route.fulfill({
+      status: 200,
+      contentType: "text/html",
+      body: `
+        <main>
+          <h1>Secure login for OMDALA operator surfaces.</h1>
+          <p data-lang="${url.searchParams.get("lang") ?? ""}">
+            ${url.searchParams.get("next") ?? ""}
+          </p>
+        </main>
+      `,
+    });
+  });
 
   await page.goto("/dashboard?lang=en");
   await expect
     .poll(
       () => {
-        const url = page.url();
+        const current = new URL(page.url());
         return (
-          url.includes("https://auth.omdala.com/login") ||
-          url.startsWith("about:") ||
-          url.startsWith("chrome-error://chromewebdata/")
+          current.origin === "https://auth.omdala.com" &&
+          (current.pathname === "/login" || current.pathname === "/login/") &&
+          current.searchParams.get("lang") === "en" &&
+          current.searchParams.get("next") === "/dashboard/?lang=en"
         );
       },
       { timeout: 12000 },
     )
     .toBeTruthy();
+  await expect(page.locator("h1")).toContainText(
+    "Secure login for OMDALA operator surfaces.",
+  );
 });
 
 test("profile renders current profile runtime details when session is valid", async ({

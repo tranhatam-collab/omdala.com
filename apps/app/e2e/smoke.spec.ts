@@ -94,9 +94,9 @@ test.describe("OMCODE Critical Flows", () => {
     await expect(page.getByText("demo-project", { exact: true })).toBeVisible();
   });
 
-  test("01 — Welcome screen renders and can open project picker", async ({ page }) => {
+  test("01 — workspace renders after opening a project", async ({ page }) => {
     await expect(page.locator("text=OMDALA Workspace")).toBeVisible();
-    await expect(page.locator('text=Mở dự án')).toBeVisible();
+    await expect(page.locator('button:has-text("Mở dự án")')).toBeVisible();
   });
 
   test("02 — AI Chat panel sends message and shows response UI", async ({ page }) => {
