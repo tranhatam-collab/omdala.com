@@ -5,12 +5,14 @@ declare const process:
       env?: {
         E2E_BASE_URL?: string;
         CI?: string;
+        PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?: string;
       };
     }
   | undefined;
 
 const baseURL = process?.env?.E2E_BASE_URL || "http://127.0.0.1:3010";
 const useExternalBaseUrl = Boolean(process?.env?.E2E_BASE_URL);
+const chromiumExecutablePath = process?.env?.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -26,6 +28,9 @@ export default defineConfig({
     trace: "retain-on-failure",
     launchOptions: {
       args: ["--disable-features=UseMachPortRendezvousServer"],
+      ...(chromiumExecutablePath
+        ? { executablePath: chromiumExecutablePath }
+        : {}),
     },
   },
   ...(useExternalBaseUrl

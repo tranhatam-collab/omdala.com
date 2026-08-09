@@ -14,6 +14,6 @@ test("language switch updates nav text EN -> VI", async ({ page }) => {
 
   await page.waitForURL((url) => url.pathname === "/vi/" || url.pathname === "/vi");
   await expect(page.locator(".language-dropdown__toggle")).toContainText("VI");
-  await expect(page.locator(".site-nav")).toContainText("OMDALA là gì");
-  await expect(page.locator(".site-nav")).toContainText("Cách vận hành");
+  await expect(page.locator(".site-nav")).toContainText("OMDALA Là Gì");
+  await expect(page.locator(".site-nav")).toContainText("Cách Vận Hành");
 });
