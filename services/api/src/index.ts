@@ -58,6 +58,7 @@ import {
   listTransitions,
   listTrust,
 } from "./db/reality-repository";
+import { queryRows } from "./db/client";
 import { DbQueryError, mapDbErrorToHttp } from "./db/errors";
 import { createApiContractStub } from "./stub";
 // ─── Custom Security & AI Connectors ───────────────────────────────────
@@ -114,6 +115,7 @@ type ApiStatus =
   | 500
   | 501
   | 502
+  | 503
   | 504;
 type RateLimitBucket = {
   count: number;
@@ -1031,6 +1033,13 @@ function hasDatabase(env: ApiBindings): boolean {
   return Boolean(env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL);
 }
 
+function releaseIdentity(env: ApiBindings) {
+  return {
+    release_sha: env.RELEASE_SHA?.trim() || null,
+    deployment_id: env.DEPLOYMENT_ID?.trim() || null,
+  };
+}
+
 function toCommitmentDbInput(
   payload: ReturnType<typeof normalizeRealityCommitment>,
 ) {
@@ -1397,7 +1406,46 @@ app.use("/v2/reality/*", async (c, next) => {
 
 // Health
 app.get("/health", (c) => {
-  return c.json({ ok: true, service: "omdala-api", env: c.env.ENVIRONMENT });
+  return c.json({
+    ok: true,
+    service: "omdala-api",
+    env: c.env.ENVIRONMENT,
+    environment: c.env.ENVIRONMENT,
+    ...releaseIdentity(c.env),
+  });
+});
+
+app.get("/health/deep", async (c) => {
+  const identity = releaseIdentity(c.env);
+  const identityBound = Boolean(
+    identity.release_sha && identity.deployment_id,
+  );
+  let database: "ok" | "missing" | "error" = "missing";
+
+  if (hasDatabase(c.env)) {
+    try {
+      await queryRows(c.env, "SELECT 1 AS ok");
+      database = "ok";
+    } catch {
+      database = "error";
+    }
+  }
+
+  const ready = identityBound && database === "ok";
+  return c.json(
+    {
+      ok: ready,
+      status: ready ? "ok" : "blocked",
+      service: "omdala-api",
+      environment: c.env.ENVIRONMENT,
+      ...identity,
+      checks: {
+        identity: identityBound ? "ok" : "missing",
+        database,
+      },
+    },
+    ready ? 200 : 503,
+  );
 });
 
 app.get("/v2/reality/health", (c) => {

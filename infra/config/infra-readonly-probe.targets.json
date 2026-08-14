@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "local_targets": [
+    {
+      "id": "omdala-api-production",
+      "kind": "cloudflare-worker",
+      "owner": "TEAM_1_INFRA",
+      "config": "services/api/wrangler.toml",
+      "environment": "production",
+      "worker_name": "omdala-api",
+      "health_url_env": "OMDALA_API_PRODUCTION_HEALTH_URL"
+    },
+    {
+      "id": "omdala-api-staging",
+      "kind": "cloudflare-worker",
+      "owner": "TEAM_1_INFRA",
+      "config": "services/api/wrangler.toml",
+      "environment": "staging",
+      "worker_name": "omdala-api-staging",
+      "health_url_env": "OMDALA_API_STAGING_HEALTH_URL"
+    },
+    {
+      "id": "om-ai-web",
+      "kind": "cloudflare-pages",
+      "owner": "TEAM_3_WEB",
+      "config": "om-ai.omdala.com/wrangler.toml",
+      "identity_source": "CF_PAGES_COMMIT_SHA"
+    }
+  ],
+  "d1_staging": [
+    {
+      "binding": "DB_GLOBAL",
+      "database_name": "omdala-global-staging",
+      "database_id": "643b4782-e486-4acf-883a-5a5b90161565"
+    },
+    {
+      "binding": "DB_AUTH",
+      "database_name": "omdala-auth-staging",
+      "database_id": "277e770f-536f-4814-98fb-3df7c63d65f2"
+    },
+    {
+      "binding": "DB_AUDIT",
+      "database_name": "omdala-audit-staging",
+      "database_id": "1f2e0b16-7267-441b-9a48-34fe20a0026b"
+    }
+  ],
+  "external_handoffs": [
+    {
+      "id": "aiagent-provider-gateway",
+      "owner": "TEAM_2_AI_PROVIDER_LANE",
+      "repository": "aiagent.iai.one",
+      "public_health_url": "https://api.aiagent.iai.one/v1/health",
+      "required_receipts": [
+        "exact source SHA and deployment ID",
+        "authenticated deep-health JSON contract",
+        "secret-name-only hygiene receipt"
+      ]
+    },
+    {
+      "id": "nguyenai-owner-os",
+      "owner": "TEAM_2_AI_PROVIDER_LANE",
+      "repository": "team-a-lane",
+      "public_health_url": "https://owner.nguyenai.org/health/ready",
+      "required_receipts": [
+        "exact source SHA and deployment ID",
+        "canonical service binding and key-name receipt",
+        "authenticated provider E2E"
+      ]
+    }
+  ]
+}

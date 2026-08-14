@@ -4,6 +4,8 @@ export interface HyperdriveBinding {
 
 export interface ApiBindings {
   ENVIRONMENT: string;
+  RELEASE_SHA?: string;
+  DEPLOYMENT_ID?: string;
   DATABASE_URL?: string;
   HYPERDRIVE?: HyperdriveBinding;
   APP_BASE_URL?: string;

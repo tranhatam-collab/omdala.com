@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-08-14",
+  "release_verdict": "NO_GO",
+  "candidate": {
+    "repository": "git@github.com:tranhatam-collab/omdala.com.git",
+    "branch": "OMCODE/infra-completion-cross-team-20260814",
+    "base_head": "1c338b835e05f631c7b2bb9e5d8f3fec2028de75",
+    "state": "WORKTREE_PATCH_ONLY_NOT_ON_MAIN"
+  },
+  "status_vocabulary": [
+    "VERIFIED_CURRENT",
+    "VERIFIED_HEAD_ONLY",
+    "VERIFIED_WORKTREE_ONLY",
+    "REPORTED_UNVERIFIED",
+    "CONTRADICTED",
+    "NOT_CHECKED",
+    "BLOCKED"
+  ],
+  "tasks": [
+    {
+      "id": "INFRA-001",
+      "owner": "TEAM_1_INFRA_RELEASE",
+      "action": "Reconcile the integration patch with origin/main and lock one exact candidate SHA.",
+      "status": "BLOCKED",
+      "dependencies": [],
+      "production_mutation": false,
+      "receipts": ["remote URL", "branch", "exact SHA", "clean worktree", "main ancestry PASS"]
+    },
+    {
+      "id": "INFRA-002",
+      "owner": "TEAM_1_INFRA_RELEASE",
+      "action": "Review and merge API release identity, deep-health, and protected deploy workflow patch.",
+      "status": "VERIFIED_WORKTREE_ONLY",
+      "dependencies": ["INFRA-001"],
+      "production_mutation": false,
+      "receipts": ["API tests", "TypeScript check", "Wrangler dry-run production", "Wrangler dry-run staging"]
+    },
+    {
+      "id": "INFRA-003",
+      "owner": "FOUNDER_TEAM_1_TEAM_2",
+      "action": "Decide canonical Cloudflare account and provision separate production/staging Hyperdrive bindings.",
+      "status": "BLOCKED",
+      "dependencies": ["INFRA-001"],
+      "production_mutation": true,
+      "receipts": ["Founder decision ID", "account ID", "binding names and IDs", "connection probe without credentials"]
+    },
+    {
+      "id": "INFRA-004",
+      "owner": "FOUNDER_TEAM_1_INFRA_RELEASE",
+      "action": "Provision staging Worker route and protected OMDALA_API_HEALTHCHECK_URL variable.",
+      "status": "BLOCKED",
+      "dependencies": ["INFRA-003"],
+      "production_mutation": true,
+      "receipts": ["route/DNS target", "deployment ID", "health JSON content type", "exact SHA read-back"]
+    },
+    {
+      "id": "INFRA-005",
+      "owner": "TEAM_1_INFRA_RELEASE",
+      "action": "Run the names-only remote detector for OMDALA-owned Workers and publish a redacted receipt.",
+      "status": "BLOCKED",
+      "dependencies": ["INFRA-003"],
+      "production_mutation": false,
+      "receipts": ["current receipt shows authentication_required", "secret names only", "malformed names", "target account/worker", "probe timestamp"]
+    },
+    {
+      "id": "INFRA-006",
+      "owner": "FOUNDER_TEAM_1_INFRA_RELEASE",
+      "action": "Remediate only independently confirmed malformed or duplicate secret names.",
+      "status": "REPORTED_UNVERIFIED",
+      "dependencies": ["INFRA-005"],
+      "production_mutation": true,
+      "receipts": ["approval ID", "before/after names-only diff", "runtime regression check"]
+    },
+    {
+      "id": "DATA-001",
+      "owner": "TEAM_2_CORE_API_DATA",
+      "action": "Confirm the API PostgreSQL/Hyperdrive architecture and document which services consume each D1 database.",
+      "status": "BLOCKED",
+      "dependencies": ["INFRA-001"],
+      "production_mutation": false,
+      "receipts": ["binding map", "migration ownership", "tenant isolation test plan"]
+    },
+    {
+      "id": "DATA-002",
+      "owner": "FOUNDER_TEAM_2_CORE_API_DATA",
+      "action": "Apply approved D1 migrations to staging and verify migration/table inventory per database.",
+      "status": "NOT_CHECKED",
+      "dependencies": ["DATA-001"],
+      "production_mutation": true,
+      "receipts": ["target database IDs", "migration list before/after", "table counts", "rollback plan"]
+    },
+    {
+      "id": "AIP-001",
+      "owner": "TEAM_2_AI_PROVIDER_LANE",
+      "action": "Provide canonical gateway repository, exact SHA, Worker config, deep-health schema, and current deployment ID.",
+      "status": "REPORTED_UNVERIFIED",
+      "dependencies": [],
+      "production_mutation": false,
+      "receipts": ["repository and exact SHA", "config path", "JSON schema", "deployment read-back"]
+    },
+    {
+      "id": "AIP-002",
+      "owner": "TEAM_2_AI_PROVIDER_LANE",
+      "action": "Verify the service-key admin contract, tenant scopes, key prefix rule, rotation, and revocation before requesting issuance.",
+      "status": "BLOCKED",
+      "dependencies": ["AIP-001"],
+      "production_mutation": false,
+      "receipts": ["source route reference", "request/response schema", "scope matrix", "negative auth tests"]
+    },
+    {
+      "id": "AIP-003",
+      "owner": "FOUNDER_TEAM_2_AI_PROVIDER_LANE",
+      "action": "Issue a tenant-scoped key through the reviewed path and bind it through secret storage without exposing its value.",
+      "status": "BLOCKED",
+      "dependencies": ["AIP-002", "INFRA-004"],
+      "production_mutation": true,
+      "receipts": ["approval ID", "key identifier or prefix only", "binding name", "rotation deadline"]
+    },
+    {
+      "id": "AIP-004",
+      "owner": "TEAM_2_AI_PROVIDER_LANE",
+      "action": "Run authenticated gateway-to-owner-os E2E at exact staging deployments, including JSON-vs-HTML and failure-path checks.",
+      "status": "BLOCKED",
+      "dependencies": ["AIP-003", "INFRA-004"],
+      "production_mutation": false,
+      "receipts": ["gateway deployment ID", "consumer deployment ID", "content type", "contract version", "negative test results"]
+    },
+    {
+      "id": "WEB-001",
+      "owner": "TEAM_3_WEB_VERTICALS",
+      "action": "Use CF_PAGES_COMMIT_SHA for Pages identity and map each public surface to its API/runtime dependency.",
+      "status": "BLOCKED",
+      "dependencies": ["INFRA-001"],
+      "production_mutation": false,
+      "receipts": ["Pages deployment URL", "CF_PAGES_COMMIT_SHA read-back", "dependency map"]
+    },
+    {
+      "id": "WEB-002",
+      "owner": "TEAM_3_WEB_VERTICALS",
+      "action": "Run desktop/mobile staging journeys and verify degraded API/AI states do not appear successful.",
+      "status": "BLOCKED",
+      "dependencies": ["INFRA-004", "AIP-004", "WEB-001"],
+      "production_mutation": false,
+      "receipts": ["browser matrix", "screenshots or trace", "exact deployment URLs", "failure-state assertions"]
+    },
+    {
+      "id": "DR-001",
+      "owner": "FOUNDER_TEAM_1_INFRA_RELEASE",
+      "action": "Run backup and restore into an isolated scratch target, compare schema/rows, and clean up.",
+      "status": "NOT_CHECKED",
+      "dependencies": ["INFRA-004", "DATA-002"],
+      "production_mutation": true,
+      "receipts": ["backup object timestamp", "scratch target", "schema parity", "row parity", "cleanup"]
+    },
+    {
+      "id": "QA-001",
+      "owner": "TEAM_4_INDEPENDENT_QA_SECURITY",
+      "action": "Verify the exact candidate independently across source, artifact, staging runtime, security, E2E, and rollback layers.",
+      "status": "BLOCKED",
+      "dependencies": ["INFRA-002", "DATA-002", "AIP-004", "WEB-002", "DR-001"],
+      "production_mutation": false,
+      "receipts": ["independent evidence bundle", "claim classification", "GO_RECOMMENDED or HOLD verdict"]
+    },
+    {
+      "id": "REL-001",
+      "owner": "FOUNDER",
+      "action": "Issue final production go/no-go only after Team 1-3 sign-offs and Team 4 independent verdict reference the same exact SHA and deployment set.",
+      "status": "BLOCKED",
+      "dependencies": ["QA-001"],
+      "production_mutation": true,
+      "receipts": ["Team 1 sign-off", "Team 2 sign-off", "Team 3 sign-off", "Team 4 verdict", "Founder decision"]
+    }
+  ]
+}
