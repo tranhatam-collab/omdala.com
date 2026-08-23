@@ -390,3 +390,306 @@ h2 {
     max-width: none;
   }
 }
+
+/* ─── Dashboard Pages — Dark Midnight Theme ──────────────────────────── */
+/* Matches SmartLayout aesthetic: dark bg, glass surfaces, cyan accents */
+
+.dashboard-panel {
+  background: rgba(16, 28, 48, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.dashboard-panel h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #f7fbff;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.dashboard-panel h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f7fbff;
+  margin: 0 0 16px;
+  letter-spacing: -0.01em;
+}
+
+.app-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #7ef2ff;
+  margin: 0 0 8px;
+}
+
+.app-copy {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #a8b9d0;
+  margin: 0 0 12px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dashboard-stat {
+  background: rgba(16, 28, 48, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 18px 20px;
+  transition: border-color 200ms, transform 200ms;
+}
+
+.dashboard-stat:hover {
+  border-color: rgba(126, 242, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.dashboard-stat strong {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #7ef2ff;
+  margin-bottom: 8px;
+}
+
+.dashboard-stat p {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #a8b9d0;
+  margin: 0;
+}
+
+.detail-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.detail-card,
+.dashboard-card {
+  background: rgba(16, 28, 48, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 22px 24px;
+  transition: border-color 200ms;
+}
+
+.detail-card:hover,
+.dashboard-card:hover {
+  border-color: rgba(126, 242, 255, 0.15);
+}
+
+.detail-card h2,
+.dashboard-card h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f7fbff;
+  margin: 0 0 14px;
+}
+
+.dashboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dashboard-list li {
+  font-size: 0.875rem;
+  line-height: 1.8;
+  color: #a8b9d0;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.dashboard-list li:last-child {
+  border-bottom: none;
+}
+
+.dashboard-list li strong {
+  color: #f7fbff;
+  font-weight: 600;
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────────── */
+
+.app-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
+  color: #a8b9d0;
+  text-decoration: none;
+}
+
+.app-button:hover {
+  background: rgba(126, 242, 255, 0.08);
+  border-color: rgba(126, 242, 255, 0.2);
+  color: #f7fbff;
+}
+
+.app-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.app-button--primary {
+  background: linear-gradient(135deg, #7ef2ff, #3d8bff);
+  border: none;
+  color: #060d1a;
+  font-weight: 700;
+}
+
+.app-button--primary:hover {
+  opacity: 0.9;
+  color: #060d1a;
+}
+
+.app-button--ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ─── Entity Grid + Cards ────────────────────────────────────────────── */
+
+.entity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.entity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.entity-card {
+  background: rgba(16, 28, 48, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 18px;
+  transition: border-color 200ms, transform 200ms;
+}
+
+.entity-card:hover {
+  border-color: rgba(126, 242, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.entity-card strong {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #7ef2ff;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.entity-card h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f7fbff;
+  margin: 0 0 8px;
+}
+
+.entity-card .entity-actions a {
+  font-size: 0.8rem;
+  color: #7ef2ff;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.entity-card .entity-actions a:hover {
+  text-decoration: underline;
+}
+
+/* ─── AI List + Pills ────────────────────────────────────────────────── */
+
+.ai-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ai-item {
+  background: rgba(16, 28, 48, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.ai-item__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.ai-item__row strong {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7ef2ff;
+}
+
+.app-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.app-pill--ai {
+  background: rgba(126, 242, 255, 0.1);
+  color: #7ef2ff;
+}
+
+.app-pill--high {
+  background: rgba(255, 100, 100, 0.15);
+  color: #ff6b6b;
+}
+
+.app-pill--medium {
+  background: rgba(255, 200, 80, 0.15);
+  color: #ffc850;
+}
+
+.app-pill--low {
+  background: rgba(100, 200, 150, 0.15);
+  color: #64c896;
+}
+
+/* ─── Dashboard headings inside SmartLayout ──────────────────────────── */
+
+.dashboard-panel h1,
+.dashboard-panel h2,
+.detail-card h2,
+.dashboard-card h2 {
+  letter-spacing: -0.01em;
+}
