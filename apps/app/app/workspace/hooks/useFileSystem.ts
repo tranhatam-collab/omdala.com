@@ -277,6 +277,34 @@ export function useFileSystem() {
     };
   }, [rootHandle, refreshFileTree]);
 
+  // E2E test fixture: auto-open a mock project when ?fixture=1 is present.
+  // This allows Playwright to test IDE flows without the native folder picker.
+  useEffect(() => {
+    if (rootHandle) return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("fixture") !== "1") return;
+    if (!(window as any).__OMCODE_E2E_FIXTURE__) return;
+
+    void (async () => {
+      try {
+        setIsLoading(true);
+        const handle = await (window as any).showDirectoryPicker();
+        const tree = await scanDirectory(handle);
+        setRootHandle(handle);
+        setFileTree(tree);
+        setOpenFiles([]);
+        setActivePath(null);
+      } catch (err: any) {
+        if (err.name !== "AbortError") {
+          setError(err.message || "Không thể mở thư mục (fixture)");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+  }, [rootHandle]);
+
   // Detect external changes to open files on window focus
   useEffect(() => {
     if (openFiles.length === 0) return;
