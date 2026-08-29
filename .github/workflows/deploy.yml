@@ -62,7 +62,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm security:audit
@@ -88,8 +88,6 @@ jobs:
           args=(deploy --dry-run --strict --keep-vars)
           if [[ "${{ inputs.environment }}" == "staging" ]]; then
             args+=(--env staging)
-          else
-            args+=(--env "")
           fi
           args+=(
             --var "ENVIRONMENT:${{ inputs.environment }}"
@@ -112,7 +110,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Deploy exact environment and identity
@@ -122,8 +120,6 @@ jobs:
           args=(deploy --strict --keep-vars)
           if [[ "${{ inputs.environment }}" == "staging" ]]; then
             args+=(--env staging)
-          else
-            args+=(--env "")
           fi
           args+=(
             --message "${{ needs.validate.outputs.deployment_id }}"

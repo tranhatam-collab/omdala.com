@@ -16,6 +16,7 @@ function runText(command, args) {
     cwd: repoRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "ignore"],
+    timeout: 10_000,
   });
   return result.status === 0 ? result.stdout.trim() : null;
 }
@@ -33,9 +34,61 @@ const steps = [
     args: ["scripts/infra-readonly-probe.mjs"],
   },
   {
+    id: "OM_AI_BACKEND_DEPENDENCIES",
+    command: "npm",
+    args: ["ci", "--ignore-scripts", "--audit=false"],
+    cwd: "om-ai.omdala.com/backend",
+  },
+  {
+    id: "OM_AI_GATEWAY_DEPENDENCIES",
+    command: "npm",
+    args: ["ci", "--ignore-scripts", "--audit=false"],
+    cwd: "om-ai.omdala.com/gateway",
+  },
+  {
+    id: "INFRA_GATEWAY_DEPENDENCIES",
+    command: "npm",
+    args: ["ci", "--ignore-scripts", "--audit=false"],
+    cwd: "infra/services/api-gateway",
+  },
+  {
+    id: "INFRA_WORKER_DEPENDENCIES",
+    command: "npm",
+    args: ["ci", "--ignore-scripts", "--audit=false"],
+    cwd: "infra/services/worker",
+  },
+  {
     id: "DEPENDENCY_SECURITY",
     command: "pnpm",
     args: ["security:audit"],
+  },
+  {
+    id: "OM_AI_BACKEND_SECURITY",
+    command: "npm",
+    args: ["audit", "--audit-level=high", "--json"],
+    cwd: "om-ai.omdala.com/backend",
+    captureJson: true,
+  },
+  {
+    id: "OM_AI_GATEWAY_SECURITY",
+    command: "npm",
+    args: ["audit", "--audit-level=high", "--json"],
+    cwd: "om-ai.omdala.com/gateway",
+    captureJson: true,
+  },
+  {
+    id: "INFRA_GATEWAY_SECURITY",
+    command: "npm",
+    args: ["audit", "--audit-level=high", "--json"],
+    cwd: "infra/services/api-gateway",
+    captureJson: true,
+  },
+  {
+    id: "INFRA_WORKER_SECURITY",
+    command: "npm",
+    args: ["audit", "--audit-level=high", "--json"],
+    cwd: "infra/services/worker",
+    captureJson: true,
   },
   {
     id: "LINT",
@@ -120,8 +173,6 @@ const steps = [
       "--dry-run",
       "--strict",
       "--keep-vars",
-      "--env",
-      "",
       "--var",
       "ENVIRONMENT:production",
       "--var",
@@ -187,27 +238,42 @@ if (process.env.RELEASE_VERIFY_REMOTE === "true") {
 }
 
 const results = [];
-const nodeMajor = Number(process.versions.node.split(".")[0]);
 const pnpmVersion = runText("pnpm", ["--version"]);
+const npmVersion = runText("npm", ["--version"]);
 results.push({
   id: "TOOLCHAIN",
   state:
-    nodeMajor === 22 && pnpmVersion?.startsWith("9.15.") ? "PASS" : "FAIL",
+    process.versions.node === "22.22.3" &&
+    pnpmVersion === "9.15.0" &&
+    npmVersion === "10.9.8"
+      ? "PASS"
+      : "FAIL",
   node: process.versions.node,
   pnpm: pnpmVersion,
+  npm: npmVersion,
 });
 
-for (const step of steps) {
+for (const step of results[0].state === "PASS" ? steps : []) {
   const started = Date.now();
   console.log(`\n===== ${step.id} =====`);
   const result = spawnSync(step.command, step.args, {
     cwd: resolve(repoRoot, step.cwd || "."),
     env: { ...process.env, ...step.env },
-    stdio: "inherit",
+    stdio: step.captureJson ? ["ignore", "pipe", "inherit"] : "inherit",
+    encoding: step.captureJson ? "utf8" : undefined,
     timeout: step.timeout || commonTimeout,
   });
   const passed = result.status === 0;
   const timedOut = result.error?.code === "ETIMEDOUT";
+  let auditReport;
+  let auditParseError;
+  if (step.captureJson) {
+    try {
+      auditReport = JSON.parse(result.stdout || "{}");
+    } catch {
+      auditParseError = true;
+    }
+  }
   results.push({
     id: step.id,
     state: passed ? "PASS" : timedOut ? "TIMEOUT" : "FAIL",
@@ -217,6 +283,8 @@ for (const step of steps) {
     command: [step.command, ...step.args].join(" "),
     cwd: step.cwd || ".",
     env_keys: Object.keys(step.env || {}),
+    audit_report: auditReport,
+    audit_parse_error: auditParseError,
   });
 }
 

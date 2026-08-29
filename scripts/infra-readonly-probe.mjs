@@ -109,7 +109,7 @@ function findFirstCount(value) {
   return null;
 }
 
-async function healthReceipt(url) {
+async function healthReceipt(url, { requireIdentity = true } = {}) {
   try {
     const response = await fetch(url, {
       headers: { accept: "application/json" },
@@ -121,18 +121,35 @@ async function healthReceipt(url) {
     if (contentType.toLowerCase().includes("application/json")) {
       body = await response.json();
     }
+    const releaseSha = body.release_sha ?? body.data?.release_sha ?? null;
+    const deploymentId =
+      body.deployment_id ?? body.data?.deployment_id ?? null;
+    const applicationOk = body.ok ?? body.data?.ok ?? null;
+    const applicationStatus = body.status ?? body.data?.status ?? null;
+    const jsonResponse = contentType.toLowerCase().includes("application/json");
+    const applicationReady =
+      applicationOk === true || ["ok", "ready"].includes(applicationStatus);
+    const identityReady = !requireIdentity || Boolean(releaseSha && deploymentId);
+
+    let state = "VERIFIED_CURRENT";
+    let reason;
+    if (!response.ok || !jsonResponse || !applicationReady) {
+      state = "CONTRADICTED";
+      reason = "runtime_not_ready";
+    } else if (!identityReady) {
+      state = "BLOCKED";
+      reason = "release_identity_missing";
+    }
+
     return {
-      state:
-        response.ok && contentType.toLowerCase().includes("application/json")
-          ? "VERIFIED_CURRENT"
-          : "CONTRADICTED",
+      state,
+      reason,
       http_status: response.status,
       content_type: contentType,
-      release_sha: body.release_sha ?? body.data?.release_sha ?? null,
-      deployment_id:
-        body.deployment_id ?? body.data?.deployment_id ?? null,
-      application_ok: body.ok ?? null,
-      application_status: body.status ?? body.data?.status ?? null,
+      release_sha: releaseSha,
+      deployment_id: deploymentId,
+      application_ok: applicationOk,
+      application_status: applicationStatus,
     };
   } catch (error) {
     return {
@@ -144,9 +161,18 @@ async function healthReceipt(url) {
 
 const head = git("rev-parse", "HEAD");
 const branch = git("branch", "--show-current");
+const upstream = git(
+  "rev-parse",
+  "--abbrev-ref",
+  "--symbolic-full-name",
+  "@{upstream}",
+);
 const status = git("status", "--porcelain");
+const sourceArtifactState =
+  head && status === "" ? "VERIFIED_HEAD_ONLY" : "VERIFIED_WORKTREE_ONLY";
 const nodeMajor = Number(process.versions.node.split(".")[0]);
 const pnpmVersion = commandVersion("pnpm", ["--version"]);
+const npmVersion = commandVersion("npm", ["--version"]);
 const ancestor = spawnSync(
   "git",
   ["merge-base", "--is-ancestor", "HEAD", "origin/main"],
@@ -170,6 +196,11 @@ const sourceChecks = [
     status === "" ? "Worktree clean" : "Worktree contains local changes",
   ),
   check(
+    "SOURCE_REMOTE_UPSTREAM",
+    upstream ? "VERIFIED_CURRENT" : "BLOCKED",
+    upstream ? `upstream=${upstream}` : "Branch has no remote upstream",
+  ),
+  check(
     "SOURCE_SHA_ON_MAIN",
     ancestor === 0 ? "VERIFIED_CURRENT" : "BLOCKED",
     ancestor === 0
@@ -189,11 +220,16 @@ const sourceChecks = [
     `pnpm ${pnpmVersion ?? "unavailable"}; package pins 9.15.0`,
   ),
   check(
+    "TOOLCHAIN_NPM_10_9_8",
+    npmVersion === "10.9.8" ? "VERIFIED_CURRENT" : "CONTRADICTED",
+    `npm ${npmVersion ?? "unavailable"}; nested audits pin 10.9.8`,
+  ),
+  check(
     "API_IDENTITY_CONTRACT",
     apiContracts.includes("RELEASE_SHA") &&
       apiContracts.includes("DEPLOYMENT_ID") &&
       apiSource.includes('app.get("/health/deep"')
-      ? "VERIFIED_WORKTREE_ONLY"
+      ? sourceArtifactState
       : "BLOCKED",
     "API binding types and deep-health route",
   ),
@@ -201,35 +237,35 @@ const sourceChecks = [
     "CI_IDENTITY_INJECTION",
     deployWorkflow.includes('--var "RELEASE_SHA:') &&
       deployWorkflow.includes('--var "DEPLOYMENT_ID:')
-      ? "VERIFIED_WORKTREE_ONLY"
+      ? sourceArtifactState
       : "BLOCKED",
     "Release workflow injects exact identity",
   ),
   check(
     "CI_PRODUCTION_MAIN_GUARD",
     deployWorkflow.includes("merge-base --is-ancestor")
-      ? "VERIFIED_WORKTREE_ONLY"
+      ? sourceArtifactState
       : "BLOCKED",
     "Production-only ancestry gate",
   ),
   check(
     "API_HYPERDRIVE_PRODUCTION",
     /^\[\[hyperdrive\]\]/m.test(apiWrangler)
-      ? "VERIFIED_WORKTREE_ONLY"
+      ? sourceArtifactState
       : "BLOCKED",
     "Production API requires a Hyperdrive binding; no ID is inferred",
   ),
   check(
     "API_HYPERDRIVE_STAGING",
     /^\[\[env\.staging\.hyperdrive\]\]/m.test(apiWrangler)
-      ? "VERIFIED_WORKTREE_ONLY"
+      ? sourceArtifactState
       : "BLOCKED",
     "Staging API requires its own non-inherited Hyperdrive binding",
   ),
   check(
     "API_ROUTE_PRODUCTION",
     /pattern\s*=\s*["']api\.omdala\.com\/\*["']/.test(apiWrangler)
-      ? "VERIFIED_WORKTREE_ONLY"
+      ? sourceArtifactState
       : "BLOCKED",
     "Production custom-domain route must be explicit after account ownership is decided",
   ),
@@ -238,14 +274,14 @@ const sourceChecks = [
     /pattern\s*=\s*["']api-staging\.omdala\.com\/\*["']/.test(
       apiWrangler,
     )
-      ? "VERIFIED_WORKTREE_ONLY"
+      ? sourceArtifactState
       : "BLOCKED",
     "Staging custom-domain route is not inferred from production",
   ),
   check(
     "PAGES_IDENTITY_SOURCE",
     pagesWrangler.includes("pages_build_output_dir")
-      ? "VERIFIED_CURRENT"
+      ? sourceArtifactState
       : "NOT_CHECKED",
     "om-ai is Pages; use CF_PAGES_COMMIT_SHA instead of Worker var injection",
     "TEAM_3_WEB",
@@ -259,12 +295,14 @@ const report = {
   repository: {
     root: repoRoot,
     branch,
+    upstream,
     head,
     remote: git("remote", "get-url", "origin"),
   },
   toolchain: {
     node: process.versions.node,
     pnpm: pnpmVersion,
+    npm: npmVersion,
   },
   source_checks: sourceChecks,
   runtime_inventory: inventory.local_targets,
@@ -291,8 +329,6 @@ if (remote) {
     ];
     if (target.environment === "staging") {
       wranglerArgs.push("--env", "staging");
-    } else {
-      wranglerArgs.push("--env", "");
     }
     const secretResult = wranglerJson(wranglerArgs);
     if (!secretResult.ok) {
@@ -351,7 +387,7 @@ if (remote) {
     if (url) {
       report.remote_checks.health.push({
         id: target.id,
-        ...(await healthReceipt(`${url.replace(/\/$/, "")}/health/deep`)),
+        ...(await healthReceipt(url)),
       });
     }
   }
