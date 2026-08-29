@@ -17,7 +17,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit --project packages/core/tsconfig.json
@@ -35,7 +35,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @omdala/api test
@@ -50,7 +50,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @omdala/app test
@@ -65,7 +65,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @omdala/core test
@@ -80,7 +80,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:brand-core
@@ -92,7 +92,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
       - run: npm ci
         working-directory: om-ai.omdala.com/backend
       - run: npm run build
@@ -107,7 +107,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
       - run: npm ci
         working-directory: om-ai.omdala.com/gateway
       - run: npm test
@@ -120,7 +120,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
       - run: npm ci
         working-directory: infra/services/api-gateway
       - run: npm test
@@ -136,7 +136,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
       - run: npm ci
         working-directory: infra/services/worker
       - run: npm test
@@ -157,7 +157,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: cd apps/${{ matrix.app }} && pnpm exec next build
@@ -172,7 +172,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @omdala/brand-marketplace run build
@@ -187,7 +187,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
@@ -203,7 +203,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @omdala/app exec playwright install --with-deps chromium
@@ -222,7 +222,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @omdala/app exec playwright install --with-deps chromium
@@ -241,7 +241,7 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @omdala/app exec playwright install --with-deps chromium
@@ -259,8 +259,12 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: 'pnpm'
+      - name: Pin nested audit CLI
+        run: |
+          npm install --global npm@10.9.8
+          test "$(npm --version)" = "10.9.8"
       - run: pnpm install --frozen-lockfile
       - name: Check for secrets in code
         run: |
@@ -274,15 +278,27 @@ jobs:
       - name: Audit dependencies
         run: pnpm security:audit
         timeout-minutes: 5
+      - name: Install nested audit dependency trees
+        shell: bash
+        run: |
+          set -euo pipefail
+          for directory in \
+            om-ai.omdala.com/backend \
+            om-ai.omdala.com/gateway \
+            infra/services/api-gateway \
+            infra/services/worker
+          do
+            npm ci --ignore-scripts --audit=false --prefix "$directory"
+          done
       - name: Audit OM AI backend dependencies
-        run: npm audit --package-lock-only --audit-level=high
+        run: npm audit --audit-level=high
         working-directory: om-ai.omdala.com/backend
       - name: Audit OM AI gateway dependencies
-        run: npm audit --package-lock-only --audit-level=high
+        run: npm audit --audit-level=high
         working-directory: om-ai.omdala.com/gateway
       - name: Audit Infra API Gateway dependencies
-        run: npm audit --package-lock-only --audit-level=high
+        run: npm audit --audit-level=high
         working-directory: infra/services/api-gateway
       - name: Audit Infra Worker dependencies
-        run: npm audit --package-lock-only --audit-level=high
+        run: npm audit --audit-level=high
         working-directory: infra/services/worker

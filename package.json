@@ -5,8 +5,9 @@
   "type": "module",
   "packageManager": "pnpm@9.15.0",
   "engines": {
-    "node": ">=22 <23",
-    "pnpm": ">=9.15 <10"
+    "node": "22.22.3",
+    "npm": "10.9.8",
+    "pnpm": "9.15.0"
   },
   "scripts": {
     "dev": "pnpm run dev:web",
@@ -38,6 +39,9 @@
     "test:app": "pnpm --filter @omdala/app test",
     "test:core": "pnpm --filter @omdala/core test",
     "test:d1": "pnpm --filter @omdala/core test -- tenant-isolation",
+    "release:verify": "node scripts/release-verify.mjs",
+    "infra:audit:source": "node scripts/infra-readonly-probe.mjs",
+    "infra:audit:remote": "node scripts/infra-readonly-probe.mjs --remote --confirm-read-only-remote",
     "test:brand-core": "pnpm --filter @omdala/brand-core run test",
     "build:all": "pnpm run build:web && pnpm --filter @omdala/app run build && pnpm --filter @omdala/docs run build && pnpm --filter @omdala/admin run build && pnpm --filter @omdala/auth run build"
   },

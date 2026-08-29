@@ -32,30 +32,69 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.source.outputs.sha }}
+      deployment_id: ${{ steps.source.outputs.deployment_id }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - id: source
+        name: Lock release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          deployment_id="gh-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${sha:0:12}"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "deployment_id=$deployment_id" >> "$GITHUB_OUTPUT"
+      - name: Guard production release SHA on main
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "${{ steps.source.outputs.sha }}" origin/main || {
+            echo "::error::Production release SHA is not on origin/main"
+            exit 1
+          }
       - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm security:audit
       - run: pnpm --filter @omdala/api test
       - run: pnpm --filter @omdala/api run check
-      - name: Require an explicit runtime data binding
+      - name: Require an explicit Hyperdrive binding
+        shell: bash
         run: |
-          if ! grep -Eq '^\[\[(d1_databases|hyperdrive)\]\]|^\[\[env\.[^.]+\.(d1_databases|hyperdrive)\]\]' services/api/wrangler.toml; then
-            echo "Release blocked: services/api/wrangler.toml declares no D1 or Hyperdrive binding."
+          set -euo pipefail
+          if [[ "${{ inputs.environment }}" == "staging" ]]; then
+            pattern='^\[\[env\.staging\.hyperdrive\]\]'
+          else
+            pattern='^\[\[hyperdrive\]\]'
+          fi
+          if ! grep -Eq "$pattern" services/api/wrangler.toml; then
+            echo "::error::Release blocked: services/api/wrangler.toml has no Hyperdrive binding for ${{ inputs.environment }}."
             exit 1
           fi
-      - run: pnpm --filter @omdala/api exec wrangler deploy --dry-run
-      - id: source
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Dry-run exact environment and identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(deploy --dry-run --strict --keep-vars)
+          if [[ "${{ inputs.environment }}" == "staging" ]]; then
+            args+=(--env staging)
+          fi
+          args+=(
+            --var "ENVIRONMENT:${{ inputs.environment }}"
+            --var "RELEASE_SHA:${{ steps.source.outputs.sha }}"
+            --var "DEPLOYMENT_ID:${{ steps.source.outputs.deployment_id }}"
+          )
+          pnpm --filter @omdala/api exec wrangler "${args[@]}"
 
   deploy-api:
     name: Deploy omdala-api
@@ -71,11 +110,48 @@ jobs:
           version: 9.15.0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: 22
+          node-version: 22.22.3
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @omdala/api run deploy
+      - name: Deploy exact environment and identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(deploy --strict --keep-vars)
+          if [[ "${{ inputs.environment }}" == "staging" ]]; then
+            args+=(--env staging)
+          fi
+          args+=(
+            --message "${{ needs.validate.outputs.deployment_id }}"
+            --var "ENVIRONMENT:${{ inputs.environment }}"
+            --var "RELEASE_SHA:${{ needs.validate.outputs.sha }}"
+            --var "DEPLOYMENT_ID:${{ needs.validate.outputs.deployment_id }}"
+          )
+          pnpm --filter @omdala/api exec wrangler "${args[@]}"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      - name: Record deployed source
-        run: echo "Deployed omdala-api from ${{ needs.validate.outputs.sha }} to ${{ inputs.environment }}"
+      - name: Verify deep-health identity and dependencies
+        shell: bash
+        env:
+          HEALTHCHECK_URL: ${{ vars.OMDALA_API_HEALTHCHECK_URL }}
+          EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
+          EXPECTED_DEPLOYMENT_ID: ${{ needs.validate.outputs.deployment_id }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${HEALTHCHECK_URL:-}" ]]; then
+            echo "::error::Protected environment variable OMDALA_API_HEALTHCHECK_URL is required"
+            exit 1
+          fi
+          receipt="$(curl --fail --silent --show-error "${HEALTHCHECK_URL%/}/health/deep")"
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            --arg deployment_id "$EXPECTED_DEPLOYMENT_ID" \
+            '.ok == true and .status == "ok" and .release_sha == $sha and .deployment_id == $deployment_id and .checks.identity == "ok" and .checks.database == "ok"' \
+            <<<"$receipt" >/dev/null
+          {
+            echo "### OMDALA API deployment receipt"
+            echo "- Environment: ${{ inputs.environment }}"
+            echo "- Release SHA: $EXPECTED_SHA"
+            echo "- Deployment ID: $EXPECTED_DEPLOYMENT_ID"
+            echo "- Deep health: PASS"
+          } >> "$GITHUB_STEP_SUMMARY"
