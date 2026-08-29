@@ -1323,10 +1323,17 @@ function applySeedTrustDeltaForProofSubmission(commitmentId: string): void {
   realitySeed.trust = updatedTrust;
 }
 
+function allowsMailConsoleFallback(env: ApiBindings): boolean {
+  return (
+    env.ENVIRONMENT === "development" ||
+    env.ENVIRONMENT === "local" ||
+    env.ENVIRONMENT === "test"
+  );
+}
+
 async function sendMail(env: ApiBindings, payload: MailRequest) {
   if (!env.MAIL_API_KEY) {
-    // Dev/test fallback: log email to console instead of failing
-    if (env.ENVIRONMENT !== "production") {
+    if (allowsMailConsoleFallback(env)) {
       console.warn("[sendMail] MAIL_API_KEY not set — logging email to console (dev fallback)");
       console.log("[sendMail] To:", payload.to);
       console.log("[sendMail] Subject:", payload.subject);
@@ -1388,8 +1395,7 @@ async function sendMail(env: ApiBindings, payload: MailRequest) {
     }
   }
 
-  // Final fallback for non-production: log instead of crashing
-  if (env.ENVIRONMENT !== "production") {
+  if (allowsMailConsoleFallback(env)) {
     console.warn("[sendMail] Mail API unreachable after retries — logging email to console (dev fallback)");
     console.log("[sendMail] To:", payload.to);
     console.log("[sendMail] Subject:", payload.subject);

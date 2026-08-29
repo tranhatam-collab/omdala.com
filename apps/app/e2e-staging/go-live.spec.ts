@@ -63,6 +63,49 @@ test.describe.serial("OMDALA exact-candidate staging acceptance", () => {
     ).toBeVisible();
   });
 
+  test("contact, access request, and magic-link mail flows reach the configured transport", async ({ request }) => {
+    const email = `e2e-mail+${releaseSha.slice(0, 12)}@omdala.com`;
+
+    const contact = await request.post(`${apiUrl}/v1/contact`, {
+      data: {
+        name: "OMDALA staging acceptance",
+        email,
+        organization: "OMDALA",
+        topic: "platform",
+        message: `Exact-candidate contact canary for ${releaseSha}.`,
+        source: "staging-go-live-e2e",
+      },
+    });
+    expect(contact.status()).toBe(200);
+    await expect(contact.json()).resolves.toMatchObject({
+      ok: true,
+      data: { received: true },
+    });
+
+    const accessRequest = await request.post(`${apiUrl}/v1/auth/access-request`, {
+      data: {
+        email,
+        role: "staging_e2e",
+        nodeName: "Exact candidate acceptance",
+        note: `Access-request canary for ${releaseSha}.`,
+      },
+    });
+    expect(accessRequest.status()).toBe(201);
+    await expect(accessRequest.json()).resolves.toMatchObject({
+      ok: true,
+      data: { received: true },
+    });
+
+    const magicLink = await request.post(`${apiUrl}/v1/auth/magic-link/request`, {
+      data: { email, redirectTo: "/profile?lang=en" },
+    });
+    expect(magicLink.status()).toBe(201);
+    await expect(magicLink.json()).resolves.toMatchObject({
+      ok: true,
+      data: { sent: true },
+    });
+  });
+
   test("signed session, account readback, AI provider, Brand handoff, protected App, and logout work end to end", async ({ context, page }) => {
     const email = `e2e+${releaseSha.slice(0, 12)}@omdala.com`;
     const bootstrap = await context.request.post(`${apiUrl}/v1/_e2e/magic-link`, {
