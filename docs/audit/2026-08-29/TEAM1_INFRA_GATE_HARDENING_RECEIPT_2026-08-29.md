@@ -71,14 +71,14 @@ not the pinned current gate.
 
 ## 4. Current source probe
 
-The patched source probe correctly reports:
+After the Team 1 branch push, the patched source probe correctly reports:
 
 - valid local HEAD and exact toolchain;
-- no remote upstream yet;
+- clean worktree and a matching remote upstream;
 - SHA not on `origin/main`;
 - missing production and staging Hyperdrive bindings;
 - missing production and staging API routes;
-- local Team 1 patch not yet immutable at probe time.
+- source controls committed at HEAD.
 
 The probe remains fail-closed. It does not convert this branch into a release
 candidate.
@@ -109,7 +109,9 @@ branch and re-audit the next immutable remote candidate.
 
 ### Team 1
 
-- Commit and push this hardening branch as a review candidate.
+- Review candidate branch is committed and pushed; keep it immutable during
+  independent review.
+- Create the Draft PR when GitHub API connectivity is available.
 - Obtain direct GitHub Check Run evidence for the exact pushed SHA.
 - Keep production deployment blocked until the SHA is on protected `main` and
   all required checks pass.
@@ -140,6 +142,7 @@ branch and re-audit the next immutable remote candidate.
 - API unit/type verification: `VERIFIED_CURRENT` for this local worktree
 - OM AI unit verification: `VERIFIED_CURRENT` for this local worktree
 - Nested security: `CONTRADICTED` for OM AI backend and Infra API Gateway
-- Remote provenance: `BLOCKED` until push
+- Remote branch provenance: `VERIFIED_CURRENT`
+- Protected `main` ancestry and merge acceptance: `BLOCKED`
 - Production readiness: `NO_GO`
 - Release/deploy: `HOLD`
