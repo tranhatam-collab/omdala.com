@@ -71,6 +71,32 @@ export const APP_COPY = {
     expandNavigation: { en: "Expand navigation", vi: "Mở rộng điều hướng" },
     collapseNavigation: { en: "Collapse navigation", vi: "Thu gọn điều hướng" },
   },
+  releaseBoundary: {
+    eyebrow: {
+      en: "Release boundary",
+      vi: "Ranh giới phát hành",
+    },
+    titleSuffix: {
+      en: "is not released yet",
+      vi: "chưa được phát hành",
+    },
+    body: {
+      en: "This route is intentionally closed until its persistence, authorization, and production E2E contracts are complete. No fixture records are shown as live data.",
+      vi: "Đường dẫn này được chủ động đóng cho đến khi hoàn tất hợp đồng lưu trữ, phân quyền và E2E production. Không có bản ghi mẫu nào được hiển thị như dữ liệu thật.",
+    },
+    stateLabel: {
+      en: "Current state",
+      vi: "Trạng thái hiện tại",
+    },
+    stateValue: {
+      en: "Not released",
+      vi: "Chưa phát hành",
+    },
+    backToDashboard: {
+      en: "Back to dashboard",
+      vi: "Quay lại bảng điều khiển",
+    },
+  },
   authGate: {
     eyebrow: {
       en: "Session Check",

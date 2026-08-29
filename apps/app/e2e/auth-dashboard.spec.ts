@@ -267,6 +267,20 @@ test("dashboard renders persisted account, reality, and AI health contracts", as
   );
 });
 
+test("unreleased runtime routes never expose fixture records as live data", async ({ page }) => {
+  await mockAuthedSession(page);
+
+  for (const surface of ["nodes", "resources", "offers", "requests", "trust"] as const) {
+    await page.goto(`/${surface}?lang=en`);
+    const boundary = page.locator(
+      `[data-release-state="unreleased"][data-runtime-surface="${surface}"]`,
+    );
+    await expect(boundary).toBeVisible();
+    await expect(boundary).toContainText("is not released yet");
+    await expect(boundary).toContainText("No fixture records are shown as live data.");
+  }
+});
+
 // ─── Authenticated profile (Team 1 contract markers) ────────────────────
 
 test("profile renders Team 1 account identity contract when session is valid", async ({ page }) => {
