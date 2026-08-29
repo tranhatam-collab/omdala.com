@@ -15,12 +15,20 @@ function nextId() {
   return `${++entryId}`;
 }
 
+function identityTranslation(key: string): string {
+  return key;
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function useTerminal(
   rootHandle: FileSystemDirectoryHandle | null,
   t?: (key: string) => string,
 ) {
-  const _t = t || ((k: string) => k);
-  const [history, setHistory] = useState<TerminalEntry[]>([
+  const _t = t ?? identityTranslation;
+  const [history, setHistory] = useState<TerminalEntry[]>(() => [
     {
       id: nextId(),
       type: "info",
@@ -34,25 +42,14 @@ export function useTerminal(
     setHistory((prev) => [...prev, { id: nextId(), type, text, timestamp: Date.now() }]);
   }, []);
 
-  async function resolveCurrentDir() {
+  const resolveCurrentDir = useCallback(async () => {
     if (!rootHandle) return null;
     let current = rootHandle;
     for (const part of cwd.split("/").filter(Boolean)) {
-      current = await (current as any).getDirectoryHandle(part);
+      current = await current.getDirectoryHandle(part);
     }
     return current;
-  }
-
-  async function resolvePath(path: string) {
-    if (!rootHandle) return null;
-    if (!path) return rootHandle;
-    const full = cwd ? `${cwd}/${path}` : path;
-    let current = rootHandle;
-    for (const part of full.split("/").filter(Boolean)) {
-      current = await (current as any).getDirectoryHandle(part);
-    }
-    return current;
-  }
+  }, [cwd, rootHandle]);
 
   const executeCommand = useCallback(
     async (input: string) => {
@@ -141,10 +138,10 @@ export function useTerminal(
             let current = rootHandle;
             const parts = targetPath.split("/").filter(Boolean);
             for (const part of parts) {
-              current = await (current as any).getDirectoryHandle(part);
+              current = await current.getDirectoryHandle(part);
             }
             const items: string[] = [];
-            for await (const [name, handle] of (current as any).entries()) {
+            for await (const [name, handle] of current.entries()) {
               const icon = handle.kind === "directory" ? "📁" : "📄";
               items.push(`${icon} ${name}`);
             }
@@ -169,7 +166,7 @@ export function useTerminal(
             const newPath = cwd ? `${cwd}/${target}` : target;
             let test = rootHandle;
             for (const part of newPath.split("/").filter(Boolean)) {
-              test = await (test as any).getDirectoryHandle(part);
+              test = await test.getDirectoryHandle(part);
             }
             setCwd(newPath);
             addEntry("output", `Đã chuyển: /${newPath}`);
@@ -183,8 +180,8 @@ export function useTerminal(
             }
             const current = await resolveCurrentDir();
             if (!current) return;
-            const fileHandle = await (current as any).getFileHandle(args[1]);
-            const file = await (fileHandle as any).getFile();
+            const fileHandle = await current.getFileHandle(args[1]);
+            const file = await fileHandle.getFile();
             const text = await file.text();
             addEntry("output", text || "(file rỗng)");
             break;
@@ -197,11 +194,11 @@ export function useTerminal(
             }
             const current = await resolveCurrentDir();
             if (!current) return;
-            const srcHandle = await (current as any).getFileHandle(args[1]);
-            const srcFile = await (srcHandle as any).getFile();
+            const srcHandle = await current.getFileHandle(args[1]);
+            const srcFile = await srcHandle.getFile();
             const srcText = await srcFile.text();
-            const dstHandle = await (current as any).getFileHandle(args[2], { create: true });
-            const writable = await (dstHandle as any).createWritable();
+            const dstHandle = await current.getFileHandle(args[2], { create: true });
+            const writable = await dstHandle.createWritable();
             await writable.write(srcText);
             await writable.close();
             addEntry("output", `Đã sao chép: ${args[1]} → ${args[2]}`);
@@ -219,14 +216,14 @@ export function useTerminal(
             }
             const current = await resolveCurrentDir();
             if (!current) return;
-            const srcHandle = await (current as any).getFileHandle(args[1]);
-            const srcFile = await (srcHandle as any).getFile();
+            const srcHandle = await current.getFileHandle(args[1]);
+            const srcFile = await srcHandle.getFile();
             const srcText = await srcFile.text();
-            const dstHandle = await (current as any).getFileHandle(args[2], { create: true });
-            const writable = await (dstHandle as any).createWritable();
+            const dstHandle = await current.getFileHandle(args[2], { create: true });
+            const writable = await dstHandle.createWritable();
             await writable.write(srcText);
             await writable.close();
-            await (current as any).removeEntry(args[1]);
+            await current.removeEntry(args[1]);
             addEntry("output", `Đã di chuyển: ${args[1]} → ${args[2]}`);
             break;
           }
@@ -238,7 +235,7 @@ export function useTerminal(
             }
             const current = await resolveCurrentDir();
             if (!current) return;
-            await (current as any).getDirectoryHandle(args[1], { create: true });
+            await current.getDirectoryHandle(args[1], { create: true });
             addEntry("output", `Đã tạo thư mục: ${args[1]}`);
             break;
           }
@@ -250,8 +247,8 @@ export function useTerminal(
             }
             const current = await resolveCurrentDir();
             if (!current) return;
-            const fh = await (current as any).getFileHandle(args[1], { create: true });
-            const writable = await (fh as any).createWritable();
+            const fh = await current.getFileHandle(args[1], { create: true });
+            const writable = await fh.createWritable();
             await writable.write("");
             await writable.close();
             addEntry("output", `Đã tạo file: ${args[1]}`);
@@ -269,7 +266,7 @@ export function useTerminal(
             }
             const current = await resolveCurrentDir();
             if (!current) return;
-            await (current as any).removeEntry(args[1], { recursive: true });
+            await current.removeEntry(args[1], { recursive: true });
             addEntry("output", `Đã xóa: ${args[1]}`);
             break;
           }
@@ -278,7 +275,7 @@ export function useTerminal(
             const query = args[1] || "";
             async function searchDir(dir: FileSystemDirectoryHandle, path: string): Promise<string[]> {
               const results: string[] = [];
-              for await (const [name, handle] of (dir as any).entries()) {
+              for await (const [name, handle] of dir.entries()) {
                 const childPath = path ? `${path}/${name}` : name;
                 if (name.toLowerCase().includes(query.toLowerCase())) {
                   results.push(`${handle.kind === "directory" ? "📁" : "📄"} ${childPath}`);
@@ -298,7 +295,7 @@ export function useTerminal(
             async function treeDir(dir: FileSystemDirectoryHandle, prefix = ""): Promise<string[]> {
               const lines: string[] = [];
               const entries: Array<{ name: string; kind: string; handle: FileSystemHandle }> = [];
-              for await (const [name, handle] of (dir as any).entries()) {
+              for await (const [name, handle] of dir.entries()) {
                 entries.push({ name, kind: handle.kind, handle });
               }
               entries.sort((a, b) => (a.kind === b.kind ? a.name.localeCompare(b.name) : a.kind === "directory" ? -1 : 1));
@@ -351,11 +348,11 @@ export function useTerminal(
           default:
             addEntry("error", _t("cmdNotFound"));
         }
-      } catch (err: any) {
-        addEntry("error", err.message || `Lỗi thực thi: ${cmd}`);
+      } catch (err: unknown) {
+        addEntry("error", getErrorMessage(err, `Lỗi thực thi: ${cmd}`));
       }
     },
-    [rootHandle, cwd, addEntry, _t],
+    [rootHandle, cwd, addEntry, _t, resolveCurrentDir],
   );
 
   return { history, cwd, executeCommand, addEntry };

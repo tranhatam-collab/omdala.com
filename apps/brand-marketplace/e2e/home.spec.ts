@@ -11,17 +11,17 @@ test.describe("Brand Exchange - public navigation", () => {
   test("navigates to the approved brand index", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("navigation", { name: "Brand Exchange navigation" }).getByRole("link", { name: "All brands" }).click();
-    await expect(page).toHaveURL(/\/en\/brands$/);
+    await expect(page).toHaveURL(/\/en\/brands\/$/);
     await expect(page.getByRole("heading", { name: "Brand packages with explicit handoff boundaries." })).toBeVisible();
   });
 
   test("navigates to a real category route", async ({ page }) => {
     await page.goto("/");
-    const categoryLink = page.locator('a[href="/en/categories/ai"]').first();
-    await expect(categoryLink).toHaveAttribute("href", "/en/categories/ai");
+    const categoryLink = page.locator('a[href="/en/categories/ai/"]').first();
+    await expect(categoryLink).toHaveAttribute("href", "/en/categories/ai/");
     // Load the asserted route directly to avoid a Next dev-mode navigation race.
     await page.goto("/en/categories/ai");
-    await expect(page).toHaveURL(/\/en\/categories\/ai$/);
+    await expect(page).toHaveURL(/\/en\/categories\/ai\/$/);
     await expect(page.getByRole("heading", { name: "AI brand packages" })).toBeVisible();
     await expect(page.getByRole("link", { name: "OMCode" })).toBeVisible();
   });

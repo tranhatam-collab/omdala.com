@@ -24,7 +24,7 @@ test.describe("OMCODE Critical Flows — IDE with project fixture", () => {
     await expect(page.getByText("package.json", { exact: true })).toBeVisible();
   });
 
-  test("02 — AI Chat panel accepts message", async ({ page }) => {
+  test("02 — AI Chat accepts input and reports missing local provider configuration", async ({ page }) => {
     // Chat panel is open by default (chatOpen = true)
     // The chat input is a textarea with placeholder containing "Hỏi AI"
     const input = page.locator('textarea[placeholder*="Hỏi AI"]');
@@ -33,6 +33,9 @@ test.describe("OMCODE Critical Flows — IDE with project fixture", () => {
     await input.press("Enter");
     // The user message should appear in the chat
     await expect(page.getByText("Hello AI").first()).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.getByText(/Lỗi: No API key configured for provider/),
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test("03 — Language toggle switches EN/VI", async ({ page }) => {

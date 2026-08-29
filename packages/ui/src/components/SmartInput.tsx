@@ -13,8 +13,6 @@ interface SmartInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElemen
 export const SmartInput = React.forwardRef<HTMLInputElement, SmartInputProps>(
   function SmartInput({ label, error, size = "md", icon, style, ...props }, ref) {
     const [focused, setFocused] = React.useState(false);
-    const hasValue = Boolean(props.value || props.defaultValue);
-
     const container: React.CSSProperties = {
       position: "relative",
       display: "flex",

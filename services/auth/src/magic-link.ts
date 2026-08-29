@@ -1,8 +1,6 @@
 // Magic Link authentication — passwordless email sign-in
 // Flow: User enters email → System generates link → User clicks → Session created
 
-import type { AuthUserSummary } from './index.js';
-
 // ─── Types ───────────────────────────────────────────────────────────────
 
 export interface MagicLinkToken {

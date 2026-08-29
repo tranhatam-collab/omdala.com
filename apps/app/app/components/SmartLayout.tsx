@@ -1,24 +1,25 @@
-// ─── Smart Layout — AI Command Palette + Glass Sidebar ─────────────────
 "use client";
 
 import * as React from "react";
-import { AICommandPalette, SmartButton } from "@omdala/ui";
-import { VI } from "@omdala/core";
+import { resolveLanguage, withLanguageParam } from "@omdala/core";
+import { AICommandPalette, useLocationSearchParam } from "@omdala/ui";
+import { LocaleLink } from "./LocaleLink";
+import { APP_COPY, t } from "@/lib/bilingual-copy";
 
 interface SmartLayoutProps {
   children: React.ReactNode;
 }
 
 const NAV_ITEMS = [
-  { id: "dashboard", label: VI.nav.dashboard, icon: "⊞", href: "/dashboard" },
-  { id: "nodes", label: VI.nav.nodes, icon: "◈", href: "/nodes" },
-  { id: "resources", label: VI.nav.resources, icon: "▣", href: "/resources" },
-  { id: "trust", label: VI.nav.trust, icon: "◉", href: "/trust" },
-  // { id: "commitments", label: VI.nav.commitments, icon: "◊", href: "/commitments" },
-  // { id: "analytics", label: VI.nav.analytics, icon: "◫", href: "/analytics" },
-];
+  { id: "dashboard", labelKey: "Dashboard", shortLabel: "DB", href: "/dashboard" },
+  { id: "brands", labelKey: "Brands", shortLabel: "BR", href: "/brands" },
+  { id: "profile", labelKey: "Profile", shortLabel: "PF", href: "/profile" },
+  { id: "settings", labelKey: "Settings", shortLabel: "ST", href: "/settings" },
+  { id: "workspace", labelKey: "Workspace", shortLabel: "OM", href: "/workspace" },
+] as const;
 
 export function SmartLayout({ children }: SmartLayoutProps) {
+  const language = resolveLanguage(useLocationSearchParam("lang"));
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
 
@@ -37,39 +38,16 @@ export function SmartLayout({ children }: SmartLayoutProps) {
     () => [
       ...NAV_ITEMS.map((item) => ({
         id: item.id,
-        label: item.label,
-        description: `${VI.nav.open} ${item.label}`,
-        icon: item.icon,
-        section: "Điều hướng",
+        label: t(language, APP_COPY.layout.navLabels[item.labelKey]),
+        description: `${t(language, APP_COPY.layout.openLabel)} ${t(language, APP_COPY.layout.navLabels[item.labelKey])}`,
+        section: t(language, APP_COPY.layout.navigationSection),
         action: () => {
-          window.location.href = item.href;
+          window.location.assign(withLanguageParam(item.href, language));
           setPaletteOpen(false);
         },
       })),
-      {
-        id: "ai-complete",
-        label: VI.ai.askAnything,
-        description: VI.ai.suggestions,
-        icon: "✦",
-        section: "AI Assistant",
-        action: () => {
-          setPaletteOpen(false);
-        },
-      },
-      {
-        id: "logout",
-        label: VI.nav.logout,
-        description: VI.auth.logoutSuccess,
-        icon: "→",
-        section: "Hành động",
-        action: () => {
-          localStorage.removeItem("omcode:account");
-          localStorage.removeItem("omcode:session-id");
-          window.location.href = "/";
-        },
-      },
     ],
-    [],
+    [language],
   );
 
   return (
@@ -97,13 +75,12 @@ export function SmartLayout({ children }: SmartLayoutProps) {
           position: "relative",
         }}
       >
-        {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32, paddingLeft: 8 }}>
           <div
             style={{
               width: 36,
               height: 36,
-              borderRadius: 10,
+              borderRadius: 8,
               background: "linear-gradient(135deg, #7ef2ff, #3d8bff)",
               display: "flex",
               alignItems: "center",
@@ -117,13 +94,12 @@ export function SmartLayout({ children }: SmartLayoutProps) {
             OM
           </div>
           {!sidebarCollapsed && (
-            <span style={{ fontWeight: 700, fontSize: 18, color: "#f7fbff", letterSpacing: "-0.02em" }}>
+            <span style={{ fontWeight: 700, fontSize: 18, color: "#f7fbff", letterSpacing: 0 }}>
               OMDALA
             </span>
           )}
         </div>
 
-        {/* Command Trigger */}
         <button
           onClick={() => setPaletteOpen(true)}
           style={{
@@ -131,7 +107,7 @@ export function SmartLayout({ children }: SmartLayoutProps) {
             alignItems: "center",
             gap: 10,
             padding: "10px 14px",
-            borderRadius: 10,
+            borderRadius: 8,
             background: "rgba(255,255,255,0.05)",
             border: "1px solid rgba(255,255,255,0.08)",
             color: "#a8b9d0",
@@ -150,10 +126,12 @@ export function SmartLayout({ children }: SmartLayoutProps) {
             (e.target as HTMLElement).style.borderColor = "rgba(255,255,255,0.08)";
           }}
         >
-          <span>⌘</span>
+          <span aria-hidden="true">K</span>
           {!sidebarCollapsed && (
             <>
-              <span style={{ flex: 1, textAlign: "left" }}>{VI.ai.commandPlaceholder.slice(0, 20)}...</span>
+              <span style={{ flex: 1, textAlign: "left" }}>
+                {t(language, APP_COPY.layout.appNavigation)}
+              </span>
               <kbd
                 style={{
                   padding: "2px 6px",
@@ -163,16 +141,18 @@ export function SmartLayout({ children }: SmartLayoutProps) {
                   fontFamily: "var(--font-mono, monospace)",
                 }}
               >
-                ⌘K
+                Ctrl K
               </kbd>
             </>
           )}
         </button>
 
-        {/* Nav Items */}
-        <nav style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+        <nav
+          aria-label={t(language, APP_COPY.layout.appNavigation)}
+          style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}
+        >
           {NAV_ITEMS.map((item) => (
-            <a
+            <LocaleLink
               key={item.id}
               href={item.href}
               style={{
@@ -180,7 +160,7 @@ export function SmartLayout({ children }: SmartLayoutProps) {
                 alignItems: "center",
                 gap: 12,
                 padding: "10px 14px",
-                borderRadius: 10,
+                borderRadius: 8,
                 color: "#a8b9d0",
                 textDecoration: "none",
                 fontSize: 14,
@@ -198,15 +178,24 @@ export function SmartLayout({ children }: SmartLayoutProps) {
                 el.style.color = "#a8b9d0";
               }}
             >
-              <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{item.icon}</span>
-              {!sidebarCollapsed && <span>{item.label}</span>}
-            </a>
+              <span aria-hidden="true" style={{ fontSize: 12, width: 24, textAlign: "center" }}>
+                {item.shortLabel}
+              </span>
+              {!sidebarCollapsed && (
+                <span>{t(language, APP_COPY.layout.navLabels[item.labelKey])}</span>
+              )}
+            </LocaleLink>
           ))}
         </nav>
 
-        {/* Toggle Sidebar */}
         <button
           onClick={() => setSidebarCollapsed((c) => !c)}
+          aria-label={t(
+            language,
+            sidebarCollapsed
+              ? APP_COPY.layout.expandNavigation
+              : APP_COPY.layout.collapseNavigation,
+          )}
           style={{
             marginTop: "auto",
             padding: 8,
@@ -219,13 +208,12 @@ export function SmartLayout({ children }: SmartLayoutProps) {
             transition: "all 200ms",
           }}
         >
-          {sidebarCollapsed ? "→" : "←"}
+          {sidebarCollapsed ? ">" : "<"}
         </button>
       </aside>
 
       {/* Main Content */}
       <main style={{ flex: 1, minWidth: 0, overflow: "auto" }}>
-        {/* Topbar */}
         <header
           style={{
             position: "sticky",
@@ -243,19 +231,19 @@ export function SmartLayout({ children }: SmartLayoutProps) {
         >
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 700, color: "#f7fbff", margin: 0 }}>
-              {VI.app.tagline}
+              Omdala Operator
             </h1>
             <p style={{ fontSize: 13, color: "#6b7f99", margin: "4px 0 0" }}>
-              {VI.app.poweredBy}
+              {t(language, APP_COPY.layout.productSurface)}
             </p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <SmartButton variant="secondary" size="sm">
-              {VI.nav.notifications}
-            </SmartButton>
-            <SmartButton variant="primary" size="sm">
-              {VI.nav.profile}
-            </SmartButton>
+            <LocaleLink href="/settings" className="app-button app-button--ghost">
+              {t(language, APP_COPY.layout.navLabels.Settings)}
+            </LocaleLink>
+            <LocaleLink href="/profile" className="app-button app-button--primary">
+              {t(language, APP_COPY.layout.navLabels.Profile)}
+            </LocaleLink>
           </div>
         </header>
 
@@ -263,11 +251,11 @@ export function SmartLayout({ children }: SmartLayoutProps) {
         <div style={{ padding: 32 }}>{children}</div>
       </main>
 
-      {/* AI Command Palette */}
       {paletteOpen && (
         <AICommandPalette
           commands={commands}
-          locale="vi"
+          aiEnabled={false}
+          locale={language === "vi" ? "vi" : "en"}
           onClose={() => setPaletteOpen(false)}
         />
       )}

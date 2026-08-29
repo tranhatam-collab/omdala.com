@@ -1,0 +1,93 @@
+name: OMDALA Staging Go-Live E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact candidate SHA already deployed to the staging surfaces
+        required: true
+        type: string
+      api_deployment_id:
+        description: Exact API deployment ID emitted by the staging release workflow
+        required: true
+        type: string
+      surface_release_id:
+        description: Exact Web/App/Brand release ID emitted by the surface release workflow
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: omdala-staging-go-live-${{ inputs.candidate_sha }}
+  cancel-in-progress: false
+
+jobs:
+  exact-candidate-acceptance:
+    name: Exact-Candidate Staging Acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          persist-credentials: false
+      - name: Verify checked-out candidate
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ inputs.candidate_sha }}"
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.3
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @omdala/app exec playwright install --with-deps chromium
+      - name: Run fail-closed staging E2E
+        run: pnpm e2e:staging
+        env:
+          E2E_STAGING_APP_URL: ${{ secrets.OMDALA_STAGING_APP_URL }}
+          E2E_STAGING_API_URL: ${{ secrets.OMDALA_STAGING_API_URL }}
+          E2E_STAGING_BRAND_URL: ${{ secrets.OMDALA_STAGING_BRAND_URL }}
+          E2E_STAGING_WEB_URL: ${{ secrets.OMDALA_STAGING_WEB_URL }}
+          E2E_TEST_SECRET: ${{ secrets.OMDALA_STAGING_E2E_TEST_SECRET }}
+          E2E_RELEASE_SHA: ${{ inputs.candidate_sha }}
+          E2E_API_DEPLOYMENT_ID: ${{ inputs.api_deployment_id }}
+          E2E_SURFACE_RELEASE_ID: ${{ inputs.surface_release_id }}
+      - name: Write exact-candidate staging acceptance receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg candidate_sha "${{ inputs.candidate_sha }}" \
+            --arg api_deployment_id "${{ inputs.api_deployment_id }}" \
+            --arg surface_release_id "${{ inputs.surface_release_id }}" \
+            --arg workflow_run_id "${GITHUB_RUN_ID}" \
+            --arg workflow_run_attempt "${GITHUB_RUN_ATTEMPT}" \
+            --arg repository "${GITHUB_REPOSITORY}" \
+            --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              verdict: "STAGING_ACCEPTED",
+              candidate_sha: $candidate_sha,
+              api_deployment_id: $api_deployment_id,
+              surface_release_id: $surface_release_id,
+              workflow_run_id: ($workflow_run_id | tonumber),
+              workflow_run_attempt: ($workflow_run_attempt | tonumber),
+              repository: $repository,
+              created_at: $created_at
+            }' > staging-acceptance.json
+          jq -e \
+            --arg sha "${{ inputs.candidate_sha }}" \
+            '.verdict == "STAGING_ACCEPTED" and .candidate_sha == $sha' \
+            staging-acceptance.json >/dev/null
+      - name: Upload immutable staging acceptance receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-staging-acceptance-${{ inputs.candidate_sha }}
+          path: staging-acceptance.json
+          if-no-files-found: error
+          retention-days: 30

@@ -3,13 +3,12 @@
 import {
   isReadyLanguage,
   OMDALA_LANGUAGES,
-  type OmdalaLanguage,
   resolveLanguage,
   withLanguageParam,
 } from "@omdala/core";
+import { notifyLocationChange, useLocationSearchParam } from "@omdala/ui";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 
 const LANGUAGE_LABELS: Record<(typeof OMDALA_LANGUAGES)[number], string> = {
   en: "EN",
@@ -22,18 +21,8 @@ const LANGUAGE_LABELS: Record<(typeof OMDALA_LANGUAGES)[number], string> = {
 
 export function LanguageSwitcher() {
   const pathname = usePathname();
-  const [currentLanguage, setCurrentLanguage] = useState<OmdalaLanguage>("en");
+  const currentLanguage = resolveLanguage(useLocationSearchParam("lang"));
   const currentPath = pathname;
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    setCurrentLanguage(
-      resolveLanguage(new URLSearchParams(window.location.search).get("lang")),
-    );
-  }, [pathname]);
 
   return (
     <div className="docs-language-switcher" aria-label="Language selector">
@@ -58,6 +47,7 @@ export function LanguageSwitcher() {
           <Link
             key={language}
             href={href}
+            onClick={() => window.setTimeout(notifyLocationChange, 0)}
             className={`docs-language-switcher__item${isActive ? " docs-language-switcher__item--active" : ""}`}
           >
             {LANGUAGE_LABELS[language]}

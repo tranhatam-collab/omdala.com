@@ -3,6 +3,9 @@ import path from "node:path";
 
 const config: NextConfig = {
   poweredByHeader: false,
+  output: "export",
+  trailingSlash: true,
+  images: { unoptimized: true },
   eslint: { ignoreDuringBuilds: true },
   // Keep tracing inside this monorepo rather than an unrelated parent lockfile.
   outputFileTracingRoot: path.join(process.cwd(), "../.."),

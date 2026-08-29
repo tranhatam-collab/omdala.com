@@ -9,6 +9,10 @@ export { AICommandPalette } from './components/AICommandPalette'
 export { SmartButton } from './components/SmartButton'
 export { SmartCard } from './components/SmartCard'
 export { SmartInput } from './components/SmartInput'
+export {
+  notifyLocationChange,
+  useLocationSearchParam,
+} from './hooks/useLocationSearchParam'
 
 export {
   pickBilingualValue,

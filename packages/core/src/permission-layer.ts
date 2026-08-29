@@ -161,7 +161,7 @@ export class PermissionLayer {
   async checkPermission(
     action: PermissionAction,
     target: string,
-    agentId?: string,
+    _agentId?: string,
   ): Promise<{ allowed: boolean; level: PermissionLevel; reason?: string }> {
     // Check denied paths first
     for (const deniedPath of this.config.deniedPaths) {
@@ -319,7 +319,7 @@ export class PermissionLayer {
 
   private matchPattern(target: string, pattern: string): boolean {
     // Convert glob pattern to regex with proper ** support
-    let regexPattern = pattern
+    const regexPattern = pattern
       // Escape special regex characters except * and ?
       .replace(/[.+^${}()|[\]\\]/g, "\\$&")
       // Convert ** to match any path segments

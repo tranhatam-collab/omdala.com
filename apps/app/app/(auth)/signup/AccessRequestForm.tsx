@@ -5,8 +5,9 @@ import {
   OMDALA_INBOXES,
   resolveLanguage,
 } from "@omdala/core";
+import { useLocationSearchParam } from "@omdala/ui";
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ApiClientError, apiJsonRequest } from "@/lib/api-client";
 
 type AccessState = {
@@ -26,18 +27,7 @@ const initialState: AccessState = {
 };
 
 export function AccessRequestForm() {
-  const [isVi, setIsVi] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    setIsVi(
-      resolveLanguage(
-        new URLSearchParams(window.location.search).get("lang"),
-      ) === "vi",
-    );
-  }, []);
+  const isVi = resolveLanguage(useLocationSearchParam("lang")) === "vi";
   const [form, setForm] = useState<AccessState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<{ message: string; tone: StatusTone }>({

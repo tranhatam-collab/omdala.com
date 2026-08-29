@@ -4,17 +4,17 @@ test.describe("Brand Exchange - Vietnamese surface", () => {
   test("switches from English to Vietnamese", async ({ page }) => {
     await page.goto("/en");
     await page.getByRole("navigation", { name: "Brand Exchange navigation" }).getByRole("link", { name: "VI", exact: true }).click();
-    await expect(page).toHaveURL(/\/vi$/);
+    await expect(page).toHaveURL(/\/vi\/$/);
     await expect(page.getByRole("heading", { name: "Sở hữu thương hiệu số với hồ sơ bằng chứng rõ ràng." })).toBeVisible();
   });
 
   test("keeps Vietnamese listing links in the Vietnamese route tree", async ({ page }) => {
     await page.goto("/vi/brands");
     const listing = page.getByRole("link", { name: "OMCode" }).first();
-    await expect(listing).toHaveAttribute("href", "/vi/brands/omcode");
+    await expect(listing).toHaveAttribute("href", "/vi/brands/omcode/");
     // Assert the rendered locale path, then load it directly to avoid a dev-mode navigation race.
     await page.goto("/vi/brands/omcode");
-    await expect(page).toHaveURL(/\/vi\/brands\/omcode$/);
+    await expect(page).toHaveURL(/\/vi\/brands\/omcode\/$/);
     await expect(page.getByText("Tóm tắt thương hiệu")).toBeVisible();
   });
 

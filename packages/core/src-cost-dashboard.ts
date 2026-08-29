@@ -136,7 +136,7 @@ export class CostDashboard {
 
   // Update quotas
   private updateQuotas(cost: number): void {
-    for (const [id, quota] of this.quotas) {
+    for (const quota of this.quotas.values()) {
       // Check if quota needs reset
       if (new Date() >= quota.resetAt) {
         quota.used = 0;

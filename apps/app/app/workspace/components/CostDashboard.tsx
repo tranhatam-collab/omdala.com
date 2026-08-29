@@ -58,21 +58,29 @@ function groupByModel(entries: UsageEntry[]) {
 
 export function CostDashboard() {
   const { t } = useI18n();
-  const [entries, setEntries] = React.useState<UsageEntry[]>([]);
+  const [entries, setEntries] = React.useState<UsageEntry[]>(() => getUsage());
   const [range, setRange] = React.useState<"all" | "today" | "week">("all");
+  const [now, setNow] = React.useState(0);
 
   React.useEffect(() => {
-    setEntries(getUsage());
-    const iv = setInterval(() => setEntries(getUsage()), 3000);
-    return () => clearInterval(iv);
+    const refresh = () => {
+      setEntries(getUsage());
+      setNow(Date.now());
+    };
+    const timeout = setTimeout(refresh, 0);
+    const iv = setInterval(refresh, 3000);
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(iv);
+    };
   }, []);
 
   const filtered = React.useMemo(() => {
-    const now = Date.now();
+    if (now === 0) return entries;
     if (range === "today") return entries.filter((e) => now - e.timestamp < 86400000);
     if (range === "week") return entries.filter((e) => now - e.timestamp < 7 * 86400000);
     return entries;
-  }, [entries, range]);
+  }, [entries, now, range]);
 
   const totalCost = filtered.reduce((s, e) => s + e.cost, 0);
   const totalTokens = filtered.reduce((s, e) => s + e.tokensIn + e.tokensOut, 0);

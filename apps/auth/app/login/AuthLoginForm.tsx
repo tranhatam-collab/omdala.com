@@ -95,7 +95,16 @@ export function AuthLoginForm() {
         });
       }
     })();
-  }, [language, redirectTo, router, searchParams]);
+  }, [
+    copy.invalidLink,
+    copy.verified,
+    copy.verifyError,
+    copy.verifying,
+    language,
+    redirectTo,
+    router,
+    searchParams,
+  ]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -1,6 +1,7 @@
 "use client";
 
 import { OMDALA_API_ORIGIN, resolveLanguage, type OmdalaLanguage } from "@omdala/core";
+import { useLocationSearchParam } from "@omdala/ui";
 import type { OmAiProviderObservabilityResponse } from "@omdala/types";
 import { useEffect, useState } from "react";
 
@@ -170,20 +171,12 @@ const COPY: Record<
 };
 
 export function ProviderObservabilityDashboard() {
-  const [language, setLanguage] = useState<OmdalaLanguage>("en");
+  const language = resolveLanguage(useLocationSearchParam("lang"));
   const [state, setState] = useState<ProviderObservabilityState>({
     status: "idle",
     data: null,
     error: null,
   });
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    setLanguage(resolveLanguage(new URLSearchParams(window.location.search).get("lang")));
-  }, []);
 
   useEffect(() => {
     let mounted = true;

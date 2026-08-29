@@ -157,11 +157,15 @@ function generateId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export async function listNodes(env: ApiBindings): Promise<NodeRecord[]> {
+export async function listNodes(
+  env: ApiBindings,
+  ownerEmail: string,
+): Promise<NodeRecord[]> {
   const rows = (await runWithDbContext("listNodes", () =>
     queryRows(
       env,
-      "SELECT id, slug, node_type, name, summary, location_text, visibility, status, 0 AS proof_count, 0 AS resource_count FROM nodes ORDER BY created_at DESC LIMIT 200",
+      "SELECT id, slug, node_type, name, summary, location_text, visibility, status, 0 AS proof_count, 0 AS resource_count FROM omdala.nodes WHERE owner_email = $1 ORDER BY created_at DESC LIMIT 200",
+      [ownerEmail],
     ),
   )) as SqlRow[];
   return rows.map(mapNode);
@@ -171,7 +175,7 @@ export async function listStates(env: ApiBindings): Promise<StateRecord[]> {
   const rows = (await runWithDbContext("listStates", () =>
     queryRows(
       env,
-      "SELECT id, node_id, label, summary, status, updated_at FROM states ORDER BY updated_at DESC LIMIT 200",
+      "SELECT id, node_id, label, summary, status, updated_at FROM omdala.states ORDER BY updated_at DESC LIMIT 200",
     ),
   )) as SqlRow[];
   return rows.map(mapState);
@@ -183,7 +187,7 @@ export async function listCommitments(
   const rows = (await runWithDbContext("listCommitments", () =>
     queryRows(
       env,
-      "SELECT id, from_node_id, to_node_id, title, summary, amount, currency, due_at, status, created_at, updated_at FROM commitments ORDER BY created_at DESC LIMIT 200",
+      "SELECT id, from_node_id, to_node_id, title, summary, amount, currency, due_at, status, created_at, updated_at FROM omdala.commitments ORDER BY created_at DESC LIMIT 200",
     ),
   )) as SqlRow[];
   return rows.map(mapCommitment);
@@ -208,7 +212,7 @@ export async function createCommitment(
   const rows = (await runWithDbContext("createCommitment", () =>
     queryRows(
       env,
-      `INSERT INTO commitments (id, from_node_id, to_node_id, title, summary, amount, currency, due_at, status, created_at, updated_at)
+      `INSERT INTO omdala.commitments (id, from_node_id, to_node_id, title, summary, amount, currency, due_at, status, created_at, updated_at)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9, $10)
      RETURNING id, from_node_id, to_node_id, title, summary, amount, currency, due_at, status, created_at, updated_at`,
       [
@@ -239,7 +243,7 @@ export async function listTransitions(
   const rows = (await runWithDbContext("listTransitions", () =>
     queryRows(
       env,
-      "SELECT id, commitment_id, node_id, from_state_label, to_state_label, summary, status, created_at, updated_at FROM transitions ORDER BY created_at DESC LIMIT 200",
+      "SELECT id, commitment_id, node_id, from_state_label, to_state_label, summary, status, created_at, updated_at FROM omdala.transitions ORDER BY created_at DESC LIMIT 200",
     ),
   )) as SqlRow[];
   return rows.map(mapTransition);
@@ -247,11 +251,13 @@ export async function listTransitions(
 
 export async function listProofs(
   env: ApiBindings,
+  ownerEmail: string,
 ): Promise<RealityProofRecord[]> {
   const rows = (await runWithDbContext("listProofs", () =>
     queryRows(
       env,
-      "SELECT id, commitment_id, transition_id, proof_type, summary, verification_status, created_at FROM proofs ORDER BY created_at DESC LIMIT 200",
+      "SELECT id, commitment_id, transition_id, proof_type, summary, verification_status, created_at FROM omdala.proofs WHERE owner_email = $1 ORDER BY created_at DESC LIMIT 200",
+      [ownerEmail],
     ),
   )) as SqlRow[];
   return rows.map(mapProof);
@@ -259,6 +265,7 @@ export async function listProofs(
 
 export async function createProof(
   env: ApiBindings,
+  ownerEmail: string,
   input: Required<Pick<RealityProofRequest, "type" | "summary">> &
     Omit<RealityProofRequest, "type" | "summary">,
 ): Promise<RealityProofRecord> {
@@ -268,11 +275,12 @@ export async function createProof(
   const rows = (await runWithDbContext("createProof", () =>
     queryRows(
       env,
-      `INSERT INTO proofs (id, commitment_id, transition_id, proof_type, summary, verification_status, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7)
+      `INSERT INTO omdala.proofs (id, owner_email, commitment_id, transition_id, proof_type, summary, verification_status, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8)
      RETURNING id, commitment_id, transition_id, proof_type, summary, verification_status, created_at`,
       [
         id,
+        ownerEmail,
         input.commitmentId ?? null,
         input.transitionId ?? null,
         input.type,
@@ -290,6 +298,7 @@ export async function createProof(
   if (input.commitmentId) {
     await applyTrustDeltaForProofSubmission(
       env,
+      ownerEmail,
       input.commitmentId,
       String(rows[0].id),
     );
@@ -300,6 +309,7 @@ export async function createProof(
 
 async function applyTrustDeltaForProofSubmission(
   env: ApiBindings,
+  ownerEmail: string,
   commitmentId: string,
   eventId: string,
 ): Promise<void> {
@@ -311,8 +321,14 @@ async function applyTrustDeltaForProofSubmission(
   try {
     const commitmentRows = (await queryRows(
       env,
-      "SELECT from_node_id, to_node_id FROM commitments WHERE id = $1 LIMIT 1",
-      [commitmentId],
+      `SELECT c.from_node_id, c.to_node_id
+       FROM omdala.commitments c
+       INNER JOIN omdala.nodes from_node ON from_node.id = c.from_node_id
+       INNER JOIN omdala.nodes to_node ON to_node.id = c.to_node_id
+       WHERE c.id = $1
+         AND (from_node.owner_email = $2 OR to_node.owner_email = $2)
+       LIMIT 1`,
+      [commitmentId, ownerEmail],
     )) as SqlRow[];
 
     const commitment = commitmentRows[0];
@@ -327,7 +343,7 @@ async function applyTrustDeltaForProofSubmission(
     for (const nodeId of candidateNodeIds) {
       const trustRows = (await queryRows(
         env,
-        "SELECT score, level FROM trust_scores WHERE node_id = $1 LIMIT 1",
+        "SELECT score, level FROM omdala.trust_scores WHERE node_id = $1 LIMIT 1",
         [nodeId],
       )) as SqlRow[];
 
@@ -345,20 +361,20 @@ async function applyTrustDeltaForProofSubmission(
       if (existing) {
         await queryRows(
           env,
-          "UPDATE trust_scores SET score = $2, level = $3, updated_at = NOW() WHERE node_id = $1",
+          "UPDATE omdala.trust_scores SET score = $2, level = $3, updated_at = NOW() WHERE node_id = $1",
           [nodeId, nextScore, nextLevel],
         );
       } else {
         await queryRows(
           env,
-          "INSERT INTO trust_scores (node_id, score, level, explanation, updated_at) VALUES ($1, $2, $3, $4::jsonb, NOW())",
+          "INSERT INTO omdala.trust_scores (node_id, score, level, explanation, updated_at) VALUES ($1, $2, $3, $4::jsonb, NOW())",
           [nodeId, nextScore, nextLevel, explanation],
         );
       }
 
       await queryRows(
         env,
-        "INSERT INTO trust_score_history (node_id, previous_score, new_score, reason_code, reason_detail, event_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW())",
+        "INSERT INTO omdala.trust_score_history (node_id, previous_score, new_score, reason_code, reason_detail, event_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW())",
         [
           nodeId,
           previousScore,
@@ -378,11 +394,15 @@ async function applyTrustDeltaForProofSubmission(
   }
 }
 
-export async function listTrust(env: ApiBindings): Promise<TrustScoreRecord[]> {
+export async function listTrust(
+  env: ApiBindings,
+  ownerEmail: string,
+): Promise<TrustScoreRecord[]> {
   const rows = (await runWithDbContext("listTrust", () =>
     queryRows(
       env,
-      "SELECT node_id, score, level, CAST(explanation AS text) AS explanation, updated_at FROM trust_scores ORDER BY updated_at DESC LIMIT 200",
+      "SELECT t.node_id, t.score, t.level, CAST(t.explanation AS text) AS explanation, t.updated_at FROM omdala.trust_scores t INNER JOIN omdala.nodes n ON n.id = t.node_id WHERE n.owner_email = $1 ORDER BY t.updated_at DESC LIMIT 200",
+      [ownerEmail],
     ),
   )) as SqlRow[];
   return rows.map(mapTrust);
@@ -390,13 +410,14 @@ export async function listTrust(env: ApiBindings): Promise<TrustScoreRecord[]> {
 
 export async function getTrustByNodeId(
   env: ApiBindings,
+  ownerEmail: string,
   nodeId: string,
 ): Promise<TrustScoreRecord | null> {
   const rows = (await runWithDbContext("getTrustByNodeId", () =>
     queryRows(
       env,
-      "SELECT node_id, score, level, CAST(explanation AS text) AS explanation, updated_at FROM trust_scores WHERE node_id = $1 LIMIT 1",
-      [nodeId],
+      "SELECT t.node_id, t.score, t.level, CAST(t.explanation AS text) AS explanation, t.updated_at FROM omdala.trust_scores t INNER JOIN omdala.nodes n ON n.id = t.node_id WHERE t.node_id = $1 AND n.owner_email = $2 LIMIT 1",
+      [nodeId, ownerEmail],
     ),
   )) as SqlRow[];
   if (!rows[0]) {

@@ -33,11 +33,7 @@ interface WelcomeScreenProps {
 }
 
 export function WelcomeScreen({ onOpenFolder, onOpenRecent }: WelcomeScreenProps) {
-  const [recents, setRecents] = React.useState<RecentProject[]>([]);
-
-  React.useEffect(() => {
-    setRecents(loadRecents());
-  }, []);
+  const [recents] = React.useState<RecentProject[]>(() => loadRecents());
 
   return (
     <div

@@ -80,13 +80,18 @@ async function request(
         throw new GatewayError(data.error);
       }
 
+      const accountPayload = payload as {
+        apiGatewayUrl?: string;
+        email?: string;
+      };
+
       return {
         success: true,
         account: {
-          email: data.email || (payload as { email?: string }).email || "",
+          email: data.email || accountPayload.email || "",
           token: data.token || data.accessToken || "",
           plan: data.plan || "free",
-          apiGatewayUrl: data.apiGatewayUrl || (payload as any)?.apiGatewayUrl || "",
+          apiGatewayUrl: data.apiGatewayUrl || accountPayload.apiGatewayUrl || "",
           expiresAt: data.expiresAt || Date.now() + 30 * 86400000,
         },
       };

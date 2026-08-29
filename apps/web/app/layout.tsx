@@ -4,7 +4,7 @@ import { SchemaScript } from "@omdala/ui";
 import { getPageCopy } from "./lib/bilingual-source";
 import "./globals.css";
 
-const homeSeo = getPageCopy("home", "vi");
+const homeSeo = getPageCopy("home", "en");
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://omdala.com"),
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   openGraph: {
     siteName: "OMDALA",
     type: "website",
-    locale: "vi_VN",
+    locale: "en_US",
     images: [
       {
         url: "/og-default.png",
@@ -56,14 +56,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi">
+    <html lang="en">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
-          rel="stylesheet"
-        />
         <SchemaScript
           id="omdala-root-schema"
           schema={[getOrganizationSchema(), getWebSiteSchema()]}
@@ -87,8 +81,8 @@ export default function RootLayout({
             --om-border: rgba(255,255,255,0.08);
             --om-border-focus: rgba(126,242,255,0.4);
             --om-glow: 0 0 20px rgba(126,242,255,0.15);
-            --font-sans: 'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif;
-            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-sans: 'SF Pro Display', system-ui, -apple-system, sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, monospace;
           }
           body {
             font-family: var(--font-sans);

@@ -42,12 +42,6 @@ export default function AppRootLayout({
   return (
     <html lang="vi">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
-          rel="stylesheet"
-        />
         <style>{`
           :root {
             --om-midnight: #060d1a;
@@ -67,8 +61,8 @@ export default function AppRootLayout({
             --om-border: rgba(255,255,255,0.08);
             --om-border-focus: rgba(126,242,255,0.4);
             --om-glow: 0 0 20px rgba(126,242,255,0.15);
-            --font-sans: 'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif;
-            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-sans: 'SF Pro Display', system-ui, -apple-system, sans-serif;
+            --font-mono: 'SFMono-Regular', Consolas, monospace;
           }
           body {
             font-family: var(--font-sans);

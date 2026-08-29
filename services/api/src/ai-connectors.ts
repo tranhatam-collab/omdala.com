@@ -55,6 +55,14 @@ export interface AiProviderHealth {
   error?: string;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function recordArray(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value) ? value.filter(isRecord) : [];
+}
+
 // ─── Provider Registry & Defaults ────────────────────────────────────────
 
 const PROVIDER_DEFAULTS: Record<
@@ -142,8 +150,9 @@ function buildOpenAIRequest(
 
 function parseOpenAIResponse(json: unknown): AiCompletionResponse {
   const j = json as Record<string, unknown>;
-  const choice = (j.choices as any[] | undefined)?.[0];
-  const content = String(choice?.message?.content ?? "");
+  const choice = recordArray(j.choices)[0];
+  const message = isRecord(choice?.message) ? choice.message : undefined;
+  const content = String(message?.content ?? "");
   const model = String(j.model ?? "unknown");
   const usage = (j.usage as Record<string, number> | undefined) ?? {};
   return {
@@ -154,7 +163,8 @@ function parseOpenAIResponse(json: unknown): AiCompletionResponse {
       inputTokens: usage.prompt_tokens ?? 0,
       outputTokens: usage.completion_tokens ?? 0,
     },
-    finishReason: choice?.finish_reason ?? undefined,
+    finishReason:
+      typeof choice?.finish_reason === "string" ? choice.finish_reason : undefined,
   };
 }
 
@@ -191,7 +201,7 @@ function buildAnthropicRequest(
 
 function parseAnthropicResponse(json: unknown): AiCompletionResponse {
   const j = json as Record<string, unknown>;
-  const contentBlocks = (j.content as any[] | undefined) ?? [];
+  const contentBlocks = recordArray(j.content);
   const content = contentBlocks
     .filter((b) => b.type === "text")
     .map((b) => String(b.text))
@@ -246,9 +256,10 @@ function buildGoogleGeminiRequest(
 
 function parseGoogleGeminiResponse(json: unknown): AiCompletionResponse {
   const j = json as Record<string, unknown>;
-  const candidates = (j.candidates as any[] | undefined) ?? [];
+  const candidates = recordArray(j.candidates);
   const first = candidates[0];
-  const parts = (first?.content?.parts as any[] | undefined) ?? [];
+  const candidateContent = isRecord(first?.content) ? first.content : undefined;
+  const parts = recordArray(candidateContent?.parts);
   const content = parts.map((p) => String(p.text ?? "")).join("");
   const model = String(j.modelVersion ?? "gemini-unknown");
   const usageMeta = (j.usageMetadata as Record<string, number> | undefined) ?? {};
@@ -260,7 +271,8 @@ function parseGoogleGeminiResponse(json: unknown): AiCompletionResponse {
       inputTokens: usageMeta.promptTokenCount ?? 0,
       outputTokens: usageMeta.candidatesTokenCount ?? 0,
     },
-    finishReason: first?.finishReason ?? undefined,
+    finishReason:
+      typeof first?.finishReason === "string" ? first.finishReason : undefined,
   };
 }
 
@@ -290,8 +302,9 @@ function buildMistralRequest(
 
 function parseMistralResponse(json: unknown): AiCompletionResponse {
   const j = json as Record<string, unknown>;
-  const choice = (j.choices as any[] | undefined)?.[0];
-  const content = String(choice?.message?.content ?? "");
+  const choice = recordArray(j.choices)[0];
+  const message = isRecord(choice?.message) ? choice.message : undefined;
+  const content = String(message?.content ?? "");
   const model = String(j.model ?? "unknown");
   const usage = (j.usage as Record<string, number> | undefined) ?? {};
   return {
@@ -302,7 +315,8 @@ function parseMistralResponse(json: unknown): AiCompletionResponse {
       inputTokens: usage.prompt_tokens ?? 0,
       outputTokens: usage.completion_tokens ?? 0,
     },
-    finishReason: choice?.finish_reason ?? undefined,
+    finishReason:
+      typeof choice?.finish_reason === "string" ? choice.finish_reason : undefined,
   };
 }
 
@@ -332,8 +346,9 @@ function buildGroqRequest(
 
 function parseGroqResponse(json: unknown): AiCompletionResponse {
   const j = json as Record<string, unknown>;
-  const choice = (j.choices as any[] | undefined)?.[0];
-  const content = String(choice?.message?.content ?? "");
+  const choice = recordArray(j.choices)[0];
+  const message = isRecord(choice?.message) ? choice.message : undefined;
+  const content = String(message?.content ?? "");
   const model = String(j.model ?? "unknown");
   const usage = (j.usage as Record<string, number> | undefined) ?? {};
   return {
@@ -344,7 +359,8 @@ function parseGroqResponse(json: unknown): AiCompletionResponse {
       inputTokens: usage.prompt_tokens ?? 0,
       outputTokens: usage.completion_tokens ?? 0,
     },
-    finishReason: choice?.finish_reason ?? undefined,
+    finishReason:
+      typeof choice?.finish_reason === "string" ? choice.finish_reason : undefined,
   };
 }
 

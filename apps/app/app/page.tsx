@@ -1,7 +1,7 @@
 'use client'
 
 import { pickLanguageValue, resolveLanguage, type OmdalaLanguage } from '@omdala/core'
-import { useEffect, useState } from 'react'
+import { useLocationSearchParam } from '@omdala/ui'
 import { LocaleLink } from './components/LocaleLink'
 
 const COPY = {
@@ -274,11 +274,7 @@ const USE_CASES = [
 ] as const
 
 export default function OmcodeLandingPage() {
-  const [language, setLanguage] = useState<OmdalaLanguage>('vi')
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    setLanguage(resolveLanguage(new URLSearchParams(window.location.search).get('lang')))
-  }, [])
+  const language = resolveLanguage(useLocationSearchParam('lang'))
 
   const t = (copy: Record<OmdalaLanguage, string>) => pickLanguageValue(language, copy)
 

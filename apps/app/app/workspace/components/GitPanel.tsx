@@ -82,9 +82,20 @@ export function GitPanel({
         justifyContent: "space-between",
       }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: "#f7fbff", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          Git
+          Git{currentBranch ? ` · ${currentBranch}` : ""}
         </span>
         <div style={{ display: "flex", gap: 4 }}>
+          <button
+            onClick={onInit}
+            title="Khởi tạo Git repository"
+            style={{
+              width: 24, height: 24, borderRadius: 6, border: "none",
+              background: "rgba(255,255,255,0.05)", color: "#a8b9d0",
+              fontSize: 14, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            +
+          </button>
           <button
             onClick={onRefresh}
             title="Làm mới"

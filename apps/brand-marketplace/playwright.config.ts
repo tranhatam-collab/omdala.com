@@ -38,7 +38,7 @@ export default defineConfig({
     : {
         webServer: {
           // Run Next directly so Playwright can terminate the actual server on test failure.
-          command: "node node_modules/next/dist/bin/next dev --port 3011",
+          command: "node node_modules/next/dist/bin/next dev --port 3011 --hostname 127.0.0.1",
           url: baseURL,
           reuseExistingServer: false,
           timeout: 120000,

@@ -89,9 +89,11 @@ export function SettingsPanel({ isOpen, onClose, t: _t }: SettingsPanelProps) {
 
   React.useEffect(() => {
     if (isOpen) {
-      setSettings(loadSettings());
-      setPolicy(loadWorkspacePolicy());
-      setSaved(false);
+      queueMicrotask(() => {
+        setSettings(loadSettings());
+        setPolicy(loadWorkspacePolicy());
+        setSaved(false);
+      });
     }
   }, [isOpen]);
 

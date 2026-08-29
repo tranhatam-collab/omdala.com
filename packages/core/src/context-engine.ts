@@ -235,7 +235,11 @@ export class ContextEngine {
     }
 
     try {
-      const pkg = JSON.parse(packageFile.content);
+      const pkg = JSON.parse(packageFile.content) as {
+        dependencies?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+        packageManager?: string;
+      };
       return {
         dependencies: pkg.dependencies || {},
         devDependencies: pkg.devDependencies || {},
@@ -246,11 +250,11 @@ export class ContextEngine {
     }
   }
 
-  private detectPackageManager(pkg: any): "npm" | "yarn" | "pnpm" | "bun" {
+  private detectPackageManager(pkg: { packageManager?: string }): "npm" | "yarn" | "pnpm" | "bun" {
     if (pkg.packageManager) {
       const [name] = pkg.packageManager.split("@");
-      if (["npm", "yarn", "pnpm", "bun"].includes(name)) {
-        return name as any;
+      if (name === "npm" || name === "yarn" || name === "pnpm" || name === "bun") {
+        return name;
       }
     }
     // Check for lock files
@@ -440,7 +444,7 @@ export class ContextEngine {
     return files.reduce((sum, f) => sum + Math.ceil(f.content.length / 4), 0);
   }
 
-  private getRelevantRules(query: ContextQuery): CodeRule[] {
+  private getRelevantRules(_query: ContextQuery): CodeRule[] {
     const allRules: CodeRule[] = [];
     for (const rules of this.codeRules.values()) {
       allRules.push(...rules);

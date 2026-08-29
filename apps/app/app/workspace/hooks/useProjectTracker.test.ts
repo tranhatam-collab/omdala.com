@@ -14,9 +14,6 @@ import {
   type ProjectPlan,
 } from "./useProjectTracker";
 
-const PLANS_KEY = "omcode:project:plans";
-const AUDIT_KEY = "omcode:project:audit";
-
 describe("useProjectTracker", () => {
   beforeEach(() => {
     localStorage.clear();

@@ -15,12 +15,8 @@ interface ErrorEntry {
 
 export function ErrorLogPanel() {
   const { t } = useI18n();
-  const [logs, setLogs] = React.useState<ErrorEntry[]>([]);
+  const [logs, setLogs] = React.useState<ErrorEntry[]>(() => getErrorLog());
   const [copied, setCopied] = React.useState(false);
-
-  React.useEffect(() => {
-    setLogs(getErrorLog());
-  }, []);
 
   const handleClear = () => {
     clearErrorLog();

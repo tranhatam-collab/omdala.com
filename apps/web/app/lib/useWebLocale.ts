@@ -1,28 +1,19 @@
 "use client";
 
 import { resolveLanguage, type OmdalaLanguage } from "@omdala/core";
+import { useLocationSearchParam } from "@omdala/ui";
 import { useEffect, useState } from "react";
 
 export function useWebLocale(): OmdalaLanguage {
-  const [locale, setLocale] = useState<OmdalaLanguage>("en");
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const lang = resolveLanguage(
-      new URLSearchParams(window.location.search).get("lang"),
-    );
-    setLocale(lang);
-  }, []);
+  const queryLocale = resolveLanguage(useLocationSearchParam("lang"));
+  const [eventLocale, setEventLocale] = useState<OmdalaLanguage | null>(null);
 
   useEffect(() => {
     function handleLanguageChanged(event: Event) {
       const customEvent = event as CustomEvent<{ language?: OmdalaLanguage }>;
       const nextLanguage = customEvent.detail?.language;
       if (nextLanguage) {
-        setLocale(resolveLanguage(nextLanguage));
+        setEventLocale(resolveLanguage(nextLanguage));
       }
     }
 
@@ -34,5 +25,5 @@ export function useWebLocale(): OmdalaLanguage {
       );
   }, []);
 
-  return locale;
+  return eventLocale ?? queryLocale;
 }

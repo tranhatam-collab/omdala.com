@@ -2,8 +2,6 @@
 // Provides: API key auth, webhook signature verification, CSRF tokens,
 //           secure rate-limit helpers, and service-to-service trust.
 
-import type { ApiBindings } from "./contracts";
-
 // ─── Types ───────────────────────────────────────────────────────────────
 
 export interface ApiKeyRecord {
@@ -31,6 +29,21 @@ export interface CsrfTokenPair {
 // ─── API Key Auth ────────────────────────────────────────────────────────
 
 const API_KEY_PREFIX = "omdala_sk_";
+
+export async function secureStringEqual(left: string, right: string): Promise<boolean> {
+  const encoder = new TextEncoder();
+  const [leftDigest, rightDigest] = await Promise.all([
+    crypto.subtle.digest("SHA-256", encoder.encode(left)),
+    crypto.subtle.digest("SHA-256", encoder.encode(right)),
+  ]);
+  const leftBytes = new Uint8Array(leftDigest);
+  const rightBytes = new Uint8Array(rightDigest);
+  let difference = 0;
+  for (let index = 0; index < leftBytes.length; index += 1) {
+    difference |= leftBytes[index]! ^ rightBytes[index]!;
+  }
+  return difference === 0;
+}
 
 export function generateApiKey(): { keyId: string; rawKey: string } {
   const keyId = `key_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
@@ -101,7 +114,12 @@ export async function verifyWebhookSignature(
   );
   const sigBytes = hexToBytes(signature);
   const dataBytes = encoder.encode(payload);
-  return crypto.subtle.verify("HMAC", key, sigBytes as any, dataBytes as any);
+  return crypto.subtle.verify(
+    "HMAC",
+    key,
+    toArrayBuffer(sigBytes),
+    toArrayBuffer(dataBytes),
+  );
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -110,6 +128,12 @@ function hexToBytes(hex: string): Uint8Array {
     bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
   }
   return bytes;
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
 }
 
 export function parseWebhookSignatureHeader(
@@ -176,7 +200,12 @@ export async function verifyCsrfToken(
     );
     const sigBytes = hexToBytes(sigHex);
     const dataBytes = encoder.encode(payload);
-    return crypto.subtle.verify("HMAC", key, sigBytes as any, dataBytes as any);
+    return crypto.subtle.verify(
+      "HMAC",
+      key,
+      toArrayBuffer(sigBytes),
+      toArrayBuffer(dataBytes),
+    );
   } catch {
     return false;
   }
@@ -291,8 +320,19 @@ export function resolveAllowedOrigin(
   // Wildcard subdomain match (e.g., https://*.omdala.com)
   for (const allowed of allowedOrigins) {
     if (allowed.startsWith("https://*.")) {
-      const suffix = allowed.slice(10); // remove "https://*."
-      if (origin.startsWith("https://") && origin.endsWith(suffix)) return origin;
+      const suffix = allowed.slice("https://*.".length).toLowerCase();
+      try {
+        const candidate: URL = new URL(origin);
+        if (
+          candidate.protocol === "https:" &&
+          candidate.origin === origin &&
+          candidate.hostname.toLowerCase().endsWith(`.${suffix}`)
+        ) {
+          return origin;
+        }
+      } catch {
+        return null;
+      }
     }
   }
   return null;

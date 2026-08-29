@@ -39,12 +39,15 @@ export function AccountPanel({ isOpen, onClose }: { isOpen: boolean; onClose: ()
   React.useEffect(() => {
     const a = loadAccount();
     if (a?.token && a?.apiGatewayUrl) {
-      setStatus("Verifying session…");
       verifyGatewayToken(a.apiGatewayUrl, a.token).then((res) => {
         if (res.success && res.account) {
           setAccount(res.account);
           setMode("connected");
-          setApiUrl(res.account.apiGatewayUrl || apiUrl);
+          setApiUrl(
+            res.account.apiGatewayUrl ||
+              a.apiGatewayUrl ||
+              "https://aiagent.iai.one/api/v1",
+          );
           setStatus("");
         } else {
           localStorage.removeItem(ACCOUNT_KEY);

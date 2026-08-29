@@ -1,8 +1,6 @@
 // Session management utilities
 // Works with both in-memory (dev) and KV/DB (production) stores
 
-import type { AuthSession, AuthUserSummary } from "./index";
-
 // ─── Types ───────────────────────────────────────────────────────────────
 
 export interface SessionRecord {

@@ -124,8 +124,8 @@ export function updateTaskStatus(planId: string, taskId: string, status: TaskSta
   if (status === "done") task.completedAt = Date.now();
   plan.updatedAt = Date.now();
   savePlans(plans);
-  const actionMap: Record<TaskStatus, string> = { "todo": "task_created", "in-progress": "task_started", "done": "task_completed", "blocked": "task_blocked" };
-  recordAudit(planId, actionMap[status] as any, `Task "${task.title}" moved from ${oldStatus} to ${status}`, aiModel);
+  const actionMap: Record<TaskStatus, AuditEntry["action"]> = { "todo": "task_created", "in-progress": "task_started", "done": "task_completed", "blocked": "task_blocked" };
+  recordAudit(planId, actionMap[status], `Task "${task.title}" moved from ${oldStatus} to ${status}`, aiModel);
 }
 
 export function getCompletionPercent(plan: ProjectPlan): number {

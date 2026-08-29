@@ -6,6 +6,44 @@ const env = {
 };
 
 describe("v2/reality routes", () => {
+  it("fails closed without persistence in staging and production", async () => {
+    for (const environment of ["staging", "production"] as const) {
+      const health = await app.request(
+        "http://localhost/v2/reality/health",
+        {},
+        { ENVIRONMENT: environment },
+      );
+      expect(health.status).toBe(503);
+      await expect(health.json()).resolves.toMatchObject({
+        ok: false,
+        error: { code: "PERSISTENCE_REQUIRED" },
+      });
+
+      const nodes = await app.request(
+        "http://localhost/v2/reality/nodes",
+        {},
+        { ENVIRONMENT: environment },
+      );
+      expect(nodes.status).toBe(503);
+    }
+  });
+
+  it("requires a valid session before production reality data is read", async () => {
+    const response = await app.request(
+      "http://localhost/v2/reality/nodes",
+      {},
+      {
+        ENVIRONMENT: "production",
+        DATABASE_URL: "postgres://example.local/db",
+      },
+    );
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      error: { code: "unauthenticated" },
+    });
+  });
+
   it("adds x-request-id and response meta.requestId", async () => {
     const response = await app.request(
       "http://localhost/v2/reality/health",

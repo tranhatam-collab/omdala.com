@@ -49,10 +49,7 @@ export function ModelPickerWithAuto({
   customModels?: CustomModel[];
   size?: "sm" | "md";
 }) {
-  const [models, setModels] = React.useState<AIModel[]>([]);
-  React.useEffect(() => {
-    setModels(getAllChatModels());
-  }, []);
+  const [models] = React.useState<AIModel[]>(() => getAllChatModels());
 
   const grouped = React.useMemo(() => {
     const map: Record<string, AIModel[]> = {};
@@ -113,11 +110,10 @@ export function ModelPicker({
   size = "sm",
   label,
 }: ModelPickerProps) {
-  const [models, setModels] = React.useState<AIModel[]>([]);
-
-  React.useEffect(() => {
-    setModels(showOnlyAvailable ? getAvailableModels() : getAllChatModels());
-  }, [showOnlyAvailable]);
+  const models = React.useMemo(
+    () => (showOnlyAvailable ? getAvailableModels() : getAllChatModels()),
+    [showOnlyAvailable],
+  );
 
   const grouped = React.useMemo(() => {
     const map: Record<string, AIModel[]> = {};

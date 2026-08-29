@@ -49,7 +49,7 @@ export async function injectWorkspaceFixture(page: Page) {
       ]),
     ]);
 
-    function makeFileHandle(entry: Entry): any {
+    function makeFileHandle(entry: Entry): FileSystemFileHandle {
       return {
         kind: "file",
         name: entry.name,
@@ -70,17 +70,17 @@ export async function injectWorkspaceFixture(page: Page) {
         createWritable: async () => {
           let written = "";
           return {
-            write: async (data: any) => { written += String(data); },
+            write: async (data: unknown) => { written += String(data); },
             close: async () => { entry.content = written; },
             abort: async () => {},
             locked: false,
             size: 0,
           };
         },
-      };
+      } as unknown as FileSystemFileHandle;
     }
 
-    function makeDirHandle(entry: Entry): any {
+    function makeDirHandle(entry: Entry): FileSystemDirectoryHandle {
       return {
         kind: "directory",
         name: entry.name,
@@ -107,14 +107,19 @@ export async function injectWorkspaceFixture(page: Page) {
         resolve: async () => null,
         queryPermission: async () => "granted",
         requestPermission: async () => "granted",
-      };
+      } as unknown as FileSystemDirectoryHandle;
     }
 
-    (window as any).showDirectoryPicker = async () => {
+    const fixtureWindow = window as Window & {
+      __OMCODE_E2E_FIXTURE__?: boolean;
+      showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle>;
+    };
+
+    fixtureWindow.showDirectoryPicker = async () => {
       return makeDirHandle(projectRoot);
     };
 
     // Also set up a flag so the app knows it's in test mode
-    (window as any).__OMCODE_E2E_FIXTURE__ = true;
+    fixtureWindow.__OMCODE_E2E_FIXTURE__ = true;
   });
 }

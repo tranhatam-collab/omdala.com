@@ -19,10 +19,173 @@ async function mockAuthedSession(page: Page) {
   });
 }
 
-// Mock the API to return 401 Unauthorized — simulates a real invalid session.
+async function mockAccountRuntime(page: Page) {
+  let profile = {
+    id: "user_operator",
+    email: "operator@omdala.com",
+    displayName: "Omdala Operator",
+    bio: "Runtime profile",
+    timezone: "Asia/Ho_Chi_Minh",
+    locale: "en",
+  };
+  let preferences = {
+    language: "en",
+    theme: "system",
+    notifications: { email: true, push: true },
+  };
+
+  await page.route("**/v1/account/profile", async (route) => {
+    if (route.request().method() === "PUT") {
+      profile = { ...profile, ...route.request().postDataJSON() };
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, data: profile }),
+    });
+  });
+  await page.route("**/v1/account/preferences", async (route) => {
+    if (route.request().method() === "PUT") {
+      preferences = { ...preferences, ...route.request().postDataJSON() };
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, data: preferences }),
+    });
+  });
+  await page.route("**/v1/billing/subscriptions", async (route) => {
+    const subscription = {
+      id: "sub_operator",
+      appId: "om-ai",
+      planId: "om-ai-free",
+      status: "active",
+      billingCycle: "monthly",
+    };
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        data: { items: [subscription], total: 1, primary: subscription },
+      }),
+    });
+  });
+  await page.route("**/v1/billing/usage", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        data: {
+          appId: "om-ai",
+          quota: { callMinutesDaily: 30 },
+          used: { callMinutesToday: 4 },
+          remaining: { callMinutesToday: 26 },
+          eventNames: ["om-ai.call.started", "om-ai.call.ended"],
+        },
+      }),
+    });
+  });
+  await page.route("**/v1/providers", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        data: {
+          appId: "om-ai",
+          source: "memory-store",
+          lastSyncedAt: "2026-08-29T00:00:00.000Z",
+          items: [],
+          total: 0,
+        },
+      }),
+    });
+  });
+  await page.route("**/v1/providers/route?**", async (route) => {
+    const capability = new URL(route.request().url()).searchParams.get("capability");
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        data: {
+          appId: "om-ai",
+          capability,
+          providerId: "openai-responses",
+          providerName: "OpenAI Responses",
+          reason: "healthy primary",
+          fallbackProviderId: "fallback-mock",
+          score: 0.95,
+        },
+      }),
+    });
+  });
+  await page.route("**/v2/reality/nodes", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        data: {
+          nodes: [{ id: "node_operator", status: "active" }],
+          total: 1,
+        },
+      }),
+    });
+  });
+  await page.route("**/v2/reality/trust", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        data: {
+          trust: [{ id: "trust_operator", score: 0.9 }],
+          total: 1,
+        },
+      }),
+    });
+  });
+  await page.route("**/v2/reality/proofs", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        data: {
+          proofs: [
+            {
+              id: "proof_operator",
+              verificationStatus: "pending",
+            },
+          ],
+          total: 1,
+        },
+      }),
+    });
+  });
+  await page.route("**/v1/ai/health", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        data: {
+          providers: [{ provider: "openai", ok: true, latencyMs: 42 }],
+          total: 1,
+        },
+      }),
+    });
+  });
+}
+
+// Mock the API to return 401 Unauthorized. This is a deterministic UI contract
+// test only; staging acceptance covers the real signed-cookie session flow.
 // The DashboardAuthGate calls hasValidServerSession() which fetches /v1/auth/session.
 // With a 401 response, the gate redirects to auth.omdala.com/login.
-// This tests the real unauthenticated redirect contract without a network hang.
+// This tests redirect rendering without depending on a live API.
 async function mockUnauthedSession(page: Page) {
   await page.route("**/v1/auth/session", async (route) => {
     await route.fulfill({
@@ -47,9 +210,9 @@ test("login screen renders auth redirect link", async ({ page }) => {
   ).toBeVisible();
 });
 
-// ─── Real unauthenticated redirect (no mock) ────────────────────────────
+// ─── Mocked unauthenticated redirect contract ──────────────────────────
 
-test("dashboard redirects to auth.omdala.com when session is missing", async ({ page }) => {
+test("dashboard redirects when the mocked session endpoint returns 401", async ({ page }) => {
   await mockUnauthedSession(page);
   await page.context().clearCookies();
   await page.goto("/dashboard?lang=en");
@@ -63,7 +226,7 @@ test("dashboard redirects to auth.omdala.com when session is missing", async ({ 
   expect(url.searchParams.get("next")).toContain("/dashboard");
 });
 
-test("profile redirects to auth.omdala.com when session is missing", async ({ page }) => {
+test("profile redirects when the mocked session endpoint returns 401", async ({ page }) => {
   await mockUnauthedSession(page);
   await page.context().clearCookies();
   await page.goto("/profile?lang=en");
@@ -73,7 +236,7 @@ test("profile redirects to auth.omdala.com when session is missing", async ({ pa
   expect(url.searchParams.get("next")).toContain("/profile");
 });
 
-test("settings redirects to auth.omdala.com when session is missing", async ({ page }) => {
+test("settings redirects when the mocked session endpoint returns 401", async ({ page }) => {
   await mockUnauthedSession(page);
   await page.context().clearCookies();
   await page.goto("/settings?lang=en");
@@ -83,15 +246,38 @@ test("settings redirects to auth.omdala.com when session is missing", async ({ p
   expect(url.searchParams.get("next")).toContain("/settings");
 });
 
+test("dashboard renders persisted account, reality, and AI health contracts", async ({ page }) => {
+  await mockAuthedSession(page);
+  await mockAccountRuntime(page);
+  await page.goto("/dashboard?lang=en");
+  await page.waitForLoadState("networkidle");
+
+  await expect(page.getByRole("heading", { name: "Welcome back, Omdala Operator." })).toBeVisible();
+  await expect(page.getByText("operator@omdala.com")).toBeVisible();
+  await expect(page.getByText("om-ai-free")).toBeVisible();
+  await expect(page.getByText("Connected")).toBeVisible();
+  await expect(page.getByText("1/1")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open profile" })).toHaveAttribute(
+    "href",
+    "/profile/",
+  );
+  await expect(page.getByRole("link", { name: "Open OMCODE" })).toHaveAttribute(
+    "href",
+    "/workspace/",
+  );
+});
+
 // ─── Authenticated profile (Team 1 contract markers) ────────────────────
 
 test("profile renders Team 1 account identity contract when session is valid", async ({ page }) => {
   await mockAuthedSession(page);
+  await mockAccountRuntime(page);
   await page.goto("/profile?lang=en");
   await page.waitForLoadState("networkidle");
 
-  // Profile is the Team 1 entry point
-  await expect(page.getByText("Profile is now the Team 1 entry point")).toBeVisible();
+  await expect(
+    page.getByText("Manage the identity and preferences connected to your OMDALA account."),
+  ).toBeVisible();
 
   // Account identity section
   await expect(page.getByRole("heading", { name: "Account identity" })).toBeVisible();
@@ -99,42 +285,56 @@ test("profile renders Team 1 account identity contract when session is valid", a
   await expect(page.getByText("Timezone: Asia/Ho_Chi_Minh")).toBeVisible();
 
   // Preferences section
-  await expect(page.getByRole("heading", { name: "Preferences" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Profile and preference boundary" })).toBeVisible();
   await expect(page.getByText("Theme: system")).toBeVisible();
 
   // Profile update flow
   await expect(page.getByRole("heading", { name: "Profile update flow" })).toBeVisible();
-  await expect(page.getByText("Save profile contract")).toBeVisible();
+  await page.getByLabel("Display name").fill("Updated Operator");
+  await page.getByRole("button", { name: "Save profile contract" }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Profile contract update completed.",
+  );
+  await expect(page.getByRole("heading", { name: "Updated Operator" })).toBeVisible();
 });
 
 // ─── Authenticated settings (Team 1 billing + provider routing) ─────────
 
 test("settings renders Team 1 billing contract and provider routing when session is valid", async ({ page }) => {
   await mockAuthedSession(page);
+  await mockAccountRuntime(page);
   await page.goto("/settings?lang=en");
   await page.waitForLoadState("networkidle");
 
   // Settings is the Team 1 entry point
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
-  await expect(page.getByText("Settings is the Team 1 entry point")).toBeVisible();
+  await expect(
+    page.getByText("Manage language, notifications, plan visibility, usage, and AI provider routing."),
+  ).toBeVisible();
 
   // Billing contract summary
   await expect(page.getByRole("heading", { name: "Billing contract summary" })).toBeVisible();
   await expect(page.getByText(`App ID: ${'om-ai'}`)).toBeVisible();
   await expect(page.getByText("Billing cycle: monthly")).toBeVisible();
-  await expect(page.getByText("Subscription visibility: full")).toBeVisible();
+  await expect(page.getByText("Subscription visibility: limited visibility")).toBeVisible();
   await expect(page.getByText(/call minutes used today/i)).toBeVisible();
-  await expect(page.getByText(/billing-aware Om AI events are now locked/i)).toBeVisible();
+  await expect(page.getByText(/billing-aware provider events are now locked/i)).toBeVisible();
 
   // Beta gate
   await expect(page.getByRole("heading", { name: "Beta gate" })).toBeVisible();
-  await expect(page.locator(".dashboard-stat strong", { hasText: "Beta gate" })).toBeVisible();
+  await expect(page.getByText("plan_not_eligible")).toBeVisible();
 
   // Provider routing snapshot
   await expect(page.getByRole("heading", { name: "Provider routing snapshot" })).toBeVisible();
-  await expect(page.getByText(/Provider source: API live/i)).toBeVisible();
+  await expect(page.getByText(/Provider source: memory-store/i)).toBeVisible();
   // Each capability route should be listed with provider, fallback, and score
-  const routeRows = page.locator("li", { hasText: /điểm số/i });
+  const routeRows = page.locator("li", { hasText: /score/i });
   await expect(routeRows.first()).toBeVisible();
   expect(await routeRows.count()).toBeGreaterThanOrEqual(1);
+
+  await page.getByLabel("Theme").selectOption("dark");
+  await page.getByRole("button", { name: "Save preferences contract" }).click();
+  await expect(page.getByRole("status")).toHaveText(
+    "Preferences contract update completed.",
+  );
 });

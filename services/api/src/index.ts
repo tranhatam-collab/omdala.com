@@ -58,7 +58,13 @@ import {
   listTransitions,
   listTrust,
 } from "./db/reality-repository";
-import { queryRows } from "./db/client";
+import {
+  readOrCreateAccountPreferences,
+  readOrCreateAccountProfile,
+  writeAccountPreferences,
+  writeAccountProfile,
+} from "./db/account-repository";
+import { isDatabaseConfigured, queryRows } from "./db/client";
 import { DbQueryError, mapDbErrorToHttp } from "./db/errors";
 import { createApiContractStub } from "./stub";
 // ─── Custom Security & AI Connectors ───────────────────────────────────
@@ -71,8 +77,7 @@ import {
   getTrustedClientIp,
   RateLimiter,
   resolveAllowedOrigin,
-  verifyApiKey,
-  verifyCsrfToken,
+  secureStringEqual,
   verifyServiceToken,
   verifyWebhookSignature,
 } from "./security";
@@ -96,12 +101,14 @@ const app = new Hono<{
   Bindings: ApiBindings;
   Variables: {
     requestId: string;
+    realityOwnerEmail?: string;
   };
 }>();
 type ApiContext = Context<{
   Bindings: ApiBindings;
   Variables: {
     requestId: string;
+    realityOwnerEmail?: string;
   };
 }>;
 type ApiStatus =
@@ -117,11 +124,6 @@ type ApiStatus =
   | 502
   | 503
   | 504;
-type RateLimitBucket = {
-  count: number;
-  resetAt: number;
-};
-
 const rateLimiter = new RateLimiter();
 const accountProfileStore = new Map<string, OmAiAccountProfile>();
 const accountPreferencesStore = new Map<string, OmAiAccountPreferences>();
@@ -491,6 +493,135 @@ function generateEntityId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+type ProfilePatch = Pick<
+  Partial<OmAiAccountProfile>,
+  "displayName" | "avatarUrl" | "bio" | "timezone" | "locale"
+>;
+
+type PreferencesPatch = {
+  language?: string;
+  theme?: OmAiAccountPreferences["theme"];
+  notifications?: Partial<OmAiAccountPreferences["notifications"]>;
+};
+
+type AccountPatchResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; message: string };
+
+const LOCALE_PATTERN = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function optionalString(
+  input: Record<string, unknown>,
+  key: string,
+  maxLength: number,
+  allowEmpty = false,
+): AccountPatchResult<string | undefined> {
+  const raw = input[key];
+  if (raw === undefined) return { ok: true, value: undefined };
+  if (typeof raw !== "string") {
+    return { ok: false, message: `${key} must be a string.` };
+  }
+
+  const value = raw.trim();
+  if (!allowEmpty && value.length === 0) {
+    return { ok: false, message: `${key} cannot be empty.` };
+  }
+  if (value.length > maxLength) {
+    return { ok: false, message: `${key} must be ${maxLength} characters or fewer.` };
+  }
+  return { ok: true, value };
+}
+
+function validateProfilePatch(input: unknown): AccountPatchResult<ProfilePatch> {
+  if (!isRecord(input)) {
+    return { ok: false, message: "Profile update must be a JSON object." };
+  }
+
+  const displayName = optionalString(input, "displayName", 120);
+  if (!displayName.ok) return displayName;
+  const timezone = optionalString(input, "timezone", 100);
+  if (!timezone.ok) return timezone;
+  const locale = optionalString(input, "locale", 35);
+  if (!locale.ok) return locale;
+  const avatarUrl = optionalString(input, "avatarUrl", 2_048, true);
+  if (!avatarUrl.ok) return avatarUrl;
+  const bio = optionalString(input, "bio", 1_000, true);
+  if (!bio.ok) return bio;
+
+  if (locale.value && !LOCALE_PATTERN.test(locale.value)) {
+    return { ok: false, message: "locale must be a valid BCP 47 language tag." };
+  }
+  if (avatarUrl.value) {
+    try {
+      const parsed = new URL(avatarUrl.value);
+      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+        return { ok: false, message: "avatarUrl must use http or https." };
+      }
+    } catch {
+      return { ok: false, message: "avatarUrl must be a valid URL." };
+    }
+  }
+
+  return {
+    ok: true,
+    value: {
+      ...(displayName.value !== undefined ? { displayName: displayName.value } : {}),
+      ...(timezone.value !== undefined ? { timezone: timezone.value } : {}),
+      ...(locale.value !== undefined ? { locale: locale.value } : {}),
+      ...(avatarUrl.value !== undefined ? { avatarUrl: avatarUrl.value } : {}),
+      ...(bio.value !== undefined ? { bio: bio.value } : {}),
+    },
+  };
+}
+
+function validatePreferencesPatch(input: unknown): AccountPatchResult<PreferencesPatch> {
+  if (!isRecord(input)) {
+    return { ok: false, message: "Preferences update must be a JSON object." };
+  }
+
+  const language = optionalString(input, "language", 35);
+  if (!language.ok) return language;
+  if (language.value && !LOCALE_PATTERN.test(language.value)) {
+    return { ok: false, message: "language must be a valid BCP 47 language tag." };
+  }
+
+  const theme = input.theme;
+  if (theme !== undefined && theme !== "light" && theme !== "dark" && theme !== "system") {
+    return { ok: false, message: "theme must be light, dark, or system." };
+  }
+
+  const notifications = input.notifications;
+  if (notifications !== undefined && !isRecord(notifications)) {
+    return { ok: false, message: "notifications must be a JSON object." };
+  }
+  if (notifications && notifications.email !== undefined && typeof notifications.email !== "boolean") {
+    return { ok: false, message: "notifications.email must be a boolean." };
+  }
+  if (notifications && notifications.push !== undefined && typeof notifications.push !== "boolean") {
+    return { ok: false, message: "notifications.push must be a boolean." };
+  }
+
+  return {
+    ok: true,
+    value: {
+      ...(language.value !== undefined ? { language: language.value } : {}),
+      ...(theme !== undefined ? { theme } : {}),
+      ...(notifications
+        ? {
+            notifications: {
+              ...(typeof notifications.email === "boolean" ? { email: notifications.email } : {}),
+              ...(typeof notifications.push === "boolean" ? { push: notifications.push } : {}),
+            },
+          }
+        : {}),
+    },
+  };
+}
+
 function getDefaultAccountProfile(email: string): OmAiAccountProfile {
   return {
     id: `user_${email.toLowerCase()}`,
@@ -517,12 +648,9 @@ function getDefaultBillingSubscription(email: string): OmAiBillingSubscription {
   return {
     id: `sub_${email.toLowerCase()}`,
     appId: OM_AI_APP_ID,
-    planId: OM_AI_PLAN_IDS.pro,
+    planId: OM_AI_PLAN_IDS.free,
     status: "active",
     billingCycle: "monthly",
-    expiresAt: new Date(
-      Date.now() + 30 * 24 * 60 * 60 * 1000,
-    ).toISOString(),
   };
 }
 
@@ -548,6 +676,30 @@ function getAccountPreferencesForEmail(email: string): OmAiAccountPreferences {
   return preferences;
 }
 
+async function getRuntimeAccountProfile(
+  env: ApiBindings,
+  email: string,
+): Promise<OmAiAccountProfile> {
+  const fallback = getAccountProfileForEmail(email);
+  if (!isDatabaseConfigured(env)) return fallback;
+  return readOrCreateAccountProfile(env, fallback);
+}
+
+async function getRuntimeAccountPreferences(
+  env: ApiBindings,
+  email: string,
+): Promise<OmAiAccountPreferences> {
+  const profileFallback = getAccountProfileForEmail(email);
+  const fallback = getAccountPreferencesForEmail(email);
+  if (!isDatabaseConfigured(env)) return fallback;
+  return readOrCreateAccountPreferences(
+    env,
+    email,
+    profileFallback,
+    fallback,
+  );
+}
+
 function getBillingSubscriptionForEmail(email: string): OmAiBillingSubscription {
   const existing = billingSubscriptionStore.get(email);
   if (existing) {
@@ -565,7 +717,10 @@ function getBillingUsageForEmail(email: string): OmAiBillingUsage {
   const usedMinutes = events
     .filter((e) => e.eventName === "om-ai.usage.minute-recorded")
     .filter((e) => e.occurredAt.startsWith(today))
-    .reduce((sum, e) => sum + Number((e.properties as any)?.minutes ?? 0), 0);
+    .reduce((sum, e) => {
+      const properties = e.properties as Record<string, unknown> | undefined;
+      return sum + Number(properties?.minutes ?? 0);
+    }, 0);
   return {
     appId: OM_AI_APP_ID,
     quota: {
@@ -1033,6 +1188,39 @@ function hasDatabase(env: ApiBindings): boolean {
   return Boolean(env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL);
 }
 
+function requiresPersistentRealityStore(env: ApiBindings): boolean {
+  return env.ENVIRONMENT === "staging" || env.ENVIRONMENT === "production";
+}
+
+function isReleasedRealityRequest(method: string, path: string): boolean {
+  if (method !== "GET") return false;
+  return (
+    path === "/v2/reality/nodes" ||
+    path === "/v2/reality/proofs" ||
+    path === "/v2/reality/trust" ||
+    /^\/v2\/reality\/trust\/[^/]+$/.test(path)
+  );
+}
+
+function getRealityOwnerEmail(c: ApiContext): string {
+  return c.get("realityOwnerEmail") ?? "local-test@omdala.invalid";
+}
+
+function accountDatabaseErrorResponse(
+  c: ApiContext,
+  error: unknown,
+  operation: string,
+): Response {
+  const mapped = mapDbErrorToHttp(error);
+  console.error("account database error", {
+    request_id: getOrCreateRequestId(c),
+    operation,
+    error_code: mapped.errorCode,
+    message: error instanceof Error ? error.message : String(error),
+  });
+  return jsonError(c, mapped.status, mapped.errorCode, mapped.message);
+}
+
 function releaseIdentity(env: ApiBindings) {
   return {
     release_sha: env.RELEASE_SHA?.trim() || null,
@@ -1192,7 +1380,7 @@ async function sendMail(env: ApiBindings, payload: MailRequest) {
       } else {
         throw new Error(`Mail API returned ${response.status}: ${detail}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       lastError = err instanceof Error ? err : new Error(String(err));
       if (attempt < 2) {
         await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
@@ -1385,6 +1573,7 @@ app.use(
       "x-api-key",
       "x-csrf-token",
       "x-service-token",
+      "x-e2e-test-secret",
     ],
     exposeHeaders: ["x-request-id"],
     maxAge: 86400,
@@ -1421,17 +1610,50 @@ app.get("/health/deep", async (c) => {
     identity.release_sha && identity.deployment_id,
   );
   let database: "ok" | "missing" | "error" = "missing";
+  let schema: "ok" | "missing" | "error" = "missing";
 
   if (hasDatabase(c.env)) {
     try {
-      await queryRows(c.env, "SELECT 1 AS ok");
+      const rows = (await queryRows(
+        c.env,
+        `SELECT
+          to_regclass('omdala.nodes') AS nodes,
+          to_regclass('omdala.proofs') AS proofs,
+          to_regclass('omdala.account_profiles') AS account_profiles,
+          to_regclass('omdala.account_preferences') AS account_preferences,
+          (
+            SELECT is_nullable = 'NO'
+            FROM information_schema.columns
+            WHERE table_schema = 'omdala'
+              AND table_name = 'nodes'
+              AND column_name = 'owner_email'
+          ) AS nodes_owner_email_locked,
+          (
+            SELECT is_nullable = 'NO'
+            FROM information_schema.columns
+            WHERE table_schema = 'omdala'
+              AND table_name = 'proofs'
+              AND column_name = 'owner_email'
+          ) AS proofs_owner_email_locked`,
+      )) as Array<Record<string, unknown>>;
       database = "ok";
+      const registry = rows[0];
+      schema =
+        registry?.nodes &&
+        registry.proofs &&
+        registry.account_profiles &&
+        registry.account_preferences &&
+        registry.nodes_owner_email_locked === true &&
+        registry.proofs_owner_email_locked === true
+          ? "ok"
+          : "missing";
     } catch {
       database = "error";
+      schema = "error";
     }
   }
 
-  const ready = identityBound && database === "ok";
+  const ready = identityBound && database === "ok" && schema === "ok";
   return c.json(
     {
       ok: ready,
@@ -1442,26 +1664,68 @@ app.get("/health/deep", async (c) => {
       checks: {
         identity: identityBound ? "ok" : "missing",
         database,
+        schema,
       },
     },
     ready ? 200 : 503,
   );
 });
 
+app.use("/v2/reality/*", async (c, next) => {
+  if (c.req.path === "/v2/reality/health") {
+    await next();
+    return;
+  }
+
+  if (requiresPersistentRealityStore(c.env)) {
+    if (!hasDatabase(c.env)) {
+      return jsonError(
+        c,
+        503,
+        "PERSISTENCE_REQUIRED",
+        "The persistent reality store is required in this environment.",
+      );
+    }
+    const session = await requireAuthenticatedSession(c);
+    if (session instanceof Response) return session;
+    c.set("realityOwnerEmail", session.email);
+    if (!isReleasedRealityRequest(c.req.method, c.req.path)) {
+      return jsonError(
+        c,
+        501,
+        "REALITY_ROUTE_NOT_RELEASED",
+        "This reality route is not available in the release runtime.",
+      );
+    }
+  }
+
+  await next();
+});
+
 app.get("/v2/reality/health", (c) => {
+  const persistent = hasDatabase(c.env);
+  if (requiresPersistentRealityStore(c.env) && !persistent) {
+    return jsonError(
+      c,
+      503,
+      "PERSISTENCE_REQUIRED",
+      "The persistent reality store is required in this environment.",
+    );
+  }
+
   return jsonOk(c, {
     status: "ok",
     service: "omdala-api",
     namespace: "v2/reality",
     environment: c.env.ENVIRONMENT,
-    persistence: hasDatabase(c.env) ? "postgres" : "in-memory-seed",
+    persistence: persistent ? "postgres" : "in-memory-seed",
   });
 });
 
 app.get("/v2/reality/nodes", async (c) => {
   return withV2Guard(c, async () => {
     if (hasDatabase(c.env)) {
-      const nodes = await listNodes(c.env);
+      const nodes = await listNodes(c.env, getRealityOwnerEmail(c));
       return jsonOk(c, { nodes, total: nodes.length });
     }
 
@@ -1573,7 +1837,7 @@ app.get("/v2/reality/transitions", async (c) => {
 app.get("/v2/reality/proofs", async (c) => {
   return withV2Guard(c, async () => {
     if (hasDatabase(c.env)) {
-      const proofs = await listProofs(c.env);
+      const proofs = await listProofs(c.env, getRealityOwnerEmail(c));
       return jsonOk(c, { proofs, total: proofs.length });
     }
 
@@ -1603,7 +1867,11 @@ app.post("/v2/reality/proofs", async (c) => {
     }
 
     if (hasDatabase(c.env)) {
-      const record = await createProof(c.env, toProofDbInput(payload));
+      const record = await createProof(
+        c.env,
+        getRealityOwnerEmail(c),
+        toProofDbInput(payload),
+      );
       return jsonOk(c, record, 201);
     }
 
@@ -1634,7 +1902,7 @@ app.post("/v2/reality/proofs", async (c) => {
 app.get("/v2/reality/trust", async (c) => {
   return withV2Guard(c, async () => {
     if (hasDatabase(c.env)) {
-      const trust = await listTrust(c.env);
+      const trust = await listTrust(c.env, getRealityOwnerEmail(c));
       return jsonOk(c, { trust, total: trust.length });
     }
 
@@ -1653,7 +1921,11 @@ app.get("/v2/reality/trust/:nodeId", async (c) => {
     }
 
     if (hasDatabase(c.env)) {
-      const record = await getTrustByNodeId(c.env, nodeId);
+      const record = await getTrustByNodeId(
+        c.env,
+        getRealityOwnerEmail(c),
+        nodeId,
+      );
 
       if (!record) {
         return jsonError(c, 404, "TRUST_NOT_FOUND", "Trust record not found");
@@ -1868,6 +2140,57 @@ app.post("/v1/auth/access-request", async (c) => {
   }
 });
 
+app.post("/v1/_e2e/magic-link", async (c) => {
+  if (c.env.ENVIRONMENT !== "staging") {
+    return jsonError(c, 404, "not_found", "Not found.");
+  }
+
+  const expectedSecret = c.env.E2E_TEST_SECRET?.trim() ?? "";
+  if (expectedSecret.length < 32) {
+    return jsonError(
+      c,
+      503,
+      "e2e_not_configured",
+      "Staging E2E bootstrap is not configured.",
+    );
+  }
+
+  const providedSecret = c.req.header("x-e2e-test-secret")?.trim() ?? "";
+  if (!providedSecret || !(await secureStringEqual(providedSecret, expectedSecret))) {
+    return jsonError(c, 401, "invalid_e2e_secret", "Invalid E2E credential.");
+  }
+
+  const body = await c.req
+    .json<{ email?: string; redirectTo?: string }>()
+    .catch(() => null);
+  if (!body) {
+    return jsonError(c, 400, "invalid_json", "Request body must be valid JSON.");
+  }
+
+  const { email, redirectTo } = apiContract.normalizeMagicLinkRequest(body);
+  if (!apiContract.isEmail(email)) {
+    return jsonError(c, 422, "invalid_email", "A valid email is required.");
+  }
+
+  const expiresAt = Date.now() + 10 * 60 * 1000;
+  const token = await createMagicLinkToken(c.env, {
+    email,
+    redirectTo,
+    exp: expiresAt,
+  });
+
+  return jsonOk(
+    c,
+    {
+      token,
+      email,
+      redirectTo,
+      expiresAt: new Date(expiresAt).toISOString(),
+    },
+    201,
+  );
+});
+
 app.post("/v1/auth/magic-link/request", async (c) => {
   const body = await c.req
     .json<{ email?: string; redirectTo?: string }>()
@@ -2044,7 +2367,11 @@ app.get("/v1/account/profile", async (c) => {
     return session;
   }
 
-  return jsonOk(c, getAccountProfileForEmail(session.email));
+  try {
+    return jsonOk(c, await getRuntimeAccountProfile(c.env, session.email));
+  } catch (error) {
+    return accountDatabaseErrorResponse(c, error, "readAccountProfile");
+  }
 });
 
 app.put("/v1/account/profile", async (c) => {
@@ -2053,10 +2380,8 @@ app.put("/v1/account/profile", async (c) => {
     return session;
   }
 
-  const body = await c.req
-    .json<Partial<OmAiAccountProfile>>()
-    .catch(() => null);
-  if (!body) {
+  const body = await c.req.json<unknown>().catch(() => null);
+  if (body === null) {
     return jsonError(
       c,
       400,
@@ -2065,27 +2390,42 @@ app.put("/v1/account/profile", async (c) => {
     );
   }
 
-  const current = getAccountProfileForEmail(session.email);
-  const updatedBase = {
-    ...current,
-    displayName: body.displayName?.trim() || current.displayName,
-    timezone: body.timezone?.trim() || current.timezone,
-    locale: body.locale?.trim() || current.locale,
-    email: current.email,
-    id: current.id,
-  };
-  const updated: OmAiAccountProfile = {
-    ...updatedBase,
-    ...(body.avatarUrl?.trim() || current.avatarUrl
-      ? { avatarUrl: body.avatarUrl?.trim() || current.avatarUrl }
-      : {}),
-    ...(body.bio?.trim() || current.bio
-      ? { bio: body.bio?.trim() || current.bio }
-      : {}),
-  };
+  const patch = validateProfilePatch(body);
+  if (!patch.ok) {
+    return jsonError(c, 422, "invalid_account_profile", patch.message);
+  }
 
-  accountProfileStore.set(session.email, updated);
-  return jsonOk(c, updated);
+  try {
+    const current = await getRuntimeAccountProfile(c.env, session.email);
+    const updatedBase = {
+      ...current,
+      displayName: patch.value.displayName ?? current.displayName,
+      timezone: patch.value.timezone ?? current.timezone,
+      locale: patch.value.locale ?? current.locale,
+      email: current.email,
+      id: current.id,
+    };
+    const updated: OmAiAccountProfile = {
+      ...updatedBase,
+      ...((patch.value.avatarUrl ?? current.avatarUrl)
+        ? { avatarUrl: patch.value.avatarUrl || current.avatarUrl }
+        : {}),
+      ...((patch.value.bio ?? current.bio)
+        ? { bio: patch.value.bio || current.bio }
+        : {}),
+    };
+    if (patch.value.avatarUrl === "") delete updated.avatarUrl;
+    if (patch.value.bio === "") delete updated.bio;
+
+    if (!isDatabaseConfigured(c.env)) {
+      accountProfileStore.set(session.email, updated);
+      return jsonOk(c, updated);
+    }
+
+    return jsonOk(c, await writeAccountProfile(c.env, updated));
+  } catch (error) {
+    return accountDatabaseErrorResponse(c, error, "writeAccountProfile");
+  }
 });
 
 app.get("/v1/account/preferences", async (c) => {
@@ -2094,7 +2434,11 @@ app.get("/v1/account/preferences", async (c) => {
     return session;
   }
 
-  return jsonOk(c, getAccountPreferencesForEmail(session.email));
+  try {
+    return jsonOk(c, await getRuntimeAccountPreferences(c.env, session.email));
+  } catch (error) {
+    return accountDatabaseErrorResponse(c, error, "readAccountPreferences");
+  }
 });
 
 app.put("/v1/account/preferences", async (c) => {
@@ -2103,10 +2447,8 @@ app.put("/v1/account/preferences", async (c) => {
     return session;
   }
 
-  const body = await c.req
-    .json<Partial<OmAiAccountPreferences>>()
-    .catch(() => null);
-  if (!body) {
+  const body = await c.req.json<unknown>().catch(() => null);
+  if (body === null) {
     return jsonError(
       c,
       400,
@@ -2115,18 +2457,39 @@ app.put("/v1/account/preferences", async (c) => {
     );
   }
 
-  const current = getAccountPreferencesForEmail(session.email);
-  const updated: OmAiAccountPreferences = {
-    language: body.language?.trim() || current.language,
-    theme: body.theme ?? current.theme,
-    notifications: {
-      email: body.notifications?.email ?? current.notifications.email,
-      push: body.notifications?.push ?? current.notifications.push,
-    },
-  };
+  const patch = validatePreferencesPatch(body);
+  if (!patch.ok) {
+    return jsonError(c, 422, "invalid_account_preferences", patch.message);
+  }
 
-  accountPreferencesStore.set(session.email, updated);
-  return jsonOk(c, updated);
+  try {
+    const current = await getRuntimeAccountPreferences(c.env, session.email);
+    const updated: OmAiAccountPreferences = {
+      language: patch.value.language ?? current.language,
+      theme: patch.value.theme ?? current.theme,
+      notifications: {
+        email: patch.value.notifications?.email ?? current.notifications.email,
+        push: patch.value.notifications?.push ?? current.notifications.push,
+      },
+    };
+
+    if (!isDatabaseConfigured(c.env)) {
+      accountPreferencesStore.set(session.email, updated);
+      return jsonOk(c, updated);
+    }
+
+    return jsonOk(
+      c,
+      await writeAccountPreferences(
+        c.env,
+        session.email,
+        getAccountProfileForEmail(session.email),
+        updated,
+      ),
+    );
+  } catch (error) {
+    return accountDatabaseErrorResponse(c, error, "writeAccountPreferences");
+  }
 });
 
 app.get("/v1/billing/subscriptions", async (c) => {
@@ -2783,7 +3146,13 @@ app.post("/v1/ai/complete", async (c) => {
 
   try {
     const result = await aiCompleteWithFallback(connectors, {
-      messages: body.messages.map((m) => ({ role: m.role as any, content: m.content })),
+      messages: body.messages.map((m) => ({
+        role:
+          m.role === "system" || m.role === "assistant" || m.role === "user"
+            ? m.role
+            : "user",
+        content: m.content,
+      })),
       maxTokens: body.maxTokens,
       temperature: body.temperature,
     });

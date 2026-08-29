@@ -36,12 +36,11 @@ export function clearCodeHistory() {
 
 export function CodeHistoryPanel() {
   const { t } = useI18n();
-  const [history, setHistory] = React.useState<CodeEdit[]>([]);
+  const [history, setHistory] = React.useState<CodeEdit[]>(() => getCodeHistory());
   const [search, setSearch] = React.useState("");
   const [selectedEdit, setSelectedEdit] = React.useState<CodeEdit | null>(null);
 
   React.useEffect(() => {
-    setHistory(getCodeHistory());
     const iv = setInterval(() => setHistory(getCodeHistory()), 2000);
     return () => clearInterval(iv);
   }, []);

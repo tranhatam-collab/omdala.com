@@ -15,6 +15,7 @@ export interface ApiBindings {
   MAIL_API_KEY?: string;
   MAIL_API_WORKSPACE_ID?: string;
   MAGIC_LINK_SECRET?: string;
+  E2E_TEST_SECRET?: string;
   // Google OAuth
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;

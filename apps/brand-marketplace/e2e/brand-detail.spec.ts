@@ -20,7 +20,7 @@ test.describe("Brand Exchange - brand detail and inquiry", () => {
   test("opens a functional inquiry handoff route", async ({ page }) => {
     await page.goto("/en/brands/omcode");
     await page.getByRole("link", { name: "Submit offer" }).click();
-    await expect(page).toHaveURL(/\/en\/brands\/omcode\/inquiry\?intent=submit_offer/);
+    await expect(page).toHaveURL(/\/en\/brands\/omcode\/inquiry\/\?intent=submit_offer/);
     await expect(page.getByRole("heading", { name: "Submit offer" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Continue to app.omdala.com" })).toHaveAttribute("href", /app\.omdala\.com\/brands\/omcode\?intent=submit_offer/);
   });

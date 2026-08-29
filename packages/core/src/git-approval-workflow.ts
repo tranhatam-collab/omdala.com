@@ -225,7 +225,7 @@ export class GitApprovalWorkflow {
   }
 
   // Reject merge request
-  rejectMergeRequest(mrId: string, reviewer: string, reason?: string): void {
+  rejectMergeRequest(mrId: string, _reviewer: string, _reason?: string): void {
     const mr = this.mergeRequests.get(mrId);
     if (mr && mr.status === "open") {
       mr.status = "closed";
@@ -327,7 +327,7 @@ export class GitApprovalWorkflow {
   }
 
   // Reject commit
-  rejectCommit(commitId: string, reason?: string): void {
+  rejectCommit(commitId: string, _reason?: string): void {
     this.pendingCommits.delete(commitId);
   }
 

@@ -22,7 +22,33 @@ test("invoice: trial = 0", () => {
 
 test("invoice: promo_1 monthly = 10% of base", () => {
   const result = calc.calculateInvoice("infra-explore", "en", "monthly", "promo_1");
-  assert.ok(Math.abs(result.amount - 9.9) < 0.001); // 99 * 0.10
+  assert.strictEqual(result.amount, 9.9); // 99 * 0.10, rounded to USD cents
+});
+
+test("invoice: VND promo amount is rounded to a whole dong", () => {
+  const result = calc.calculateInvoice("infra-explore", "vi", "monthly", "promo_1");
+  assert.strictEqual(result.amount, 240000);
+});
+
+test("invoice: promo state fails closed for non-monthly billing", () => {
+  assert.throws(
+    () => calc.calculateInvoice("infra-explore", "en", "annual", "promo_1"),
+    /only valid for monthly/
+  );
+});
+
+test("invoice: promo state fails closed for ineligible package", () => {
+  assert.throws(
+    () => calc.calculateInvoice("ai-agent-ops", "en", "monthly", "promo_1"),
+    /not eligible/
+  );
+});
+
+test("invoice: unknown market fails closed instead of defaulting to USD", () => {
+  assert.throws(
+    () => calc.calculateInvoice("infra-explore", "fr", "monthly", "active_monthly"),
+    /Unknown market/
+  );
 });
 
 test("invoice: active_monthly = base price", () => {

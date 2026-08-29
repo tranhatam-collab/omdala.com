@@ -35,12 +35,11 @@ export function clearChatHistory() {
 
 export function ChatHistoryPanel() {
   const { t } = useI18n();
-  const [history, setHistory] = React.useState<ChatMessage[]>([]);
+  const [history, setHistory] = React.useState<ChatMessage[]>(() => getChatHistory());
   const [search, setSearch] = React.useState("");
   const [workspaceFilter, setWorkspaceFilter] = React.useState<string>("all");
 
   React.useEffect(() => {
-    setHistory(getChatHistory());
     const iv = setInterval(() => setHistory(getChatHistory()), 2000);
     return () => clearInterval(iv);
   }, []);

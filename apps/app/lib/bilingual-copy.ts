@@ -63,7 +63,13 @@ export const APP_COPY = {
       Requests: { en: "Requests", vi: "Nhu cầu" },
       Profile: { en: "Profile", vi: "Hồ sơ" },
       Settings: { en: "Settings", vi: "Cài đặt" },
+      Brands: { en: "Brands", vi: "Thương hiệu" },
+      Workspace: { en: "OMCODE workspace", vi: "Không gian OMCODE" },
     },
+    navigationSection: { en: "Navigation", vi: "Điều hướng" },
+    openLabel: { en: "Open", vi: "Mở" },
+    expandNavigation: { en: "Expand navigation", vi: "Mở rộng điều hướng" },
+    collapseNavigation: { en: "Collapse navigation", vi: "Thu gọn điều hướng" },
   },
   authGate: {
     eyebrow: {
@@ -89,8 +95,8 @@ export const APP_COPY = {
       vi: "Chào mừng trở lại",
     },
     intro: {
-      en: "The app currently runs on a structured mock data flow where trust scores, matching hints, notifications, and AI actions are connected in one operational graph.",
-      vi: "Ứng dụng hiện đang chạy trên luồng dữ liệu mẫu có cấu trúc, nơi điểm niềm tin, gợi ý ghép nối, thông báo và hành động AI đều được nối vào cùng một đồ thị vận hành.",
+      en: "Review your verified account, active plan, persisted reality records, and AI provider health from one operational view.",
+      vi: "Rà soát tài khoản đã xác minh, gói đang hoạt động, dữ liệu thực tế đã lưu và tình trạng nhà cung cấp AI trong một màn hình vận hành.",
     },
     stats: {
       session: {
@@ -106,8 +112,8 @@ export const APP_COPY = {
       activeNodes: {
         title: { en: "Active nodes", vi: "Nút đang hoạt động" },
         suffix: {
-          en: "nodes are currently active in the sample operation graph.",
-          vi: "nút đang hiện diện trong đồ thị vận hành mẫu.",
+          en: "persisted nodes are available to this signed-in account.",
+          vi: "nút đã lưu đang khả dụng cho tài khoản đã đăng nhập này.",
         },
       },
       resourceFlow: {
@@ -139,6 +145,28 @@ export const APP_COPY = {
       openTrust: { en: "Open trust", vi: "Mở niềm tin" },
       openOffers: { en: "Open offers", vi: "Mở đề nghị" },
       openRequests: { en: "Open requests", vi: "Mở nhu cầu" },
+      openProfile: { en: "Open profile", vi: "Mở hồ sơ" },
+      openSettings: { en: "Open settings", vi: "Mở cài đặt" },
+      openBrands: { en: "Open brands", vi: "Mở thương hiệu" },
+      openOmcode: { en: "Open OMCODE", vi: "Mở OMCODE" },
+    },
+    runtime: {
+      loading: { en: "Loading verified runtime data...", vi: "Đang tải dữ liệu vận hành đã xác minh..." },
+      loadFailure: {
+        en: "Unable to load the required account runtime.",
+        vi: "Không thể tải dữ liệu vận hành bắt buộc của tài khoản.",
+      },
+      email: { en: "Account email", vi: "Email tài khoản" },
+      plan: { en: "Active plan", vi: "Gói đang hoạt động" },
+      usage: { en: "AI usage today", vi: "Mức dùng AI hôm nay" },
+      minutes: { en: "minutes", vi: "phút" },
+      nodes: { en: "Persisted nodes", vi: "Nút đã lưu" },
+      trust: { en: "Trust records", vi: "Bản ghi niềm tin" },
+      pendingProofs: { en: "Pending proofs", vi: "Bằng chứng chờ duyệt" },
+      aiProviders: { en: "Healthy AI providers", vi: "Nhà cung cấp AI hoạt động tốt" },
+      connected: { en: "Connected", vi: "Đã kết nối" },
+      unavailable: { en: "Unavailable", vi: "Không khả dụng" },
+      realityStore: { en: "Reality store", vi: "Kho dữ liệu thực tế" },
     },
     trustSummary: {
       title: {
@@ -486,12 +514,12 @@ export const APP_COPY = {
   profile: {
     eyebrow: { en: "Account Profile", vi: "Hồ sơ tài khoản" },
     intro: {
-      en: "Profile is now the Team 1 entry point for shared account/profile contracts. It should map to",
-      vi: "Hồ sơ hiện là điểm vào của Team 1 cho các ràng buộc dùng chung về tài khoản và hồ sơ. Nó cần ánh xạ tới",
+      en: "Manage the identity and preferences connected to your OMDALA account.",
+      vi: "Quản lý danh tính và tùy chọn được kết nối với tài khoản OMDALA của bạn.",
     },
     introSuffix: {
-      en: "and stay independent from Omniverse domain data.",
-      vi: "và phải tách biệt khỏi dữ liệu miền Omniverse.",
+      en: "Changes are verified against your active session before they are saved.",
+      vi: "Mọi thay đổi được xác minh theo phiên đang hoạt động trước khi lưu.",
     },
     identity: { en: "Account identity", vi: "Định danh tài khoản" },
     boundary: { en: "Profile and preference boundary", vi: "Ranh giới hồ sơ và tùy chọn" },
@@ -542,15 +570,23 @@ export const APP_COPY = {
       en: "Unable to update profile contract.",
       vi: "Không thể cập nhật hồ sơ.",
     },
+    loading: { en: "Loading account profile...", vi: "Đang tải hồ sơ tài khoản..." },
+    loadFailure: {
+      en: "Unable to load the account profile.",
+      vi: "Không thể tải hồ sơ tài khoản.",
+    },
   },
   settings: {
     eyebrow: { en: "Settings Runtime", vi: "Lớp vận hành cài đặt" },
     settings: { en: "Settings", vi: "Cài đặt" },
     intro: {
-      en: "Settings is the control surface for preferences, subscription visibility, and usage metering. It should align to",
-      vi: "Cài đặt là bề mặt điều khiển cho tùy chọn, mức hiển thị gói và đo lường mức sử dụng. Nó cần khớp với",
+      en: "Manage language, notifications, plan visibility, usage, and AI provider routing.",
+      vi: "Quản lý ngôn ngữ, thông báo, mức hiển thị gói, mức sử dụng và định tuyến nhà cung cấp AI.",
     },
-    introSuffix: { en: "contracts.", vi: "các ràng buộc này." },
+    introSuffix: {
+      en: "Account changes are saved through the authenticated API.",
+      vi: "Thay đổi tài khoản được lưu qua API đã xác thực.",
+    },
     languageMode: { en: "Language mode", vi: "Chế độ ngôn ngữ" },
     currentPlan: { en: "Current plan", vi: "Gói hiện tại" },
     betaGate: { en: "Beta gate", vi: "Cổng beta" },
@@ -613,6 +649,11 @@ export const APP_COPY = {
     failure: {
       en: "Unable to update preferences contract.",
       vi: "Không thể cập nhật tùy chọn.",
+    },
+    loading: { en: "Loading settings...", vi: "Đang tải cài đặt..." },
+    loadFailure: {
+      en: "Unable to load account settings.",
+      vi: "Không thể tải cài đặt tài khoản.",
     },
   },
   providerRoutingStatus: {

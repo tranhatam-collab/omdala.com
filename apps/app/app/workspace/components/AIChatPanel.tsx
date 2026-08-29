@@ -10,7 +10,7 @@ import {
 } from "@omdala/core";
 import { ModelPickerWithAuto } from "./ModelPicker";
 import { loadSettings } from "./SettingsPanel";
-import { SlashMenu, SLASH_COMMANDS } from "./SlashCommands";
+import { SlashMenu } from "./SlashCommands";
 import { recordUsage } from "./CostDashboard";
 import { saveChatMessage } from "./ChatHistoryPanel";
 import { getAgentSystemPrompt } from "@/lib/permission-layer";
@@ -171,7 +171,9 @@ export function AIChatPanel({ workspaceFiles, workspaceName, activePath, onApply
       orchestrator = initAgentOrchestrator(modelRouter);
     }
     const s = loadSettings();
-    if (s.defaultModel) setSelectedModel(s.defaultModel);
+    if (s.defaultModel) {
+      queueMicrotask(() => setSelectedModel(s.defaultModel ?? "auto"));
+    }
 
     function onInlineAI(e: Event) {
       const sel = (e as CustomEvent).detail as string;
@@ -186,10 +188,12 @@ export function AIChatPanel({ workspaceFiles, workspaceName, activePath, onApply
   React.useEffect(() => {
     if (!workspaceName) return;
     const key = `omcode:chat:${workspaceName}`;
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) setMessages(JSON.parse(raw));
-    } catch {}
+    queueMicrotask(() => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw) setMessages(JSON.parse(raw));
+      } catch {}
+    });
   }, [workspaceName]);
 
   React.useEffect(() => {
@@ -362,13 +366,14 @@ Trả lời ngắn gọn, dùng tiếng Việt.`;
         );
         idx += 3;
       }, 30);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "unknown";
       setMessages((m) => [
         ...m,
         {
           id: `m-${Date.now() + 1}`,
           role: "system",
-          content: `❌ Lỗi: ${err?.message ?? "unknown"}\n\nMẹo: kiểm tra API key trong Settings (⚙️).`,
+          content: `Lỗi: ${errorMessage}\n\nMẹo: kiểm tra API key trong Settings.`,
           timestamp: Date.now(),
         },
       ]);

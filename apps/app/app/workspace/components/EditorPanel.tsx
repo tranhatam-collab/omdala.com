@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import dynamic from "next/dynamic";
+import type { OnMount } from "@monaco-editor/react";
 import type { OpenFileEntry } from "../hooks/useFileSystem";
 import { useI18n } from "../hooks/useI18n";
 
@@ -35,7 +36,7 @@ export function EditorPanel({
   const [theme, setTheme] = React.useState<"vs-dark" | "vs">("vs-dark");
   const [saving, setSaving] = React.useState(false);
   const saveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const editorRef = React.useRef<any>(null);
+  const editorRef = React.useRef<Parameters<OnMount>[0] | null>(null);
 
   // Autosave: debounce 2s after last change
   React.useEffect(() => {
@@ -49,7 +50,7 @@ export function EditorPanel({
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [activeFile?.content, activeFile?.path]);
+  }, [activeFile, hasUnsaved, onSave]);
 
   // Keyboard shortcuts
   React.useEffect(() => {

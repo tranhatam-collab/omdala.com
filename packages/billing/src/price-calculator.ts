@@ -49,7 +49,8 @@ export class PriceCalculator {
     if (!pkg) throw new Error(`Unknown package: ${pkgId}`);
 
     const marketConfig = this.config.markets[market as import("./schema.js").Market];
-    const currency = marketConfig?.currency ?? "USD";
+    if (!marketConfig) throw new Error(`Unknown market: ${market}`);
+    const currency = marketConfig.currency;
     const breakdown: string[] = [];
 
     // Trial = free
@@ -58,10 +59,17 @@ export class PriceCalculator {
     }
 
     // Promo months (only for monthly billing)
-    if (state.startsWith("promo_") && billingMode === "monthly") {
+    if (state.startsWith("promo_")) {
+      if (billingMode !== "monthly") {
+        throw new Error("Promo pricing is only valid for monthly billing");
+      }
+      if (!pkg.promo.enabled || pkg.promo.discountRate === undefined) {
+        throw new Error(`Package ${pkgId} is not eligible for promo pricing`);
+      }
       const base = this.getBasePrice(pkgId, market, "monthly");
-      const promoRate = pkg.promo.discountRate ?? 0.90;
-      const amount = base * (1 - promoRate);
+      const promoRate = pkg.promo.discountRate;
+      const precision = currency === "VND" ? 0 : 2;
+      const amount = Number((base * (1 - promoRate)).toFixed(precision));
       breakdown.push(`Base monthly: ${base} ${currency}`);
       breakdown.push(`Promo discount: ${promoRate * 100}% off`);
       breakdown.push(`Effective: ${amount.toFixed(2)} ${currency}`);

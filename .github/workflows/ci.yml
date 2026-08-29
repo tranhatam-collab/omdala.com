@@ -20,13 +20,10 @@ jobs:
           node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec tsc --noEmit --project packages/core/tsconfig.json
-      - run: pnpm exec tsc --noEmit --project packages/seo/tsconfig.json
-      - run: pnpm exec tsc --noEmit --project packages/types/tsconfig.json
-      - run: pnpm exec tsc --noEmit --project packages/ui/tsconfig.json
+      - run: pnpm typecheck
 
   test-api:
-    name: API Tests (47 tests)
+    name: API Tests (72 tests)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -39,6 +36,7 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @omdala/api test
+      - run: pnpm --filter @omdala/api run check
 
   test-app:
     name: App Tests (27 tests)
@@ -85,6 +83,36 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:brand-core
 
+  test-brand-marketplace:
+    name: Brand Marketplace Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.3
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @omdala/brand-marketplace test
+
+  test-billing:
+    name: Billing and Promotion Tests (27 tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.3
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @omdala/billing test
+
   test-om-ai-backend:
     name: OM AI Backend Tests (11 tests)
     runs-on: ubuntu-latest
@@ -112,6 +140,21 @@ jobs:
         working-directory: om-ai.omdala.com/gateway
       - run: npm test
         working-directory: om-ai.omdala.com/gateway
+
+  test-om-ai-mobile-contract:
+    name: OM AI Mobile Contract Tests (2 tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.3
+          cache: npm
+          cache-dependency-path: om-ai.omdala.com/app/package-lock.json
+      - run: npm ci
+        working-directory: om-ai.omdala.com/app
+      - run: npm test
+        working-directory: om-ai.omdala.com/app
 
   test-infra-gateway:
     name: Infra API Gateway Tests
@@ -161,6 +204,9 @@ jobs:
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
       - run: cd apps/${{ matrix.app }} && pnpm exec next build
+      - name: Verify static Pages artifact
+        if: matrix.app == 'web' || matrix.app == 'app' || matrix.app == 'docs' || matrix.app == 'admin' || matrix.app == 'auth'
+        run: test -f apps/${{ matrix.app }}/out/index.html
 
   build-brand-exchange:
     name: Brand Exchange Build
@@ -175,7 +221,10 @@ jobs:
           node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @omdala/brand-marketplace run lint
+      - run: pnpm --filter @omdala/brand-marketplace run typecheck
       - run: pnpm --filter @omdala/brand-marketplace run build
+      - run: test -f apps/brand-marketplace/out/index.html
 
   lint:
     name: Lint

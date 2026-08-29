@@ -125,17 +125,22 @@ export function AICommandPalette({
           ? { ...taskClassification, recommendedModel: selectedModel }
           : taskClassification;
       const executionPlan = await orchestrator.plan(input, effectiveClassification, {
-        files: workspaceFiles.map((f) => f.path),
+        files: context.files.map((file) => file.path),
         language: "typescript",
       });
       setPlan(executionPlan);
+      onExecuteAction("orchestrator_plan_created", {
+        prompt: input,
+        taskCount: executionPlan.tasks.length,
+        contextTokens: context.totalTokens,
+      });
 
       // Step 5: Execute plan (simplified - just show plan for now)
       setResponse(`Kế hoạch thực thi đã tạo với ${executionPlan.tasks.length} tasks:\n\n` +
         executionPlan.tasks.map((t: { description: string; agentId: string }, i: number) => `${i + 1}. ${t.description} (${t.agentId})`).join("\n"));
 
-    } catch (err: any) {
-      setError(err.message || "Đã xảy ra lỗi");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
     } finally {
       setIsProcessing(false);
     }

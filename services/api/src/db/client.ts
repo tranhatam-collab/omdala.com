@@ -6,6 +6,10 @@ export interface DbClientConfig {
   databaseUrl?: string;
 }
 
+export function isDatabaseConfigured(env: ApiBindings): boolean {
+  return Boolean(env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL);
+}
+
 export function resolveDbClientConfig(env: ApiBindings): DbClientConfig {
   const config: DbClientConfig = {};
   const connectionString = env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL;
@@ -18,7 +22,7 @@ export function resolveDbClientConfig(env: ApiBindings): DbClientConfig {
 }
 
 export function assertDatabaseConfigured(env: ApiBindings): void {
-  if (!env.HYPERDRIVE?.connectionString && !env.DATABASE_URL) {
+  if (!isDatabaseConfigured(env)) {
     throw new Error("DATABASE_URL is not configured");
   }
 }

@@ -2,15 +2,24 @@ import { describe, it, expect, beforeEach } from "vitest";
 
 const USAGE_KEY = "omcode:usage";
 
+interface UsageEntry {
+  timestamp: number;
+  model: string;
+  provider: string;
+  tokensIn: number;
+  tokensOut: number;
+  cost: number;
+}
+
 function recordUsage(model: string, provider: string, tokensIn: number, tokensOut: number, cost: number) {
   try {
-    const entries: any[] = JSON.parse(localStorage.getItem(USAGE_KEY) || "[]");
+    const entries: UsageEntry[] = JSON.parse(localStorage.getItem(USAGE_KEY) || "[]");
     entries.push({ timestamp: Date.now(), model, provider, tokensIn, tokensOut, cost });
     localStorage.setItem(USAGE_KEY, JSON.stringify(entries.slice(-500)));
   } catch {}
 }
 
-function getUsage(): any[] {
+function getUsage(): UsageEntry[] {
   try {
     return JSON.parse(localStorage.getItem(USAGE_KEY) || "[]");
   } catch { return []; }

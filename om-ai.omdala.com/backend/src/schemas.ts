@@ -22,3 +22,20 @@ export const policyDecisionEnum = [
   'admin_only',
   'denied',
 ] as const;
+
+export const errorEnvelopeSchema = {
+  type: 'object',
+  properties: {
+    data: { type: 'null' },
+    error: {
+      type: 'object',
+      properties: {
+        code: { type: 'string' },
+        reason: { type: 'string' },
+      },
+      required: ['code'],
+    },
+    meta: { type: 'object', additionalProperties: true },
+  },
+  required: ['data', 'error'],
+} as const;

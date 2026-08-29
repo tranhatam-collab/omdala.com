@@ -2,6 +2,56 @@
 import { AIRequest, AIResponse, getModelById, type AIModel } from "./ai-gateway";
 import { TaskClassification } from "./task-classifier";
 
+interface OpenAICompatibleResponse {
+  choices?: Array<{
+    finish_reason?: string;
+    message?: {
+      content?: string;
+      tool_calls?: Array<{
+        function?: { name?: string; arguments?: string };
+      }>;
+    };
+  }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+}
+
+interface AnthropicResponse {
+  content?: Array<{ text?: string }>;
+  usage?: { input_tokens?: number; output_tokens?: number };
+  stop_reason?: string;
+}
+
+interface GoogleResponse {
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string }> };
+    finishReason?: string;
+  }>;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+  };
+}
+
+interface CloudflareResponse {
+  result?: { response?: string };
+}
+
+interface LocalModelResponse {
+  response?: string;
+  eval_count?: number;
+}
+
+function normalizeFinishReason(value: unknown): AIResponse["finishReason"] {
+  if (value === "length" || value === "MAX_TOKENS") return "length";
+  if (value === "tool_calls") return "tool_calls";
+  return "stop";
+}
+
 export interface RouterConfig {
   maxRetries: number;
   timeoutMs: number;
@@ -84,13 +134,14 @@ export class ModelRouter {
           fallbackUsed,
           durationMs: Date.now() - startTime,
         };
-      } catch (error: any) {
-        lastError = error;
-        console.error(`Model ${modelId} failed:`, error.message);
+      } catch (error: unknown) {
+        const routeError = error instanceof Error ? error : new Error(String(error));
+        lastError = routeError;
+        console.error(`Model ${modelId} failed:`, routeError.message);
 
         // Check if error is retryable
-        if (!this.isRetryableError(error)) {
-          throw error;
+        if (!this.isRetryableError(routeError)) {
+          throw routeError;
         }
 
         // Continue to next model in chain
@@ -159,15 +210,13 @@ export class ModelRouter {
   }
 
   private createTimeoutSignal(ms: number): AbortSignal {
-    if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
-      return (AbortSignal as any).timeout(ms);
+    if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+      return AbortSignal.timeout(ms);
     }
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), ms);
     // Best-effort cleanup; fetch may keep signal alive
-    if (typeof (controller.signal as any).addEventListener === "function") {
-      (controller.signal as any).addEventListener("abort", () => clearTimeout(id));
-    }
+    controller.signal.addEventListener("abort", () => clearTimeout(id), { once: true });
     return controller.signal;
   }
 
@@ -194,7 +243,7 @@ export class ModelRouter {
       throw new Error(`OpenAI API error: ${response.status} - ${error}`);
     }
 
-    const data = (await response.json()) as Record<string, any>;
+    const data = (await response.json()) as OpenAICompatibleResponse;
     const choice = data?.choices?.[0];
     if (!choice) throw new Error("OpenAI response missing choices");
 
@@ -206,8 +255,12 @@ export class ModelRouter {
         completionTokens: data.usage?.completion_tokens ?? 0,
         totalTokens: data.usage?.total_tokens ?? 0,
       },
-      finishReason: choice.finish_reason ?? "stop",
-      toolCalls: choice.message?.tool_calls,
+      finishReason: normalizeFinishReason(choice.finish_reason),
+      toolCalls: choice.message?.tool_calls?.flatMap((call) => {
+        const name = call.function?.name;
+        if (!name) return [];
+        return [{ name, arguments: call.function?.arguments ?? "{}" }];
+      }),
     };
   }
 
@@ -234,7 +287,7 @@ export class ModelRouter {
       throw new Error(`Anthropic API error: ${response.status} - ${error}`);
     }
 
-    const data = (await response.json()) as Record<string, any>;
+    const data = (await response.json()) as AnthropicResponse;
     const contentBlock = data?.content?.[0];
     if (!contentBlock) throw new Error("Anthropic response missing content");
 
@@ -246,7 +299,7 @@ export class ModelRouter {
         completionTokens: data.usage?.output_tokens ?? 0,
         totalTokens: (data.usage?.input_tokens ?? 0) + (data.usage?.output_tokens ?? 0),
       },
-      finishReason: data.stop_reason ?? "stop",
+      finishReason: normalizeFinishReason(data.stop_reason),
     };
   }
 
@@ -272,7 +325,7 @@ export class ModelRouter {
       throw new Error(`Google API error: ${response.status} - ${error}`);
     }
 
-    const data = (await response.json()) as Record<string, any>;
+    const data = (await response.json()) as GoogleResponse;
     const candidate = data?.candidates?.[0];
     if (!candidate) throw new Error("Google response missing candidates");
 
@@ -284,7 +337,7 @@ export class ModelRouter {
         completionTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
         totalTokens: data.usageMetadata?.totalTokenCount ?? 0,
       },
-      finishReason: candidate.finishReason ?? "stop",
+      finishReason: normalizeFinishReason(candidate.finishReason),
     };
   }
 
@@ -310,7 +363,7 @@ export class ModelRouter {
       throw new Error(`Groq API error: ${response.status} - ${error}`);
     }
 
-    const data = (await response.json()) as Record<string, any>;
+    const data = (await response.json()) as OpenAICompatibleResponse;
     const choice = data?.choices?.[0];
     if (!choice) throw new Error("Groq response missing choices");
 
@@ -322,7 +375,7 @@ export class ModelRouter {
         completionTokens: data.usage?.completion_tokens ?? 0,
         totalTokens: data.usage?.total_tokens ?? 0,
       },
-      finishReason: choice.finish_reason ?? "stop",
+      finishReason: normalizeFinishReason(choice.finish_reason),
     };
   }
 
@@ -349,7 +402,7 @@ export class ModelRouter {
       throw new Error(`DeepSeek API error: ${response.status} - ${error}`);
     }
 
-    const data = (await response.json()) as Record<string, any>;
+    const data = (await response.json()) as OpenAICompatibleResponse;
     const choice = data?.choices?.[0];
     if (!choice) throw new Error("DeepSeek response missing choices");
 
@@ -361,7 +414,7 @@ export class ModelRouter {
         completionTokens: data.usage?.completion_tokens ?? 0,
         totalTokens: data.usage?.total_tokens ?? 0,
       },
-      finishReason: choice.finish_reason ?? "stop",
+      finishReason: normalizeFinishReason(choice.finish_reason),
     };
   }
 
@@ -388,7 +441,7 @@ export class ModelRouter {
       throw new Error(`Cloudflare API error: ${response.status} - ${error}`);
     }
 
-    const data = (await response.json()) as Record<string, any>;
+    const data = (await response.json()) as CloudflareResponse;
 
     return {
       content: data?.result?.response ?? "",
@@ -431,7 +484,7 @@ export class ModelRouter {
       throw new Error(`Local API error: ${response.status} - ${error}`);
     }
 
-    const data = (await response.json()) as Record<string, any>;
+    const data = (await response.json()) as LocalModelResponse;
 
     return {
       content: data?.response ?? "",

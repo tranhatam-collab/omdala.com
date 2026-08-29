@@ -4,7 +4,7 @@ import { evaluatePolicy } from '../policyEngine.js';
 import { createProof } from '../proofStore.js';
 import { persistence } from '../persistence.js';
 import { fail, ok } from '../response.js';
-import { actionClassEnum, policyDecisionEnum, userRoleEnum } from '../schemas.js';
+import { actionClassEnum, errorEnvelopeSchema, policyDecisionEnum, userRoleEnum } from '../schemas.js';
 import type { PlanRecord, UserRole } from '../types.js';
 import { nowIso, randomId } from '../utils.js';
 
@@ -111,6 +111,7 @@ export function registerTransitionRoutes(app: FastifyInstance) {
             },
             required: ['data', 'error'],
           },
+          404: errorEnvelopeSchema,
         },
       },
     },
@@ -168,6 +169,8 @@ export function registerTransitionRoutes(app: FastifyInstance) {
             },
             required: ['data', 'error'],
           },
+          401: errorEnvelopeSchema,
+          404: errorEnvelopeSchema,
         },
       },
     },

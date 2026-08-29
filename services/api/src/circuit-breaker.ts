@@ -170,8 +170,9 @@ export async function fetchWithResilience(
   const doFetch = async () => {
     const response = await fetch(input, init);
     if (!response.ok && response.status >= 500) {
-      const err = new Error(`HTTP ${response.status}`);
-      (err as any).status = response.status;
+      const err = Object.assign(new Error(`HTTP ${response.status}`), {
+        status: response.status,
+      });
       throw err;
     }
     return response;

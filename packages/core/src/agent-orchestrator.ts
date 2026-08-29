@@ -1,5 +1,5 @@
 // ─── Multi-Agent Orchestrator — Chia việc cho nhiều agent chuyên biệt ─────
-import { AIRequest, AIResponse } from "./ai-gateway";
+import { AIRequest, type AIResponse } from "./ai-gateway";
 import { TaskClassification } from "./task-classifier";
 import { ModelRouter, RouterResult } from "./model-router";
 
@@ -36,8 +36,8 @@ export interface AgentTask {
   agentId: string;
   description: string;
   status: "pending" | "in_progress" | "completed" | "failed";
-  input: any;
-  output?: any;
+  input: unknown;
+  output?: unknown;
   error?: string;
   dependencies: string[];
   startedAt?: Date;
@@ -295,9 +295,9 @@ export class AgentOrchestrator {
         task.completedAt = new Date();
         completed.push(task);
         onProgress?.(task);
-      } catch (error: any) {
+      } catch (error: unknown) {
         task.status = "failed";
-        task.error = error.message;
+        task.error = error instanceof Error ? error.message : "Unknown agent error";
         failed.push(task);
         onProgress?.(task);
       }
@@ -306,7 +306,11 @@ export class AgentOrchestrator {
     return { completed, failed };
   }
 
-  private async executeTask(task: AgentTask): Promise<any> {
+  private async executeTask(task: AgentTask): Promise<{
+    response: AIResponse;
+    modelUsed: string;
+    cost: number;
+  }> {
     const agent = this.agents.get(task.agentId);
     if (!agent) {
       throw new Error(`Agent ${task.agentId} not found`);

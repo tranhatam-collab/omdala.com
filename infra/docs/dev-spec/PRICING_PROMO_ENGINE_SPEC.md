@@ -153,8 +153,10 @@ This spec implements the approved commercial strategy:
 ```
 [lead] --(start_trial)--> [trial]
 [trial] --(trial_expires)--> [trial_expired]
-[trial] --(convert_during_trial)--> [active_monthly]
-[trial_expired] --(subscribe_monthly)--> [promo_1]
+[trial] --(convert_monthly)--> [promo_1]
+[trial] --(convert_prepaid)--> [active_annual|active_biennial|active_triennial]
+[trial_expired] --(subscribe_monthly_within_7_days)--> [promo_1]
+[trial_expired] --(subscribe_monthly_after_7_days)--> [active_monthly]
 [promo_1] --(month_ends)--> [promo_2]
 [promo_2] --(month_ends)--> [promo_3]
 [promo_3] --(month_ends)--> [active_monthly]
@@ -183,12 +185,15 @@ This spec implements the approved commercial strategy:
 
 ### 3.3 Transition Rules
 - `trial` → `trial_expired`: auto after 30 days unless converted
-- `trial` → `active_monthly`: monthly conversion during trial does not receive promo
+- `trial` → `promo_1`: monthly conversion during trial receives the full 3-month promo
+- `trial` → prepaid active state: annual, biennial, and triennial conversion skips promo and uses its prepay discount
 - `trial_expired` → `promo_1`: only if user subscribes within 7 days of trial expiry (grace period) and the package has `promo.enabled = true`
+- `trial_expired` → `active_monthly`: subscriptions after the 7-day grace period use the regular monthly price
 - `promo_*` → next state: auto at month boundary
 - Promo discount = 90% off = pay 10% of base monthly
 - After `promo_3`, always go to `active_monthly` unless user switches to prepay
 - Packages with `trialDays = 0` must not enter `trial`
+- Enterprise monthly follows the same 30-day trial and 3-month 90% promo policy
 
 ---
 

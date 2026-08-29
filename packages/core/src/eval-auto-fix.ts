@@ -149,7 +149,7 @@ export class EvalAutoFixLoop {
 
   // Run tests
   private async runTests(
-    changes: Array<{ filePath: string; action: "created" | "modified" | "deleted" }>,
+    _changes: Array<{ filePath: string; action: "created" | "modified" | "deleted" }>,
   ): Promise<TestResult[]> {
     const results: TestResult[] = [];
 
@@ -194,7 +194,7 @@ export class EvalAutoFixLoop {
   private async autoFixTestFailures(failures: TestResult[]): Promise<number> {
     let fixed = 0;
 
-    for (const failure of failures) {
+    for (const _failure of failures) {
       // In a real implementation, this would analyze the failure and attempt to fix
       // For now, simulate fixing
       if (Math.random() > 0.5) {

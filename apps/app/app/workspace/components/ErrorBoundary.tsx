@@ -65,7 +65,6 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     saveError(error, info);
-    // eslint-disable-next-line no-console
     console.error("OMCODE Error:", error, info);
   }
 

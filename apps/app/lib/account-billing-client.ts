@@ -3,13 +3,14 @@ import type {
   OmAiAccountProfile,
   OmAiBillingSubscription,
   OmAiBillingUsage,
-  OmAiAppId,
   OmAiProviderCapabilityId,
   OmAiProviderObservabilityResponse,
-  OmAiProviderRegistryItem,
   OmAiProviderRegistryResponse,
   OmAiProviderRouteDecision,
   OmAiUsageEventName,
+  NodeRecord,
+  RealityProofRecord,
+  TrustScoreRecord,
 } from "@omdala/types";
 
 import { apiJsonRequest } from "@/lib/api-client";
@@ -25,6 +26,22 @@ export type OmAiBillingUsageResponse = OmAiBillingUsage & {
 };
 
 export type OmAiProvidersResponse = OmAiProviderRegistryResponse;
+
+export type RealityNodesResponse = { nodes: NodeRecord[]; total: number };
+export type RealityTrustResponse = { trust: TrustScoreRecord[]; total: number };
+export type RealityProofsResponse = {
+  proofs: RealityProofRecord[];
+  total: number;
+};
+export type AiProviderHealthResponse = {
+  providers: Array<{
+    provider: string;
+    ok: boolean;
+    latencyMs: number;
+    error?: string;
+  }>;
+  total: number;
+};
 
 export function getAccountProfile() {
   return apiJsonRequest<OmAiAccountProfile>(
@@ -123,5 +140,37 @@ export function getProviderObservability() {
       method: "GET",
     },
     "Unable to load provider observability.",
+  );
+}
+
+export function getRealityNodes() {
+  return apiJsonRequest<RealityNodesResponse>(
+    "/v2/reality/nodes",
+    { method: "GET" },
+    "Unable to load persisted nodes.",
+  );
+}
+
+export function getRealityTrust() {
+  return apiJsonRequest<RealityTrustResponse>(
+    "/v2/reality/trust",
+    { method: "GET" },
+    "Unable to load trust records.",
+  );
+}
+
+export function getRealityProofs() {
+  return apiJsonRequest<RealityProofsResponse>(
+    "/v2/reality/proofs",
+    { method: "GET" },
+    "Unable to load proof records.",
+  );
+}
+
+export function getAiProviderHealth() {
+  return apiJsonRequest<AiProviderHealthResponse>(
+    "/v1/ai/health",
+    { method: "GET" },
+    "Unable to load AI provider health.",
   );
 }

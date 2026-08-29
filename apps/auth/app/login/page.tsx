@@ -1,22 +1,13 @@
 "use client";
 
 import { resolveLanguage, type OmdalaLanguage } from "@omdala/core";
-import { AUTH_COPY, pickBilingualValue } from "@omdala/ui";
+import { AUTH_COPY, pickBilingualValue, useLocationSearchParam } from "@omdala/ui";
 import { Suspense } from "react";
-import { useEffect, useState } from "react";
 import { AuthLoginForm } from "./AuthLoginForm";
 
 export default function LoginPage() {
-  const [language, setLanguage] = useState<OmdalaLanguage>("en");
+  const language: OmdalaLanguage = resolveLanguage(useLocationSearchParam("lang"));
   const copy = AUTH_COPY.authHostLoginPage;
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    setLanguage(resolveLanguage(new URLSearchParams(window.location.search).get("lang")));
-  }, []);
 
   return (
     <main className="auth-shell">

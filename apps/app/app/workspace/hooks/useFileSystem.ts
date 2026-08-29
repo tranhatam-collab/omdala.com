@@ -3,6 +3,19 @@
 
 import { useState, useCallback, useEffect } from "react";
 
+type FileSystemWindow = Window & {
+  showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle>;
+  __OMCODE_E2E_FIXTURE__?: boolean;
+};
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
 export interface FileSystemNode {
   name: string;
   path: string;
@@ -40,7 +53,7 @@ async function scanDirectory(
   path = "",
 ): Promise<FileSystemNode[]> {
   const nodes: FileSystemNode[] = [];
-  for await (const [name, handle] of (dirHandle as any).entries()) {
+  for await (const [name, handle] of dirHandle.entries()) {
     const nodePath = path ? `${path}/${name}` : name;
     if (handle.kind === "directory") {
       const children = await scanDirectory(handle as FileSystemDirectoryHandle, nodePath);
@@ -72,19 +85,20 @@ export function useFileSystem() {
     try {
       setIsLoading(true);
       setError(null);
-      if (typeof (window as any).showDirectoryPicker !== "function") {
+      const fileSystemWindow = window as FileSystemWindow;
+      if (typeof fileSystemWindow.showDirectoryPicker !== "function") {
         setError("Trình duyệt không hỗ trợ File System Access API. Vui lòng dùng Chrome/Edge.");
         return;
       }
-      const handle = await (window as any).showDirectoryPicker();
+      const handle = await fileSystemWindow.showDirectoryPicker();
       const tree = await scanDirectory(handle);
       setRootHandle(handle);
       setFileTree(tree);
       setOpenFiles([]);
       setActivePath(null);
-    } catch (err: any) {
-      if (err.name !== "AbortError") {
-        setError(err.message || "Không thể mở thư mục");
+    } catch (err: unknown) {
+      if (!isAbortError(err)) {
+        setError(getErrorMessage(err, "Không thể mở thư mục"));
       }
     } finally {
       setIsLoading(false);
@@ -111,8 +125,8 @@ export function useFileSystem() {
         ]);
       }
       setActivePath(node.path);
-    } catch (err: any) {
-      setError(err.message || "Không thể đọc file");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Không thể đọc file"));
     }
   }, [openFiles]);
 
@@ -142,7 +156,7 @@ export function useFileSystem() {
     const file = openFiles.find((f) => f.path === path);
     if (!file) return;
     try {
-      const writable = await (file.handle as any).createWritable();
+      const writable = await file.handle.createWritable();
       await writable.write(file.content);
       await writable.close();
       setOpenFiles((prev) =>
@@ -150,8 +164,8 @@ export function useFileSystem() {
           f.path === path ? { ...f, originalContent: f.content } : f,
         ),
       );
-    } catch (err: any) {
-      setError(err.message || "Không thể lưu file");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Không thể lưu file"));
     }
   }, [openFiles]);
 
@@ -169,15 +183,15 @@ export function useFileSystem() {
       let current = rootHandle;
       for (const part of parts) {
         if (!part) continue;
-        current = await (current as any).getDirectoryHandle(part);
+        current = await current.getDirectoryHandle(part);
       }
-      const newHandle = await (current as any).getFileHandle(fileName, { create: true });
-      const writable = await (newHandle as any).createWritable();
+      const newHandle = await current.getFileHandle(fileName, { create: true });
+      const writable = await newHandle.createWritable();
       await writable.write("");
       await writable.close();
       await refreshFileTree();
-    } catch (err: any) {
-      setError(err.message || "Không thể tạo file");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Không thể tạo file"));
     }
   }, [rootHandle, refreshFileTree]);
 
@@ -188,12 +202,12 @@ export function useFileSystem() {
       let current = rootHandle;
       for (const part of parts) {
         if (!part) continue;
-        current = await (current as any).getDirectoryHandle(part);
+        current = await current.getDirectoryHandle(part);
       }
-      await (current as any).getDirectoryHandle(dirName, { create: true });
+      await current.getDirectoryHandle(dirName, { create: true });
       await refreshFileTree();
-    } catch (err: any) {
-      setError(err.message || "Không thể tạo thư mục");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Không thể tạo thư mục"));
     }
   }, [rootHandle, refreshFileTree]);
 
@@ -205,25 +219,25 @@ export function useFileSystem() {
       const srcFileName = srcParts.pop()!;
       let srcDir = rootHandle;
       for (const part of srcParts) {
-        srcDir = await (srcDir as any).getDirectoryHandle(part);
+        srcDir = await srcDir.getDirectoryHandle(part);
       }
-      const srcHandle = await (srcDir as any).getFileHandle(srcFileName);
-      const srcFile = await (srcHandle as any).getFile();
+      const srcHandle = await srcDir.getFileHandle(srcFileName);
+      const srcFile = await srcHandle.getFile();
       const content = await srcFile.text();
 
       // Create destination file
       let dstDir = rootHandle;
       const dstParts = toDirPath.split("/").filter(Boolean);
       for (const part of dstParts) {
-        dstDir = await (dstDir as any).getDirectoryHandle(part);
+        dstDir = await dstDir.getDirectoryHandle(part);
       }
-      const dstHandle = await (dstDir as any).getFileHandle(newName, { create: true });
-      const writable = await (dstHandle as any).createWritable();
+      const dstHandle = await dstDir.getFileHandle(newName, { create: true });
+      const writable = await dstHandle.createWritable();
       await writable.write(content);
       await writable.close();
 
       // Remove source
-      await (srcDir as any).removeEntry(srcFileName);
+      await srcDir.removeEntry(srcFileName);
 
       // Update open files if moved file was open
       setOpenFiles((prev) =>
@@ -236,8 +250,8 @@ export function useFileSystem() {
       if (activePath === fromPath) setActivePath(`${toDirPath}/${newName}`);
 
       await refreshFileTree();
-    } catch (err: any) {
-      setError(err.message || "Không thể di chuyển file");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Không thể di chuyển file"));
     }
   }, [rootHandle, refreshFileTree, activePath]);
 
@@ -248,15 +262,15 @@ export function useFileSystem() {
       const parts = parentPath.split("/").filter(Boolean);
       let current = rootHandle;
       for (const part of parts) {
-        current = await (current as any).getDirectoryHandle(part);
+        current = await current.getDirectoryHandle(part);
       }
-      await (current as any).removeEntry(node.name, { recursive: true });
+      await current.removeEntry(node.name, { recursive: true });
       await refreshFileTree();
       if (node.kind === "file") {
         closeFile(node.path);
       }
-    } catch (err: any) {
-      setError(err.message || "Không thể xóa");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Không thể xóa"));
     }
   }, [rootHandle, refreshFileTree, closeFile]);
 
@@ -284,20 +298,22 @@ export function useFileSystem() {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("fixture") !== "1") return;
-    if (!(window as any).__OMCODE_E2E_FIXTURE__) return;
+    const fileSystemWindow = window as FileSystemWindow;
+    const showDirectoryPicker = fileSystemWindow.showDirectoryPicker;
+    if (!fileSystemWindow.__OMCODE_E2E_FIXTURE__ || !showDirectoryPicker) return;
 
     void (async () => {
       try {
         setIsLoading(true);
-        const handle = await (window as any).showDirectoryPicker();
+        const handle = await showDirectoryPicker();
         const tree = await scanDirectory(handle);
         setRootHandle(handle);
         setFileTree(tree);
         setOpenFiles([]);
         setActivePath(null);
-      } catch (err: any) {
-        if (err.name !== "AbortError") {
-          setError(err.message || "Không thể mở thư mục (fixture)");
+      } catch (err: unknown) {
+        if (!isAbortError(err)) {
+          setError(getErrorMessage(err, "Không thể mở thư mục (fixture)"));
         }
       } finally {
         setIsLoading(false);

@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { useFileSystem } from "./hooks/useFileSystem";
 import { useTerminal } from "./hooks/useTerminal";
 import { useGit } from "./hooks/useGit";
@@ -16,17 +17,15 @@ import { StatusBar } from "./components/StatusBar";
 import { AICommandPalette } from "../ai/AICommandPalette";
 import { useI18n } from "./hooks/useI18n";
 import { detectProjectType, detectProjectLogo, type ProjectMeta } from "./hooks/useProjectType";
-import { CostDashboard, recordUsage } from "./components/CostDashboard";
+import { CostDashboard } from "./components/CostDashboard";
 import { ChatHistoryPanel } from "./components/ChatHistoryPanel";
 import { CodeHistoryPanel, recordCodeEdit } from "./components/CodeHistoryPanel";
 import { AccountPanel } from "./components/AccountPanel";
 import { TermsAcceptance, hasAcceptedTerms } from "./components/TermsAcceptance";
-import { TerminalRiskBanner, ApplyCodeRiskBanner } from "./components/RiskBanner";
+import { TerminalRiskBanner } from "./components/RiskBanner";
 import { ProjectTrackerPanel } from "./components/ProjectTrackerPanel";
 import { ErrorLogPanel } from "./components/ErrorLogPanel";
 import { ShortcutsHelpPanel } from "./components/ShortcutsHelpPanel";
-
-type Panel = "explorer" | "editor" | "terminal" | "git";
 
 export function WorkspaceShell() {
   const { lang, t, toggleLang } = useI18n();
@@ -34,7 +33,6 @@ export function WorkspaceShell() {
   const terminal = useTerminal(fileSystem.rootHandle, t);
   const git = useGit(fileSystem.rootHandle);
 
-  const [activePanel, setActivePanel] = React.useState<Panel>("editor");
   const [sidebarPanel, setSidebarPanel] = React.useState<"explorer" | "git">("explorer");
   const [bottomPanel, setBottomPanel] = React.useState<"terminal" | "git" | null>(null);
   const [bottomPanelHeight, setBottomPanelHeight] = React.useState(200);
@@ -61,12 +59,12 @@ export function WorkspaceShell() {
 
   // Check terms acceptance
   React.useEffect(() => {
-    setTermsAccepted(hasAcceptedTerms());
+    queueMicrotask(() => setTermsAccepted(hasAcceptedTerms()));
   }, []);
 
   // Network status
   React.useEffect(() => {
-    setIsOnline(navigator.onLine);
+    queueMicrotask(() => setIsOnline(navigator.onLine));
     const on = () => setIsOnline(true);
     const off = () => setIsOnline(false);
     window.addEventListener("online", on);
@@ -195,7 +193,14 @@ export function WorkspaceShell() {
         {fileSystem.rootHandle && (
           <>
             {projectLogo ? (
-              <img src={projectLogo} alt="logo" style={{ marginLeft: 12, width: 18, height: 18, borderRadius: 4, objectFit: "cover" }} />
+              <Image
+                src={projectLogo}
+                alt="Project logo"
+                width={18}
+                height={18}
+                unoptimized
+                style={{ marginLeft: 12, borderRadius: 4, objectFit: "cover" }}
+              />
             ) : projectMeta ? (
               <span style={{ marginLeft: 12, fontSize: 14 }} title={projectMeta.type}>{projectMeta.icon}</span>
             ) : null}
@@ -770,9 +775,7 @@ export function WorkspaceShell() {
         isOpen={aiPaletteOpen}
         onClose={() => setAiPaletteOpen(false)}
         workspaceFiles={fileSystem.openFiles.map((f) => ({ path: f.path, content: f.content }))}
-        onExecuteAction={(action, params) => {
-          // AI action handled silently
-        }}
+        onExecuteAction={() => undefined}
       />
 
       {/* Status Bar */}

@@ -83,10 +83,6 @@ export function AICommandPalette({
   }, []);
 
   React.useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
-
-  React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         onClose?.();
@@ -169,7 +165,10 @@ export function AICommandPalette({
           <input
             ref={inputRef}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setSelectedIndex(0);
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && query.trim().startsWith("?")) {
                 handleAiSubmit();
@@ -260,7 +259,7 @@ export function AICommandPalette({
                 >
                   {section}
                 </div>
-                {items.map((item, idx) => {
+                {items.map((item) => {
                   const globalIdx = filtered.indexOf(item);
                   const isSelected = globalIdx === selectedIndex;
                   return (

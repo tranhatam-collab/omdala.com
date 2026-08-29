@@ -168,8 +168,8 @@ export class CIPipeline {
           const result = await this.executeJob(job);
           job.output = result.output;
           job.status = "passed";
-        } catch (error: any) {
-          job.error = error.message;
+        } catch (error: unknown) {
+          job.error = error instanceof Error ? error.message : "Unknown pipeline error";
           job.status = "failed";
           job.completedAt = new Date();
           stage.status = "failed";
@@ -203,7 +203,7 @@ export class CIPipeline {
   }
 
   // Simulate job execution
-  private async simulateExecution(job: PipelineJob): Promise<void> {
+  private async simulateExecution(_job: PipelineJob): Promise<void> {
     const duration = Math.random() * 5000 + 2000; // 2-7 seconds
     await new Promise((resolve) => setTimeout(resolve, duration));
   }

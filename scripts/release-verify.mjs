@@ -46,6 +46,12 @@ const steps = [
     cwd: "om-ai.omdala.com/gateway",
   },
   {
+    id: "OM_AI_MOBILE_DEPENDENCIES",
+    command: "npm",
+    args: ["ci", "--ignore-scripts", "--audit=false"],
+    cwd: "om-ai.omdala.com/app",
+  },
+  {
     id: "INFRA_GATEWAY_DEPENDENCIES",
     command: "npm",
     args: ["ci", "--ignore-scripts", "--audit=false"],
@@ -61,6 +67,7 @@ const steps = [
     id: "DEPENDENCY_SECURITY",
     command: "pnpm",
     args: ["security:audit"],
+    requiresExternalAuditAuthorization: true,
   },
   {
     id: "OM_AI_BACKEND_SECURITY",
@@ -68,6 +75,7 @@ const steps = [
     args: ["audit", "--audit-level=high", "--json"],
     cwd: "om-ai.omdala.com/backend",
     captureJson: true,
+    requiresExternalAuditAuthorization: true,
   },
   {
     id: "OM_AI_GATEWAY_SECURITY",
@@ -75,6 +83,7 @@ const steps = [
     args: ["audit", "--audit-level=high", "--json"],
     cwd: "om-ai.omdala.com/gateway",
     captureJson: true,
+    requiresExternalAuditAuthorization: true,
   },
   {
     id: "INFRA_GATEWAY_SECURITY",
@@ -82,6 +91,7 @@ const steps = [
     args: ["audit", "--audit-level=high", "--json"],
     cwd: "infra/services/api-gateway",
     captureJson: true,
+    requiresExternalAuditAuthorization: true,
   },
   {
     id: "INFRA_WORKER_SECURITY",
@@ -89,6 +99,7 @@ const steps = [
     args: ["audit", "--audit-level=high", "--json"],
     cwd: "infra/services/worker",
     captureJson: true,
+    requiresExternalAuditAuthorization: true,
   },
   {
     id: "LINT",
@@ -106,6 +117,11 @@ const steps = [
     args: ["--filter", "@omdala/api", "test"],
   },
   {
+    id: "API_TYPECHECK",
+    command: "pnpm",
+    args: ["--filter", "@omdala/api", "run", "check"],
+  },
+  {
     id: "APP_TESTS",
     command: "pnpm",
     args: ["--filter", "@omdala/app", "test"],
@@ -121,6 +137,16 @@ const steps = [
     args: ["test:brand-core"],
   },
   {
+    id: "BRAND_MARKETPLACE_TESTS",
+    command: "pnpm",
+    args: ["--filter", "@omdala/brand-marketplace", "test"],
+  },
+  {
+    id: "BILLING_TESTS",
+    command: "pnpm",
+    args: ["--filter", "@omdala/billing", "test"],
+  },
+  {
     id: "OM_AI_BACKEND_TESTS",
     command: "npm",
     args: ["test"],
@@ -131,6 +157,12 @@ const steps = [
     command: "npm",
     args: ["test"],
     cwd: "om-ai.omdala.com/gateway",
+  },
+  {
+    id: "OM_AI_MOBILE_CONTRACT_TESTS",
+    command: "npm",
+    args: ["test"],
+    cwd: "om-ai.omdala.com/app",
   },
   {
     id: "INFRA_GATEWAY_TESTS",
@@ -160,6 +192,28 @@ const steps = [
     command: "pnpm",
     args: ["--filter", "@omdala/brand-marketplace", "run", "build"],
     timeout: 15 * 60 * 1000,
+  },
+  {
+    id: "BRAND_EXCHANGE_LINT",
+    command: "pnpm",
+    args: ["--filter", "@omdala/brand-marketplace", "run", "lint"],
+  },
+  {
+    id: "BRAND_EXCHANGE_TYPECHECK",
+    command: "pnpm",
+    args: ["--filter", "@omdala/brand-marketplace", "run", "typecheck"],
+  },
+  {
+    id: "OM_AI_BACKEND_BUILD",
+    command: "npm",
+    args: ["run", "build"],
+    cwd: "om-ai.omdala.com/backend",
+  },
+  {
+    id: "OM_AI_GATEWAY_BUILD",
+    command: "npm",
+    args: ["run", "build"],
+    cwd: "om-ai.omdala.com/gateway",
   },
   {
     id: "API_WRANGLER_PRODUCTION_DRY_RUN",
@@ -223,6 +277,31 @@ const steps = [
     args: ["e2e:brand-exchange"],
     timeout: 15 * 60 * 1000,
   },
+  {
+    id: "STAGING_E2E_DISCOVERY",
+    command: "pnpm",
+    args: [
+      "--filter",
+      "@omdala/app",
+      "exec",
+      "playwright",
+      "test",
+      "--config",
+      "playwright.staging.config.ts",
+      "--list",
+    ],
+    cwd: "apps/app",
+    env: {
+      E2E_STAGING_APP_URL: "https://app-staging.invalid",
+      E2E_STAGING_API_URL: "https://api-staging.invalid",
+      E2E_STAGING_BRAND_URL: "https://brand-staging.invalid",
+      E2E_STAGING_WEB_URL: "https://web-staging.invalid",
+      E2E_TEST_SECRET: "discovery-only-secret-not-used-0000",
+      E2E_RELEASE_SHA: releaseSha,
+      E2E_API_DEPLOYMENT_ID: `${deploymentId}-staging`,
+      E2E_SURFACE_RELEASE_ID: `${deploymentId}-surfaces`,
+    },
+  },
 ];
 
 if (process.env.RELEASE_VERIFY_REMOTE === "true") {
@@ -254,6 +333,26 @@ results.push({
 });
 
 for (const step of results[0].state === "PASS" ? steps : []) {
+  if (
+    step.requiresExternalAuditAuthorization &&
+    process.env.RELEASE_VERIFY_ALLOW_NETWORK_AUDIT !== "true"
+  ) {
+    console.log(`\n===== ${step.id} =====`);
+    console.log(
+      "BLOCKED_BY_EXPLICIT_NETWORK_APPROVAL: dependency-tree metadata was not sent to the registry.",
+    );
+    results.push({
+      id: step.id,
+      state: "BLOCKED",
+      reason: "BLOCKED_BY_EXPLICIT_NETWORK_APPROVAL",
+      duration_ms: 0,
+      command: [step.command, ...step.args].join(" "),
+      cwd: step.cwd || ".",
+      env_keys: Object.keys(step.env || {}),
+    });
+    continue;
+  }
+
   const started = Date.now();
   console.log(`\n===== ${step.id} =====`);
   const result = spawnSync(step.command, step.args, {

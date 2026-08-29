@@ -1,8 +1,16 @@
 // ─── useGit — Git operations bằng isomorphic-git (browser) ───────────────
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import * as git from "isomorphic-git";
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
+function decodeGitContent(content: Uint8Array | void): string {
+  return content ? new TextDecoder().decode(content) : "";
+}
 
 export interface GitStatus {
   path: string;
@@ -30,17 +38,17 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fs = {
+  const fs = useMemo(() => ({
     promises: {
       readFile: async (path: string) => {
         if (!rootHandle) throw new Error("No root handle");
         const parts = path.split("/").filter(Boolean);
         let current = rootHandle;
         for (const part of parts.slice(0, -1)) {
-          current = await (current as any).getDirectoryHandle(part);
+          current = await current.getDirectoryHandle(part);
         }
-        const file = await (current as any).getFileHandle(parts[parts.length - 1]);
-        const f = await (file as any).getFile();
+        const file = await current.getFileHandle(parts[parts.length - 1]);
+        const f = await file.getFile();
         return await f.text();
       },
       writeFile: async (path: string, data: string | Uint8Array) => {
@@ -48,11 +56,17 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
         const parts = path.split("/").filter(Boolean);
         let current = rootHandle;
         for (const part of parts.slice(0, -1)) {
-          current = await (current as any).getDirectoryHandle(part);
+          current = await current.getDirectoryHandle(part);
         }
-        const file = await (current as any).getFileHandle(parts[parts.length - 1], { create: true });
-        const writable = await (file as any).createWritable();
-        await writable.write(data);
+        const file = await current.getFileHandle(parts[parts.length - 1], { create: true });
+        const writable = await file.createWritable();
+        if (typeof data === "string") {
+          await writable.write(data);
+        } else {
+          const bytes = new Uint8Array(data.byteLength);
+          bytes.set(data);
+          await writable.write(bytes);
+        }
         await writable.close();
       },
       readdir: async (path: string) => {
@@ -60,10 +74,10 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
         const parts = path.split("/").filter(Boolean);
         let current = rootHandle;
         for (const part of parts) {
-          current = await (current as any).getDirectoryHandle(part);
+          current = await current.getDirectoryHandle(part);
         }
         const entries: string[] = [];
-        for await (const [name] of (current as any).entries()) {
+        for await (const [name] of current.entries()) {
           entries.push(name);
         }
         return entries;
@@ -73,7 +87,7 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
         const parts = path.split("/").filter(Boolean);
         let current = rootHandle;
         for (const part of parts) {
-          current = await (current as any).getDirectoryHandle(part, { create: true });
+          current = await current.getDirectoryHandle(part, { create: true });
         }
       },
       rm: async (path: string) => {
@@ -81,37 +95,37 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
         const parts = path.split("/").filter(Boolean);
         let current = rootHandle;
         for (const part of parts.slice(0, -1)) {
-          current = await (current as any).getDirectoryHandle(part);
+          current = await current.getDirectoryHandle(part);
         }
-        await (current as any).removeEntry(parts[parts.length - 1], { recursive: true });
+        await current.removeEntry(parts[parts.length - 1], { recursive: true });
       },
       rmdir: async (path: string) => {
         if (!rootHandle) throw new Error("No root handle");
         const parts = path.split("/").filter(Boolean);
         let current = rootHandle;
         for (const part of parts.slice(0, -1)) {
-          current = await (current as any).getDirectoryHandle(part);
+          current = await current.getDirectoryHandle(part);
         }
-        await (current as any).removeEntry(parts[parts.length - 1], { recursive: true });
+        await current.removeEntry(parts[parts.length - 1], { recursive: true });
       },
       unlink: async (path: string) => {
         if (!rootHandle) throw new Error("No root handle");
         const parts = path.split("/").filter(Boolean);
         let current = rootHandle;
         for (const part of parts.slice(0, -1)) {
-          current = await (current as any).getDirectoryHandle(part);
+          current = await current.getDirectoryHandle(part);
         }
-        await (current as any).removeEntry(parts[parts.length - 1]);
+        await current.removeEntry(parts[parts.length - 1]);
       },
       lstat: async (path: string) => {
         if (!rootHandle) throw new Error("No root handle");
         const parts = path.split("/").filter(Boolean);
         let current = rootHandle;
         for (const part of parts.slice(0, -1)) {
-          current = await (current as any).getDirectoryHandle(part);
+          current = await current.getDirectoryHandle(part);
         }
-        const handle = await (current as any).getFileHandle(parts[parts.length - 1]);
-        const file = await (handle as any).getFile();
+        const handle = await current.getFileHandle(parts[parts.length - 1]);
+        const file = await handle.getFile();
         return {
           isFile: () => true,
           isDirectory: () => false,
@@ -124,10 +138,10 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
         const parts = path.split("/").filter(Boolean);
         let current = rootHandle;
         for (const part of parts.slice(0, -1)) {
-          current = await (current as any).getDirectoryHandle(part);
+          current = await current.getDirectoryHandle(part);
         }
-        const handle = await (current as any).getFileHandle(parts[parts.length - 1]);
-        const file = await (handle as any).getFile();
+        const handle = await current.getFileHandle(parts[parts.length - 1]);
+        const file = await handle.getFile();
         return {
           isFile: () => true,
           isDirectory: () => false,
@@ -136,7 +150,7 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
         };
       },
     },
-  };
+  }), [rootHandle]);
 
   const gitdir = ".git";
 
@@ -155,11 +169,12 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
         }
       }
       setStatus(newStatus);
-    } catch (err: any) {
-      if (err.message?.includes("not a git repository")) {
+    } catch (err: unknown) {
+      const errorMessage = getErrorMessage(err, "Không thể tải status");
+      if (errorMessage.includes("not a git repository")) {
         setError("Chưa phải Git repo. Chọn 'Khởi tạo Git' để bắt đầu.");
       } else {
-        setError(err.message || "Không thể tải status");
+        setError(errorMessage);
       }
     } finally {
       setIsLoading(false);
@@ -177,7 +192,7 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
         isCurrent: name === `refs/heads/${current}`,
       }));
       setBranches(branchList);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Load branches error:", err);
     }
   }, [rootHandle, fs]);
@@ -200,8 +215,8 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
       await git.init({ fs, dir: "/", gitdir });
       await loadStatus();
       await loadBranches();
-    } catch (err: any) {
-      setError(err.message || "Không thể khởi tạo repo");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Không thể khởi tạo repo"));
     } finally {
       setIsLoading(false);
     }
@@ -218,7 +233,7 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
         date: new Date(c.commit.author.timestamp * 1000),
       }));
       setCommits(commitList);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Load commits error:", err);
     }
   }, [rootHandle, fs]);
@@ -228,8 +243,8 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
     try {
       await git.add({ fs, dir: "/", gitdir, filepath: path });
       await loadStatus();
-    } catch (err: any) {
-      setError(err.message || "Không thể stage file");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Không thể stage file"));
     }
   }, [rootHandle, fs, loadStatus]);
 
@@ -238,8 +253,8 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
     try {
       await git.remove({ fs, dir: "/", gitdir, filepath: path });
       await loadStatus();
-    } catch (err: any) {
-      setError(err.message || "Không thể unstage file");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Không thể unstage file"));
     }
   }, [rootHandle, fs, loadStatus]);
 
@@ -256,8 +271,8 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
       });
       await loadStatus();
       await loadCommits();
-    } catch (err: any) {
-      setError(err.message || "Không thể commit");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Không thể commit"));
     } finally {
       setIsLoading(false);
     }
@@ -268,8 +283,8 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
     try {
       await git.branch({ fs, dir: "/", gitdir, ref: name });
       await loadBranches();
-    } catch (err: any) {
-      setError(err.message || "Không thể tạo branch");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Không thể tạo branch"));
     }
   }, [rootHandle, fs, loadBranches]);
 
@@ -280,8 +295,8 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
       await git.checkout({ fs, dir: "/", gitdir, ref: name });
       await loadStatus();
       await loadBranches();
-    } catch (err: any) {
-      setError(err.message || "Không thể checkout branch");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, "Không thể checkout branch"));
     } finally {
       setIsLoading(false);
     }
@@ -300,14 +315,18 @@ export function useGit(rootHandle: FileSystemDirectoryHandle | null) {
           const headOid = head ? await head.oid() : null;
           const workdirOid = workdir ? await workdir.oid() : null;
           if (headOid === workdirOid) return null;
-          const headContent = head ? await (head as any).content() : "";
-          const workdirContent = workdir ? await (workdir as any).content() : "";
-          return { head: headContent, workdir: workdirContent };
+          const headContent = head ? await head.content() : undefined;
+          const workdirContent = workdir ? await workdir.content() : undefined;
+          return {
+            head: decodeGitContent(headContent),
+            workdir: decodeGitContent(workdirContent),
+          };
         },
-      });
-      const result = diff.filter(Boolean)[0] as any;
-      return result;
-    } catch (err: any) {
+      }) as Array<{ head: string; workdir: string } | null>;
+      return diff.find(
+        (item): item is { head: string; workdir: string } => item !== null,
+      ) ?? null;
+    } catch (err: unknown) {
       console.error("Get diff error:", err);
       return null;
     }

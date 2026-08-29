@@ -43,7 +43,7 @@ export function ProjectTrackerPanel({ currentProjectKey, currentProjectName, cur
   currentProjectType: string;
   currentModel: string;
 }) {
-  const [plans, setPlans] = React.useState<ProjectPlan[]>([]);
+  const [plans, setPlans] = React.useState<ProjectPlan[]>(() => loadAllPlans());
   const [selectedPlanId, setSelectedPlanId] = React.useState<string | null>(null);
   const [filterStatus, setFilterStatus] = React.useState<TaskStatus | "all">("all");
   const [view, setView] = React.useState<"dashboard" | "tasks" | "audit" | "report">("dashboard");
@@ -52,7 +52,6 @@ export function ProjectTrackerPanel({ currentProjectKey, currentProjectName, cur
   const [reportCopied, setReportCopied] = React.useState(false);
 
   React.useEffect(() => {
-    setPlans(loadAllPlans());
     const iv = setInterval(() => setPlans(loadAllPlans()), 2000);
     return () => clearInterval(iv);
   }, []);
@@ -61,7 +60,7 @@ export function ProjectTrackerPanel({ currentProjectKey, currentProjectName, cur
   React.useEffect(() => {
     if (currentProjectKey) {
       const plan = getOrCreatePlan(currentProjectKey, currentProjectName, currentProjectType, currentModel);
-      if (plan) setSelectedPlanId(plan.id);
+      if (plan) queueMicrotask(() => setSelectedPlanId(plan.id));
     }
   }, [currentProjectKey, currentProjectName, currentProjectType, currentModel]);
 

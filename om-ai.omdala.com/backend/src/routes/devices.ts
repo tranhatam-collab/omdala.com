@@ -4,7 +4,7 @@ import { evaluatePolicy } from '../policyEngine.js';
 import { persistence } from '../persistence.js';
 import { createProof } from '../proofStore.js';
 import { fail, ok } from '../response.js';
-import { userRoleEnum } from '../schemas.js';
+import { errorEnvelopeSchema, userRoleEnum } from '../schemas.js';
 import type { UserRole } from '../types.js';
 import { nowIso, randomId } from '../utils.js';
 
@@ -144,6 +144,9 @@ export function registerDevicesRoutes(app: FastifyInstance) {
             },
             required: ['data', 'error'],
           },
+          401: errorEnvelopeSchema,
+          403: errorEnvelopeSchema,
+          404: errorEnvelopeSchema,
         },
       },
     },

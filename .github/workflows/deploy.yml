@@ -17,9 +17,14 @@ on:
       confirmation:
         description: Type DEPLOY_OMDALA to authorize the release
         required: true
+      staging_acceptance_run_id:
+        description: Successful staging acceptance workflow run ID; required for production
+        required: false
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: omdala-release-${{ inputs.environment }}
@@ -47,6 +52,70 @@ jobs:
           deployment_id="gh-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${sha:0:12}"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "deployment_id=$deployment_id" >> "$GITHUB_OUTPUT"
+      - name: Require staging acceptance run for production
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${{ inputs.staging_acceptance_run_id }}" =~ ^[0-9]+$ ]] || {
+            echo "::error::A numeric staging_acceptance_run_id is required for production"
+            exit 1
+          }
+      - name: Verify staging acceptance workflow identity
+        if: inputs.environment == 'production'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ steps.source.outputs.sha }}
+          ACCEPTANCE_RUN_ID: ${{ inputs.staging_acceptance_run_id }}
+        run: |
+          set -euo pipefail
+          run_json="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${ACCEPTANCE_RUN_ID}")"
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            '.name == "OMDALA Staging Go-Live E2E" and
+             .event == "workflow_dispatch" and
+             .status == "completed" and
+             .conclusion == "success" and
+             .head_sha == $sha' \
+            <<<"$run_json" >/dev/null || {
+              echo "::error::Staging acceptance run is not a successful exact-SHA run"
+              exit 1
+            }
+      - name: Download immutable staging acceptance receipt
+        if: inputs.environment == 'production'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: omdala-staging-acceptance-${{ steps.source.outputs.sha }}
+          path: staging-acceptance
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.staging_acceptance_run_id }}
+      - name: Verify staging acceptance receipt
+        if: inputs.environment == 'production'
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.source.outputs.sha }}
+          ACCEPTANCE_RUN_ID: ${{ inputs.staging_acceptance_run_id }}
+        run: |
+          set -euo pipefail
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            --arg run_id "$ACCEPTANCE_RUN_ID" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            '.verdict == "STAGING_ACCEPTED" and
+             .candidate_sha == $sha and
+             .workflow_run_id == ($run_id | tonumber) and
+             .repository == $repository and
+             (.api_deployment_id | length) > 0 and
+             (.surface_release_id | length) > 0' \
+            staging-acceptance/staging-acceptance.json >/dev/null || {
+              echo "::error::Staging acceptance artifact does not bind this production SHA"
+              exit 1
+            }
       - name: Guard production release SHA on main
         if: inputs.environment == 'production'
         shell: bash
@@ -96,9 +165,57 @@ jobs:
           )
           pnpm --filter @omdala/api exec wrangler "${args[@]}"
 
+  migrate-database:
+    name: Apply idempotent API schema migrations
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          persist-credentials: false
+      - name: Require protected origin database credential
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "${DATABASE_URL:-}" || {
+            echo "::error::Protected secret OMDALA_DATABASE_URL is required"
+            exit 1
+          }
+          psql --version
+      - name: Apply migrations in lexical order
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          for migration in infra/postgres/migrations/*.sql; do
+            echo "Applying ${migration}"
+            psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file "$migration"
+          done
+      - name: Verify required runtime schema
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          result="$(psql "$DATABASE_URL" --tuples-only --no-align --command \
+            "SELECT CASE WHEN
+               (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'omdala' AND table_name IN ('nodes', 'proofs', 'account_profiles', 'account_preferences')) = 4
+               AND
+               (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'omdala' AND table_name IN ('nodes', 'proofs') AND column_name = 'owner_email' AND is_nullable = 'NO') = 2
+             THEN 1 ELSE 0 END;")"
+          test "$result" = "1" || {
+            echo "::error::Required OMDALA API tables or ownership locks are missing"
+            exit 1
+          }
+
   deploy-api:
     name: Deploy omdala-api
-    needs: validate
+    needs: [validate, migrate-database]
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:

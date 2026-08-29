@@ -6,6 +6,11 @@ const configDir = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  output: "export",
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
