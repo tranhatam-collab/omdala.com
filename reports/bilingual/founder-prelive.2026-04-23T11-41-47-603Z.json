@@ -1,0 +1,74 @@
+{
+  "generatedAt": "2026-04-23T11:41:47.603Z",
+  "decision": "NO-GO",
+  "blockers": [
+    "/",
+    "/vi/",
+    "/what-is-omdala/",
+    "/vi/what-is-omdala/",
+    "/how-it-works/",
+    "/vi/how-it-works/",
+    "/for-experts/",
+    "/vi/for-experts/",
+    "/for-hosts/",
+    "/vi/for-hosts/",
+    "/for-communities/",
+    "/vi/for-communities/",
+    "/trust/",
+    "/vi/trust/",
+    "/vision/",
+    "/vi/vision/",
+    "/faq/",
+    "/vi/faq/",
+    "/contact/",
+    "/vi/contact/",
+    "public_audit_blocking_issues:28",
+    "team2_unresolved_p0:41",
+    "team1_signoff:team1_signoff_not_final"
+  ],
+  "metrics": {
+    "totalUrlsReviewed": 20,
+    "totalPagesFixed": 0,
+    "vietnameseIssuesFixed": 0,
+    "englishIssuesFixed": 0,
+    "metadataStandardized": 19,
+    "altTextStandardized": 16,
+    "ctaFormMenuFooterStandardized": "22/58"
+  },
+  "confirmation": {
+    "vietnameseQuality": "blocked",
+    "englishQuality": "blocked",
+    "seoQuality": "blocked",
+    "liveReadiness": "blocked"
+  },
+  "signoff": {
+    "team1": {
+      "ready": false,
+      "path": "docs/TEAM_1_BILINGUAL_PUBLIC_WEB_EVIDENCE_2026-04-23.md",
+      "reason": "team1_signoff_not_final"
+    },
+    "team2": {
+      "ready": true,
+      "paths": [
+        "docs/TEAM_2_BILINGUAL_TEXT_INVENTORY_2026-04-23.md",
+        "docs/TEAM_2_BILINGUAL_SOURCE_STRATEGY_2026-04-23.md",
+        "docs/TEAM_2_BILINGUAL_PRODUCT_COPY_REGISTRY_2026-04-23.md"
+      ],
+      "reason": "ready",
+      "missing": [],
+      "inventoryProgress": {
+        "implementedOrVerifiedRows": 22,
+        "totalRows": 58
+      }
+    },
+    "team3SourceGate": {
+      "passed": true,
+      "output": "bilingual-source-check passed\nchecked pages: 10"
+    }
+  },
+  "evidence": {
+    "publicAuditReport": "reports/bilingual/public-audit.latest.json",
+    "hardcodeScanReport": "reports/bilingual/hardcode-scan.latest.json",
+    "founderReportDoc": "docs/OMDALA_BILINGUAL_PRELIVE_REPORT_2026-04-23.md"
+  }
+}

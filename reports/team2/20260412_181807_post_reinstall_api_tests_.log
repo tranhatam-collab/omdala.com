@@ -1,0 +1,13 @@
+
+> omniverse-web@0.1.0 test
+> vitest run test/api.test.ts
+
+
+ RUN  v4.1.2 /Users/tranhatam/Documents/Devnewproject/omdala.com/omniverse.omdala.com/web
+
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  18:18:34
+   Duration  1.02s (transform 43ms, setup 85ms, import 22ms, tests 21ms, environment 738ms)
+

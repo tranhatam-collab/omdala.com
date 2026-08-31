@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+        continue-on-error: false
+
+      - name: Secret scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Test
+        run: npm test
+        env:
+          NODE_ENV: test
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build API Gateway
+        run: docker build -t omdala-api:test ./services/api-gateway
+
+      - name: Build Worker
+        run: docker build -t omdala-worker:test ./services/worker
+
+      - name: Build Backup
+        run: docker build -t omdala-backup:test ./backup
+
+  schema-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start PostgreSQL
+        uses: harmon758/postgresql-action@v1
+        with:
+          postgresql version: '17'
+          postgresql db: omdala_test
+          postgresql user: postgres
+          postgresql password: test
+
+      - name: Validate SQL schema
+        run: |
+          psql -U postgres -d omdala_test -f postgres/init-scripts/01-create-users.sql
+          psql -U postgres -d omdala_test -f postgres/init-scripts/02-create-schemas.sql
+          psql -U postgres -d omdala_test -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='omdala';"

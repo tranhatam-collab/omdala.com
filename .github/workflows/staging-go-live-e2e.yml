@@ -1,0 +1,260 @@
+name: OMDALA Staging Go-Live E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact candidate SHA already deployed to the staging surfaces
+        required: true
+        type: string
+      source_pr_number:
+        description: Pull request containing the exact candidate and independent approval
+        required: true
+        type: string
+      api_release_run_id:
+        description: Successful OMDALA Release staging workflow run ID
+        required: true
+        type: string
+      surface_release_run_id:
+        description: Successful OMDALA Surface Release staging workflow run ID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: omdala-staging-go-live-${{ inputs.candidate_sha }}
+  cancel-in-progress: false
+
+jobs:
+  exact-candidate-acceptance:
+    name: Exact-Candidate Staging Acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          persist-credentials: false
+      - name: Verify checked-out candidate
+        shell: bash
+        run: test "$(git rev-parse HEAD)" = "${{ inputs.candidate_sha }}"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+      - id: independent_review
+        name: Require independent exact-SHA approval
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/release-review-policy.mjs
+          --repository "${{ github.repository }}"
+          --pull-request "${{ inputs.source_pr_number }}"
+          --sha "${{ inputs.candidate_sha }}"
+          --receipt independent-review-receipt.json
+      - name: Verify exact API and surface release workflow runs
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          verify_run() {
+            local run_id="$1"
+            local workflow_name="$2"
+            [[ "$run_id" =~ ^[0-9]+$ ]] || {
+              echo "::error::Release workflow run ID must be numeric"
+              return 1
+            }
+            run_json="$(curl --fail --silent --show-error \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}")"
+            jq -e \
+              --arg name "$workflow_name" \
+              --arg sha "${{ inputs.candidate_sha }}" \
+              '.name == $name and
+               .event == "workflow_dispatch" and
+               .status == "completed" and
+               .conclusion == "success" and
+               .head_sha == $sha' \
+              <<<"$run_json" >/dev/null || {
+                echo "::error::$workflow_name is not a successful exact-SHA release run"
+                return 1
+              }
+          }
+          verify_run "${{ inputs.api_release_run_id }}" "OMDALA Release"
+          verify_run "${{ inputs.surface_release_run_id }}" "OMDALA Surface Release"
+      - name: Download immutable API release receipt
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: omdala-api-release-${{ inputs.candidate_sha }}-staging
+          path: release-chain/api
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.api_release_run_id }}
+      - name: Download immutable encrypted backup receipt
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: omdala-pre-migration-backup-${{ inputs.candidate_sha }}-staging
+          path: release-chain/backup
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.api_release_run_id }}
+      - name: Download immutable surface release receipt
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: omdala-surface-release-${{ inputs.candidate_sha }}-staging
+          path: release-chain/surfaces
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.surface_release_run_id }}
+      - id: release_chain
+        name: Verify release and backup receipt chain
+        shell: bash
+        run: |
+          set -euo pipefail
+          api_receipt=release-chain/api/api-release.json
+          backup_receipt=release-chain/backup/pre-migration-receipt.json
+          surface_receipt=release-chain/surfaces/surface-release.json
+          encrypted_backup="$(find release-chain/backup -maxdepth 1 -type f -name '*.dump.enc' -print -quit)"
+          test -n "$encrypted_backup"
+          backup_receipt_sha256="$(sha256sum "$backup_receipt" | awk '{print $1}')"
+          encrypted_backup_sha256="$(sha256sum "$encrypted_backup" | awk '{print $1}')"
+          jq -e \
+            --arg sha "${{ inputs.candidate_sha }}" \
+            --arg pr "${{ inputs.source_pr_number }}" \
+            --arg reviewer "${{ steps.independent_review.outputs.reviewer }}" \
+            --arg review_id "${{ steps.independent_review.outputs.review_id }}" \
+            --arg backup_hash "$backup_receipt_sha256" \
+            --arg run_id "${{ inputs.api_release_run_id }}" \
+            '.verdict == "API_RELEASE_ACCEPTED" and
+             .environment == "staging" and
+             .candidate_sha == $sha and
+             (.source_pr_number | tostring) == $pr and
+             .independent_reviewer == $reviewer and
+             (.independent_review_id | tostring) == $review_id and
+             .database_backup_receipt_sha256 == $backup_hash and
+             (.workflow_run_id | tostring) == $run_id' \
+            "$api_receipt" >/dev/null
+          jq -e \
+            --arg sha "${{ inputs.candidate_sha }}" \
+            --arg encrypted_hash "$encrypted_backup_sha256" \
+            '.verdict == "BACKUP_RESTORE_VERIFIED" and
+             .environment == "staging" and
+             .candidate_sha == $sha and
+             .source_and_restore_distinct == true and
+             .exact_row_counts_match == true and
+             .encrypted_backup_decrypt_verified == true and
+             .encrypted_backup_sha256 == $encrypted_hash' \
+            "$backup_receipt" >/dev/null
+          jq -e \
+            --arg sha "${{ inputs.candidate_sha }}" \
+            --arg pr "${{ inputs.source_pr_number }}" \
+            --arg reviewer "${{ steps.independent_review.outputs.reviewer }}" \
+            --arg review_id "${{ steps.independent_review.outputs.review_id }}" \
+            --arg run_id "${{ inputs.surface_release_run_id }}" \
+            '.verdict == "SURFACE_RELEASE_ACCEPTED" and
+             .environment == "staging" and
+             .candidate_sha == $sha and
+             (.source_pr_number | tostring) == $pr and
+             .independent_reviewer == $reviewer and
+             (.independent_review_id | tostring) == $review_id and
+             (.workflow_run_id | tostring) == $run_id' \
+            "$surface_receipt" >/dev/null
+          {
+            echo "api_deployment_id=$(jq -r '.deployment_id' "$api_receipt")"
+            echo "surface_release_id=$(jq -r '.release_id' "$surface_receipt")"
+            echo "database_backup_receipt_sha256=$backup_receipt_sha256"
+          } >> "$GITHUB_OUTPUT"
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @omdala/app exec playwright install --with-deps chromium
+      - name: Run fail-closed staging E2E
+        run: pnpm e2e:staging
+        env:
+          E2E_STAGING_APP_URL: ${{ secrets.OMDALA_STAGING_APP_URL }}
+          E2E_STAGING_API_URL: ${{ secrets.OMDALA_STAGING_API_URL }}
+          E2E_STAGING_BRAND_URL: ${{ secrets.OMDALA_STAGING_BRAND_URL }}
+          E2E_STAGING_WEB_URL: ${{ secrets.OMDALA_STAGING_WEB_URL }}
+          E2E_TEST_SECRET: ${{ secrets.OMDALA_STAGING_E2E_TEST_SECRET }}
+          E2E_RELEASE_SHA: ${{ inputs.candidate_sha }}
+          E2E_API_DEPLOYMENT_ID: ${{ steps.release_chain.outputs.api_deployment_id }}
+          E2E_SURFACE_RELEASE_ID: ${{ steps.release_chain.outputs.surface_release_id }}
+          E2E_STAGING_JSON_REPORT: staging-e2e-results.json
+      - id: e2e_receipt
+        name: Verify all staging scenarios actually executed
+        shell: bash
+        run: >-
+          node scripts/playwright-staging-receipt.mjs
+          --report staging-e2e-results.json
+          --receipt staging-e2e-receipt.json
+          --expected 4
+          --sha "${{ inputs.candidate_sha }}"
+      - name: Write exact-candidate staging acceptance receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg candidate_sha "${{ inputs.candidate_sha }}" \
+            --arg source_pr_number "${{ inputs.source_pr_number }}" \
+            --arg independent_reviewer "${{ steps.independent_review.outputs.reviewer }}" \
+            --arg independent_review_id "${{ steps.independent_review.outputs.review_id }}" \
+            --arg api_release_run_id "${{ inputs.api_release_run_id }}" \
+            --arg surface_release_run_id "${{ inputs.surface_release_run_id }}" \
+            --arg api_deployment_id "${{ steps.release_chain.outputs.api_deployment_id }}" \
+            --arg surface_release_id "${{ steps.release_chain.outputs.surface_release_id }}" \
+            --arg database_backup_receipt_sha256 "${{ steps.release_chain.outputs.database_backup_receipt_sha256 }}" \
+            --arg e2e_report_sha256 "${{ steps.e2e_receipt.outputs.report_sha256 }}" \
+            --arg e2e_scenarios_executed "${{ steps.e2e_receipt.outputs.executed }}" \
+            --arg workflow_run_id "${GITHUB_RUN_ID}" \
+            --arg workflow_run_attempt "${GITHUB_RUN_ATTEMPT}" \
+            --arg repository "${GITHUB_REPOSITORY}" \
+            --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              verdict: "STAGING_ACCEPTED",
+              candidate_sha: $candidate_sha,
+              source_pr_number: ($source_pr_number | tonumber),
+              independent_reviewer: $independent_reviewer,
+              independent_review_id: ($independent_review_id | tonumber),
+              api_release_run_id: ($api_release_run_id | tonumber),
+              surface_release_run_id: ($surface_release_run_id | tonumber),
+              api_deployment_id: $api_deployment_id,
+              surface_release_id: $surface_release_id,
+              database_backup_receipt_sha256: $database_backup_receipt_sha256,
+              e2e_report_sha256: $e2e_report_sha256,
+              e2e_scenarios_executed: ($e2e_scenarios_executed | tonumber),
+              workflow_run_id: ($workflow_run_id | tonumber),
+              workflow_run_attempt: ($workflow_run_attempt | tonumber),
+              repository: $repository,
+              created_at: $created_at
+            }' > staging-acceptance.json
+          jq -e \
+            --arg sha "${{ inputs.candidate_sha }}" \
+            '.verdict == "STAGING_ACCEPTED" and
+             .candidate_sha == $sha and
+             .e2e_scenarios_executed == 4 and
+             (.database_backup_receipt_sha256 | length) == 64' \
+            staging-acceptance.json >/dev/null
+      - name: Upload immutable staging acceptance receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-staging-acceptance-${{ inputs.candidate_sha }}
+          path: |
+            staging-acceptance.json
+            independent-review-receipt.json
+            release-chain/api/api-release.json
+            release-chain/backup/pre-migration-receipt.json
+            release-chain/surfaces/surface-release.json
+            staging-e2e-results.json
+            staging-e2e-receipt.json
+          if-no-files-found: error
+          retention-days: 30

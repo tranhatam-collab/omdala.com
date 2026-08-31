@@ -120,11 +120,11 @@ P6:
 
 ## 7. Design rules
 
-- minimal
-- clear
-- premium
-- mobile-aware
-- action-focused
+- Signal & Substrate UI: deep space substrate, cyan signal, gold only for verified proof
+- minimal, clear, premium, mobile-aware, action-focused
+- squared system surfaces, not soft lifestyle cards
+- no decorative gold, no hype gradients, no local-travel visual language
+- respect `prefers-reduced-motion`
 
 ## 8. Copy rules
 
@@ -153,17 +153,32 @@ do not build it.
 
 ## 10. Initial implementation sequence
 
-1. freeze domain language
-2. build master homepage
-3. scaffold app shell
-4. implement node and resource model
-5. implement requests and offers
-6. implement matching and messaging
-7. implement booking and trust
-8. add AI action layer
+1. freeze domain language through `docs/OMDALA_BRANDPRO_LOCK_2026-05-12.md`
+2. run `npm run brand:lint` and `npm run brand:lint:static`
+3. build master homepage
+4. scaffold app shell
+5. implement node and resource model
+6. implement requests and offers
+7. implement matching and messaging
+8. implement booking and trust
+9. add AI action layer
 
-## 11. Final definition
+## 11. Team dev brand gate
+
+Before a team merges a UI/copy/docs route change, it must check:
+
+1. `docs/BRAND_ARCHITECTURE_OMDALA.md`
+2. `docs/OMDALA_V2_SIGNAL_SUBSTRATE.md`
+3. `docs/OMDALA_BRANDPRO_LOCK_2026-05-12.md`
+4. `docs/OMDALA_BRANDPRO_APPLY_REPORT_2026-05-12.md`
+
+Team-specific rules:
+
+- Team 1 / repo-health: keep the lock packet and branch evidence current; do not stage unrelated worktree noise.
+- Team 2 / docs-admin: remove stale wording that makes OMDALA sound like a local listing board, tourism product, generic marketplace, or chatbot.
+- Team 3 / release-evidence: package before/after proof for web, static fallback, brand-lint, and build commands.
+
+## 12. Final definition
 
 OMDALA is not just a product.
 OMDALA is the global operating layer.
-

@@ -1,0 +1,39 @@
+# G0.4 — Clean Isolated Worktree Receipt
+
+## Action
+- Cloned repo into isolated directory (no checkout of broken worktree)
+- Directory: /Users/tranhatam/Documents/Devnewproject/omdala-audit-clean
+- Command: git clone --no-checkout git@github.com:tranhatam-collab/omdala.com.git
+- Then: git checkout feat/pricing-promo-engine
+
+## Clean worktree status
+- HEAD: 00690da6ddb851965d6a45c0e82e19ef841d7f6f (feat/pricing-promo-engine)
+- Files: 1145
+- Valid HEAD: YES
+- Clean status: YES
+
+## Branch inventory
+| Branch | HEAD | Files | Description |
+|--------|------|-------|-------------|
+| main | 63433d3 | 41 | Minimal scaffold |
+| feat/pricing-promo-engine | 00690da | 1145 | Most advanced — pricing, promo, billing, infra |
+| audit-omdala-infra | ad019a3 | 141 | Infra audit branch |
+| brand/v2.0-signal-substrate | 6d715ff | 43 | Brand v2.0 |
+| feat/omniverse-auth-o1-o2 | 49b4b94 | 681 | Omniverse auth + backend parity |
+
+## Remote
+- origin: git@github.com:tranhatam-collab/omdala.com.git
+- Remote HEAD: origin/main at 63433d3
+
+## Candidate canonical branches (for Founder decision G0.5)
+1. feat/pricing-promo-engine (00690da) — most content, 1145 files, includes pricing/billing/infra
+2. main (63433d3) — minimal scaffold, 41 files
+3. feat/omniverse-auth-o1-o2 (49b4b94) — omniverse auth, 681 files
+4. audit-omdala-infra (ad019a3) — infra audit, 141 files
+
+## Output
+- CLEAN_WORKTREE_FILE_LISTING.tsv — 1145 files from feat/pricing-promo-engine checkout
+
+## Next step
+- G0.5: Founder selects canonical branch and commit
+- G0.6: Diff current broken filesystem against clean worktree

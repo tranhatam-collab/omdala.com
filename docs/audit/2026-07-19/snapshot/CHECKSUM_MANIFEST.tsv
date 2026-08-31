@@ -1,0 +1,6 @@
+# OMDALA Filesystem Checksum Manifest
+# Generated: 2026-07-19T14:56:50Z
+# Root: /Users/tranhatam/Documents/Devnewproject/omdala.com
+# Format: TSV — path<TAB>size_bytes<TAB>sha256
+# Secret-bearing files: EXCLUDED from checksum (path+size only in SECRET_NAME_INVENTORY.txt)
+path	size_bytes	sha256

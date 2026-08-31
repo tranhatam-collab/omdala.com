@@ -1,0 +1,14 @@
+[2026-04-12 18:18:07] Team2 forced reinstall started
+[2026-04-12 18:18:07] Run log: /Users/tranhatam/Documents/Devnewproject/omdala.com/reports/team2/team2_reinstall_omniverse_web_20260412_181807.log
+[2026-04-12 18:18:07] START: Rename existing node_modules (timeout=120s, log=/Users/tranhatam/Documents/Devnewproject/omdala.com/reports/team2/20260412_181807_rename_existing_node_modules_.log)
+[2026-04-12 18:18:08] PASS: Rename existing node_modules
+[2026-04-12 18:18:08] Renamed node_modules -> /Users/tranhatam/Documents/Devnewproject/omdala.com/omniverse.omdala.com/web/node_modules_stale_20260412_181807
+[2026-04-12 18:18:09] Install attempt 1/2 via https://registry.npmjs.org
+[2026-04-12 18:18:09] START: npm install via https://registry.npmjs.org (attempt 1) (timeout=240s, log=/Users/tranhatam/Documents/Devnewproject/omdala.com/reports/team2/20260412_181807_npm_install_via_https_registry_npmjs_org_attempt_1_.log)
+[2026-04-12 18:18:28] PASS: npm install via https://registry.npmjs.org (attempt 1)
+[2026-04-12 18:18:28] Install succeeded via registry: https://registry.npmjs.org
+[2026-04-12 18:18:28] START: Post-reinstall typecheck (timeout=180s, log=/Users/tranhatam/Documents/Devnewproject/omdala.com/reports/team2/20260412_181807_post_reinstall_typecheck_.log)
+[2026-04-12 18:18:30] PASS: Post-reinstall typecheck
+[2026-04-12 18:18:30] START: Post-reinstall API tests (timeout=180s, log=/Users/tranhatam/Documents/Devnewproject/omdala.com/reports/team2/20260412_181807_post_reinstall_api_tests_.log)
+[2026-04-12 18:18:36] PASS: Post-reinstall API tests
+[2026-04-12 18:18:36] Team2 forced reinstall finished successfully

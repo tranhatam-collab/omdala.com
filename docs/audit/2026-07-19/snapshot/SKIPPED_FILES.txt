@@ -1,0 +1,3 @@
+# OMDALA Skipped Files (unreadable or timed out)
+# Generated: 2026-07-19T14:56:50Z
+path	reason

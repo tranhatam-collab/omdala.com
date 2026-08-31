@@ -1,7 +1,9 @@
 # OMDALA Brand Architecture
 
-Version: 1.0
-Status: approved master brand direction
+Version: 1.2
+Status: approved master brand direction + Brandpro-all dev lock
+Brandpro source: `/Users/tranhatam/Documents/Devnewproject/Brandpro-all`
+Current lock packet: `docs/OMDALA_BRANDPRO_LOCK_2026-05-12.md`
 
 ## 1. Brand role
 
@@ -23,11 +25,11 @@ OMDALA should hold:
 Primary:
 
 - OMDALA
-- The Operating Layer for Real-World Value
+- The Operating Layer for Real-World State Transitions
 
 Secondary:
 
-- Activate People, Places, and Intelligence
+- Activate people, places, intelligence, and trust into verifiable coordination
 
 ## 3. Category
 
@@ -35,6 +37,8 @@ Approved category language:
 
 - Human Coordination OS
 - Life Resource Operating System
+- Verified coordination infrastructure
+- Global operating layer
 
 Do not describe OMDALA as:
 
@@ -116,7 +120,33 @@ Avoid:
 - fake AI language
 - travel language
 
-## 10. Final brand rule
+## 10. Signal & Substrate UI lock
+
+The current web direction is Brand v2.0 "Signal & Substrate":
+
+- substrate: deep space foundation, precise grid, calm terminal structure
+- signal: cyan/blue for primary action and navigation
+- verification: gold only for verified proof, approved lock, or success state
+- radius: squared system surfaces, not soft lifestyle cards
+- motion: slow scan and interaction feedback only; respect reduced motion
+
+Required proof:
+
+- `npm run brand:lint`
+- `npm run brand:lint:static`
+- `npm run build`
+- `npm run build:static`
+
+## 11. Team execution rule
+
+Any team touching OMDALA public web, docs, app shell, admin shell, copy, route naming, or UI components must check the lock packet before merging:
+
+- `docs/OMDALA_BRANDPRO_LOCK_2026-05-12.md`
+- `docs/OMDALA_V2_SIGNAL_SUBSTRATE.md`
+- `docs/README_DEV_HANDOFF_OMDALA.md`
+
+Do not import sub-product language from Om AI, AI Omniverse, or OMDALAT into the master OMDALA homepage unless the relationship is explicitly explained.
+
+## 12. Final brand rule
 
 If a future feature or page makes OMDALA feel like a generic app, a local listing board, or a hype startup page, reject it.
-

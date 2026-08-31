@@ -1,0 +1,53 @@
+# OMDALA Infra — Local Development Overrides
+# This file is automatically loaded by docker compose when named docker-compose.override.yml
+# It adds: hot-reload volumes, exposed debug ports, and local dev tooling.
+
+services:
+  api-gateway:
+    build:
+      target: base
+    volumes:
+      - ./services/api-gateway/src:/app/src:ro
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+    ports:
+      - "9229:9229"  # Node.js debug port
+    command: ["node", "--inspect=0.0.0.0:9229", "--watch", "src/index.js"]
+
+  worker:
+    build:
+      target: base
+    volumes:
+      - ./services/worker/src:/app/src:ro
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "9230:9230"  # Node.js debug port
+    command: ["node", "--inspect=0.0.0.0:9230", "--watch", "src/index.js"]
+
+  postgres:
+    # Expose PostgreSQL port locally for debugging (NOT in production)
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: omdala_dev
+
+  valkey:
+    # Expose Valkey port locally for debugging
+    ports:
+      - "6379:6379"
+    command: >
+      valkey-server
+      --requirepass dev_password
+      --appendonly yes
+
+  # Optional: Add Mailhog for local email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI
+    networks:
+      - omdala-internal

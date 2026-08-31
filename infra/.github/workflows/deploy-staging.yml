@@ -1,0 +1,37 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to staging VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            cd /opt/omdala-infra
+            git fetch origin develop
+            git checkout origin/develop
+            cp .env.staging .env
+            docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --build
+            docker compose exec api-gateway npm run migrate
+            ./scripts/health-check.sh
+          EOF
+
+      - name: Notify
+        if: always()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+            -H 'Content-type: application/json' \
+            -d '{"text":"Staging deploy: ${{ job.status }}"}'

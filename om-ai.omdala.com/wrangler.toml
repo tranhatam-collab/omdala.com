@@ -1,0 +1,10 @@
+name = "ai-omdala-home"
+compatibility_date = "2026-04-04"
+pages_build_output_dir = "web/dist"
+
+[vars]
+MAIL_API_BASE_URL = "https://api.mail.iai.one/v1"
+EMAIL_FROM = "OMDALA <hello@omdala.com>"
+EMAIL_FROM_NOREPLY = "OMDALA <noreply@omdala.com>"
+SUPPORT_EMAIL = "support@omdala.com"
+MAIL_API_WORKSPACE_ID = "omdala.com"

@@ -1,0 +1,385 @@
+name: OMDALA Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Exact branch, tag, or commit SHA to release
+        required: true
+        default: main
+      environment:
+        description: Protected GitHub environment
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      confirmation:
+        description: Type DEPLOY_OMDALA to authorize the release
+        required: true
+      source_pr_number:
+        description: Pull request containing the exact candidate and its independent approval
+        required: true
+        type: string
+      staging_acceptance_run_id:
+        description: Successful staging acceptance workflow run ID; required for production
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: omdala-release-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate release candidate
+    if: inputs.confirmation == 'DEPLOY_OMDALA'
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+      deployment_id: ${{ steps.source.outputs.deployment_id }}
+      source_pr_number: ${{ inputs.source_pr_number }}
+      independent_reviewer: ${{ steps.independent_review.outputs.reviewer }}
+      independent_review_id: ${{ steps.independent_review.outputs.review_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+      - id: source
+        name: Lock release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha="$(git rev-parse HEAD)"
+          deployment_id="gh-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${sha:0:12}"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "deployment_id=$deployment_id" >> "$GITHUB_OUTPUT"
+      - id: independent_review
+        name: Require independent exact-SHA approval
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/release-review-policy.mjs
+          --repository "${{ github.repository }}"
+          --pull-request "${{ inputs.source_pr_number }}"
+          --sha "${{ steps.source.outputs.sha }}"
+          --receipt independent-review-receipt.json
+      - name: Require staging acceptance run for production
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${{ inputs.staging_acceptance_run_id }}" =~ ^[0-9]+$ ]] || {
+            echo "::error::A numeric staging_acceptance_run_id is required for production"
+            exit 1
+          }
+      - name: Verify staging acceptance workflow identity
+        if: inputs.environment == 'production'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ steps.source.outputs.sha }}
+          ACCEPTANCE_RUN_ID: ${{ inputs.staging_acceptance_run_id }}
+        run: |
+          set -euo pipefail
+          run_json="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${ACCEPTANCE_RUN_ID}")"
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            '.name == "OMDALA Staging Go-Live E2E" and
+             .event == "workflow_dispatch" and
+             .status == "completed" and
+             .conclusion == "success" and
+             .head_sha == $sha' \
+            <<<"$run_json" >/dev/null || {
+              echo "::error::Staging acceptance run is not a successful exact-SHA run"
+              exit 1
+            }
+      - name: Download immutable staging acceptance receipt
+        if: inputs.environment == 'production'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: omdala-staging-acceptance-${{ steps.source.outputs.sha }}
+          path: staging-acceptance
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.staging_acceptance_run_id }}
+      - name: Verify staging acceptance receipt
+        if: inputs.environment == 'production'
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.source.outputs.sha }}
+          ACCEPTANCE_RUN_ID: ${{ inputs.staging_acceptance_run_id }}
+        run: |
+          set -euo pipefail
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            --arg run_id "$ACCEPTANCE_RUN_ID" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            '.verdict == "STAGING_ACCEPTED" and
+             .candidate_sha == $sha and
+             .workflow_run_id == ($run_id | tonumber) and
+             .repository == $repository and
+             (.source_pr_number | tostring) == "${{ inputs.source_pr_number }}" and
+             (.independent_reviewer | length) > 0 and
+             (.independent_review_id | tonumber) > 0 and
+             (.database_backup_receipt_sha256 | length) == 64 and
+             (.api_release_run_id | tonumber) > 0 and
+             (.surface_release_run_id | tonumber) > 0 and
+             (.api_deployment_id | length) > 0 and
+             (.surface_release_id | length) > 0' \
+            staging-acceptance/staging-acceptance.json >/dev/null || {
+              echo "::error::Staging acceptance artifact does not bind this production SHA"
+              exit 1
+            }
+      - name: Guard production release SHA on main
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "${{ steps.source.outputs.sha }}" origin/main || {
+            echo "::error::Production release SHA is not on origin/main"
+            exit 1
+          }
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm security:audit
+      - run: pnpm --filter @omdala/api test
+      - run: pnpm --filter @omdala/api run check
+      - name: Require an explicit Hyperdrive binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.environment }}" == "staging" ]]; then
+            pattern='^\[\[env\.staging\.hyperdrive\]\]'
+          else
+            pattern='^\[\[hyperdrive\]\]'
+          fi
+          if ! grep -Eq "$pattern" services/api/wrangler.toml; then
+            echo "::error::Release blocked: services/api/wrangler.toml has no Hyperdrive binding for ${{ inputs.environment }}."
+            exit 1
+          fi
+      - name: Dry-run exact environment and identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(deploy --dry-run --strict --keep-vars)
+          if [[ "${{ inputs.environment }}" == "staging" ]]; then
+            args+=(--env staging)
+          fi
+          args+=(
+            --var "ENVIRONMENT:${{ inputs.environment }}"
+            --var "RELEASE_SHA:${{ steps.source.outputs.sha }}"
+            --var "DEPLOYMENT_ID:${{ steps.source.outputs.deployment_id }}"
+          )
+          pnpm --filter @omdala/api exec wrangler "${args[@]}"
+
+  migrate-database:
+    name: Apply idempotent API schema migrations
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    outputs:
+      backup_receipt_sha256: ${{ steps.backup_restore.outputs.receipt_sha256 }}
+      encrypted_backup_sha256: ${{ steps.backup_restore.outputs.encrypted_backup_sha256 }}
+    services:
+      restore_postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: restore
+          POSTGRES_PASSWORD: restore-only-ci-password
+          POSTGRES_DB: omdala_restore
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U restore -d omdala_restore"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          persist-credentials: false
+      - name: Require protected origin database credential
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "${DATABASE_URL:-}" || {
+            echo "::error::Protected secret OMDALA_DATABASE_URL is required"
+            exit 1
+          }
+          psql --version
+      - id: backup_restore
+        name: Backup, restore, and verify before migration
+        shell: bash
+        env:
+          SOURCE_DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+          RESTORE_DATABASE_URL: postgresql://restore:restore-only-ci-password@127.0.0.1:${{ job.services.restore_postgres.ports['5432'] }}/omdala_restore
+          EXPECTED_SOURCE_DATABASE_HOST: ${{ vars.OMDALA_DATABASE_EXPECTED_HOST }}
+          EXPECTED_SOURCE_DATABASE_NAME: ${{ vars.OMDALA_DATABASE_EXPECTED_NAME }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.OMDALA_BACKUP_ENCRYPTION_KEY }}
+          CANDIDATE_SHA: ${{ needs.validate.outputs.sha }}
+          RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+          BACKUP_OUTPUT_DIR: pre-migration-backup
+        run: bash scripts/postgres-pre-migration-gate.sh
+      - name: Upload encrypted pre-migration backup and restore receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-pre-migration-backup-${{ needs.validate.outputs.sha }}-${{ inputs.environment }}
+          path: pre-migration-backup/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Apply migrations in lexical order
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          for migration in infra/postgres/migrations/*.sql; do
+            echo "Applying ${migration}"
+            psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file "$migration"
+          done
+      - name: Verify required runtime schema
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          result="$(psql "$DATABASE_URL" --tuples-only --no-align --command \
+            "SELECT CASE WHEN
+               (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'omdala' AND table_name IN ('nodes', 'proofs', 'account_profiles', 'account_preferences')) = 4
+               AND
+               (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'omdala' AND table_name IN ('nodes', 'proofs') AND column_name = 'owner_email' AND is_nullable = 'NO') = 2
+             THEN 1 ELSE 0 END;")"
+          test "$result" = "1" || {
+            echo "::error::Required OMDALA API tables or ownership locks are missing"
+            exit 1
+          }
+
+  deploy-api:
+    name: Deploy omdala-api
+    needs: [validate, migrate-database]
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Deploy exact environment and identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(deploy --strict --keep-vars)
+          if [[ "${{ inputs.environment }}" == "staging" ]]; then
+            args+=(--env staging)
+          fi
+          args+=(
+            --message "${{ needs.validate.outputs.deployment_id }}"
+            --var "ENVIRONMENT:${{ inputs.environment }}"
+            --var "RELEASE_SHA:${{ needs.validate.outputs.sha }}"
+            --var "DEPLOYMENT_ID:${{ needs.validate.outputs.deployment_id }}"
+          )
+          pnpm --filter @omdala/api exec wrangler "${args[@]}"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Verify deep-health identity and dependencies
+        shell: bash
+        env:
+          HEALTHCHECK_URL: ${{ vars.OMDALA_API_HEALTHCHECK_URL }}
+          EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
+          EXPECTED_DEPLOYMENT_ID: ${{ needs.validate.outputs.deployment_id }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${HEALTHCHECK_URL:-}" ]]; then
+            echo "::error::Protected environment variable OMDALA_API_HEALTHCHECK_URL is required"
+            exit 1
+          fi
+          receipt="$(curl --fail --silent --show-error "${HEALTHCHECK_URL%/}/health/deep")"
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            --arg deployment_id "$EXPECTED_DEPLOYMENT_ID" \
+            '.ok == true and .status == "ok" and .release_sha == $sha and .deployment_id == $deployment_id and .checks.identity == "ok" and .checks.database == "ok"' \
+            <<<"$receipt" >/dev/null
+          {
+            echo "### OMDALA API deployment receipt"
+            echo "- Environment: ${{ inputs.environment }}"
+            echo "- Release SHA: $EXPECTED_SHA"
+            echo "- Deployment ID: $EXPECTED_DEPLOYMENT_ID"
+            echo "- Deep health: PASS"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Write immutable API release receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg environment "${{ inputs.environment }}" \
+            --arg candidate_sha "${{ needs.validate.outputs.sha }}" \
+            --arg deployment_id "${{ needs.validate.outputs.deployment_id }}" \
+            --arg source_pr_number "${{ needs.validate.outputs.source_pr_number }}" \
+            --arg independent_reviewer "${{ needs.validate.outputs.independent_reviewer }}" \
+            --arg independent_review_id "${{ needs.validate.outputs.independent_review_id }}" \
+            --arg database_backup_receipt_sha256 "${{ needs.migrate-database.outputs.backup_receipt_sha256 }}" \
+            --arg encrypted_backup_sha256 "${{ needs.migrate-database.outputs.encrypted_backup_sha256 }}" \
+            --arg workflow_run_id "$GITHUB_RUN_ID" \
+            --arg workflow_run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              verdict: "API_RELEASE_ACCEPTED",
+              environment: $environment,
+              candidate_sha: $candidate_sha,
+              deployment_id: $deployment_id,
+              source_pr_number: ($source_pr_number | tonumber),
+              independent_reviewer: $independent_reviewer,
+              independent_review_id: ($independent_review_id | tonumber),
+              database_backup_receipt_sha256: $database_backup_receipt_sha256,
+              encrypted_backup_sha256: $encrypted_backup_sha256,
+              workflow_run_id: ($workflow_run_id | tonumber),
+              workflow_run_attempt: ($workflow_run_attempt | tonumber),
+              repository: $repository,
+              created_at: $created_at
+            }' > api-release.json
+          jq -e \
+            --arg sha "${{ needs.validate.outputs.sha }}" \
+            '.verdict == "API_RELEASE_ACCEPTED" and
+             .candidate_sha == $sha and
+             (.database_backup_receipt_sha256 | length) == 64 and
+             (.encrypted_backup_sha256 | length) == 64' \
+            api-release.json >/dev/null
+      - name: Upload immutable API release receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-api-release-${{ needs.validate.outputs.sha }}-${{ inputs.environment }}
+          path: api-release.json
+          if-no-files-found: error
+          retention-days: 30
