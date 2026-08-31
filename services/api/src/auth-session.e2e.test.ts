@@ -73,7 +73,7 @@ describe("staging auth acceptance contract", () => {
   it("hands staging contact mail to the configured transport", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(
+      .mockImplementation(async () =>
         new Response(
           JSON.stringify({ id: "mail-provider-test-001", status: "accepted" }),
           {
@@ -132,7 +132,7 @@ describe("staging auth acceptance contract", () => {
   it("fails closed when the configured mail transport omits its provider receipt", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(null, { status: 202 }));
+      .mockImplementation(async () => new Response(null, { status: 202 }));
 
     try {
       const response = await app.request(
