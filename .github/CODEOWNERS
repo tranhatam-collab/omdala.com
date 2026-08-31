@@ -1,0 +1,12 @@
+# Ownership routing. Independent acceptance is enforced separately and cannot
+# be satisfied by the pull-request author approving their own change.
+* @tranhatam-collab
+/.github/ @tranhatam-collab
+/.github/workflows/ @tranhatam-collab
+/infra/ @tranhatam-collab
+/infra/postgres/ @tranhatam-collab
+/services/api/ @tranhatam-collab
+/apps/app/ @tranhatam-collab
+/apps/web/ @tranhatam-collab
+/apps/brand-marketplace/ @tranhatam-collab
+/packages/billing/ @tranhatam-collab

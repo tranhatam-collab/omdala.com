@@ -64,7 +64,7 @@ test.describe.serial("OMDALA exact-candidate staging acceptance", () => {
   });
 
   test("contact, access request, and magic-link mail flows reach the configured transport", async ({ request }) => {
-    const email = `e2e-mail+${releaseSha.slice(0, 12)}@omdala.com`;
+    const email = `e2e-mail+${releaseSha.slice(0, 8)}-${Date.now()}@omdala.com`;
 
     const contact = await request.post(`${apiUrl}/v1/contact`, {
       data: {
@@ -79,7 +79,21 @@ test.describe.serial("OMDALA exact-candidate staging acceptance", () => {
     expect(contact.status()).toBe(200);
     await expect(contact.json()).resolves.toMatchObject({
       ok: true,
-      data: { received: true },
+      data: {
+        received: true,
+        deliveryReceipts: [
+          {
+            transport: "mail-api",
+            providerMessageId: expect.any(String),
+            providerStatus: expect.any(String),
+          },
+          {
+            transport: "mail-api",
+            providerMessageId: expect.any(String),
+            providerStatus: expect.any(String),
+          },
+        ],
+      },
     });
 
     const accessRequest = await request.post(`${apiUrl}/v1/auth/access-request`, {
@@ -93,7 +107,21 @@ test.describe.serial("OMDALA exact-candidate staging acceptance", () => {
     expect(accessRequest.status()).toBe(201);
     await expect(accessRequest.json()).resolves.toMatchObject({
       ok: true,
-      data: { received: true },
+      data: {
+        received: true,
+        deliveryReceipts: [
+          {
+            transport: "mail-api",
+            providerMessageId: expect.any(String),
+            providerStatus: expect.any(String),
+          },
+          {
+            transport: "mail-api",
+            providerMessageId: expect.any(String),
+            providerStatus: expect.any(String),
+          },
+        ],
+      },
     });
 
     const magicLink = await request.post(`${apiUrl}/v1/auth/magic-link/request`, {
@@ -102,7 +130,14 @@ test.describe.serial("OMDALA exact-candidate staging acceptance", () => {
     expect(magicLink.status()).toBe(201);
     await expect(magicLink.json()).resolves.toMatchObject({
       ok: true,
-      data: { sent: true },
+      data: {
+        sent: true,
+        deliveryReceipt: {
+          transport: "mail-api",
+          providerMessageId: expect.any(String),
+          providerStatus: expect.any(String),
+        },
+      },
     });
   });
 

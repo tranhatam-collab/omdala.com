@@ -17,6 +17,10 @@ on:
       confirmation:
         description: Type DEPLOY_OMDALA_SURFACES to authorize the release
         required: true
+      source_pr_number:
+        description: Pull request containing the exact candidate and its independent approval
+        required: true
+        type: string
       staging_acceptance_run_id:
         description: Successful staging acceptance workflow run ID; required for production
         required: false
@@ -25,6 +29,7 @@ on:
 permissions:
   contents: read
   actions: read
+  pull-requests: read
 
 concurrency:
   group: omdala-surfaces-${{ inputs.environment }}
@@ -43,6 +48,9 @@ jobs:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
       - id: identity
         name: Lock source and surface release identity
         shell: bash
@@ -52,6 +60,17 @@ jobs:
           release_id="pages-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${sha:0:12}"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
+      - id: independent_review
+        name: Require independent exact-SHA approval
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/release-review-policy.mjs
+          --repository "${{ github.repository }}"
+          --pull-request "${{ inputs.source_pr_number }}"
+          --sha "${{ steps.identity.outputs.sha }}"
+          --receipt independent-review-receipt.json
       - name: Require staging acceptance run for production
         if: inputs.environment == 'production'
         shell: bash
@@ -110,6 +129,12 @@ jobs:
              .candidate_sha == $sha and
              .workflow_run_id == ($run_id | tonumber) and
              .repository == $repository and
+             (.source_pr_number | tostring) == "${{ inputs.source_pr_number }}" and
+             (.independent_reviewer | length) > 0 and
+             (.independent_review_id | tonumber) > 0 and
+             (.database_backup_receipt_sha256 | length) == 64 and
+             (.api_release_run_id | tonumber) > 0 and
+             (.surface_release_run_id | tonumber) > 0 and
              (.api_deployment_id | length) > 0 and
              (.surface_release_id | length) > 0' \
             staging-acceptance/staging-acceptance.json >/dev/null || {
@@ -258,3 +283,42 @@ jobs:
             echo "- Surface release ID: $EXPECTED_RELEASE_ID"
             echo "- Web/App/Brand identity: PASS"
           } >> "$GITHUB_STEP_SUMMARY"
+      - name: Write immutable surface release receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg environment "${{ inputs.environment }}" \
+            --arg candidate_sha "${{ steps.identity.outputs.sha }}" \
+            --arg release_id "${{ steps.identity.outputs.release_id }}" \
+            --arg source_pr_number "${{ inputs.source_pr_number }}" \
+            --arg independent_reviewer "${{ steps.independent_review.outputs.reviewer }}" \
+            --arg independent_review_id "${{ steps.independent_review.outputs.review_id }}" \
+            --arg workflow_run_id "$GITHUB_RUN_ID" \
+            --arg workflow_run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              verdict: "SURFACE_RELEASE_ACCEPTED",
+              environment: $environment,
+              candidate_sha: $candidate_sha,
+              release_id: $release_id,
+              source_pr_number: ($source_pr_number | tonumber),
+              independent_reviewer: $independent_reviewer,
+              independent_review_id: ($independent_review_id | tonumber),
+              workflow_run_id: ($workflow_run_id | tonumber),
+              workflow_run_attempt: ($workflow_run_attempt | tonumber),
+              repository: $repository,
+              created_at: $created_at
+            }' > surface-release.json
+          jq -e \
+            --arg sha "${{ steps.identity.outputs.sha }}" \
+            '.verdict == "SURFACE_RELEASE_ACCEPTED" and .candidate_sha == $sha' \
+            surface-release.json >/dev/null
+      - name: Upload immutable surface release receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-surface-release-${{ steps.identity.outputs.sha }}-${{ inputs.environment }}
+          path: surface-release.json
+          if-no-files-found: error
+          retention-days: 30

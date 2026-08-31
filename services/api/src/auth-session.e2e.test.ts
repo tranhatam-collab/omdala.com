@@ -73,7 +73,15 @@ describe("staging auth acceptance contract", () => {
   it("hands staging contact mail to the configured transport", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(null, { status: 202 }));
+      .mockResolvedValue(
+        new Response(
+          JSON.stringify({ id: "mail-provider-test-001", status: "accepted" }),
+          {
+            status: 202,
+            headers: { "content-type": "application/json" },
+          },
+        ),
+      );
 
     try {
       const response = await app.request(
@@ -91,6 +99,24 @@ describe("staging auth acceptance contract", () => {
       );
 
       expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        ok: true,
+        data: {
+          received: true,
+          deliveryReceipts: [
+            {
+              transport: "mail-api",
+              providerMessageId: "mail-provider-test-001",
+              providerStatus: "accepted",
+            },
+            {
+              transport: "mail-api",
+              providerMessageId: "mail-provider-test-001",
+              providerStatus: "accepted",
+            },
+          ],
+        },
+      });
       expect(fetchMock).toHaveBeenCalledTimes(2);
       for (const [, init] of fetchMock.mock.calls) {
         expect(init?.headers).toMatchObject({
@@ -98,6 +124,40 @@ describe("staging auth acceptance contract", () => {
           "X-Workspace-Id": "omdala.com",
         });
       }
+    } finally {
+      fetchMock.mockRestore();
+    }
+  });
+
+  it("fails closed when the configured mail transport omits its provider receipt", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(null, { status: 202 }));
+
+    try {
+      const response = await app.request(
+        "http://localhost/v1/contact",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: "Staging receipt gate",
+            email: "mail-no-receipt@omdala.com",
+            message: "The provider must return a traceable message ID.",
+          }),
+        },
+        { ...stagingEnv, MAIL_API_KEY: "test-mail-api-key" },
+      );
+
+      expect(response.status).toBe(502);
+      await expect(response.json()).resolves.toMatchObject({
+        ok: false,
+        error: {
+          code: "mail_delivery_failed",
+          message: expect.stringMatching(/provider message ID/i),
+        },
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     } finally {
       fetchMock.mockRestore();
     }

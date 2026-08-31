@@ -21,6 +21,12 @@ export default defineConfig({
   timeout: 120000,
   retries: 0,
   workers: 1,
+  reporter: process.env.E2E_STAGING_JSON_REPORT
+    ? [
+        ["line"],
+        ["json", { outputFile: process.env.E2E_STAGING_JSON_REPORT }],
+      ]
+    : [["list"]],
   expect: { timeout: 15000 },
   use: {
     baseURL: appBaseURL,

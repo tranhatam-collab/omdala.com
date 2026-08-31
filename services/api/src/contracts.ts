@@ -93,6 +93,13 @@ export type MailRequest = {
   workspace_id?: string;
 };
 
+export type MailDeliveryReceipt = {
+  transport: "mail-api" | "console";
+  providerMessageId: string;
+  providerStatus: string;
+  acceptedAt: string;
+};
+
 export interface RealityCommitmentRequest {
   fromNodeId?: string;
   toNodeId?: string;

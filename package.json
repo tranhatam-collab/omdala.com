@@ -44,6 +44,7 @@
     "infra:audit:source": "node scripts/infra-readonly-probe.mjs",
     "infra:audit:remote": "node scripts/infra-readonly-probe.mjs --remote --confirm-read-only-remote",
     "test:brand-core": "pnpm --filter @omdala/brand-core run test",
+    "test:release-governance": "node --test scripts/release-review-policy.test.mjs scripts/postgres-target-guard.test.mjs scripts/playwright-staging-receipt.test.mjs scripts/release-control-contract.test.mjs",
     "build:all": "pnpm run build:web && pnpm --filter @omdala/app run build && pnpm --filter @omdala/docs run build && pnpm --filter @omdala/admin run build && pnpm --filter @omdala/auth run build"
   },
   "devDependencies": {

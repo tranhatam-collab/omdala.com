@@ -37,6 +37,7 @@ import type {
   AccessRequest,
   ApiBindings,
   ContactRequest,
+  MailDeliveryReceipt,
   MagicLinkPayload,
   MailRequest,
   RealityCommitmentRequest,
@@ -91,6 +92,7 @@ export type {
   AccessRequest,
   ApiBindings,
   ContactRequest,
+  MailDeliveryReceipt,
   MagicLinkPayload,
   MailRequest,
 } from "./contracts";
@@ -1331,14 +1333,44 @@ function allowsMailConsoleFallback(env: ApiBindings): boolean {
   );
 }
 
-async function sendMail(env: ApiBindings, payload: MailRequest) {
+function mailProviderValue(
+  value: unknown,
+  keys: string[],
+): string | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  for (const key of keys) {
+    const candidate = record[key];
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+  const data = record.data;
+  if (data && typeof data === "object") {
+    return mailProviderValue(data, keys);
+  }
+  return undefined;
+}
+
+class NonRetryableMailError extends Error {}
+
+async function sendMail(
+  env: ApiBindings,
+  payload: MailRequest,
+): Promise<MailDeliveryReceipt> {
+  const idempotencyKey = payload.message_idempotency_key ?? crypto.randomUUID();
   if (!env.MAIL_API_KEY) {
     if (allowsMailConsoleFallback(env)) {
       console.warn("[sendMail] MAIL_API_KEY not set — logging email to console (dev fallback)");
       console.log("[sendMail] To:", payload.to);
       console.log("[sendMail] Subject:", payload.subject);
       console.log("[sendMail] Text:\n", payload.text);
-      return;
+      return {
+        transport: "console",
+        providerMessageId: `console-${idempotencyKey}`,
+        providerStatus: "logged",
+        acceptedAt: new Date().toISOString(),
+      };
     }
     throw new Error("MAIL_API_KEY is not configured");
   }
@@ -1346,7 +1378,7 @@ async function sendMail(env: ApiBindings, payload: MailRequest) {
   // Auto-generate idempotency key if not provided (required by IAI Mail API)
   const enrichedPayload = {
     ...payload,
-    message_idempotency_key: payload.message_idempotency_key ?? crypto.randomUUID(),
+    message_idempotency_key: idempotencyKey,
     workspace_id: payload.workspace_id ?? (env.MAIL_API_WORKSPACE_ID ?? "omdala.com"),
   };
 
@@ -1373,7 +1405,37 @@ async function sendMail(env: ApiBindings, payload: MailRequest) {
       clearTimeout(timeoutId);
 
       if (response.ok) {
-        return;
+        const responseText = await response.text();
+        let responseBody: unknown;
+        if (responseText.trim()) {
+          try {
+            responseBody = JSON.parse(responseText);
+          } catch {
+            responseBody = undefined;
+          }
+        }
+        const providerMessageId =
+          response.headers.get("x-message-id")?.trim() ||
+          response.headers.get("x-request-id")?.trim() ||
+          mailProviderValue(responseBody, [
+            "id",
+            "message_id",
+            "messageId",
+            "provider_message_id",
+          ]);
+        if (!providerMessageId) {
+          throw new NonRetryableMailError(
+            "Mail API accepted the request without a provider message ID",
+          );
+        }
+        return {
+          transport: "mail-api",
+          providerMessageId,
+          providerStatus:
+            mailProviderValue(responseBody, ["status", "state"]) ??
+            `accepted_${response.status}`,
+          acceptedAt: new Date().toISOString(),
+        };
       }
 
       const detail = await response.text();
@@ -1385,9 +1447,12 @@ async function sendMail(env: ApiBindings, payload: MailRequest) {
           continue;
         }
       } else {
-        throw new Error(`Mail API returned ${response.status}: ${detail}`);
+        throw new NonRetryableMailError(
+          `Mail API returned ${response.status}: ${detail}`,
+        );
       }
     } catch (err: unknown) {
+      if (err instanceof NonRetryableMailError) throw err;
       lastError = err instanceof Error ? err : new Error(String(err));
       if (attempt < 2) {
         await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
@@ -1400,7 +1465,12 @@ async function sendMail(env: ApiBindings, payload: MailRequest) {
     console.log("[sendMail] To:", payload.to);
     console.log("[sendMail] Subject:", payload.subject);
     console.log("[sendMail] Text:\n", payload.text);
-    return;
+    return {
+      transport: "console",
+      providerMessageId: `console-${idempotencyKey}`,
+      providerStatus: "logged_after_transport_failure",
+      acceptedAt: new Date().toISOString(),
+    };
   }
 
   throw lastError ?? new Error("Mail API unreachable after retries");
@@ -2059,7 +2129,7 @@ app.post("/v1/contact", async (c) => {
   }
 
   try {
-    await Promise.all([
+    const deliveryReceipts = await Promise.all([
       sendMail(c.env, buildContactInternalEmail(payload)),
       sendMail(c.env, buildContactAckEmail(payload)),
     ]);
@@ -2068,6 +2138,7 @@ app.post("/v1/contact", async (c) => {
       received: true,
       replyFrom: OMDALA_INBOXES.support,
       submittedTo: OMDALA_INBOXES.hello,
+      deliveryReceipts,
     });
   } catch (error) {
     return jsonError(
@@ -2120,7 +2191,7 @@ app.post("/v1/auth/access-request", async (c) => {
   }
 
   try {
-    await Promise.all([
+    const deliveryReceipts = await Promise.all([
       sendMail(c.env, buildAccessRequestInternalEmail(payload)),
       sendMail(c.env, buildAccessRequestAckEmail(payload)),
     ]);
@@ -2131,6 +2202,7 @@ app.post("/v1/auth/access-request", async (c) => {
         received: true,
         reviewInbox: OMDALA_INBOXES.app,
         supportInbox: OMDALA_INBOXES.support,
+        deliveryReceipts,
       },
       201,
     );
@@ -2237,7 +2309,10 @@ app.post("/v1/auth/magic-link/request", async (c) => {
     });
     const link = `${getAuthBaseUrl(c.env)}/login?token=${encodeURIComponent(token)}&next=${encodeURIComponent(redirectTo)}`;
 
-    await sendMail(c.env, buildMagicLinkEmail(email, link, redirectTo));
+    const deliveryReceipt = await sendMail(
+      c.env,
+      buildMagicLinkEmail(email, link, redirectTo),
+    );
 
     return jsonOk(
       c,
@@ -2245,6 +2320,7 @@ app.post("/v1/auth/magic-link/request", async (c) => {
         sent: true,
         expiresAt: new Date(expiresAt).toISOString(),
         replyFrom: OMDALA_INBOXES.support,
+        deliveryReceipt,
       },
       201,
     );
