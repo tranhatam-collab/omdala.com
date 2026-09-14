@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/open -a "$HOME/Applications/OMCODE.app"

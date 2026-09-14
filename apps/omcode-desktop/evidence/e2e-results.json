@@ -1,0 +1,109 @@
+{
+  "time": "2026-09-14T01:13:29.907Z",
+  "ok": true,
+  "sourceDigest": "e99648293caaaf2fa200affe17b2ca30935230bc0ff08ac6a70203b0870e6e37",
+  "passed": 20,
+  "results": [
+    {
+      "engine": "chromium",
+      "check": "edit-save-real-file",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "draft-recovery-after-reload",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "real-terminal",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "agent-proposal-approval-disk",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "execute-agent-produced-file",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "skill-library",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "provider-model-health",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "session-history-after-navigation",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "mobile-editor-agent-navigation-no-overflow",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "theme-and-no-uncaught-errors",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "edit-save-real-file",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "draft-recovery-after-reload",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "real-terminal",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "agent-proposal-approval-disk",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "execute-agent-produced-file",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "skill-library",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "provider-model-health",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "session-history-after-navigation",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "mobile-editor-agent-navigation-no-overflow",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "theme-and-no-uncaught-errors",
+      "ok": true
+    }
+  ],
+  "scratch": "/private/var/folders/zy/yc25xq9x28sd9gz9rz1z7zgr0000gn/T/omcode-browser-0ZbkNO"
+}

@@ -1,0 +1,17 @@
+{
+  "time": "2026-09-14T01:13:51.935Z",
+  "ok": true,
+  "version": "0.2.1",
+  "sourceDigest": "e99648293caaaf2fa200affe17b2ca30935230bc0ff08ac6a70203b0870e6e37",
+  "bundleManifestDigest": "fba04d80a512d441b6c422e1fadf0aeaebc3104deb5593a9ed5681fb517ebded",
+  "checks": [
+    "fresh-install-in-isolated-home",
+    "candidate-sidecar-verification",
+    "idempotent-update",
+    "database-byte-identical",
+    "user-data-sentinel-preserved",
+    "shell-update-idempotent",
+    "dated-app-and-source-backups"
+  ],
+  "scratch": "/private/var/folders/zy/yc25xq9x28sd9gz9rz1z7zgr0000gn/T/omcode-install-e2e-ljDCMv"
+}

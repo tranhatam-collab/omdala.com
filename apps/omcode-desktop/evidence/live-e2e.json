@@ -1,0 +1,34 @@
+{
+  "time": "2026-09-14T01:14:25.120Z",
+  "app": "/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/release/OMCODE.app",
+  "version": "0.2.1",
+  "sourceDigest": "e99648293caaaf2fa200affe17b2ca30935230bc0ff08ac6a70203b0870e6e37",
+  "bundleManifestDigest": "fba04d80a512d441b6c422e1fadf0aeaebc3104deb5593a9ed5681fb517ebded",
+  "provider": "google",
+  "model": "gemini-3.1-flash-lite",
+  "engine": "webkit",
+  "project": "/private/var/folders/zy/yc25xq9x28sd9gz9rz1z7zgr0000gn/T/omcode-live-e2e-OWLDiI/live-agent-test",
+  "session": "d8fb6cbd-077e-4625-af32-62fe5fdc1f7d",
+  "toolReceipts": [
+    {
+      "name": "read_file",
+      "ok": true,
+      "time": 1789348461434
+    },
+    {
+      "name": "propose_edit",
+      "ok": true,
+      "time": 1789348462860
+    }
+  ],
+  "checks": [
+    "real-provider-generation",
+    "real-read-file-tool",
+    "real-propose-edit-tool",
+    "user-approved-write",
+    "terminal-execution-of-generated-file",
+    "durable-session",
+    "no-uncaught-browser-errors"
+  ],
+  "ok": true
+}

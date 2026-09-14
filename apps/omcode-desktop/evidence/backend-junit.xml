@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="payload manifest is deterministic and detects a changed bundled file" time="0.015556" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/release.test.mjs"/>
+	<testcase name="release manifest covers signed bundle files excluded from the embedded manifest" time="0.003060" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/release.test.mjs"/>
+	<testcase name="source manifest excludes generated evidence and dependency trees" time="0.002709" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/release.test.mjs"/>
+	<testcase name="launcher PATH update is idempotent and removes only legacy OMCODE aliases" time="0.000473" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/release.test.mjs"/>
+	<testcase name="Playwright resolution is portable and honors an explicit runtime first" time="0.000129" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/release.test.mjs"/>
+	<testcase name="candidate verification binds the bundle to the exact source and detects tampering" time="0.008718" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/release.test.mjs"/>
+	<testcase name="CLI launcher is home-relative and contains no developer-specific path" time="0.000486" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/release.test.mjs"/>
+	<testcase name="release receipt must cover every deterministic gate for the exact candidate" time="0.000202" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/release.test.mjs"/>
+	<testcase name="package metadata has an incrementing macOS bundle build number" time="0.000370" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/release.test.mjs"/>
+	<testcase name="Node packaging accepts only the current architecture and thins universal binaries" time="0.000164" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/release.test.mjs"/>
+	<testsuite name="local runtime: authentication, files, conflict guard, backup, terminal, persistence and approved AI edits" time="0.665602" disabled="0" errors="0" tests="6" failures="0" skipped="0" hostname="MacBook-Air-cua-TRAN-3.local">
+		<testcase name="rejects unauthenticated and cross-origin requests" time="0.015590" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/runtime.test.mjs"/>
+		<testcase name="bounds file access and skips dependencies" time="0.160643" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/runtime.test.mjs"/>
+		<testcase name="saves with an optimistic lock and retains rollback content" time="0.219609" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/runtime.test.mjs"/>
+		<testcase name="preserves existing and new drafts across restarts without changing project files" time="0.157616" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/runtime.test.mjs"/>
+		<testcase name="executes actual terminal commands in the selected project" time="0.005984" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/runtime.test.mjs"/>
+		<testcase name="agent calls tools but edits only after user approval" time="0.093190" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/runtime.test.mjs"/>
+	</testsuite>
+	<testcase name="provider endpoints reject credentials and insecure remote HTTP" time="0.000178" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/runtime.test.mjs"/>
+	<testcase name="Google model resource names are normalized for OpenAI-compatible generation" time="0.000080" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/runtime.test.mjs"/>
+	<testcase name="Keychain failures stop before any provider request" time="0.413700" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/runtime.test.mjs"/>
+	<testcase name="MCP transport lists and calls a read-only tool through OMCODE" time="0.051259" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/runtime.test.mjs"/>
+	<testcase name="catalog imports deduplicated skills without symlink escapes" time="0.018981" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/runtime.test.mjs"/>
+	<testcase name="catalog exposes seven unique roles and imports only URL-based MCP servers" time="0.003651" classname="test" file="/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/tests/runtime.test.mjs"/>
+	<!-- tests 23 -->
+	<!-- suites 0 -->
+	<!-- pass 23 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 1351.029875 -->
+</testsuites>
