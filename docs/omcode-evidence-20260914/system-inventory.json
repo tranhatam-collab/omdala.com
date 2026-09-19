@@ -1,0 +1,125 @@
+{
+  "time": "2026-09-13T17:26:03.300Z",
+  "applications": [
+    {
+      "name": "Devin",
+      "path": "/Applications/Devin.app",
+      "version": "3.10.23",
+      "status": "installed"
+    },
+    {
+      "name": "Cursor",
+      "path": "/Applications/Cursor.app",
+      "version": "3.18.25",
+      "status": "installed"
+    },
+    {
+      "name": "Visual Studio Code",
+      "path": "/Applications/Visual Studio Code.app",
+      "version": "1.129.1",
+      "status": "installed"
+    },
+    {
+      "name": "Claude",
+      "path": "/Applications/Claude.app",
+      "version": "1.52386.0",
+      "status": "installed"
+    },
+    {
+      "name": "ChatGPT",
+      "path": "/Applications/ChatGPT.app",
+      "version": "26.903.71938",
+      "status": "installed"
+    },
+    {
+      "name": "LM Studio",
+      "path": "/Applications/LM Studio.app",
+      "version": "0.4.14+4",
+      "status": "installed"
+    },
+    {
+      "name": "Docker",
+      "path": "/Applications/Docker.app",
+      "version": "4.80.0",
+      "status": "installed"
+    },
+    {
+      "name": "Xcode",
+      "path": "/Applications/Xcode.app",
+      "version": "26.4",
+      "status": "installed"
+    },
+    {
+      "name": "Developer",
+      "path": "/Applications/Developer.app",
+      "version": "10.8.3",
+      "status": "installed"
+    }
+  ],
+  "cli": [
+    {
+      "name": "OpenCode",
+      "path": "/Users/tranhatam/.opencode/bin/opencode",
+      "version": "1.18.4",
+      "status": "version-pass",
+      "stderr": ""
+    },
+    {
+      "name": "Claude Code",
+      "path": "/Users/tranhatam/.npm-global/bin/claude",
+      "version": "2.1.129 (Claude Code)",
+      "status": "version-pass",
+      "stderr": ""
+    },
+    {
+      "name": "Claude Code native",
+      "path": "/Users/tranhatam/.local/bin/claude",
+      "version": "2.1.119 (Claude Code)",
+      "status": "version-pass",
+      "stderr": ""
+    },
+    {
+      "name": "Codex",
+      "path": "/Applications/ChatGPT.app/Contents/Resources/codex",
+      "version": "codex-cli 0.153.4",
+      "status": "version-pass",
+      "stderr": ""
+    },
+    {
+      "name": "Cursor Agent",
+      "path": "/Users/tranhatam/.local/bin/agent",
+      "version": "2026.04.17-787b533",
+      "status": "version-pass",
+      "stderr": ""
+    },
+    {
+      "name": "Cline",
+      "path": "/Users/tranhatam/.npm-global/bin/cline",
+      "version": "2.11.0",
+      "status": "version-pass",
+      "stderr": ""
+    },
+    {
+      "name": "Goose",
+      "path": "/Users/tranhatam/.local/bin/goose",
+      "version": "1.42.0",
+      "status": "version-pass",
+      "stderr": ""
+    },
+    {
+      "name": "Grok",
+      "path": "/Users/tranhatam/.grok/bin/grok",
+      "version": "grok 0.2.99 (b1b49ccb71a7)",
+      "status": "version-pass",
+      "stderr": ""
+    },
+    {
+      "name": "OpenClaw",
+      "path": "/Users/tranhatam/.nvm/versions/node/v24.15.0/bin/openclaw",
+      "version": "OpenClaw 2026.5.20 (e510042)",
+      "status": "version-pass",
+      "stderr": ""
+    }
+  ],
+  "scope": "Installed development applications and known coding CLIs; versions are not account/E2E proof."
+}

@@ -1,0 +1,37 @@
+{
+  "name": "@omdala/omcode-desktop",
+  "version": "0.2.1",
+  "buildNumber": 3,
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "vite build",
+    "start": "node server/index.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:ui": "node scripts/e2e.mjs",
+    "test:native": "node scripts/native-e2e.mjs",
+    "test:install": "node scripts/install-e2e.mjs",
+    "test:live": "node scripts/live-e2e.mjs",
+    "package:mac": "node scripts/package-mac.mjs",
+    "verify:bundle": "node scripts/verify-bundle.mjs",
+    "verify:all": "node scripts/verify-all.mjs"
+  },
+  "dependencies": {
+    "@codemirror/lang-javascript": "^6.2.4",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.1",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "codemirror": "^6.0.2",
+    "lucide-react": "1.45.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "smol-toml": "^1.4.2",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1",
+    "prettier": "3.6.2",
+    "vite": "8.0.16"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 2,
+  "time": "2026-09-14T01:22:52.166Z",
+  "ok": true,
+  "app": "/Users/tranhatam/Applications/OMCODE.app",
+  "version": "0.2.1",
+  "buildNumber": 3,
+  "architecture": "arm64",
+  "sourceHead": "4abd40dcc68b0ba029a366698c98999d7309f022",
+  "sourceBranch": "OMCODE/omcode-desktop-e2e-hardening-20260914",
+  "sourceDigest": "e99648293caaaf2fa200affe17b2ca30935230bc0ff08ac6a70203b0870e6e37",
+  "bundleManifestDigest": "fba04d80a512d441b6c422e1fadf0aeaebc3104deb5593a9ed5681fb517ebded",
+  "payloadFiles": 3903,
+  "health": {
+    "app": "OMCODE",
+    "version": "0.2.1",
+    "ready": true
+  },
+  "releaseStages": {
+    "tests": true,
+    "build": true,
+    "package": true,
+    "bundle": true,
+    "browser": true,
+    "native": true,
+    "install": true
+  },
+  "browser": {
+    "passed": 20,
+    "engines": [
+      "chromium",
+      "webkit"
+    ]
+  },
+  "nativeInstalled": {
+    "ok": true,
+    "checks": [
+      "native-wkwebview",
+      "agent-read-file",
+      "agent-propose-edit",
+      "user-approved-write",
+      "terminal-execution"
+    ],
+    "approvedWrite": true,
+    "generatedFileExecuted": true,
+    "errors": []
+  },
+  "liveProvider": {
+    "status": "passed",
+    "time": "2026-09-14T01:14:25.120Z",
+    "provider": "google",
+    "model": "gemini-3.1-flash-lite",
+    "engine": "webkit",
+    "checks": [
+      "real-provider-generation",
+      "real-read-file-tool",
+      "real-propose-edit-tool",
+      "user-approved-write",
+      "terminal-execution-of-generated-file",
+      "durable-session",
+      "no-uncaught-browser-errors"
+    ]
+  },
+  "userData": {
+    "files": 3336,
+    "beforeDigest": "78fab1c331507c60a2ca2e39ab6ce4248249bb4bbc6aee0a52138f846c8f6543",
+    "afterDigest": "78fab1c331507c60a2ca2e39ab6ce4248249bb4bbc6aee0a52138f846c8f6543",
+    "identicalBeforeFirstRelaunch": true
+  },
+  "cli": "/Users/tranhatam/.local/bin/omcode",
+  "backup": "/Users/tranhatam/Developer/OMCODE/repair-backups/2026-09-14T01-18-25-510Z",
+  "codesign": "valid-local-ad-hoc",
+  "deletedUserFiles": 0,
+  "limits": [
+    "DeepSeek and Cerebras HTTP 402",
+    "Four administrative MCP servers require separate OAuth",
+    "Imported skills are not individually certified",
+    "Local build is not Developer ID notarized"
+  ]
+}

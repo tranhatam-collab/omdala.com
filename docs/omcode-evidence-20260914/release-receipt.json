@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "time": "2026-09-14T01:13:53.027Z",
+  "ok": true,
+  "app": "/private/tmp/omcode-e2e-hardening.B8DYMs/apps/omcode-desktop/release/OMCODE.app",
+  "version": "0.2.1",
+  "sourceDigest": "e99648293caaaf2fa200affe17b2ca30935230bc0ff08ac6a70203b0870e6e37",
+  "bundleManifestDigest": "fba04d80a512d441b6c422e1fadf0aeaebc3104deb5593a9ed5681fb517ebded",
+  "payloadFiles": 3903,
+  "stages": {
+    "tests": {
+      "ok": true,
+      "durationMs": 2719,
+      "command": [
+        "npm",
+        "test"
+      ]
+    },
+    "build": {
+      "ok": true,
+      "durationMs": 3107,
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ]
+    },
+    "package": {
+      "ok": true,
+      "durationMs": 8230,
+      "command": [
+        "npm",
+        "run",
+        "package:mac"
+      ]
+    },
+    "bundle": {
+      "ok": true,
+      "durationMs": 1233,
+      "command": [
+        "npm",
+        "run",
+        "verify:bundle"
+      ]
+    },
+    "browser": {
+      "ok": true,
+      "durationMs": 10785,
+      "command": [
+        "/usr/local/bin/node",
+        "scripts/e2e.mjs"
+      ]
+    },
+    "native": {
+      "ok": true,
+      "durationMs": 4084,
+      "command": [
+        "/usr/local/bin/node",
+        "scripts/native-e2e.mjs"
+      ]
+    },
+    "install": {
+      "ok": true,
+      "durationMs": 17944,
+      "command": [
+        "/usr/local/bin/node",
+        "scripts/install-e2e.mjs"
+      ]
+    }
+  },
+  "browser": {
+    "passed": 20,
+    "engines": [
+      "chromium",
+      "webkit"
+    ]
+  },
+  "native": {
+    "checks": [
+      "native-wkwebview",
+      "agent-read-file",
+      "agent-propose-edit",
+      "user-approved-write",
+      "terminal-execution"
+    ],
+    "approvedWrite": true,
+    "generatedFileExecuted": true,
+    "errors": []
+  },
+  "install": {
+    "checks": [
+      "fresh-install-in-isolated-home",
+      "candidate-sidecar-verification",
+      "idempotent-update",
+      "database-byte-identical",
+      "user-data-sentinel-preserved",
+      "shell-update-idempotent",
+      "dated-app-and-source-backups"
+    ],
+    "dataPreserved": true
+  },
+  "liveProvider": {
+    "status": "passed",
+    "time": "2026-09-14T01:14:25.120Z",
+    "provider": "google",
+    "model": "gemini-3.1-flash-lite",
+    "engine": "webkit",
+    "checks": [
+      "real-provider-generation",
+      "real-read-file-tool",
+      "real-propose-edit-tool",
+      "user-approved-write",
+      "terminal-execution-of-generated-file",
+      "durable-session",
+      "no-uncaught-browser-errors"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "app" : true,
+  "backendPID" : 11242,
+  "bundle" : "\/Users\/tranhatam\/Applications\/OMCODE.app",
+  "buttons" : 39,
+  "error" : "",
+  "errors" : [
+
+  ],
+  "height" : 678,
+  "model" : "gemini-3.1-flash-lite",
+  "ok" : true,
+  "overflow" : false,
+  "provider" : "google",
+  "title" : "OMCODE",
+  "width" : 1280
+}

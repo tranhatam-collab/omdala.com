@@ -1,0 +1,7 @@
+{
+  "time": "2026-09-13T18:09:28.885Z",
+  "ok": false,
+  "error": "Provider Google Gemini: HTTP 429. Kiểm tra model, quyền truy cập và hạn mức trong Kết nối.",
+  "configuredMcp": 5,
+  "scratch": "/private/tmp/omcode-installed-e2e-fehvM0"
+}

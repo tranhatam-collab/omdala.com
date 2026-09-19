@@ -1,0 +1,302 @@
+{
+  "time": "2026-09-14T01:18:32.210Z",
+  "app": "/Users/tranhatam/Applications/OMCODE.app",
+  "source": "/Users/tranhatam/Developer/OMCODE/source",
+  "data": "/Users/tranhatam/Library/Application Support/OMCODE",
+  "launcher": "/Users/tranhatam/.local/bin/omcode",
+  "shellConfig": "/Users/tranhatam/.zshrc",
+  "shellBackup": "/Users/tranhatam/Library/Application Support/OMCODE/repair-backups/2026-09-13T17-51-00-818Z/.zshrc.before-omcode",
+  "upstreamBase": "415927e5f1580d539013b55765dfba834de655e7",
+  "branch": "codex/omcode-local-recovery-20260913",
+  "originalDocumentsWorktreeUnchanged": true,
+  "inaccessibleLocalChangesReconciled": false,
+  "sourceDigest": "e99648293caaaf2fa200affe17b2ca30935230bc0ff08ac6a70203b0870e6e37",
+  "sourceFiles": [
+    {
+      "path": ".gitignore",
+      "bytes": 48,
+      "sha256": "e40ca6d6e28c73751291a35426d4cf1e4e3b0cb3fed15dbc409d47d84ee4c2e7"
+    },
+    {
+      "path": "index.html",
+      "bytes": 300,
+      "sha256": "d50c23a3cefa46d3dbb71820bebe7e44f194cf8f1d2587ee1649aa3b0cd67f17"
+    },
+    {
+      "path": "native/keychain-helper/OMCODEKeychain",
+      "bytes": 83056,
+      "sha256": "93a692bb419e5f3e5606c8991793f5a871e168ad24a549a40d66f16f0cf272c0"
+    },
+    {
+      "path": "native/keychain-helper/source-sha256",
+      "bytes": 64,
+      "sha256": "5acd3239b2a2ac55a3654db82306e811b5d76af667d61d5459173e7018ff4245"
+    },
+    {
+      "path": "native/Keychain.swift",
+      "bytes": 1682,
+      "sha256": "90ef4d1cf4efe1f12ef2b43857d8c9c5df6c1368fe2315c3af9721cc43d6630b"
+    },
+    {
+      "path": "native/OMCODE.swift",
+      "bytes": 17475,
+      "sha256": "13d6da90acc1ff7004756e72a6907d231cb0849645e6fc25f9b31cc6f14679ed"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 82012,
+      "sha256": "82677773b1b422d90f403bb23aab48ba14b18f25f3be8b14a0a71eadd931e070"
+    },
+    {
+      "path": "package.json",
+      "bytes": 1068,
+      "sha256": "818f7b80abf85e6bf336e4ca2974504d946ca962b9005131dfb0260ee1d08ce5"
+    },
+    {
+      "path": "public/omcode-icon.png",
+      "bytes": 731113,
+      "sha256": "a6d9f474d22b5c8a7e005c87625a81f2f5c5dcff5333a8c2fc5fd2142ce2e914"
+    },
+    {
+      "path": "README.md",
+      "bytes": 5997,
+      "sha256": "d5f054616c3795118623a956a139a36566b13265a78f6b358600815bae017450"
+    },
+    {
+      "path": "scripts/bundle-verifier.mjs",
+      "bytes": 4192,
+      "sha256": "9450966085700a3305ab6c623d4af5f1a0fca51b45dc01e3aef657e5d57c0acf"
+    },
+    {
+      "path": "scripts/check-mcp.mjs",
+      "bytes": 1346,
+      "sha256": "6a174bba79533d10f0e4d3b8e60d013ec7fe40c8169b53cdaf5ec806cf192030"
+    },
+    {
+      "path": "scripts/dev.mjs",
+      "bytes": 318,
+      "sha256": "4e017ac563188deeea64c0c266cb8ca8d5f05b247152d57a265bdc85e01d49e1"
+    },
+    {
+      "path": "scripts/e2e.mjs",
+      "bytes": 10883,
+      "sha256": "d556ff2eeda92f1a5f525ac29073ee5e92a3b0c3670f6f1fcf4a528b8f78159c"
+    },
+    {
+      "path": "scripts/initialize.mjs",
+      "bytes": 1259,
+      "sha256": "0e3787fde4b5b5bf69e15168441888c2a22a31d2077da5d77a329ea2e2b55864"
+    },
+    {
+      "path": "scripts/install-e2e.mjs",
+      "bytes": 4221,
+      "sha256": "9faca2343126e12e03a2b5a3ab547491e35a87a2bb905dd3ab689fda861e830c"
+    },
+    {
+      "path": "scripts/install-local.mjs",
+      "bytes": 6215,
+      "sha256": "ffc132a28e8544e817b6ca2c7d6196a20a473490fdcf4c94a4b4f833f7b0bfae"
+    },
+    {
+      "path": "scripts/integrity.mjs",
+      "bytes": 4117,
+      "sha256": "85b532fc84759b0239035f151b85978d856dc43a79a4060d0e6594578195574c"
+    },
+    {
+      "path": "scripts/inventory.mjs",
+      "bytes": 2054,
+      "sha256": "355f538f9e3f79a8653991d4b784985c8b01c4b453d5189f7c7dadbebb736565"
+    },
+    {
+      "path": "scripts/live-e2e.mjs",
+      "bytes": 6226,
+      "sha256": "c717cad61daf40ba9b865414b537983c594dcb836aa7df3f7377ebbc08531820"
+    },
+    {
+      "path": "scripts/live-smoke.mjs",
+      "bytes": 996,
+      "sha256": "a34541b21a83470190840268cfe7d696cf4b25af592711e767b2d187d16ed3fe"
+    },
+    {
+      "path": "scripts/migrate-own-keychain.mjs",
+      "bytes": 1624,
+      "sha256": "97cd7a0fc6317b34df338d98c88b8aaf597c98ffe546619028b6616cc6734373"
+    },
+    {
+      "path": "scripts/native-e2e.mjs",
+      "bytes": 4767,
+      "sha256": "840917806438d7b41e36b4a9ac60fcb5dbbce84245fe858e439543d01b644731"
+    },
+    {
+      "path": "scripts/omcode",
+      "bytes": 64,
+      "sha256": "cc4c3e0bf3c70a073885b5ccbc01932c82a44327a683cce88b767a687c8bbc17"
+    },
+    {
+      "path": "scripts/package-mac.mjs",
+      "bytes": 7980,
+      "sha256": "5e659c956b198f559a64a2383a4b0c72144fb8b432851d211938e232b4154c49"
+    },
+    {
+      "path": "scripts/playwright-runtime.mjs",
+      "bytes": 1060,
+      "sha256": "96fd21f305c2bbabf75e37a0674cd906f12e7adc46513d8ac619b37e65672d9c"
+    },
+    {
+      "path": "scripts/probe-alternatives.mjs",
+      "bytes": 2094,
+      "sha256": "9841a3dae6f4ebf66640cdee662a85f4d2306a60c93e5501726587bd43eb1c86"
+    },
+    {
+      "path": "scripts/release-receipt.mjs",
+      "bytes": 713,
+      "sha256": "ebb080bcdc3be4f057159e424b1074ac28a7aed6fa7158d14252ec12a8262ced"
+    },
+    {
+      "path": "scripts/runtime-architecture.mjs",
+      "bytes": 263,
+      "sha256": "38fafc7a7562baf06dc4c69f149725a5429d7262ff834a55de26097401fb1b3e"
+    },
+    {
+      "path": "scripts/shell-config.mjs",
+      "bytes": 522,
+      "sha256": "1673aba6c91540bc9fb94e5c7a800a71c2d924a702b9d2c42879204485108f9a"
+    },
+    {
+      "path": "scripts/update-local.mjs",
+      "bytes": 8147,
+      "sha256": "dc71182e8f22ce24de8208e1c651fc3300b6f20df16d763966a367b1ffbd4a2d"
+    },
+    {
+      "path": "scripts/verify-all.mjs",
+      "bytes": 4012,
+      "sha256": "2e4f5dfb6d18306e37d7f96e5eba018adac4d816964ca44e05452f280070a1ed"
+    },
+    {
+      "path": "scripts/verify-bundle.mjs",
+      "bytes": 398,
+      "sha256": "e3c62d7bf1e7d7466b58056e93fc2190466ce9d3aa4e7f39523ccd6a9a6b278b"
+    },
+    {
+      "path": "server/agent.mjs",
+      "bytes": 10556,
+      "sha256": "2d041736976b367e45f23366707a983448c078a9cc0a55331e499dc323a4f591"
+    },
+    {
+      "path": "server/catalog.mjs",
+      "bytes": 4825,
+      "sha256": "27694cd5d3ef13d9a25d7e412d36f7ab7028be8ee272c73a77362178043b0dd4"
+    },
+    {
+      "path": "server/files-worker.mjs",
+      "bytes": 3777,
+      "sha256": "fa6695e08467f3047826a2c1e030177967ffcf373cd98b698153628d47f60516"
+    },
+    {
+      "path": "server/index.mjs",
+      "bytes": 16092,
+      "sha256": "92d5a47267ca157b156ae11f2298589bc7581bd8daf30da17c5608d3750c24d3"
+    },
+    {
+      "path": "server/local.mjs",
+      "bytes": 3411,
+      "sha256": "8ad85cf66460a0d38c4e49d997d9482bcead7627466c592c36a20f81e9f13bf5"
+    },
+    {
+      "path": "server/mcp.mjs",
+      "bytes": 859,
+      "sha256": "c4021428c197dda072dfc1636f704348455beda8428213a907885aab2cde8504"
+    },
+    {
+      "path": "server/meta.mjs",
+      "bytes": 177,
+      "sha256": "eeb60383c70a02b2e1af053d55ecfcd487116b7b8ecae2a10c37bbe0445083f7"
+    },
+    {
+      "path": "server/providers.mjs",
+      "bytes": 7834,
+      "sha256": "57b1f605a5dfe27d306e64af3f3cfd8b602982758d0d103d3620b5ae6d569fcb"
+    },
+    {
+      "path": "server/store.mjs",
+      "bytes": 3498,
+      "sha256": "00555662632e8c12c1b756ea5c59dede6494bcce69a4aa14eaec1e5ad02ce926"
+    },
+    {
+      "path": "src/AgentPanel.jsx",
+      "bytes": 12904,
+      "sha256": "00cc4037444eda805e21d7759417dd5e6654d3bf098fa71579ec23bd4918f3dc"
+    },
+    {
+      "path": "src/api.js",
+      "bytes": 814,
+      "sha256": "f25d154627b3a1467c1e307c27ed4c8767888cdf52a4c007bc815124d386f995"
+    },
+    {
+      "path": "src/Editor.jsx",
+      "bytes": 2350,
+      "sha256": "6f37a9e0a0723d2a971ae52fd20da32fb4a4d72e4ec3e58fb8f244772fcccca7"
+    },
+    {
+      "path": "src/Explorer.jsx",
+      "bytes": 3795,
+      "sha256": "3f45252431e05494d08aba7c0f7219a93cfdc578d7f59c0689b6ba4add98863e"
+    },
+    {
+      "path": "src/main.jsx",
+      "bytes": 26224,
+      "sha256": "b38e8ac00cf369ca6135da7ce83d16672a480557b3e92bc841dcf59488d4e230"
+    },
+    {
+      "path": "src/Settings.jsx",
+      "bytes": 11501,
+      "sha256": "46831fa492c074a5d9efe4ea150140308067d6244c1d3d896efc6c024b5dc088"
+    },
+    {
+      "path": "src/styles.css",
+      "bytes": 21626,
+      "sha256": "27c3e449be317d256ec4fa634a1e4629dee6548953707caadbf4bf8a3e42098f"
+    },
+    {
+      "path": "src/Terminal.jsx",
+      "bytes": 2734,
+      "sha256": "c359c0d6acc340d44605de9c46c2991b90fe1d7c52aa7a559e7fde357c99694d"
+    },
+    {
+      "path": "tests/release.test.mjs",
+      "bytes": 9342,
+      "sha256": "1cc01ea2a88f89942657f0da2dda2f8474508d4bfde2edcf9e343e166c1031ce"
+    },
+    {
+      "path": "tests/runtime.test.mjs",
+      "bytes": 16981,
+      "sha256": "53784e9d8339336140eb541b0e1fb51c59959adf9593da60c83bca9906871dba"
+    },
+    {
+      "path": "vite.config.mjs",
+      "bytes": 164,
+      "sha256": "5d172c5a4ef57ec07b4e3c85776b465c167c46900752adc109c8c02e51768738"
+    }
+  ],
+  "nativeBinarySha256": "c7b90ad322ac3fd1fac2829727389f14f3f99b68700c81e82ac633dd53f1550d",
+  "nodeSha256": "ae73c07d5041900b8e28428da1fc3b538a0d1c9b6c8dd321f4926d326586e9b2",
+  "shellBeforeSha256": "7ec38af24707a618933654cb4b48fa69c2b73a73aa20669a19f04199b0c7a007",
+  "shellAfterSha256": "c524586b04489a7fc509ccf6822ffdf39680de6b80ba13920cde112d58ca8b47",
+  "skillCount": 345,
+  "deletedUserFiles": 0,
+  "replacedOriginalApplicationBundles": 0,
+  "keychainHelperSha256": "93a692bb419e5f3e5606c8991793f5a871e168ad24a549a40d66f16f0cf272c0",
+  "keychainService": "com.omdala.omcode.providers.v1",
+  "legacyKeychainServiceRetained": true,
+  "updateBackup": "/Users/tranhatam/Developer/OMCODE/repair-backups/2026-09-14T01-18-25-510Z",
+  "schemaVersion": 2,
+  "target": "/Users/tranhatam/Developer/OMCODE/source/apps/omcode-desktop",
+  "version": "0.2.1",
+  "sourceHead": "4abd40dcc68b0ba029a366698c98999d7309f022",
+  "sourceBranch": "OMCODE/omcode-desktop-e2e-hardening-20260914",
+  "bundleManifestDigest": "fba04d80a512d441b6c422e1fadf0aeaebc3104deb5593a9ed5681fb517ebded",
+  "payloadFiles": 3903,
+  "releaseReceipt": "/Users/tranhatam/Developer/OMCODE/release-receipt.json",
+  "releaseVerifiedAt": "2026-09-14T01:13:53.027Z",
+  "dataPreserved": true
+}

@@ -1,0 +1,30 @@
+{
+  "time": "2026-09-13T17:58:46.007Z",
+  "provider": "google",
+  "model": "gemini-3.8-flash",
+  "engine": "webkit",
+  "project": "/private/var/folders/zy/yc25xq9x28sd9gz9rz1z7zgr0000gn/T/omcode-live-e2e-mOlIuE/live-agent-test",
+  "session": "e42a4c7f-b9fa-49ed-8e4f-02de87d0f6f3",
+  "toolReceipts": [
+    {
+      "name": "read_file",
+      "ok": true,
+      "time": 1789322310115
+    },
+    {
+      "name": "propose_edit",
+      "ok": true,
+      "time": 1789322314291
+    }
+  ],
+  "checks": [
+    "real-provider-generation",
+    "real-read-file-tool",
+    "real-propose-edit-tool",
+    "user-approved-write",
+    "terminal-execution-of-generated-file",
+    "durable-session",
+    "no-uncaught-browser-errors"
+  ],
+  "ok": true
+}

@@ -1,0 +1,32 @@
+{
+  "time": "2026-09-13T18:11:22.778Z",
+  "ok": true,
+  "app": "/Users/tranhatam/Applications/OMCODE.app",
+  "sourceDigest": "8f8b34d4655656762924580b68e0fe89462536183c16598444d08d771a843ca6",
+  "nativeBinarySha256": "56647479e172f13262dc8f002435e766186e6151e384c9e6e9848e8e30d2e58f",
+  "keychainHelperSha256": "93a692bb419e5f3e5606c8991793f5a871e168ad24a549a40d66f16f0cf272c0",
+  "engine": "webkit",
+  "provider": "google",
+  "model": "gemini-3.1-flash-lite",
+  "actualBundledBackend": true,
+  "actualBundledFrontend": true,
+  "actualBundledNode": true,
+  "configuredMcp": 5,
+  "importedSkills": 345,
+  "toolReceipts": [
+    {
+      "name": "read_file",
+      "ok": true,
+      "time": 1789323079834
+    },
+    {
+      "name": "propose_edit",
+      "ok": true,
+      "time": 1789323080829
+    }
+  ],
+  "approvedWrite": true,
+  "generatedFileExecuted": true,
+  "errors": [],
+  "scratch": "/private/tmp/omcode-installed-e2e-UMMcCy"
+}

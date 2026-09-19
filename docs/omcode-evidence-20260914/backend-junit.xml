@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testsuite name="local runtime: authentication, files, conflict guard, backup, terminal, persistence and approved AI edits" time="0.989105" disabled="0" errors="0" tests="6" failures="0" skipped="0" hostname="MacBook-Air-cua-TRAN-3.local">
+		<testcase name="rejects unauthenticated and cross-origin requests" time="0.022496" classname="test" file="/private/tmp/omcode-recovery-20260913/apps/omcode-desktop/tests/runtime.test.mjs"/>
+		<testcase name="bounds file access and skips dependencies" time="0.225841" classname="test" file="/private/tmp/omcode-recovery-20260913/apps/omcode-desktop/tests/runtime.test.mjs"/>
+		<testcase name="saves with an optimistic lock and retains rollback content" time="0.325280" classname="test" file="/private/tmp/omcode-recovery-20260913/apps/omcode-desktop/tests/runtime.test.mjs"/>
+		<testcase name="preserves existing and new drafts across restarts without changing project files" time="0.232059" classname="test" file="/private/tmp/omcode-recovery-20260913/apps/omcode-desktop/tests/runtime.test.mjs"/>
+		<testcase name="executes actual terminal commands in the selected project" time="0.014688" classname="test" file="/private/tmp/omcode-recovery-20260913/apps/omcode-desktop/tests/runtime.test.mjs"/>
+		<testcase name="agent calls tools but edits only after user approval" time="0.151600" classname="test" file="/private/tmp/omcode-recovery-20260913/apps/omcode-desktop/tests/runtime.test.mjs"/>
+	</testsuite>
+	<testcase name="provider endpoints reject credentials and insecure remote HTTP" time="0.000271" classname="test" file="/private/tmp/omcode-recovery-20260913/apps/omcode-desktop/tests/runtime.test.mjs"/>
+	<testcase name="Google model resource names are normalized for OpenAI-compatible generation" time="0.000117" classname="test" file="/private/tmp/omcode-recovery-20260913/apps/omcode-desktop/tests/runtime.test.mjs"/>
+	<testcase name="Keychain failures stop before any provider request" time="0.894442" classname="test" file="/private/tmp/omcode-recovery-20260913/apps/omcode-desktop/tests/runtime.test.mjs"/>
+	<!-- tests 10 -->
+	<!-- suites 0 -->
+	<!-- pass 10 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 2126.586917 -->
+</testsuites>

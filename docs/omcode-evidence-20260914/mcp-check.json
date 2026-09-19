@@ -1,0 +1,30 @@
+{
+  "time": "2026-09-13T17:42:25.536Z",
+  "results": [
+    {
+      "id": "cloudflare-docs",
+      "status": "connected",
+      "tools": 2
+    },
+    {
+      "id": "cloudflare",
+      "status": "needs_connection",
+      "reason": "Streamable HTTP error: Error POSTing to endpoint: "
+    },
+    {
+      "id": "cloudflare-bindings",
+      "status": "needs_connection",
+      "reason": "Streamable HTTP error: Error POSTing to endpoint: "
+    },
+    {
+      "id": "cloudflare-builds",
+      "status": "needs_connection",
+      "reason": "Streamable HTTP error: Error POSTing to endpoint: "
+    },
+    {
+      "id": "cloudflare-observability",
+      "status": "needs_connection",
+      "reason": "Streamable HTTP error: Error POSTing to endpoint: "
+    }
+  ]
+}
