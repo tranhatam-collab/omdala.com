@@ -1,0 +1,139 @@
+{
+  "time": "2026-09-19T04:09:07.890Z",
+  "ok": true,
+  "sourceDigest": "550cc09ca8cc71ab1747df53eaef6aeea0c38dc7eda9d6f56d17d73491193b7e",
+  "passed": 26,
+  "results": [
+    {
+      "engine": "chromium",
+      "check": "edit-save-real-file",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "draft-recovery-after-reload",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "real-terminal",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "agent-proposal-approval-disk",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "execute-agent-produced-file",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "skill-library",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "provider-model-health",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "gateway-catalog-17-chat-models",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "gateway-model-selector-17",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "gateway-billing-readback",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "session-history-after-navigation",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "mobile-editor-agent-navigation-no-overflow",
+      "ok": true
+    },
+    {
+      "engine": "chromium",
+      "check": "theme-and-no-uncaught-errors",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "edit-save-real-file",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "draft-recovery-after-reload",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "real-terminal",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "agent-proposal-approval-disk",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "execute-agent-produced-file",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "skill-library",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "provider-model-health",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "gateway-catalog-17-chat-models",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "gateway-model-selector-17",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "gateway-billing-readback",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "session-history-after-navigation",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "mobile-editor-agent-navigation-no-overflow",
+      "ok": true
+    },
+    {
+      "engine": "webkit",
+      "check": "theme-and-no-uncaught-errors",
+      "ok": true
+    }
+  ],
+  "scratch": "/private/var/folders/zy/yc25xq9x28sd9gz9rz1z7zgr0000gn/T/omcode-browser-OkDGR9"
+}

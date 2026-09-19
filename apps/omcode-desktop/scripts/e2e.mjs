@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { startServer } from "../server/index.mjs";
 import { loadPlaywright } from "./playwright-runtime.mjs";
 import { createSourceManifest, manifestDigest } from "./integrity.mjs";
+import { startGatewayFixture } from "../tests/fixtures/gateway-fixture.mjs";
 
 const { chromium, webkit } = loadPlaywright();
 const moduleRoot = path.resolve(import.meta.dirname, "..");
@@ -66,6 +67,8 @@ const fixture = http.createServer(async (req, res) => {
   res.end(JSON.stringify({ choices: [{ message }] }));
 });
 await new Promise((resolve) => fixture.listen(0, "127.0.0.1", resolve));
+process.env.OMCODE_TEST_API_KEY_GATEWAY ||= "sk-aiagent-e2e-fixture-key";
+const gateway = await startGatewayFixture();
 runtime.store.set("providers", [
   {
     id: "fixture",
@@ -74,6 +77,18 @@ runtime.store.set("providers", [
     models: ["fixture-model"],
     baseUrl: `http://127.0.0.1:${fixture.address().port}`,
     status: "connected",
+  },
+  {
+    id: "gateway",
+    name: "Gateway fixture",
+    kind: "iai-one",
+    model: "iai-one/iris-3",
+    models: [],
+    baseUrl: gateway.baseUrl,
+    tenantId: "omcode-e2e",
+    workspaceId: "omcode-e2e-ws",
+    credentialRevision: 0,
+    status: "not_checked",
   },
 ]);
 runtime.store.set("skills", [
@@ -202,7 +217,37 @@ try {
       .click();
     await page.getByText("1 model · Đã kết nối", { exact: true }).waitFor();
     results.push({ engine, check: "provider-model-health", ok: true });
+    await page
+      .getByRole("button", { name: "Kiểm tra Gateway fixture", exact: true })
+      .click();
+    await page.getByText("17 model · Đã kết nối", { exact: true }).waitFor();
+    results.push({ engine, check: "gateway-catalog-17-chat-models", ok: true });
     await page.getByRole("button", { name: "Tệp", exact: true }).click();
+    await page
+      .getByRole("combobox", { name: "Nhà cung cấp AI", exact: true })
+      .selectOption({ label: "Gateway fixture" });
+    assert.equal(
+      await page.locator('select[aria-label="Mô hình AI"] option').count(),
+      17,
+    );
+    results.push({ engine, check: "gateway-model-selector-17", ok: true });
+    await page
+      .getByRole("textbox", { name: "Yêu cầu AI", exact: true })
+      .fill("Đề xuất tạo agent-result.js");
+    await page
+      .getByRole("button", { name: "Gửi yêu cầu AI", exact: true })
+      .click();
+    await page
+      .locator(".receipt-meta")
+      .filter({ hasText: "read-back đã xác minh" })
+      .first()
+      .waitFor({ timeout: 20000 });
+    await page
+      .locator(".receipt-meta")
+      .filter({ hasText: "ledger led_" })
+      .first()
+      .waitFor();
+    results.push({ engine, check: "gateway-billing-readback", ok: true });
     await page
       .getByRole("combobox", { name: "Lịch sử phiên", exact: true })
       .selectOption({ index: 1 });

@@ -37,12 +37,12 @@ try {
   );
   if (
     browser.ok !== true ||
-    browser.passed !== 20 ||
+    browser.passed !== 26 ||
     browser.sourceDigest !== candidate.sourceDigest ||
     browser.results?.some((result) => result.ok !== true)
   )
     throw new Error(
-      "Browser E2E receipt does not cover 20 checks for this source.",
+      "Browser E2E receipt does not cover 26 checks for this source.",
     );
   if (
     native.ok !== true ||
