@@ -1,5 +1,5 @@
 {
-  "time": "2026-09-19T04:48:58.775Z",
+  "time": "2026-09-19T04:50:53.682Z",
   "ok": true,
   "version": "0.2.1",
   "sourceDigest": "a6430dd4fb32ebfe31815479be3c89935b62e5afc0a97a59112cf1d5e3a736df",
@@ -13,5 +13,5 @@
     "shell-update-idempotent",
     "dated-app-and-source-backups"
   ],
-  "scratch": "/private/var/folders/zy/yc25xq9x28sd9gz9rz1z7zgr0000gn/T/omcode-install-e2e-ai9AtG"
+  "scratch": "/private/var/folders/zy/yc25xq9x28sd9gz9rz1z7zgr0000gn/T/omcode-install-e2e-CgDd5D"
 }

@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "time": "2026-09-19T04:50:57.524Z",
+  "ok": true,
+  "app": "/Users/tranhatam/Developer/OMCODE/source/apps/omcode-desktop/release/OMCODE.app",
+  "version": "0.2.1",
+  "sourceDigest": "a6430dd4fb32ebfe31815479be3c89935b62e5afc0a97a59112cf1d5e3a736df",
+  "bundleManifestDigest": "a397ae43323a16a3e28376dc89d6e291144a92ee7217110e93a6a50922134b65",
+  "payloadFiles": 3904,
+  "stages": {
+    "tests": {
+      "ok": true,
+      "durationMs": 2784,
+      "command": [
+        "npm",
+        "test"
+      ]
+    },
+    "build": {
+      "ok": true,
+      "durationMs": 1146,
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ]
+    },
+    "package": {
+      "ok": true,
+      "durationMs": 12199,
+      "command": [
+        "npm",
+        "run",
+        "package:mac"
+      ]
+    },
+    "bundle": {
+      "ok": true,
+      "durationMs": 1669,
+      "command": [
+        "npm",
+        "run",
+        "verify:bundle"
+      ]
+    },
+    "browser": {
+      "ok": true,
+      "durationMs": 16890,
+      "command": [
+        "/Users/tranhatam/.nvm/versions/node/v24.18.0/bin/node",
+        "scripts/e2e.mjs"
+      ]
+    },
+    "native": {
+      "ok": true,
+      "durationMs": 10950,
+      "command": [
+        "/Users/tranhatam/.nvm/versions/node/v24.18.0/bin/node",
+        "scripts/native-e2e.mjs"
+      ]
+    },
+    "install": {
+      "ok": true,
+      "durationMs": 44517,
+      "command": [
+        "/Users/tranhatam/.nvm/versions/node/v24.18.0/bin/node",
+        "scripts/install-e2e.mjs"
+      ]
+    }
+  },
+  "browser": {
+    "passed": 26,
+    "engines": [
+      "chromium",
+      "webkit"
+    ]
+  },
+  "native": {
+    "checks": [
+      "native-wkwebview",
+      "agent-read-file",
+      "agent-propose-edit",
+      "user-approved-write",
+      "terminal-execution"
+    ],
+    "approvedWrite": true,
+    "generatedFileExecuted": true,
+    "errors": []
+  },
+  "install": {
+    "checks": [
+      "fresh-install-in-isolated-home",
+      "candidate-sidecar-verification",
+      "idempotent-update",
+      "database-byte-identical",
+      "user-data-sentinel-preserved",
+      "shell-update-idempotent",
+      "dated-app-and-source-backups"
+    ],
+    "dataPreserved": true
+  },
+  "liveProvider": {
+    "status": "not-run",
+    "reason": "Run npm run test:live separately because it consumes provider quota."
+  }
+}
