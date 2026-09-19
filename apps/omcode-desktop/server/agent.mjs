@@ -71,7 +71,12 @@ export function createAgent(store) {
         .get("providers", [])
         .find((p) => p.id === input.providerId);
       if (!provider) throw new Error("Chọn một kết nối AI trong Cài đặt.");
-      if (input.model && !provider.models.includes(input.model))
+      // Model selection and fallback stay inside the credential-bound catalog
+      // when one exists; a missing catalog is enforced again in completion().
+      const allowedModels = provider.catalog?.models?.length
+        ? provider.catalog.models
+        : provider.models;
+      if (input.model && !allowedModels.includes(input.model))
         throw new Error("Model chưa được xác minh ở provider này.");
       const selected = { ...provider, model: input.model || provider.model };
       const run = {
@@ -133,13 +138,14 @@ export function createAgent(store) {
               label: `Đang gọi ${selected.name} / ${selected.model}`,
               time: Date.now(),
             });
-            const { message, usage } = await completion(
+            const { message, usage, billing } = await completion(
               selected,
               messages,
               tools,
               run.controller.signal,
             );
             if (usage) run.usage = usage;
+            if (billing) run.billing = billing;
             messages.push(message);
             if (!message.tool_calls?.length) {
               run.answer = message.content || "";
@@ -148,6 +154,7 @@ export function createAgent(store) {
                 content: run.answer,
                 provider: selected.name,
                 model: selected.model,
+                billing: run.billing || null,
                 proposals: run.proposals,
                 toolReceipts: run.toolReceipts,
               });
@@ -246,6 +253,7 @@ export function createAgent(store) {
           session.messages.push({
             role: "assistant",
             content: run.answer,
+            billing: run.billing || null,
             proposals: run.proposals,
             toolReceipts: run.toolReceipts,
           });

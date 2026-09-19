@@ -544,6 +544,26 @@ pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.receipt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.receipt-meta span {
+  border: 1px solid var(--border, #3a3f4b);
+  border-radius: 4px;
+  padding: 1px 6px;
+  overflow-wrap: anywhere;
+}
+.receipt-meta .verified {
+  color: var(--ok, #3fb950);
+}
+.receipt-meta .unverified {
+  color: var(--warn, #d29922);
+}
 .agent-progress {
   display: flex;
   align-items: center;

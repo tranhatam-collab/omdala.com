@@ -279,6 +279,37 @@ export function AgentPanel({
                 {message.model && <span>{message.model}</span>}
               </div>
               <div className="message-body">{message.content}</div>
+              {message.billing && (
+                <div className="receipt-meta">
+                  {message.billing.receipt_id && (
+                    <span title="Receipt ID">
+                      receipt {message.billing.receipt_id}
+                    </span>
+                  )}
+                  {message.billing.run_id && (
+                    <span title="Run ID">run {message.billing.run_id}</span>
+                  )}
+                  {message.billing.ledger_entry_id && (
+                    <span title="Ledger entry">
+                      ledger {message.billing.ledger_entry_id}
+                    </span>
+                  )}
+                  <span
+                    className={
+                      message.billing.verified ? "verified" : "unverified"
+                    }
+                  >
+                    {message.billing.verified
+                      ? "read-back đã xác minh"
+                      : `billing chưa xác minh${message.billing.readback_error ? `: ${message.billing.readback_error}` : ""}`}
+                  </span>
+                  {message.billing.verified &&
+                    message.billing.cost_usd !== null &&
+                    message.billing.cost_usd !== undefined && (
+                      <span>cost ${message.billing.cost_usd}</span>
+                    )}
+                </div>
+              )}
               {message.proposals?.map((proposal) => (
                 <details className="proposal" key={proposal.id}>
                   <summary>
