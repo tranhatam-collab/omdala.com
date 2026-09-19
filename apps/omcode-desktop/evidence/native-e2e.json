@@ -1,8 +1,8 @@
 {
   "app": true,
   "approvedWrite": true,
-  "backendPID": 38848,
-  "bundle": "/Users/tranhatam/Applications/OMCODE.app",
+  "backendPID": 93253,
+  "bundle": "/Users/tranhatam/Developer/OMCODE/source/apps/omcode-desktop/release/OMCODE.app",
   "checks": [
     "native-wkwebview",
     "agent-read-file",
@@ -18,7 +18,7 @@
   "provider": "fixture",
   "title": "OMCODE",
   "version": "0.2.1",
-  "sourceDigest": "e99648293caaaf2fa200affe17b2ca30935230bc0ff08ac6a70203b0870e6e37",
-  "bundleManifestDigest": "fba04d80a512d441b6c422e1fadf0aeaebc3104deb5593a9ed5681fb517ebded",
-  "scratch": "/private/var/folders/zy/yc25xq9x28sd9gz9rz1z7zgr0000gn/T/omcode-native-e2e-OKZTNG"
+  "sourceDigest": "a6430dd4fb32ebfe31815479be3c89935b62e5afc0a97a59112cf1d5e3a736df",
+  "bundleManifestDigest": "a397ae43323a16a3e28376dc89d6e291144a92ee7217110e93a6a50922134b65",
+  "scratch": "/private/var/folders/zy/yc25xq9x28sd9gz9rz1z7zgr0000gn/T/omcode-native-e2e-tHsOIN"
 }

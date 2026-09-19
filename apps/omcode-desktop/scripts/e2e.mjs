@@ -344,4 +344,5 @@ try {
   if (browser) await browser.close();
   await runtime.close();
   await new Promise((resolve) => fixture.close(resolve));
+  await gateway.close();
 }
