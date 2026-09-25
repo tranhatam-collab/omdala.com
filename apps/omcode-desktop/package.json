@@ -1,0 +1,37 @@
+{
+  "name": "@omdala/omcode-desktop",
+  "version": "0.2.2",
+  "buildNumber": 4,
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "vite build",
+    "start": "node server/index.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:ui": "node scripts/evidence-runner.mjs scripts/e2e.mjs e2e-results",
+    "test:native": "node scripts/evidence-runner.mjs scripts/native-e2e.mjs native-e2e",
+    "test:install": "node scripts/evidence-runner.mjs scripts/install-e2e.mjs install-e2e",
+    "test:live": "node scripts/evidence-runner.mjs scripts/live-e2e.mjs live-e2e",
+    "package:mac": "node scripts/package-mac.mjs",
+    "verify:bundle": "node scripts/verify-bundle.mjs",
+    "verify:all": "node scripts/evidence-runner.mjs scripts/verify-all.mjs release-verification"
+  },
+  "dependencies": {
+    "@codemirror/lang-javascript": "^6.2.4",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.1",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "codemirror": "^6.0.2",
+    "lucide-react": "1.45.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "smol-toml": "^1.4.2",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1",
+    "prettier": "3.6.2",
+    "vite": "8.0.16"
+  }
+}
