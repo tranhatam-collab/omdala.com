@@ -11,6 +11,11 @@ import { startGatewayFixture } from "../tests/fixtures/gateway-fixture.mjs";
 
 const { chromium, webkit } = loadPlaywright();
 const moduleRoot = path.resolve(import.meta.dirname, "..");
+const watchdogMs = Number(process.env.OMCODE_E2E_TIMEOUT_MS || 8 * 60 * 1000);
+const watchdog = setTimeout(() => {
+  console.error(`[e2e] hard timeout after ${watchdogMs}ms`);
+  process.exit(124);
+}, watchdogMs);
 const metadata = JSON.parse(
   await fs.readFile(path.join(moduleRoot, "package.json"), "utf8"),
 );
@@ -113,18 +118,23 @@ try {
     ["chromium", chromium],
     ["webkit", webkit],
   ]) {
+    console.log(`[e2e] ${engine}: launch`);
     runtime.store.set("preferences", { theme: "light" });
-    browser = await browserType.launch({ headless: true });
+    browser = await browserType.launch({ headless: true, timeout: 60_000 });
+    console.log(`[e2e] ${engine}: launched`);
     const context = await browser.newContext({
       viewport: { width: 1440, height: 900 },
     });
     const page = await context.newPage();
+    page.setDefaultTimeout(25_000);
+    page.setDefaultNavigationTimeout(25_000);
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(`${runtime.origin}/#${runtime.token}`);
     await page.getByRole("heading", { name: "OMCODE", exact: true }).waitFor();
     await page.getByText(metadata.version, { exact: true }).waitFor();
     await page.getByRole("button", { name: "App.tsx", exact: true }).waitFor();
+    console.log(`[e2e] ${engine}: workspace ready`);
     let stalledFileRequest;
     let stalledFileCount = 0;
     await page.route("**/api/files?**", (route) => {
@@ -163,6 +173,7 @@ try {
       check: "file-timeout-recovery-without-auto-retry",
       ok: true,
     });
+    console.log(`[e2e] ${engine}: timeout recovery verified`);
     await page.getByRole("button", { name: "App.tsx", exact: true }).click();
     const editor = page.locator(".cm-content");
     await editor.waitFor();
@@ -267,6 +278,7 @@ try {
       !captured.at(-1).tools.some((t) => t.function.name === "read_file"),
     );
     results.push({ engine, check: "agent-proposal-approval-disk", ok: true });
+    console.log(`[e2e] ${engine}: agent approval verified`);
     await page
       .getByRole("textbox", { name: "Lệnh terminal", exact: true })
       .fill(`'${process.execPath}' agent-result.js`);
@@ -415,6 +427,7 @@ try {
       .first()
       .waitFor();
     results.push({ engine, check: "gateway-billing-readback", ok: true });
+    console.log(`[e2e] ${engine}: gateway read-back verified`);
     await page
       .getByRole("combobox", { name: "Lịch sử phiên", exact: true })
       .selectOption({ index: 1 });
@@ -494,6 +507,8 @@ try {
     });
     assert.deepEqual(errors, []);
     results.push({ engine, check: "theme-and-no-uncaught-errors", ok: true });
+    console.log(`[e2e] ${engine}: ${results.filter((result) => result.engine === engine).length} checks passed`);
+    await context.close();
     await browser.close();
     browser = null;
   }
@@ -525,8 +540,10 @@ try {
   );
   process.exitCode = 1;
 } finally {
+  clearTimeout(watchdog);
   if (browser) await browser.close();
   await runtime.close();
+  fixture.closeAllConnections();
   await new Promise((resolve) => fixture.close(resolve));
   await gateway.close();
 }

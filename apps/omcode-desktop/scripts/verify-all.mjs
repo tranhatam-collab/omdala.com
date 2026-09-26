@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import fsSync from "node:fs";
@@ -23,14 +23,14 @@ const stages = {};
 await fs.mkdir(evidenceDirectory, { recursive: true });
 
 try {
-  runStage("dependencies", process.execPath, ["scripts/audit-deps.mjs"]);
-  runStage("tests", "npm", ["test"]);
-  runStage("build", "npm", ["run", "build"]);
-  runStage("package", "npm", ["run", "package:mac"]);
-  runStage("bundle", "npm", ["run", "verify:bundle"]);
-  runStage("browser", "npm", ["run", "test:ui"]);
-  runStage("native", "npm", ["run", "test:native"]);
-  runStage("install", "npm", ["run", "test:install"]);
+  await runStage("dependencies", process.execPath, ["scripts/audit-deps.mjs"]);
+  await runStage("tests", "npm", ["test"]);
+  await runStage("build", "npm", ["run", "build"]);
+  await runStage("package", "npm", ["run", "package:mac"]);
+  await runStage("bundle", "npm", ["run", "verify:bundle"]);
+  await runStage("browser", "npm", ["run", "test:ui"]);
+  await runStage("native", "npm", ["run", "test:native"]);
+  await runStage("install", "npm", ["run", "test:install"]);
 
   const candidate = await verifyCandidateBundle(candidateApp, moduleRoot);
   const browser = JSON.parse(
@@ -112,17 +112,30 @@ try {
   throw error;
 }
 
-function runStage(name, command, args) {
+async function runStage(name, command, args) {
   const started = Date.now();
-  const result = spawnSync(command, args, {
+  const child = spawn(command, args, {
     cwd: moduleRoot,
     env: { ...process.env, OMCODE_E2E_APP: candidateApp },
-    encoding: "utf8",
-    maxBuffer: 8 * 1024 * 1024,
+    stdio: ["ignore", "pipe", "pipe"],
   });
-  process.stdout.write(result.stdout || "");
-  process.stderr.write(result.stderr || "");
-  const log = (result.stdout || "") + (result.stderr || "");
+  let stdout = "";
+  let stderr = "";
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk;
+    process.stdout.write(chunk);
+  });
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk;
+    process.stderr.write(chunk);
+  });
+  const result = await new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", (code, signal) => resolve({ code, signal }));
+  });
+  const log = stdout + stderr;
   const logPath = path.join(
     evidenceDirectory,
     "runs",
@@ -134,15 +147,15 @@ function runStage(name, command, args) {
   stages[name] = {
     logPath,
     logSha256: createHash("sha256").update(log).digest("hex"),
-    ok: result.status === 0,
+    ok: result.code === 0,
     runId: process.env.OMCODE_VERIFY_RUN_ID,
-    exitCode: result.status,
+    exitCode: result.code,
     signal: result.signal,
     durationMs: Date.now() - started,
     command: [command, ...args],
   };
-  if (result.status !== 0)
+  if (result.code !== 0)
     throw new Error(
-      `Release stage failed: ${name} (${result.status ?? result.signal})`,
+      `Release stage failed: ${name} (${result.code ?? result.signal})`,
     );
 }
