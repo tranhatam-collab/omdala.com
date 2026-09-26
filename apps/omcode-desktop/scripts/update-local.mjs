@@ -13,6 +13,10 @@ import {
 import { assertReleaseReceipt } from "./release-receipt.mjs";
 import { dataManifest, compareData } from "./data-manifest.mjs";
 import { ensureLauncherPath } from "./shell-config.mjs";
+import {
+  currentInstallationProvenance,
+  previousInstallationHistory,
+} from "./installation-provenance.mjs";
 
 const moduleRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -20,7 +24,8 @@ const moduleRoot = path.resolve(
 );
 const workspace = path.join(process.env.HOME, "Developer/OMCODE");
 const receiptPath = path.join(workspace, "installation-receipt.json");
-const previous = JSON.parse(await fs.readFile(receiptPath, "utf8"));
+const previousBytes = await fs.readFile(receiptPath);
+const previous = JSON.parse(previousBytes.toString());
 let target =
   previous.target || path.join(previous.source, "apps/omcode-desktop");
 const stagedApp = path.resolve(
@@ -49,6 +54,7 @@ const releaseReceipt = JSON.parse(
   await fs.readFile(releaseReceiptPath, "utf8"),
 );
 assertReleaseReceipt(releaseReceipt, candidate);
+const provenance = currentInstallationProvenance(releaseReceipt);
 if (preserveChangedSource) {
   target = path.join(
     workspace,
@@ -85,10 +91,18 @@ const dataBefore = await dataManifest(dataPath);
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 const backup = path.join(workspace, "repair-backups", stamp);
 await fs.mkdir(backup, { recursive: true, mode: 0o700 });
-await fs.copyFile(
-  receiptPath,
-  path.join(backup, "installation-receipt-before.json"),
+const previousReceiptPath = path.join(
+  backup,
+  "installation-receipt-before.json",
 );
+if (digest(await fs.readFile(receiptPath)) !== digest(previousBytes))
+  throw new Error(
+    "Installation receipt changed during update; update stopped.",
+  );
+await fs.writeFile(previousReceiptPath, previousBytes, {
+  flag: "wx",
+  mode: 0o600,
+});
 const shellConfig =
   previous.shellConfig || path.join(process.env.HOME, ".zshrc");
 const launcher =
@@ -212,17 +226,28 @@ if (!preservation.preserved)
     "User data changed during update; inspect data-preservation.json. No data was deleted by this installer.",
   );
 const receipt = {
-  ...previous,
-  schemaVersion: 2,
+  schemaVersion: 3,
   time: new Date().toISOString(),
+  app: previous.app,
+  source: target,
   target,
+  data: dataPath,
+  launcher,
+  shellConfig,
+  shellBackup: path.join(backup, ".zshrc.before-update"),
+  shellBeforeSha256: digest(shellBefore),
+  shellAfterSha256: digest(shellAfter),
   preservedChangedSource: preserveChangedSource
     ? { path: originalTarget, sourceDigest: currentSourceDigest }
     : null,
   version: installed.version,
-  sourceHead: process.env.OMCODE_SOURCE_HEAD || previous.sourceHead || null,
-  sourceBranch:
-    process.env.OMCODE_SOURCE_BRANCH || previous.sourceBranch || null,
+  ...provenance,
+  history: {
+    previousInstallation: previousInstallationHistory(
+      previousBytes,
+      previousReceiptPath,
+    ),
+  },
   sourceFiles,
   sourceDigest: manifestDigest(sourceFiles),
   bundleManifestDigest: installed.bundleManifestDigest,

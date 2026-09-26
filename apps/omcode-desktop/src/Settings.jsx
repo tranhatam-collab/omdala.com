@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { api } from "./api";
 import { Approval } from "./Approval";
+import { aiagentConnectionForm } from "./provider-presets.mjs";
 export function Settings({ data, refresh, onError }) {
   const [busy, setBusy] = useState("");
   const [form, setForm] = useState(null);
@@ -68,17 +69,16 @@ export function Settings({ data, refresh, onError }) {
         <button
           className="secondary small"
           onClick={() =>
-            setForm({
-              id: "aiagent",
-              name: "AIAGENT IAI.ONE",
-              baseUrl: "https://api.aiagent.iai.one",
-              kind: "iai-one",
-              model: "",
-              apiKey: "",
-            })
+            setForm(aiagentConnectionForm(data.providers, "production"))
           }
         >
           Kết nối AIAGENT
+        </button>
+        <button
+          className="secondary small"
+          onClick={() => setForm(aiagentConnectionForm(data.providers, "staging"))}
+        >
+          Kết nối AIAGENT staging
         </button>
         <button
           className="icon-button"
@@ -242,6 +242,7 @@ export function Settings({ data, refresh, onError }) {
             <input
               type="url"
               required
+              readOnly={form.id === "aiagent" || form.id === "aiagent-staging"}
               value={form.baseUrl}
               onChange={(event) =>
                 setForm({ ...form, baseUrl: event.target.value })
@@ -258,6 +259,32 @@ export function Settings({ data, refresh, onError }) {
               }
             />
           </label>
+          {form.kind === "iai-one" && (
+            <>
+              <p>
+                Tài khoản Keychain: <code>{form.id}</code>. Chỉ nhập client key;
+                không nhập ADMIN_KEY. Tenant và workspace phải khớp biên bản cấp khóa.
+              </p>
+              <label>
+                Tenant ID
+                <input
+                  required
+                  pattern="[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}"
+                  value={form.tenantId || ""}
+                  onChange={(event) => setForm({ ...form, tenantId: event.target.value })}
+                />
+              </label>
+              <label>
+                Workspace ID
+                <input
+                  required
+                  pattern="[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}"
+                  value={form.workspaceId || ""}
+                  onChange={(event) => setForm({ ...form, workspaceId: event.target.value })}
+                />
+              </label>
+            </>
+          )}
           <label>
             API key
             <KeyRound size={14} />

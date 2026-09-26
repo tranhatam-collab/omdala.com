@@ -7,13 +7,32 @@ import { DatabaseSync } from "node:sqlite";
 import { loadPlaywright } from "./playwright-runtime.mjs";
 import { verifyCandidateBundle } from "./bundle-verifier.mjs";
 import { assertReleaseReceipt } from "./release-receipt.mjs";
+import {
+  liveSelection,
+  selectLiveProvider,
+  assertLiveProposal,
+  assertLiveBilling,
+  LIVE_CONTENT,
+  LIVE_FILE,
+  LIVE_PROMPT,
+} from "./live-safety.mjs";
 
+const selection = liveSelection();
 const { webkit } = loadPlaywright();
 const moduleRoot = path.resolve(import.meta.dirname, "..");
 const app = path.resolve(
   process.env.OMCODE_E2E_APP || path.join(moduleRoot, "release/OMCODE.app"),
 );
 const candidate = await verifyCandidateBundle(app, moduleRoot);
+const releaseReceiptPath = path.resolve(
+  process.env.OMCODE_RELEASE_RECEIPT ||
+    path.join(moduleRoot, "evidence/release-verification.json"),
+);
+// Reject stale or mismatched releases before reading a credential or making requests.
+const releaseReceipt = JSON.parse(
+  await fs.readFile(releaseReceiptPath, "utf8"),
+);
+assertReleaseReceipt(releaseReceipt, candidate);
 const bundledApp = path.join(app, "Contents/Resources/app");
 const bundledNode = path.join(app, "Contents/Resources/runtime/node");
 process.env.OMCODE_KEYCHAIN_PATH ||= path.join(
@@ -35,11 +54,9 @@ const source = new DatabaseSync(path.join(providerState, "omcode.sqlite"), {
 const providerRow = source
   .prepare("SELECT value FROM settings WHERE key = ?")
   .get("providers");
-const provider = (providerRow ? JSON.parse(providerRow.value) : []).find(
-  (item) => item.generationStatus === "verified",
-);
+const providers = providerRow ? JSON.parse(providerRow.value) : [];
 source.close();
-if (!provider) throw new Error("No live provider verified.");
+const provider = selectLiveProvider(providers, selection);
 const scratch = await fs.realpath(
   await fs.mkdtemp(path.join(os.tmpdir(), "omcode-live-e2e-")),
 );
@@ -59,6 +76,17 @@ if (checked.status !== "connected") {
   await runtime.close();
   throw new Error(checked.error);
 }
+try {
+  selectLiveProvider([checked], selection);
+  assert.equal(
+    checked.model,
+    selection.model,
+    "Catalog refresh changed the model; no generation sent.",
+  );
+} catch (error) {
+  await runtime.close();
+  throw error;
+}
 const browser = await webkit.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 const errors = [];
@@ -72,9 +100,7 @@ try {
     .click();
   await page
     .getByRole("textbox", { name: "Yêu cầu AI", exact: true })
-    .fill(
-      "Dựa trên README.md được đính kèm thủ công. Sau đó dùng propose_edit để đề xuất tạo đúng một file hello-omcode.mjs với đúng nội dung: console.log('OMCODE_LIVE_E2E_OK'); và một dòng xuống dòng. Không tạo file khác, không chạy lệnh. Hãy cho biết đang chờ tôi duyệt.",
-    );
+    .fill(LIVE_PROMPT);
   await page
     .getByRole("button", { name: "Gửi yêu cầu AI", exact: true })
     .click();
@@ -91,6 +117,15 @@ try {
   const failure = page.locator(".agent-panel .inline-error, .error-banner");
   if (await failure.count()) throw new Error(await failure.first().innerText());
   await page.locator(".proposal summary").first().waitFor();
+  const pendingSession = runtime.store.session(runtime.store.sessions()[0].id);
+  const pendingMessage = pendingSession.messages.at(-1);
+  assertLiveProposal(pendingMessage);
+  assert.equal(pendingMessage.model, selection.model);
+  if (
+    provider.kind === "iai-one" ||
+    new URL(provider.baseUrl).hostname === "api.aiagent.iai.one"
+  )
+    assertLiveBilling(pendingMessage.billing);
   await page.locator(".proposal summary").first().click();
   await page
     .getByRole("button", { name: "Áp dụng bản sửa", exact: true })
@@ -100,20 +135,18 @@ try {
     .getByRole("button", { name: "Đã áp dụng", exact: true })
     .first()
     .waitFor();
-  const written = await fs.readFile(
-    path.join(project, "hello-omcode.mjs"),
-    "utf8",
-  );
-  assert.match(written, /OMCODE_LIVE_E2E_OK/);
+  const written = await fs.readFile(path.join(project, LIVE_FILE), "utf8");
+  assert.equal(written, LIVE_CONTENT);
   await page
     .getByRole("textbox", { name: "Lệnh terminal", exact: true })
-    .fill(`'${bundledNode}' hello-omcode.mjs`);
+    .fill(`'${bundledNode}' ${LIVE_FILE}`);
   await page.getByRole("button", { name: "Chạy lệnh", exact: true }).click();
   await page.waitForFunction(
     () =>
       document
         .querySelector(".terminal-output")
         ?.textContent.includes("OMCODE_LIVE_E2E_OK"),
+    undefined,
     { timeout: 10000 },
   );
   const session = runtime.store.sessions()[0];
@@ -148,10 +181,14 @@ try {
     project,
     session: session.id,
     toolReceipts,
+    billing: pendingMessage.billing || null,
+    generationRequestLimit: 1,
+    destination: provider.baseUrl,
     checks: [
       "real-provider-generation",
       "explicit-attachment-and-payload-approval",
       "real-propose-edit-tool",
+      "exact-inert-fixture-before-approval-and-execution",
       "user-approved-write",
       "terminal-execution-of-generated-file",
       "durable-session",
@@ -163,26 +200,8 @@ try {
     "evidence/live-e2e.json",
     JSON.stringify(receipt, null, 2),
   );
-  const releaseReceiptPath = path.resolve(
-    process.env.OMCODE_RELEASE_RECEIPT ||
-      path.join(moduleRoot, "evidence/release-verification.json"),
-  );
-  const releaseReceipt = JSON.parse(
-    await fs.readFile(releaseReceiptPath, "utf8"),
-  );
   assertReleaseReceipt(releaseReceipt, candidate);
-  releaseReceipt.liveProvider = {
-    status: "passed",
-    time: receipt.time,
-    provider: receipt.provider,
-    model: receipt.model,
-    engine: receipt.engine,
-    checks: receipt.checks,
-  };
-  await fs.writeFile(
-    releaseReceiptPath,
-    JSON.stringify(releaseReceipt, null, 2) + "\n",
-  );
+  // Live evidence is a separate run. Never mutate a previously accepted release receipt.
   console.log(JSON.stringify(receipt));
 } catch (error) {
   await page.screenshot({

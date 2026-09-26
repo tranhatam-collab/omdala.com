@@ -9,6 +9,7 @@ import { createSourceManifest, manifestDigest } from "./integrity.mjs";
 import { assertReleaseReceipt } from "./release-receipt.mjs";
 import { dataManifest, compareData } from "./data-manifest.mjs";
 import { ensureLauncherPath } from "./shell-config.mjs";
+import { currentInstallationProvenance } from "./installation-provenance.mjs";
 
 const moduleRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -40,6 +41,7 @@ const releaseReceipt = JSON.parse(
   await fs.readFile(releaseReceiptPath, "utf8"),
 );
 assertReleaseReceipt(releaseReceipt, candidate);
+const provenance = currentInstallationProvenance(releaseReceipt);
 if (digest(await fs.readFile(shellConfig)) !== digest(original))
   throw new Error("Shell config changed since staging. Installation stopped.");
 for (const target of [workspace, app, data, launcher]) {
@@ -138,18 +140,18 @@ await fs.writeFile(
   ),
 );
 const receipt = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   time: new Date().toISOString(),
   app,
-  source,
+  source: target,
   target,
   data,
   launcher,
   shellConfig,
   shellBackup: path.join(backup, ".zshrc.before-omcode"),
   version: installed.version,
-  sourceHead: process.env.OMCODE_SOURCE_HEAD || null,
-  sourceBranch: process.env.OMCODE_SOURCE_BRANCH || null,
+  ...provenance,
+  history: { previousInstallation: null },
   sourceDigest: manifestDigest(sourceFiles),
   sourceFiles,
   bundleManifestDigest: installed.bundleManifestDigest,

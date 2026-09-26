@@ -15,11 +15,28 @@ import {
 import { ensureLauncherPath } from "../scripts/shell-config.mjs";
 import { playwrightCandidates } from "../scripts/playwright-runtime.mjs";
 import { verifyCandidateBundle } from "../scripts/bundle-verifier.mjs";
+import {
+  assertBrowserCoverage,
+  BROWSER_CHECKS,
+  BROWSER_ENGINES,
+} from "../scripts/e2e-contract.mjs";
 import { runtimeCopyMode } from "../scripts/runtime-architecture.mjs";
 import {
   assertReleaseReceipt,
   REQUIRED_RELEASE_STAGES,
 } from "../scripts/release-receipt.mjs";
+
+test("browser release coverage is exact and rejects missing or duplicate checks", () => {
+  const results = BROWSER_ENGINES.flatMap((engine) =>
+    BROWSER_CHECKS.map((check) => ({ engine, check, ok: true })),
+  );
+  assert.equal(assertBrowserCoverage(results), true);
+  assert.throws(() => assertBrowserCoverage(results.slice(1)), /exactly 36/);
+  assert.throws(
+    () => assertBrowserCoverage([...results.slice(0, -1), results[0]]),
+    /duplicate/,
+  );
+});
 
 test("payload manifest is deterministic and detects a changed bundled file", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "omcode-manifest-"));
@@ -266,9 +283,9 @@ test("package metadata has an incrementing macOS bundle build number", async () 
   const metadata = JSON.parse(
     await fs.readFile(new URL("../package.json", import.meta.url), "utf8"),
   );
-  assert.equal(metadata.version, "0.2.2");
+  assert.equal(metadata.version, "0.2.3");
   assert.equal(Number.isSafeInteger(metadata.buildNumber), true);
-  assert.ok(metadata.buildNumber > 2);
+  assert.ok(metadata.buildNumber > 4);
 });
 
 test("Node packaging accepts only the current architecture and thins universal binaries", () => {
@@ -313,4 +330,96 @@ test("evidence runner invalidates an older PASS before a failing or missing scri
     ),
   );
   assert.equal(saved.runId, current.runId);
+});
+
+async function releaseRunnerFixture() {
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "omcode-release-revocation-"),
+  );
+  await fs.mkdir(path.join(root, "scripts"));
+  await fs.mkdir(path.join(root, "evidence/runs/original"), {
+    recursive: true,
+  });
+  await fs.copyFile(
+    new URL("../scripts/evidence-runner.mjs", import.meta.url),
+    path.join(root, "scripts/evidence-runner.mjs"),
+  );
+  const accepted = JSON.stringify({
+    ok: true,
+    status: "PASS",
+    runId: "original",
+    sourceDigest: "fixture-source",
+  });
+  const latest = path.join(root, "evidence/release-verification.json");
+  const original = path.join(
+    root,
+    "evidence/runs/original/release-verification.json",
+  );
+  await fs.writeFile(latest, accepted);
+  await fs.writeFile(original, accepted);
+  const env = { ...process.env };
+  for (const key of Object.keys(env))
+    if (key.startsWith("OMCODE_")) delete env[key];
+  return { root, latest, original, accepted, env };
+}
+
+test("later failed browser/native/install E2E revokes the accepted release without rewriting history", async () => {
+  const { spawnSync } = await import("node:child_process");
+  for (const name of ["e2e-results", "native-e2e", "install-e2e"]) {
+    const fixture = await releaseRunnerFixture();
+    const result = spawnSync(
+      process.execPath,
+      ["scripts/evidence-runner.mjs", "scripts/missing.mjs", name],
+      { cwd: fixture.root, env: fixture.env, encoding: "utf8" },
+    );
+    assert.notEqual(result.status, 0);
+    const latest = JSON.parse(await fs.readFile(fixture.latest, "utf8"));
+    assert.equal(latest.ok, false);
+    assert.equal(latest.status, "FAIL");
+    assert.equal(latest.invalidatedBy.name, name);
+    assert.notEqual(latest.invalidatedBy.runId, "original");
+    assert.equal(await fs.readFile(fixture.original, "utf8"), fixture.accepted);
+    assert.equal(
+      JSON.parse(
+        await fs.readFile(
+          path.join(
+            fixture.root,
+            "evidence/runs",
+            latest.invalidatedBy.runId,
+            "release-invalidation.json",
+          ),
+          "utf8",
+        ),
+      ).ok,
+      false,
+    );
+  }
+});
+
+test("a successful standalone E2E does not rewrite the full release provenance", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const fixture = await releaseRunnerFixture();
+  await fs.writeFile(
+    path.join(fixture.root, "scripts/success.mjs"),
+    "import fs from 'node:fs'; fs.writeFileSync('evidence/native-e2e.json', JSON.stringify({ok:true}));\n",
+  );
+  const result = spawnSync(
+    process.execPath,
+    ["scripts/evidence-runner.mjs", "scripts/success.mjs", "native-e2e"],
+    { cwd: fixture.root, env: fixture.env, encoding: "utf8" },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(await fs.readFile(fixture.latest, "utf8"), fixture.accepted);
+});
+
+test("a separate live-provider preflight failure cannot rewrite deterministic release evidence", async () => {
+  const { spawnSync } = await import("node:child_process");
+  const fixture = await releaseRunnerFixture();
+  const result = spawnSync(
+    process.execPath,
+    ["scripts/evidence-runner.mjs", "scripts/missing.mjs", "live-e2e"],
+    { cwd: fixture.root, env: fixture.env, encoding: "utf8" },
+  );
+  assert.notEqual(result.status, 0);
+  assert.equal(await fs.readFile(fixture.latest, "utf8"), fixture.accepted);
 });

@@ -74,6 +74,7 @@ try {
   assert.equal(receipt.ok, true, JSON.stringify(receipt));
   assert.equal(receipt.generatedFileExecuted, true);
   assert.equal(receipt.approvedWrite, true);
+  assert.equal(receipt.navigationIdentityVerified, true);
   assert.deepEqual(receipt.errors, []);
   assert.match(
     await fs.readFile(path.join(project, "hello-native.mjs"), "utf8"),

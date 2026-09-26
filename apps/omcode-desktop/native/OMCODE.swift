@@ -19,6 +19,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
     var webView: WKWebView!
     var runtime: Process?
     var currentOrigin: String?
+    var appNavigation: WKNavigation?
+    var ignoredVerificationNavigations = 0
     var ready = false
     var buffer = Data()
     var smokeStarted = false
@@ -90,7 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
                    let target = URL(string: url + "/#" + token) {
                     self.ready = true
                     self.currentOrigin = url
-                    self.webView.load(URLRequest(url: target))
+                    self.appNavigation = self.webView.load(URLRequest(url: target))
                     output.fileHandleForReading.readabilityHandler = nil
                 }
             }
@@ -116,7 +118,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
         alert.runModal()
     }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        guard let output = verificationPath, ready, !smokeStarted else { return }
+        guard let output = verificationPath else { return }
+        // webView.url can already point at the next page when an older navigation
+        // finishes. Match the actual navigation object, not only the mutable URL.
+        guard let expected = appNavigation, let finished = navigation,
+            expected === finished else {
+            ignoredVerificationNavigations += 1
+            return
+        }
+        guard ready, !smokeStarted,
+            let origin = currentOrigin,
+            webView.url?.absoluteString.hasPrefix(origin + "/") == true else { return }
         smokeStarted = true
         if nativeE2EPath != nil { return runNativeE2E(output) }
         DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
@@ -126,6 +138,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
                 receipt["ok"] = receipt["app"] as? Bool == true && receipt["error"] as? String == "" && receipt["overflow"] as? Bool == false
                 receipt["backendPID"] = self.runtime?.processIdentifier
                 receipt["bundle"] = Bundle.main.bundlePath
+                receipt["navigationIdentityVerified"] = true
+                receipt["initialNavigationsIgnored"] = self.ignoredVerificationNavigations
                 if let encoded = try? JSONSerialization.data(withJSONObject: receipt, options: [.prettyPrinted, .sortedKeys]) { try? encoded.write(to: URL(fileURLWithPath: output)) }
                 self.webView.takeSnapshot(with: nil) { image, _ in
                     if let image = image, let tiff = image.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff), let png = bitmap.representation(using: .png, properties: [:]) { try? png.write(to: URL(fileURLWithPath: output + ".png")) }
@@ -146,7 +160,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
             if (value) return value;
             await pause(100);
           }
-          throw new Error(`Native E2E timeout: ${label}`);
+          throw new Error(`Native E2E timeout: ${label}; ${document.querySelector('.error-banner')?.textContent || ''}`);
         };
         const setValue = (element, value) => {
           const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
@@ -176,7 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
           const text = document.querySelector('.terminal-output')?.textContent || '';
           return text.includes('OMCODE_NATIVE_E2E_OK') && text.includes('[exit 0]') ? text : '';
         }, 'successful command');
-        return JSON.stringify({
+        return {
           title: document.title,
           app: !!document.querySelector('.app-shell'),
           provider: document.querySelector('[aria-label="Nhà cung cấp AI"]')?.value,
@@ -186,22 +200,58 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate, WKSc
           errors: window.__omcodeErrors,
           overflow: document.documentElement.scrollWidth > innerWidth,
           checks: ['native-wkwebview', 'exact-payload-consent', 'agent-propose-edit', 'user-approved-write', 'terminal-execution']
-        });
+        };
         """
-        webView.callAsyncJavaScript(script, arguments: ["command": command], in: nil, in: .page) { result in
-            switch result {
-            case .success(let value):
-                guard let string = value as? String, let data = string.data(using: .utf8), var receipt = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return self.showError("Không đọc được receipt native E2E.") }
+        guard let resources = Bundle.main.resourceURL,
+            let driver = try? String(contentsOf: resources.appendingPathComponent("verification-driver.js"), encoding: .utf8),
+            let commandData = try? JSONSerialization.data(withJSONObject: [command]),
+            let commandJSON = String(data: commandData, encoding: .utf8) else {
+            return showError("Không đọc được driver native E2E.")
+        }
+        // Do not hold a WebKit async completion across the whole UI journey.
+        // Keep the task reachable in the page and poll bounded synchronous snapshots.
+        let bootstrap = driver + "\nwindow.__omcodeNativeVerification.start(async () => { const command = " + commandJSON + "[0];\n" + script + "\n});"
+        webView.evaluateJavaScript(bootstrap) { value, error in
+            guard error == nil, value as? String == "started" else {
+                return self.showError("Không khởi động được native E2E: " + (error?.localizedDescription ?? "invalid acknowledgement"))
+            }
+            self.pollNativeE2E(output, deadline: Date().addingTimeInterval(50))
+        }
+    }
+    func pollNativeE2E(_ output: String, deadline: Date) {
+        guard Date() < deadline else { return showError("Native E2E timeout: chưa có receipt hoàn tất.") }
+        guard let origin = currentOrigin,
+            webView.url?.absoluteString.hasPrefix(origin + "/") == true else {
+            return showError("Native E2E đã rời trang ứng dụng được phép.")
+        }
+        webView.evaluateJavaScript("window.__omcodeNativeVerification?.snapshot()") { value, error in
+            guard error == nil, let string = value as? String, let data = string.data(using: .utf8),
+                let state = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+                let status = state["status"] as? String else {
+                return self.showError("Không đọc được trạng thái native E2E: " + (error?.localizedDescription ?? "invalid state"))
+            }
+            switch status {
+            case "complete":
+                guard var receipt = state["value"] as? [String: Any] else { return self.showError("Không đọc được receipt native E2E.") }
                 let errors = receipt["errors"] as? [Any] ?? []
-                receipt["ok"] = receipt["app"] as? Bool == true && receipt["approvedWrite"] as? Bool == true && receipt["generatedFileExecuted"] as? Bool == true && errors.isEmpty
+                receipt["ok"] = receipt["app"] as? Bool == true && receipt["approvedWrite"] as? Bool == true && receipt["generatedFileExecuted"] as? Bool == true && receipt["overflow"] as? Bool == false && errors.isEmpty
                 receipt["backendPID"] = self.runtime?.processIdentifier
                 receipt["bundle"] = Bundle.main.bundlePath
+                receipt["navigationIdentityVerified"] = true
+                receipt["initialNavigationsIgnored"] = self.ignoredVerificationNavigations
                 if let encoded = try? JSONSerialization.data(withJSONObject: receipt, options: [.prettyPrinted, .sortedKeys]) { try? encoded.write(to: URL(fileURLWithPath: output)) }
                 self.webView.takeSnapshot(with: nil) { image, _ in
                     if let image = image, let tiff = image.tiffRepresentation, let bitmap = NSBitmapImageRep(data: tiff), let png = bitmap.representation(using: .png, properties: [:]) { try? png.write(to: URL(fileURLWithPath: output + ".png")) }
                     NSApp.terminate(nil)
                 }
-            case .failure(let error): self.showError("Native E2E lỗi: " + error.localizedDescription)
+            case "running":
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    self.pollNativeE2E(output, deadline: deadline)
+                }
+            case "failed":
+                self.showError("Native E2E lỗi: " + (state["error"] as? String ?? "unknown"))
+            default:
+                self.showError("Native E2E trả trạng thái không hợp lệ: " + status)
             }
         }
     }

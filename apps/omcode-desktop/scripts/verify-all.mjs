@@ -5,6 +5,10 @@ import fsSync from "node:fs";
 import { createHash } from "node:crypto";
 
 import { verifyCandidateBundle } from "./bundle-verifier.mjs";
+import {
+  assertBrowserCoverage,
+  BROWSER_CHECK_COUNT,
+} from "./e2e-contract.mjs";
 
 const moduleRoot = path.resolve(import.meta.dirname, "..");
 const evidenceDirectory = path.join(moduleRoot, "evidence");
@@ -38,15 +42,16 @@ try {
   const install = JSON.parse(
     await fs.readFile(path.join(evidenceDirectory, "install-e2e.json"), "utf8"),
   );
+  assertBrowserCoverage(browser.results);
   if (
     browser.ok !== true ||
     browser.runId !== process.env.OMCODE_VERIFY_RUN_ID ||
-    browser.passed !== 30 ||
+    browser.passed !== BROWSER_CHECK_COUNT ||
     browser.sourceDigest !== candidate.sourceDigest ||
     browser.results?.some((result) => result.ok !== true)
   )
     throw new Error(
-      "Browser E2E receipt does not cover 30 checks for this source.",
+      `Browser E2E receipt does not cover ${BROWSER_CHECK_COUNT} checks for this source.`,
     );
   if (
     native.ok !== true ||

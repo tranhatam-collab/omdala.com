@@ -10,6 +10,7 @@ import {
   completion,
   saveProvider,
   credentialFingerprint,
+  embedding,
 } from "../server/providers.mjs";
 import {
   scanEgressText,
@@ -25,6 +26,53 @@ import {
 const signal = () => new AbortController().signal;
 const KEY_ENV = "OMCODE_TEST_API_KEY_GATEWAY";
 const KEY = "sk-aiagent-contract-test-key";
+
+for (const [name, options, reconciled] of [
+  ["valid receipt", {}, true],
+  ["failed verification", { failVerify: true }, false],
+  ["missing ledger", { omitLedger: true }, false],
+  [
+    "wrong tenant",
+    { mutateReceipt: (r) => (r.tenant_id = "another-tenant") },
+    false,
+  ],
+  ["wrong model", { mutateRun: (r) => (r.model = "iai-one/other") }, false],
+  ["wrong cost", { mutateReceipt: (r) => (r.cost_usd = 1000) }, false],
+])
+  test(`embedding billing read-back: ${name}`, async (t) => {
+    const fixture = await startGatewayFixture(options);
+    t.after(() => fixture.close());
+    const store = await tempStore();
+    t.after(() => store.close());
+    await withKey(KEY, async () => {
+      await saveProvider(store, {
+        id: "gateway",
+        name: "IAI One",
+        baseUrl: fixture.baseUrl,
+        kind: "iai-one",
+        tenantId: "omcode-test",
+        workspaceId: "omcode-ws",
+      });
+      const provider = await checkProvider(store, "gateway");
+      const result = await embedding(
+        { ...provider, model: GATEWAY_EMBED_MODELS[0] },
+        "Synthetic E2E",
+        signal(),
+      );
+      assert.equal(result.embeddings.length, 1);
+      assert.equal(result.billing.billing_eligible, reconciled);
+      assert.equal(result.billing.cost_usd, reconciled ? 0.00042 : null);
+      assert.equal(result.billing_eligible, reconciled);
+      assert.equal(result.cost_usd, reconciled ? 0.00042 : null);
+      assert.equal(
+        result.cost_ledger_status,
+        reconciled ? "reconciled" : "unverified",
+      );
+      const urls = fixture.state.requests.map((r) => r.url);
+      assert.ok(urls.includes("/v1/runs/run_1"));
+      assert.ok(urls.includes("/v1/ai/verify"));
+    });
+  });
 
 function withKey(value, fn) {
   const previous = process.env[KEY_ENV];

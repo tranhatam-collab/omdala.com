@@ -83,7 +83,28 @@ export async function gatewayInvoke(provider, key, request, signal) {
     data.model !== provider.model
   )
     throw new Error("AIAGENT response không khớp request/model đã duyệt.");
-  if (request.body.task_type === "embed") return data;
+  if (request.body.task_type === "embed") {
+    const billing = await readBack(
+      provider,
+      key,
+      data,
+      request.body.request_id,
+      signal,
+    );
+    return {
+      ...data,
+      // Raw upstream cost claims must not survive as top-level verified facts.
+      cost_usd: billing.cost_usd,
+      billing_eligible: billing.billing_eligible,
+      cost_status: billing.cost_status,
+      cost_ledger_status:
+        billing.cost_status === "authoritative_reconciled"
+          ? "reconciled"
+          : "unverified",
+      ledger_entry_id: billing.ledger_entry_id,
+      billing,
+    };
+  }
   const calls = data.tool_calls || [];
   if (
     !Array.isArray(calls) ||

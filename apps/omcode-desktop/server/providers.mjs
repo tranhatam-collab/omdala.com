@@ -103,6 +103,19 @@ export async function saveProvider(store, input) {
       throw new Error("AIAGENT cần API base URL https://api.aiagent.iai.one.");
     baseUrl = new URL(baseUrl).origin;
   }
+  // These IDs are macOS Keychain accounts, not interchangeable display names.
+  // A staging credential must never be attached to the production destination.
+  if (id === "aiagent" || id === "aiagent-staging") {
+    const expected = id === "aiagent-staging"
+      ? "https://staging-api.aiagent.iai.one" : "https://api.aiagent.iai.one";
+    if (baseUrl !== expected || kind !== "iai-one")
+      throw new Error("Tài khoản AIAGENT phải khớp môi trường và endpoint trong biên bản cấp khóa.");
+    for (const field of ["tenantId", "workspaceId"]) {
+      const value = input[field] === undefined ? existing?.[field] : input[field];
+      if (typeof value !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/.test(value))
+        throw new Error("AIAGENT cần Tenant ID và Workspace ID đúng biên bản cấp khóa.");
+    }
+  }
   const identityChanged =
     existing &&
     (existing.baseUrl !== baseUrl ||

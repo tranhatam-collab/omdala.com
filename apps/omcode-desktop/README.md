@@ -1,4 +1,4 @@
-# OMCODE Desktop 0.2.2
+# OMCODE Desktop 0.2.3 candidate
 
 Local macOS workspace, independent of Devin/OpenCode. This release is scoped to `apps/omcode-desktop`, not the historical Next.js applications.
 
@@ -23,7 +23,7 @@ Run/receipt read-back must match request, model, tenant, workspace and ledger be
 
 ## Local Safety and Data
 
-The backend is loopback-only, capability-token protected, with Host/Origin checks. File APIs reject traversal, symlink escapes and Git metadata; reads are bounded to eight seconds. Terminal commands run with your macOS permissions, not in an OS sandbox. Review commands carefully.
+The backend is loopback-only, capability-token protected, with Host/Origin checks. File APIs reject traversal, symlink escapes and Git metadata; reads are bounded to eight seconds. The UI also bounds every request and response-body read (15–130 seconds by operation), releases busy controls on failure and never retries mutations automatically. A timed-out write or AI call has an unknown outcome: check history/run state before retrying. These recovery controls do not establish the root cause of intermittent Documents/iCloud timeouts. Terminal commands run with your macOS permissions, not in an OS sandbox. Review commands carefully.
 
 File history has pending/committed/failed/interrupted states. Failed writes are not displayed as successful saves. Restarts mark unfinished writes interrupted. Legacy rows remain explicitly unverified; restore still checks current content. Writes are serialized inside one backend and use atomic replacement with optimistic conflict checks. Arbitrary external writers cannot be transactionally locked by this app.
 
@@ -39,9 +39,13 @@ MCP annotations are advisory only. Models cannot call MCP. Manual MCP calls requ
 
 The release gate requires all eight stages from the same run and matching source/bundle digests. Installation rejects incomplete/failed/older-than-24-hour receipts. The bundle is ad-hoc signed for local use, not notarized for public distribution.
 
+Native QA starts only after the exact authorized app navigation finishes (not a late callback from the loading page). Its asynchronous task is retained in the page and Swift polls bounded synchronous status snapshots; failed, pending, repeated or missing test state cannot create a successful receipt. The driver is injected only in `--native-e2e` mode and provides no new message-handler capability to the normal UI. A later failing browser/native/install E2E invalidates the latest accepted release receipt; its original per-run record remains historical, and a fresh full gate is required before installation.
+
 Updates retain app/shell/source backups and compare complete data manifests before/after. If installed source has changed, it is preserved in place and the new source is copied to a distinct version/digest directory. No reset, source overwrite or user-data deletion is needed. The installer refuses while the installed app or its backend is running.
 
-`npm run test:live` is an explicit separate opt-in that consumes provider quota, uses an isolated synthetic project, manual attachment and consent, and the packaged candidate. This release's deterministic tests do not invoke paid providers. AIAGENT live E2E remains blocked until a legitimate scoped client credential is supplied; existing Cloudflare secrets are not substitutes.
+`npm run test:live` is an explicit separate opt-in that consumes provider quota, uses an isolated synthetic project, manual attachment and consent, and the packaged candidate. It requires `OMCODE_LIVE_PROVIDER_ID`, `OMCODE_LIVE_MODEL`, `OMCODE_LIVE_BASE_URL` and `OMCODE_LIVE_CONSENT=one-synthetic-generation`. These are not secrets. Review `scripts/live-safety.mjs` for the exact prompt/file fixture before opting in. The selected credential must already be saved in Keychain and its catalog checked in Connections. There is no automatic provider/model fallback and no prerequisite paid probe. The release receipt is checked before credential access or network requests. One generation is attempted, with no automatic retry; a provider-side quota is still required for a hard monetary cap.
+
+Before a proposed file is applied or run, its path, entire contents, new-file state and complete tool-call list must exactly match the inert fixture. An AIAGENT run must also have authenticated run/receipt/ledger reconciliation. Chat and embedding both retain read-back evidence; failed read-back never becomes a verified billable cost. Live evidence is saved separately without rewriting deterministic release receipts. This release's deterministic tests do not invoke paid providers. AIAGENT live E2E remains blocked until a legitimate scoped client credential is supplied; existing Cloudflare secrets are not substitutes.
 
 ## Provenance
 

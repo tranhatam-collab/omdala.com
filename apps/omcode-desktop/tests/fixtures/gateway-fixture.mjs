@@ -93,30 +93,18 @@ export function startGatewayFixture(options = {}) {
         !body.risk_level ||
         !body.data_sensitivity)
     )
-      return res
-        .writeHead(403)
-        .end(
-          JSON.stringify({
-            ok: false,
-            contract_version: "1.0.0",
-            error: { code: "POLICY_CONTEXT_MISSING" },
-          }),
-        );
-    if (req.url === "/v1/ai/embed" && req.method === "POST") {
-      if (!req.headers.authorization) return res.writeHead(401).end("{}");
-      return res.end(
-        envelope({
-          model: body.model,
-          request_id: body.request_id,
-          embeddings: (Array.isArray(body.input)
-            ? body.input
-            : [body.input]
-          ).map(() => [0.25, 0.75]),
-          dimensions: 2,
+      return res.writeHead(403).end(
+        JSON.stringify({
+          ok: false,
+          contract_version: "1.0.0",
+          error: { code: "POLICY_CONTEXT_MISSING" },
         }),
       );
-    }
-    if (req.url === "/v1/ai/chat" && req.method === "POST") {
+    if (
+      ["/v1/ai/chat", "/v1/ai/embed"].includes(req.url) &&
+      req.method === "POST"
+    ) {
+      const isEmbed = req.url === "/v1/ai/embed";
       if (!req.headers.authorization?.startsWith("Bearer "))
         return res
           .writeHead(401)
@@ -142,7 +130,11 @@ export function startGatewayFixture(options = {}) {
         request_id: req.headers["x-request-id"] || `req_fixture`,
         tenant_id: tenant,
         workspace_id: workspace,
-        usage: { input_tokens: 10, output_tokens: 5, total_tokens: 15 },
+        usage: {
+          input_tokens: 10,
+          output_tokens: isEmbed ? 0 : 5,
+          total_tokens: isEmbed ? 10 : 15,
+        },
         cost_usd: 0.00042,
         estimated_cost_usd: 0.00042,
         cost_status: "authoritative_reconciled",
@@ -152,7 +144,7 @@ export function startGatewayFixture(options = {}) {
         receipt_id: receiptId,
         run_id: runId,
         finish_reason: "stop",
-        task_type: "agent-task",
+        task_type: isEmbed ? "embed" : "agent-task",
         tool_calls:
           probe || hasToolResult
             ? []
@@ -168,6 +160,14 @@ export function startGatewayFixture(options = {}) {
                 },
               ],
       };
+      if (isEmbed) {
+        delete data.response;
+        delete data.tool_calls;
+        data.embeddings = (
+          Array.isArray(body.input) ? body.input : [body.input]
+        ).map(() => [0.25, 0.75]);
+        data.dimensions = 2;
+      }
       state.runs.set(runId, {
         run_id: runId,
         status: "success",

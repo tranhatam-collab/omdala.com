@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { startServer } from "../server/index.mjs";
 import { loadPlaywright } from "./playwright-runtime.mjs";
 import { createSourceManifest, manifestDigest } from "./integrity.mjs";
+import { assertBrowserCoverage } from "./e2e-contract.mjs";
 import { startGatewayFixture } from "../tests/fixtures/gateway-fixture.mjs";
 
 const { chromium, webkit } = loadPlaywright();
@@ -123,6 +124,45 @@ try {
     await page.goto(`${runtime.origin}/#${runtime.token}`);
     await page.getByRole("heading", { name: "OMCODE", exact: true }).waitFor();
     await page.getByText(metadata.version, { exact: true }).waitFor();
+    await page.getByRole("button", { name: "App.tsx", exact: true }).waitFor();
+    let stalledFileRequest;
+    let stalledFileCount = 0;
+    await page.route("**/api/files?**", (route) => {
+      stalledFileCount++;
+      stalledFileRequest = route;
+    });
+    await page
+      .getByRole("button", { name: "Làm mới cây tệp", exact: true })
+      .click();
+    await page
+      .getByRole("alert")
+      .filter({ hasText: "local phản hồi quá thời gian" })
+      .waitFor({ timeout: 22000 });
+    assert.equal(
+      stalledFileCount,
+      1,
+      "stalled reads are never retried automatically",
+    );
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Làm mới cây tệp", exact: true })
+        .isEnabled(),
+      true,
+    );
+    await page.unroute("**/api/files?**");
+    await stalledFileRequest.abort().catch(() => {});
+    await page
+      .getByRole("button", { name: "Đóng thông báo lỗi", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Làm mới cây tệp", exact: true })
+      .click();
+    await page.getByRole("button", { name: "App.tsx", exact: true }).waitFor();
+    results.push({
+      engine,
+      check: "file-timeout-recovery-without-auto-retry",
+      ok: true,
+    });
     await page.getByRole("button", { name: "App.tsx", exact: true }).click();
     const editor = page.locator(".cm-content");
     await editor.waitFor();
@@ -250,6 +290,61 @@ try {
     await page
       .getByRole("heading", { name: "Kết nối AI & Tools", exact: true })
       .waitFor();
+    // Save connection metadata ONLY. No API key, Keychain or remote request.
+    const beforeConnectionCalls = calls;
+    for (const [label, id, origin] of [
+      ["Kết nối AIAGENT", "aiagent", "https://api.aiagent.iai.one"],
+      ["Kết nối AIAGENT staging", "aiagent-staging", "https://staging-api.aiagent.iai.one"],
+    ]) {
+      await page.getByRole("button", { name: label, exact: true }).click();
+      assert.equal(await page.getByLabel("API base URL", { exact: true }).inputValue(), origin);
+      assert.equal(await page.getByLabel("API base URL", { exact: true }).getAttribute("readonly"), "");
+      const tenant = page.getByLabel("Tenant ID", { exact: true });
+      const workspace = page.getByLabel("Workspace ID", { exact: true });
+      assert.equal(await tenant.getAttribute("required"), "");
+      assert.equal(await workspace.getAttribute("required"), "");
+      await tenant.fill("aiagent");
+      await workspace.fill(`omcode-ui-${id}`);
+      if (id === "aiagent-staging") await page.screenshot({ path: path.join(evidence, `${engine}-aiagent-staging-form.png`), fullPage: true });
+      await page.getByRole("button", { name: "Lưu vào Keychain", exact: true }).click();
+      await page.locator(".provider-form").waitFor({ state: "hidden" });
+      const saved = runtime.store.get("providers", []).find(provider => provider.id === id);
+      assert.equal(saved.baseUrl, origin); assert.equal(saved.kind, "iai-one");
+      assert.equal(saved.tenantId, "aiagent"); assert.equal(saved.workspaceId, `omcode-ui-${id}`);
+      assert.equal(saved.status, "not_checked");
+    }
+    assert.equal(calls, beforeConnectionCalls);
+    assert.equal(runtime.store.get("providers", []).filter(provider => ["aiagent", "aiagent-staging"].includes(provider.id)).length, 2);
+    results.push({ engine, check: "aiagent-isolated-staging-connection-form", ok: true });
+    await page.route("**/api/provider/check", (route) =>
+      route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "Synthetic local unavailable" }),
+      }),
+    );
+    await page
+      .getByRole("button", { name: "Kiểm tra E2E fixture", exact: true })
+      .click();
+    await page
+      .getByRole("alert")
+      .filter({ hasText: "Synthetic local unavailable" })
+      .waitFor();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Kiểm tra E2E fixture", exact: true })
+        .isEnabled(),
+      true,
+    );
+    await page.unroute("**/api/provider/check");
+    await page
+      .getByRole("button", { name: "Đóng thông báo lỗi", exact: true })
+      .click();
+    results.push({
+      engine,
+      check: "provider-controls-recover-after-local-failure",
+      ok: true,
+    });
     await page
       .getByRole("button", { name: "Kiểm tra E2E fixture", exact: true })
       .click();
@@ -403,6 +498,7 @@ try {
     browser = null;
   }
   assert.equal(calls, 2, "one generation per explicit approval");
+  assertBrowserCoverage(results);
   console.log(
     JSON.stringify({ passed: results.length, results, scratch }, null, 2),
   );

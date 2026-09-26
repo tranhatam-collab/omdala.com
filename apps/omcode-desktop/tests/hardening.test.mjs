@@ -69,6 +69,8 @@ test("all 17 chat and 2 embedding contract models execute with policy and unique
   for (const model of GATEWAY_EMBED_MODELS) {
     const data = await embedding({ ...p, model }, ["one", "two"]);
     assert.equal(data.embeddings.length, 2);
+    assert.equal(data.billing.verified, true);
+    assert.equal(data.billing.cost_status, "authoritative_reconciled");
   }
   const calls = f.state.requests.filter((r) =>
     ["/v1/ai/chat", "/v1/ai/embed"].includes(r.url),

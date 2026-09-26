@@ -124,6 +124,10 @@ await fs.copyFile(
   path.join(root, "public/omcode-icon.png"),
   path.join(resources, "AppIcon.png"),
 );
+await fs.copyFile(
+  path.join(root, "native/verification-driver.js"),
+  path.join(resources, "verification-driver.js"),
+);
 const metadata = JSON.parse(
   await fs.readFile(path.join(root, "package.json"), "utf8"),
 );
@@ -241,6 +245,11 @@ console.log(
     sourceDigest,
     bundleManifestDigest: manifestDigest(releaseManifest),
     embeddedManifestDigest: manifestDigest(payloadManifest),
-    upstreamBase: "415927e5f1580d539013b55765dfba834de655e7",
+    sourceHead:
+      spawnSync("git", ["rev-parse", "HEAD"], {
+        cwd: root,
+        encoding: "utf8",
+        timeout: 5000,
+      }).stdout?.trim() || null,
   }),
 );

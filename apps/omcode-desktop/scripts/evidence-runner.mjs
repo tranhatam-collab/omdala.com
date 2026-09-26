@@ -16,6 +16,15 @@ const receiptPath =
     ? path.resolve(process.env.OMCODE_RELEASE_RECEIPT)
     : path.join(root, "evidence", `${name}.json`);
 const archive = path.join(root, "evidence/runs", runId, `${name}.json`);
+const sourceStatus = spawnSync(
+  "git",
+  ["status", "--porcelain=v1", "--untracked-files=all", "--", "."],
+  {
+    cwd: root,
+    encoding: "utf8",
+    timeout: 5000,
+  },
+);
 await fs.mkdir(path.dirname(archive), { recursive: true });
 await fs.mkdir(path.dirname(receiptPath), { recursive: true });
 const base = {
@@ -25,7 +34,24 @@ const base = {
   sourceHead: spawnSync("git", ["rev-parse", "HEAD"], {
     cwd: root,
     encoding: "utf8",
+    timeout: 5000,
   }).stdout.trim(),
+  sourceBranch:
+    spawnSync("git", ["symbolic-ref", "--quiet", "--short", "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+      timeout: 5000,
+    }).stdout?.trim() || null,
+  sourceState:
+    sourceStatus.status === 0
+      ? sourceStatus.stdout.trim()
+        ? "VERIFIED_WORKTREE_ONLY"
+        : "VERIFIED_HEAD_ONLY"
+      : "NOT_CHECKED",
+  sourceChanges:
+    sourceStatus.status === 0
+      ? sourceStatus.stdout.split("\n").filter(Boolean)
+      : null,
   command: [process.execPath, script],
 };
 async function write(receipt) {
@@ -69,4 +95,38 @@ await write({
           `Verification failed (${result.code ?? result.signal}); see stage output.`,
       }),
 });
+// A later failing release-critical E2E must revoke the current installation gate.
+// Preserve the original per-run PASS as historical evidence; never silently let
+// it remain the latest accepted receipt after contradictory test evidence.
+if (!passed && ["e2e-results", "native-e2e", "install-e2e"].includes(name)) {
+  const releasePath = path.resolve(
+    process.env.OMCODE_RELEASE_RECEIPT ||
+      path.join(root, "evidence/release-verification.json"),
+  );
+  let accepted;
+  try {
+    accepted = JSON.parse(await fs.readFile(releasePath, "utf8"));
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  if (accepted?.ok === true && accepted.status === "PASS") {
+    const invalidated = {
+      ...accepted,
+      ok: false,
+      status: "FAIL",
+      invalidatedAt: new Date().toISOString(),
+      invalidatedBy: { name, runId, exitCode: result.code, receipt: archive },
+      error:
+        "A later release-critical E2E failed. Run all release gates again before installing.",
+    };
+    const content = JSON.stringify(invalidated, null, 2) + "\n";
+    await fs.writeFile(
+      path.join(path.dirname(archive), "release-invalidation.json"),
+      content,
+    );
+    const temporary = releasePath + "." + runId + ".tmp";
+    await fs.writeFile(temporary, content);
+    await fs.rename(temporary, releasePath);
+  }
+}
 process.exitCode = passed ? 0 : 1;

@@ -18,6 +18,8 @@ const scratch = await fs.realpath(
 );
 const home = path.join(scratch, "home");
 const releaseReceiptPath = path.join(scratch, "fixture-release-receipt.json");
+const fixtureHead = "a".repeat(40);
+const fixtureBranch = "fixture/install-e2e";
 await fs.mkdir(path.join(home, "Applications"), { recursive: true });
 await fs.writeFile(
   path.join(home, ".zshrc"),
@@ -28,6 +30,10 @@ await fs.writeFile(
   JSON.stringify(
     {
       schemaVersion: 2,
+      sourceHead: fixtureHead,
+      sourceBranch: fixtureBranch,
+      sourceState: "VERIFIED_WORKTREE_ONLY",
+      sourceChanges: ["?? fixture-source"],
       runId: "fixture-release",
       status: "PASS",
       exitCode: 0,
@@ -56,8 +62,8 @@ const env = {
   HOME: home,
   OMCODE_RELEASE_APP: candidateApp,
   OMCODE_RELEASE_RECEIPT: releaseReceiptPath,
-  OMCODE_SOURCE_BRANCH: "fixture/install-e2e",
-  OMCODE_SOURCE_HEAD: "fixture",
+  OMCODE_SOURCE_BRANCH: "stale-environment-branch-must-not-win",
+  OMCODE_SOURCE_HEAD: "b".repeat(40),
 };
 run(process.execPath, ["scripts/install-local.mjs"], env);
 
@@ -70,6 +76,31 @@ const sentinel = path.join(data, "user-data-sentinel.txt");
 await fs.writeFile(sentinel, "preserve-user-data\n");
 const database = path.join(data, "omcode.sqlite");
 const databaseDigest = sha256(await fs.readFile(database));
+const installationPath = path.join(
+  home,
+  "Developer/OMCODE/installation-receipt.json",
+);
+const freshInstallation = JSON.parse(
+  await fs.readFile(installationPath, "utf8"),
+);
+assert.equal(freshInstallation.schemaVersion, 3);
+assert.equal(freshInstallation.sourceHead, fixtureHead);
+assert.equal(freshInstallation.sourceBranch, fixtureBranch);
+assert.equal(freshInstallation.sourceState, "VERIFIED_WORKTREE_ONLY");
+assert.deepEqual(freshInstallation.sourceChanges, ["?? fixture-source"]);
+assert.equal(freshInstallation.source, freshInstallation.target);
+assert.equal(freshInstallation.history.previousInstallation, null);
+const legacyBytes = Buffer.from(
+  JSON.stringify({
+    ...freshInstallation,
+    schemaVersion: 2,
+    upstreamBase: "c".repeat(40),
+    branch: "legacy/recovery",
+    sourceHead: "d".repeat(40),
+    sourceBranch: "legacy/recovery",
+  }),
+);
+await fs.writeFile(installationPath, legacyBytes);
 
 run(process.execPath, ["scripts/update-local.mjs"], env);
 
@@ -87,6 +118,19 @@ const installation = JSON.parse(
   ),
 );
 assert.equal(installation.dataPreserved, true);
+assert.equal(installation.schemaVersion, 3);
+assert.equal(installation.sourceHead, fixtureHead);
+assert.equal(installation.sourceBranch, fixtureBranch);
+assert.equal(installation.sourceState, "VERIFIED_WORKTREE_ONLY");
+assert.equal(installation.source, installation.target);
+assert.equal(Object.hasOwn(installation, "upstreamBase"), false);
+assert.equal(Object.hasOwn(installation, "branch"), false);
+const historical = installation.history.previousInstallation;
+assert.equal(historical.recordedProvenance.upstreamBase, "c".repeat(40));
+assert.equal(historical.recordedProvenance.branch, "legacy/recovery");
+assert.equal(historical.recordedProvenance.sourceHead, "d".repeat(40));
+assert.equal(historical.sha256, sha256(legacyBytes));
+assert.deepEqual(await fs.readFile(historical.receipt), legacyBytes);
 await fs.access(path.join(installation.updateBackup, "source-module-before"));
 await fs.access(
   path.join(
@@ -106,6 +150,9 @@ const changedInstall = JSON.parse(
   ),
 );
 assert.notEqual(changedInstall.target, source);
+assert.equal(changedInstall.source, changedInstall.target);
+assert.equal(changedInstall.sourceHead, fixtureHead);
+assert.equal(changedInstall.sourceBranch, fixtureBranch);
 assert.match(await fs.readFile(modifiedSource, "utf8"), /USER_SOURCE_SENTINEL/);
 assert.equal(changedInstall.preservedChangedSource.path, source);
 await verifyCandidateBundle(app, changedInstall.target);
@@ -132,6 +179,8 @@ const receipt = {
     "user-data-sentinel-preserved",
     "shell-update-idempotent",
     "dated-app-and-source-backups",
+    "current-release-provenance-not-environment-or-previous-install",
+    "legacy-provenance-preserved-in-hashed-history-only",
   ],
   scratch,
 };
