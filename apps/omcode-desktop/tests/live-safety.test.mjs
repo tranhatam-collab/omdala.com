@@ -78,6 +78,9 @@ test("live preflight rejects credentials in URLs, insecure targets and missing c
     "https://name:secret@example.invalid",
     "https://example.invalid/?token=x",
     "https://example.invalid/#fragment",
+    "https://api.deepseek.com/v1",
+    "https://api.openai.com/v1",
+    "https://generativelanguage.googleapis.com/v1beta/openai",
   ])
     assert.throws(() =>
       liveSelection({ ...env, OMCODE_LIVE_BASE_URL: baseUrl }),

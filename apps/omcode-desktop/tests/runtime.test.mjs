@@ -13,10 +13,18 @@ import { createStore } from "../server/store.mjs";
 import { importMcp, importSkills, ROLES } from "../server/catalog.mjs";
 import {
   validateEndpoint,
+  validateUrl,
   normalizeModelId,
   providerKey,
   completion,
+  embedding,
+  checkProvider,
+  saveProvider,
+  probeGeneration,
+  auditStoredProviders,
+  IMPORT_TARGETS,
 } from "../server/providers.mjs";
+import { gatewayInvoke } from "../server/gateway.mjs";
 const sha = (value) => createHash("sha256").update(value).digest("hex");
 const metadata = JSON.parse(
   await fs.readFile(new URL("../package.json", import.meta.url), "utf8"),
@@ -336,17 +344,164 @@ test("provider endpoints reject credentials and insecure remote HTTP", () => {
     "http://127.0.0.1:4000/v1",
   );
 });
-test("Google model resource names are normalized for OpenAI-compatible generation", () => {
+test("provider endpoints outside AIAGENT are rejected before any credential is read", () => {
+  for (const baseUrl of [
+    "https://api.deepseek.com",
+    "https://api.cerebras.ai/v1",
+    "https://generativelanguage.googleapis.com/v1beta/openai",
+    "https://api.openai.com/v1",
+    "https://other.example/v1",
+    "https://api.aiagent.iai.one.",
+    "https://api.aiagent.iai.one.attacker.example",
+    "https://api.aiagent.iai.one@attacker.example",
+    "https://api.aiagent.iai.one.nip.io",
+    "http://0.0.0.0:4000/v1",
+  ])
+    assert.throws(
+      () => validateEndpoint(baseUrl),
+      (error) => error?.code === "ENDPOINT_POLICY",
+    );
   assert.equal(
-    normalizeModelId(
-      "https://generativelanguage.googleapis.com/v1beta/openai",
-      "models/gemini-3.5-flash",
-    ),
-    "gemini-3.5-flash",
+    validateEndpoint("https://api.aiagent.iai.one/"),
+    "https://api.aiagent.iai.one",
   );
   assert.equal(
-    normalizeModelId("https://other.example/v1", "models/custom"),
+    validateEndpoint("https://staging-api.aiagent.iai.one/v1/"),
+    "https://staging-api.aiagent.iai.one/v1",
+  );
+  assert.equal(
+    normalizeModelId("https://api.aiagent.iai.one", "models/custom"),
     "models/custom",
+  );
+  assert.deepEqual(Object.keys(IMPORT_TARGETS), []);
+});
+test("persisted third-party provider records fail closed before any credential or request", async () => {
+  const legacy = {
+    id: "deepseek",
+    name: "DeepSeek",
+    kind: "openai",
+    baseUrl: "https://api.deepseek.com",
+    model: "deepseek-flash",
+    models: ["deepseek-flash"],
+    catalog: { models: ["deepseek-flash"] },
+    status: "connected",
+  };
+  const state = new Map([["providers", [legacy]]]);
+  const store = {
+    get: (key, fallback) => state.get(key) ?? fallback,
+    set: (key, value) => state.set(key, value),
+  };
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    throw new Error("no egress expected");
+  };
+  try {
+    const checked = await checkProvider(store, "deepseek");
+    assert.equal(checked.status, "error");
+    assert.match(checked.error, /AIAGENT/);
+    assert.equal(checked.catalog, null);
+    await assert.rejects(
+      completion(
+        { ...legacy, catalog: null },
+        [{ role: "user", content: "hi" }],
+        [],
+        new AbortController().signal,
+      ),
+      /AIAGENT/,
+    );
+    await assert.rejects(
+      embedding(
+        {
+          id: "rogue",
+          kind: "iai-one",
+          baseUrl: "https://attacker.example",
+          model: "m",
+        },
+        ["a", "b"],
+        new AbortController().signal,
+      ),
+      /AIAGENT/,
+    );
+    // API-layer entry points: POST /api/provider (save) and /api/provider/probe.
+    await assert.rejects(
+      saveProvider(store, {
+        name: "x",
+        baseUrl: "https://api.deepseek.com",
+        model: "m",
+        apiKey: "k",
+      }),
+      /AIAGENT/,
+    );
+    state.set("providers", [{ ...legacy }]);
+    const probed = await probeGeneration(store, "deepseek");
+    assert.equal(probed.generationStatus, "failed");
+    assert.match(probed.generationError, /AIAGENT/);
+    // Defense in depth: gatewayInvoke never trusts a caller-supplied destination.
+    await assert.rejects(
+      gatewayInvoke(
+        {
+          id: "aiagent",
+          kind: "iai-one",
+          baseUrl: "https://api.aiagent.iai.one",
+          model: "m",
+        },
+        "k",
+        {
+          destination: "https://attacker.example/v1/ai/chat",
+          body: { request_id: "req_x", task_type: "chat", model: "m" },
+        },
+        new AbortController().signal,
+      ),
+      /AIAGENT/,
+    );
+    state.set("providers", [{ ...legacy }]);
+    const swept = auditStoredProviders(store);
+    assert.equal(swept[0].status, "error");
+    assert.match(swept[0].error, /AIAGENT/);
+    assert.equal(swept[0].catalog, null);
+
+    // A record cannot keep the allowed AIAGENT host while forcing the generic
+    // OpenAI-compatible path to bypass the gateway contract and cost read-back.
+    const downgraded = {
+      id: "aiagent",
+      name: "AIAGENT downgraded",
+      kind: "openai",
+      baseUrl: "https://api.aiagent.iai.one",
+      tenantId: "aiagent",
+      workspaceId: "omcode-test",
+      model: "fixture-model",
+      status: "connected",
+    };
+    state.set("providers", [downgraded]);
+    const rejected = await checkProvider(store, "aiagent");
+    assert.equal(rejected.status, "error");
+    assert.match(rejected.error, /không khớp/);
+    await assert.rejects(
+      completion(
+        downgraded,
+        [{ role: "user", content: "hi" }],
+        [],
+        new AbortController().signal,
+      ),
+      /không khớp/,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+  assert.deepEqual(calls, []);
+});
+test("MCP tool servers use URL hygiene only, not the AI provider allowlist", () => {
+  assert.equal(
+    validateUrl("https://mcp.example.test/v1/"),
+    "https://mcp.example.test/v1",
+  );
+  assert.throws(() => validateUrl("https://user:pw@mcp.example.test/v1"));
+  assert.throws(() => validateUrl("http://mcp.example.test/v1"));
+  assert.throws(
+    () => validateEndpoint("https://mcp.example.test/v1"),
+    /AIAGENT/,
   );
 });
 test("Keychain failures stop before any provider request", async () => {
@@ -358,11 +513,18 @@ test("Keychain failures stop before any provider request", async () => {
   const previous = process.env.OMCODE_KEYCHAIN_PATH;
   process.env.OMCODE_KEYCHAIN_PATH = helper;
   try {
-    await assert.rejects(providerKey("google"), /Keychain/);
+    await assert.rejects(providerKey("aiagent"), /Keychain/);
     await fs.writeFile(helper, "#!/bin/sh\nexit 3\n", { mode: 0o700 });
     await assert.rejects(
       completion(
-        { id: "google", model: "unused", baseUrl: "https://example.invalid" },
+        {
+          id: "aiagent",
+          kind: "iai-one",
+          model: "unused",
+          baseUrl: "https://api.aiagent.iai.one",
+          tenantId: "aiagent",
+          workspaceId: "omcode-test",
+        },
         [],
         [],
         new AbortController().signal,
@@ -472,6 +634,20 @@ test("MCP transport lists and calls a read-only tool through OMCODE", async (t) 
     400,
   );
   assert.equal(called.data.content[0].text, "MCP_E2E_OK");
+
+  runtime.store.set("mcp", [
+    ...runtime.store.get("mcp", []),
+    {
+      id: "insecure-remote",
+      url: "http://mcp.example.test/v1",
+      status: "not_checked",
+      tools: [],
+    },
+  ]);
+  const rejected = await request("mcp/check", { id: "insecure-remote" });
+  assert.equal(rejected.status, 200);
+  assert.equal(rejected.data.status, "needs_connection");
+  assert.match(rejected.data.error, /Kết nối từ xa cần HTTPS/);
 });
 
 test("catalog imports deduplicated skills without symlink escapes", async () => {

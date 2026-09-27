@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { assertEgressAllowed } from "./egress-policy.mjs";
+import { validateEndpoint } from "./endpoint-policy.mjs";
 
 export const CONTRACT_VERSION = "1.0.0";
 export const policy = (task_type) => ({
@@ -40,7 +41,7 @@ export async function envelope(response) {
 }
 export async function gatewayCatalog(provider, key) {
   const data = await envelope(
-    await fetch(`${provider.baseUrl}/v1/ai/models`, {
+    await fetch(`${validateEndpoint(provider.baseUrl)}/v1/ai/models`, {
       headers: gatewayHeaders(provider, key),
       signal: AbortSignal.timeout(15000),
       redirect: "error",
@@ -68,9 +69,14 @@ export async function gatewayCatalog(provider, key) {
   };
 }
 export async function gatewayInvoke(provider, key, request, signal) {
+  // Defense in depth: the approved destination must be the verified AIAGENT
+  // endpoint of this provider, never a caller-supplied host.
+  const destination = new URL(validateEndpoint(request.destination));
+  if (destination.origin !== new URL(validateEndpoint(provider.baseUrl)).origin)
+    throw new Error("Destination không khớp endpoint AIAGENT đã xác minh.");
   assertEgressAllowed(request.body);
   const data = await envelope(
-    await fetch(request.destination, {
+    await fetch(destination.toString(), {
       method: "POST",
       headers: gatewayHeaders(provider, key, request.body.request_id),
       body: JSON.stringify(request.body),
@@ -175,14 +181,14 @@ async function readBack(provider, key, data, requestId, signal) {
       redirect: "error",
     };
     const response = await fetch(
-      `${provider.baseUrl}/v1/runs/${encodeURIComponent(billing.run_id)}`,
+      `${validateEndpoint(provider.baseUrl)}/v1/runs/${encodeURIComponent(billing.run_id)}`,
       options,
     );
     if (!response.ok) throw new Error(`run read-back HTTP ${response.status}`);
     const run = (await response.json()).run;
     const verifyId = `req_${randomUUID()}`;
     const verified = await envelope(
-      await fetch(`${provider.baseUrl}/v1/ai/verify`, {
+      await fetch(`${validateEndpoint(provider.baseUrl)}/v1/ai/verify`, {
         ...options,
         method: "POST",
         headers: gatewayHeaders(provider, key, verifyId),

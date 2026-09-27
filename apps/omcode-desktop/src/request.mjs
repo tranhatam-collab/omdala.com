@@ -8,8 +8,7 @@ export function apiTimeout(route) {
     )
   )
     return 60000;
-  if (["provider/check", "import/providers", "mcp/check"].includes(endpoint))
-    return 30000;
+  if (["provider/check", "mcp/check"].includes(endpoint)) return 30000;
   if (["file", "edit/restore", "agent/apply"].includes(endpoint)) return 30000;
   return 15000;
 }

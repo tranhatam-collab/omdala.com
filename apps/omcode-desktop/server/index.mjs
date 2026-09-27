@@ -8,13 +8,14 @@ import { files, execute, gitStatus } from "./local.mjs";
 import {
   saveProvider,
   checkProvider,
-  importProviders,
   probeGeneration,
   prepareEmbedding,
   embedding,
+  auditStoredProviders,
 } from "./providers.mjs";
 import { importSkills, importMcp, reviewSkill, ROLES } from "./catalog.mjs";
 import { mcpRequest } from "./mcp.mjs";
+import { EndpointPolicyError } from "./endpoint-policy.mjs";
 import { createAgent } from "./agent.mjs";
 import { createApprovals, digest } from "./approvals.mjs";
 import { assertEgressAllowed } from "./egress-policy.mjs";
@@ -122,7 +123,9 @@ export async function startServer(options = {}) {
           result = {
             version: APP_VERSION,
             projects: store.get("projects", []),
-            providers: store.get("providers", []),
+            // Persisted connections are re-checked against the endpoint
+            // policy on every bootstrap (no network, no Keychain).
+            providers: auditStoredProviders(store),
             skills: store.get("skills", []),
             mcp: store.get("mcp", []),
             roles: ROLES.map(({ instruction, ...r }) => r),
@@ -351,9 +354,7 @@ export async function startServer(options = {}) {
             new AbortController().signal,
             approved.request,
           );
-        } else if (route === "POST /api/import/providers")
-          result = await importProviders(store);
-        else if (route === "POST /api/import/skills")
+        } else if (route === "POST /api/import/skills")
           result = await importSkills(store);
         else if (route === "POST /api/skill/review") {
           const value = await reviewSkill(store, body.id);
@@ -396,9 +397,15 @@ export async function startServer(options = {}) {
             }));
             item.status = "connected";
             item.error = null;
-          } catch {
+          } catch (error) {
             item.status = "needs_connection";
-            item.error = "Cần kết nối hoặc cấp OAuth riêng cho OMCODE.";
+            // URL policy failures are safe, actionable product messages. Other
+            // transport/OAuth errors stay generic so raw upstream details are
+            // never persisted or reflected into the UI.
+            item.error =
+              error instanceof EndpointPolicyError
+                ? error.message
+                : "Cần kết nối hoặc cấp OAuth riêng cho OMCODE.";
           }
           store.set("mcp", list);
           result = item;

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { isAiagentHost } from "../server/endpoint-policy.mjs";
 
 export const LIVE_FILE = "hello-omcode.mjs";
 export const LIVE_CONTENT = "console.log('OMCODE_LIVE_E2E_OK');\n";
@@ -31,6 +32,11 @@ export function liveSelection(env = process.env) {
       !url.search &&
       !url.hash,
     "Live provider requires an explicit HTTPS endpoint.",
+  );
+  // The paid preflight mirrors the runtime rule: AIAGENT hosts only.
+  assert.ok(
+    isAiagentHost(url.hostname),
+    "Live E2E chỉ chạy với AIAGENT (api.aiagent.iai.one / staging-api.aiagent.iai.one).",
   );
   assert.equal(
     env.OMCODE_LIVE_CONSENT,

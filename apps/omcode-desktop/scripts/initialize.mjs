@@ -1,6 +1,6 @@
 import path from "node:path";
 import { createStore } from "../server/store.mjs";
-import { importProviders, checkProvider } from "../server/providers.mjs";
+import { checkProvider } from "../server/providers.mjs";
 import { importSkills, importMcp } from "../server/catalog.mjs";
 import { files } from "../server/local.mjs";
 const store = createStore(
@@ -8,7 +8,6 @@ const store = createStore(
     path.join(process.env.HOME, "Library/Application Support/OMCODE"),
 );
 try {
-  console.log(JSON.stringify({ providers: await importProviders(store) }));
   for (const item of store.get("providers", [])) {
     const result = await checkProvider(store, item.id);
     console.log(

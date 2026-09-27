@@ -1,51 +1,89 @@
-import fs from "node:fs/promises";
 import { randomUUID, createHash } from "node:crypto";
 import { gatewayCatalog, gatewayInvoke, policy } from "./gateway.mjs";
 import { execute } from "./local.mjs";
 import { assertEgressAllowed } from "./egress-policy.mjs";
+import {
+  AIAGENT_HOSTS,
+  isAiagentHost,
+  validateEndpoint,
+  validateUrl,
+} from "./endpoint-policy.mjs";
 
-export const IMPORT_TARGETS = {
-  deepseek: {
-    name: "DeepSeek",
-    baseUrl: "https://api.deepseek.com",
-    model: "deepseek-flash",
-  },
-  cerebras: {
-    name: "Cerebras",
-    baseUrl: "https://api.cerebras.ai/v1",
-    model: "gpt-oss-120b",
-  },
-  google: {
-    name: "Google Gemini",
-    baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
-    model: "gemini-3.8-flash",
-  },
-};
-export function validateEndpoint(value) {
-  const url = new URL(value);
-  if (url.username || url.password || url.search || url.hash)
-    throw new Error(
-      "URL provider không được chứa thông tin đăng nhập hoặc query.",
-    );
-  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
-  if (url.protocol !== "https:" && !(url.protocol === "http:" && local))
-    throw new Error("Provider cần HTTPS; HTTP chỉ dành cho model local.");
-  return url.toString().replace(/\/$/, "");
-}
-export function normalizeModelId(baseUrl, id) {
-  return new URL(baseUrl).hostname === "generativelanguage.googleapis.com"
-    ? id.replace(/^models\//, "")
-    : id;
+// AIAGENT is the only remote AI provider OMCODE may talk to (Founder rule:
+// "API của Aiagent.iai.one không lấy nguồn khác"). The host allowlist lives in
+// endpoint-policy.mjs and is applied on user input (saveProvider) AND on every
+// credentialed path over persisted records (assertProviderAllowed), so a
+// third-party entry created by an older build fails closed before the
+// Keychain is read or a request is built.
+export { AIAGENT_HOSTS, isAiagentHost, validateEndpoint, validateUrl };
+// No third-party import targets remain. The credential-import machinery
+// (OpenClaw auth-profiles reader, POST /api/import/providers, Settings button)
+// was removed with it; the frozen empty object stays for API compatibility.
+export const IMPORT_TARGETS = Object.freeze({});
+// Kept for API compatibility: model ids are used exactly as the catalog returns them.
+export function normalizeModelId(_baseUrl, id) {
+  return id;
 }
 function detectKind(baseUrl, kind) {
-  if (kind === "iai-one" || kind === "openai") return kind;
   try {
-    return new URL(baseUrl).hostname === "api.aiagent.iai.one"
-      ? "iai-one"
-      : "openai";
+    // The remote endpoint is authoritative. A persisted `kind: openai` must
+    // never downgrade an AIAGENT connection into the generic compatibility
+    // path, which would bypass the gateway envelope and billing read-back.
+    if (isAiagentHost(new URL(baseUrl).hostname)) return "iai-one";
   } catch {
     return "openai";
   }
+  return kind === "iai-one" ? "iai-one" : "openai";
+}
+function isGateway(provider) {
+  return detectKind(provider.baseUrl, provider.kind) === "iai-one";
+}
+export function assertProviderAllowed(provider) {
+  const baseUrl = validateEndpoint(provider.baseUrl);
+  const hostname = new URL(baseUrl).hostname;
+  if (!isAiagentHost(hostname)) return;
+
+  const expectedId =
+    hostname === "staging-api.aiagent.iai.one" ? "aiagent-staging" : "aiagent";
+  if (provider.id !== expectedId || provider.kind !== "iai-one")
+    throw new Error(
+      "Kết nối AIAGENT không khớp tài khoản, môi trường hoặc loại provider đã xác minh.",
+    );
+  for (const field of ["tenantId", "workspaceId"])
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/.test(provider[field] || ""))
+      throw new Error(
+        "AIAGENT cần Tenant ID và Workspace ID đúng biên bản cấp khóa.",
+      );
+}
+// Bootstrap sweep: persisted providers that no longer pass the endpoint
+// policy are marked as errors with the reason, so the UI cannot show a stale
+// "connected" state for a forbidden destination. No network, no Keychain.
+export function auditStoredProviders(store) {
+  const providers = store.get("providers", []);
+  let changed = false;
+  for (const provider of providers) {
+    try {
+      assertProviderAllowed(provider);
+    } catch (error) {
+      if (
+        provider.status !== "error" ||
+        provider.error !== error.message ||
+        provider.catalog !== null ||
+        provider.models?.length ||
+        provider.embeddingModels?.length ||
+        provider.generationStatus !== "not_checked"
+      )
+        changed = true;
+      provider.status = "error";
+      provider.error = error.message;
+      provider.catalog = null;
+      provider.models = [];
+      provider.embeddingModels = [];
+      provider.generationStatus = "not_checked";
+    }
+  }
+  if (changed) store.set("providers", providers);
+  return providers;
 }
 async function secret(action, id, value) {
   const binary =
@@ -93,27 +131,56 @@ export async function saveProvider(store, input) {
     throw new Error("Provider ID không hợp lệ.");
   const existing = providers.find((p) => p.id === id);
   let baseUrl = validateEndpoint(input.baseUrl);
+  const hostname = new URL(baseUrl).hostname;
+  if (
+    isAiagentHost(hostname) &&
+    input.kind !== undefined &&
+    input.kind !== "iai-one"
+  )
+    throw new Error(
+      "Kết nối AIAGENT phải dùng loại provider iai-one; không được hạ xuống chế độ tương thích OpenAI.",
+    );
   const kind = detectKind(baseUrl, input.kind);
-  if (new URL(baseUrl).hostname === "api.aiagent.iai.one") {
+  if (isAiagentHost(hostname)) {
     if (
       !["/", "/v1", "/v1/ai", "/v1/ai/chat", "/v1/ai/embed"].includes(
         new URL(baseUrl).pathname,
       )
     )
-      throw new Error("AIAGENT cần API base URL https://api.aiagent.iai.one.");
+      throw new Error(
+        "AIAGENT cần API base URL gốc (https://api.aiagent.iai.one hoặc https://staging-api.aiagent.iai.one).",
+      );
     baseUrl = new URL(baseUrl).origin;
+    const expectedId =
+      hostname === "staging-api.aiagent.iai.one"
+        ? "aiagent-staging"
+        : "aiagent";
+    if (id !== expectedId)
+      throw new Error(
+        "Endpoint AIAGENT phải dùng đúng tài khoản Keychain theo môi trường.",
+      );
   }
   // These IDs are macOS Keychain accounts, not interchangeable display names.
   // A staging credential must never be attached to the production destination.
   if (id === "aiagent" || id === "aiagent-staging") {
-    const expected = id === "aiagent-staging"
-      ? "https://staging-api.aiagent.iai.one" : "https://api.aiagent.iai.one";
+    const expected =
+      id === "aiagent-staging"
+        ? "https://staging-api.aiagent.iai.one"
+        : "https://api.aiagent.iai.one";
     if (baseUrl !== expected || kind !== "iai-one")
-      throw new Error("Tài khoản AIAGENT phải khớp môi trường và endpoint trong biên bản cấp khóa.");
+      throw new Error(
+        "Tài khoản AIAGENT phải khớp môi trường và endpoint trong biên bản cấp khóa.",
+      );
     for (const field of ["tenantId", "workspaceId"]) {
-      const value = input[field] === undefined ? existing?.[field] : input[field];
-      if (typeof value !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/.test(value))
-        throw new Error("AIAGENT cần Tenant ID và Workspace ID đúng biên bản cấp khóa.");
+      const value =
+        input[field] === undefined ? existing?.[field] : input[field];
+      if (
+        typeof value !== "string" ||
+        !/^[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}$/.test(value)
+      )
+        throw new Error(
+          "AIAGENT cần Tenant ID và Workspace ID đúng biên bản cấp khóa.",
+        );
     }
   }
   const identityChanged =
@@ -155,30 +222,6 @@ export async function saveProvider(store, input) {
   store.set("providers", next);
   return provider;
 }
-export async function importProviders(store) {
-  let auth;
-  try {
-    auth = JSON.parse(
-      await fs.readFile(
-        `${process.env.HOME}/.openclaw/agents/main/agent/auth-profiles.json`,
-        "utf8",
-      ),
-    );
-  } catch {
-    return { imported: [], unavailable: true };
-  }
-  const imported = [];
-  for (const [id, target] of Object.entries(IMPORT_TARGETS)) {
-    if (store.get("providers", []).some((p) => p.id === id)) continue;
-    const profile = Object.values(auth.profiles || {}).find(
-      (p) => p.type === "api_key" && p.provider === id && p.key,
-    );
-    if (!profile) continue;
-    await saveProvider(store, { id, ...target, apiKey: profile.key });
-    imported.push(id);
-  }
-  return { imported };
-}
 export async function providerKey(id) {
   return secret("get", id);
 }
@@ -196,7 +239,7 @@ function providerHeaders(provider, key, extra = {}) {
   };
 }
 async function fetchOpenAIModels(provider, key) {
-  const response = await fetch(`${provider.baseUrl}/models`, {
+  const response = await fetch(`${validateEndpoint(provider.baseUrl)}/models`, {
     headers: providerHeaders(provider, key),
     signal: AbortSignal.timeout(15000),
     redirect: "error",
@@ -216,12 +259,14 @@ export async function checkProvider(store, id) {
   try {
     const previousModel = provider.model;
     const previousCatalog = provider.catalog;
+    // Persisted endpoint is re-validated before the Keychain is read.
+    assertProviderAllowed(provider);
     const key = await providerKey(id);
-    if (!key && (IMPORT_TARGETS[id] || provider.kind === "iai-one"))
+    if (!key && isGateway(provider))
       throw new Error(
         "Chưa có API key cho provider này trong OMCODE Keychain.",
       );
-    const kind = provider.kind || detectKind(provider.baseUrl);
+    const kind = detectKind(provider.baseUrl, provider.kind);
     let models;
     let embedding = [];
     if (kind === "iai-one") {
@@ -278,14 +323,13 @@ export async function checkProvider(store, id) {
 function catalogIdentity(provider) {
   return JSON.stringify([
     provider.baseUrl,
-    provider.kind || detectKind(provider.baseUrl),
+    detectKind(provider.baseUrl, provider.kind),
     provider.tenantId || null,
     provider.workspaceId || null,
   ]);
 }
 function assertCatalogCurrent(provider, key, capability = "chat") {
-  const credentialed =
-    Boolean(key) || IMPORT_TARGETS[provider.id] || provider.kind === "iai-one";
+  const credentialed = Boolean(key) || isGateway(provider);
   if (!credentialed) return;
   const catalog = provider.catalog;
   const revision = provider.credentialRevision || 0;
@@ -318,7 +362,7 @@ export function prepareCompletion(
   tools,
   requestId = "req_" + randomUUID(),
 ) {
-  const kind = provider.kind || detectKind(provider.baseUrl);
+  const kind = detectKind(provider.baseUrl, provider.kind);
   const request =
     kind === "iai-one"
       ? {
@@ -351,9 +395,10 @@ export async function completion(
   signal = new AbortController().signal,
   approved,
 ) {
+  assertProviderAllowed(provider);
   const key = await providerKey(provider.id);
-  const kind = provider.kind || detectKind(provider.baseUrl);
-  if (!key && (IMPORT_TARGETS[provider.id] || kind === "iai-one"))
+  const kind = detectKind(provider.baseUrl, provider.kind);
+  if (!key && kind === "iai-one")
     throw new Error(
       "Chưa có API key cho provider này trong OMCODE Keychain; chưa gửi yêu cầu AI.",
     );
@@ -413,14 +458,15 @@ export async function embedding(
   signal = new AbortController().signal,
   approved,
 ) {
+  assertProviderAllowed(provider);
   const key = await providerKey(provider.id);
-  if (!key || (provider.kind || detectKind(provider.baseUrl)) !== "iai-one")
+  if (!key || !isGateway(provider))
     throw new Error("Embedding cần kết nối AIAGENT đã xác minh.");
   assertCatalogCurrent(provider, key, "embed");
   // The internal contract runner also supports a bounded batch of synthetic inputs.
   const request = Array.isArray(input)
     ? {
-        destination: provider.baseUrl + "/v1/ai/embed",
+        destination: validateEndpoint(provider.baseUrl) + "/v1/ai/embed",
         body: {
           model: provider.model,
           input,
@@ -429,6 +475,7 @@ export async function embedding(
         },
       }
     : prepareEmbedding(provider, input, approved?.body.request_id);
+  if (Array.isArray(input)) assertEgressAllowed(request.body);
   if (approved && JSON.stringify(approved) !== JSON.stringify(request))
     throw new Error("Embedding payload thay đổi sau xác nhận.");
   const data = await gatewayInvoke(provider, key, request, signal);

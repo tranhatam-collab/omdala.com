@@ -39,7 +39,7 @@ process.env.OMCODE_KEYCHAIN_PATH ||= path.join(
   app,
   "Contents/Resources/runtime/OMCODEKeychain",
 );
-const { checkProvider } = await import(
+const { checkProvider, isAiagentHost } = await import(
   pathToFileURL(path.join(bundledApp, "server/providers.mjs"))
 );
 const { startServer } = await import(
@@ -123,7 +123,7 @@ try {
   assert.equal(pendingMessage.model, selection.model);
   if (
     provider.kind === "iai-one" ||
-    new URL(provider.baseUrl).hostname === "api.aiagent.iai.one"
+    isAiagentHost(new URL(provider.baseUrl).hostname)
   )
     assertLiveBilling(pendingMessage.billing);
   await page.locator(".proposal summary").first().click();

@@ -11,7 +11,7 @@ Keychain service: `com.omdala.omcode.providers.v1`; account is the provider ID, 
 
 ## AIAGENT Contract
 
-In Connections, select **Ket noi AIAGENT**, enter a scoped client key in the local password field and run the connection check. Endpoint: `https://api.aiagent.iai.one`, contract `1.0.0`. Tenant/workspace come from the credential unless explicitly configured. Do not import infrastructure/admin secrets as client credentials.
+In Connections, select **Ket noi AIAGENT**, enter a scoped client key in the local password field and run the connection check. Endpoint: `https://api.aiagent.iai.one`, contract `1.0.0`. Tenant/workspace come from the credential unless explicitly configured. Do not import infrastructure/admin secrets as client credentials. OMCODE connects only to AIAGENT (`api.aiagent.iai.one` / `staging-api.aiagent.iai.one`) or a loopback local model; no other cloud AI provider is accepted, on input or from previously stored connections. MCP tool servers are not AI providers and only need URL hygiene. The mandatory decision and release gate are recorded in [`docs/governance/OMCODE_AI_SOURCE_POLICY_2026-09-27.md`](../../docs/governance/OMCODE_AI_SOURCE_POLICY_2026-09-27.md).
 
 The authenticated catalog controls available chat and embedding models. Catalogs are bound to endpoint, kind, tenant, workspace, credential fingerprint and revision. Model count is not generation proof. Embedding models have a separate text/approval flow rather than appearing as chat models.
 

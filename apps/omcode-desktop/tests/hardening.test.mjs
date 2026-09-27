@@ -133,15 +133,18 @@ test("generation is not retried after ambiguous provider failure", async (t) => 
     1,
   );
 });
-test("success clears stale generation HTTP error; changed endpoint cannot reuse credentials", async (t) => {
+test("success clears stale generation HTTP error; an account cannot change AIAGENT environment", async (t) => {
   const { store, p } = await gateway(t);
   store.set("providers", [{ ...p, generationHttpStatus: 404 }]);
   const r = await probeGeneration(store, "gateway");
   assert.equal(r.generationStatus, "verified");
   assert.equal(r.generationHttpStatus, undefined);
   await assert.rejects(
-    saveProvider(store, { ...p, baseUrl: "https://different.invalid" }),
-    /nhập lại khóa/,
+    saveProvider(store, {
+      ...p,
+      baseUrl: "https://staging-api.aiagent.iai.one",
+    }),
+    /đúng tài khoản Keychain theo môi trường/,
   );
   await assert.rejects(
     completion({ ...p, workspaceId: "other" }, probe, [], signal()),
@@ -417,9 +420,12 @@ test("embedding-only catalog works and unavailable models are excluded", async (
 test("AIAGENT full chat URL is normalized instead of producing a duplicate endpoint path", async (t) => {
   const { store } = await scratch(t);
   const p = await saveProvider(store, {
-    id: "gateway",
+    id: "aiagent",
     name: "AIAGENT",
     baseUrl: "https://api.aiagent.iai.one/v1/ai/chat",
+    kind: "iai-one",
+    tenantId: "aiagent",
+    workspaceId: "omcode-test",
   });
   assert.equal(p.baseUrl, "https://api.aiagent.iai.one");
   assert.equal(p.kind, "iai-one");

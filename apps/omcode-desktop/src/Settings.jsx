@@ -55,14 +55,6 @@ export function Settings({ data, refresh, onError }) {
           <h1>Kết nối AI & Tools</h1>
           <p>OMCODE local</p>
         </div>
-        <button
-          className="secondary"
-          onClick={() => action("import", () => api("import/providers", {}))}
-          disabled={!!busy}
-        >
-          <Download size={16} />
-          Nhập API từ hệ thống
-        </button>
       </header>
       <div className="section-title">
         <h2>Nhà cung cấp AI</h2>
@@ -76,7 +68,9 @@ export function Settings({ data, refresh, onError }) {
         </button>
         <button
           className="secondary small"
-          onClick={() => setForm(aiagentConnectionForm(data.providers, "staging"))}
+          onClick={() =>
+            setForm(aiagentConnectionForm(data.providers, "staging"))
+          }
         >
           Kết nối AIAGENT staging
         </button>
@@ -263,7 +257,8 @@ export function Settings({ data, refresh, onError }) {
             <>
               <p>
                 Tài khoản Keychain: <code>{form.id}</code>. Chỉ nhập client key;
-                không nhập ADMIN_KEY. Tenant và workspace phải khớp biên bản cấp khóa.
+                không nhập ADMIN_KEY. Tenant và workspace phải khớp biên bản cấp
+                khóa.
               </p>
               <label>
                 Tenant ID
@@ -271,7 +266,9 @@ export function Settings({ data, refresh, onError }) {
                   required
                   pattern="[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}"
                   value={form.tenantId || ""}
-                  onChange={(event) => setForm({ ...form, tenantId: event.target.value })}
+                  onChange={(event) =>
+                    setForm({ ...form, tenantId: event.target.value })
+                  }
                 />
               </label>
               <label>
@@ -280,7 +277,9 @@ export function Settings({ data, refresh, onError }) {
                   required
                   pattern="[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}"
                   value={form.workspaceId || ""}
-                  onChange={(event) => setForm({ ...form, workspaceId: event.target.value })}
+                  onChange={(event) =>
+                    setForm({ ...form, workspaceId: event.target.value })
+                  }
                 />
               </label>
             </>
