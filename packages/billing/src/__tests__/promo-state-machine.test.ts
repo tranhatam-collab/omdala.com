@@ -5,7 +5,7 @@ import type { Subscription } from "../promo-state-machine.js";
 
 const NOW = new Date("2026-08-29T00:00:00.000Z");
 
-test("monthly conversion during trial receives all three promo months", () => {
+test("monthly billing stays free for the full trial before entering promo", () => {
   let sub: Subscription = {
     id: "sub_1", accountId: "acc_1", packageId: "infra-explore",
     market: "en", state: "lead", billingMode: "monthly",
@@ -17,7 +17,11 @@ test("monthly conversion during trial receives all three promo months", () => {
   assert.strictEqual(sub.trialStartDate, "2026-08-29T00:00:00.000Z");
   assert.strictEqual(sub.trialEndDate, "2026-09-28T00:00:00.000Z");
 
-  sub = applyTransition(sub, "convert", NOW);
+  assert.throws(() => applyTransition(sub, "convert", NOW));
+
+  sub = applyTransition(sub, "trial_expires", new Date("2026-09-28T00:00:00.000Z"));
+  assert.strictEqual(sub.state, "trial_expired");
+  sub = applyTransition(sub, "subscribe_within_grace", new Date("2026-09-28T00:00:00.000Z"));
   assert.strictEqual(sub.state, "promo_1");
   sub = applyTransition(sub, "month_end", NOW);
   assert.strictEqual(sub.state, "promo_2");
@@ -96,12 +100,22 @@ test("ai-agent-ops cannot enter promo", () => {
   assert.throws(() => applyTransition(sub, "subscribe_within_grace", NOW));
 });
 
-test("enterprise monthly receives the Founder-approved promo", () => {
+test("enterprise monthly cannot bypass the free trial into promo", () => {
   const sub: Subscription = {
     id: "sub_enterprise", accountId: "acc_enterprise", packageId: "infra-enterprise",
     market: "en", state: "trial", billingMode: "monthly", createdAt: NOW.toISOString(),
   };
-  assert.strictEqual(applyTransition(sub, "convert", NOW).state, "promo_1");
+  assert.throws(() => applyTransition(sub, "convert", NOW));
+});
+
+test("trial cannot expire before its recorded end date", () => {
+  const sub: Subscription = {
+    id: "sub_early_expiry", accountId: "acc_early_expiry", packageId: "infra-explore",
+    market: "en", state: "trial", billingMode: "monthly",
+    createdAt: NOW.toISOString(), trialEndDate: "2026-09-28T00:00:00.000Z",
+  };
+
+  assert.throws(() => applyTransition(sub, "trial_expires", NOW));
 });
 
 test("future trial end is not treated as grace period", () => {

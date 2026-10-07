@@ -129,3 +129,61 @@ export interface ApiContract {
     redirectTo: string;
   };
 }
+
+/** Versioned wire-contract primitives shared by API consumers. */
+export const API_CONTRACT_VERSION = "2026-10-07";
+
+export interface ApiRequestMeta {
+  requestId?: string;
+}
+
+export interface ApiPaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  hasNextPage: boolean;
+}
+
+export interface ApiSuccess<T> {
+  ok: true;
+  data: T;
+  meta?: ApiRequestMeta;
+}
+
+export interface ApiFailure {
+  ok: false;
+  error: {
+    code: string;
+    message: string;
+  };
+  meta?: ApiRequestMeta;
+}
+
+export type ApiResponse<T> = ApiSuccess<T> | ApiFailure;
+
+export interface PaginationInput {
+  page?: string;
+  limit?: string;
+}
+
+export function parsePaginationParams(input: PaginationInput): {
+  page: number;
+  limit: number;
+} {
+  const parsedPage = Number(input.page ?? "1");
+  const parsedLimit = Number(input.limit ?? "20");
+  const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const limit =
+    Number.isInteger(parsedLimit) && parsedLimit > 0
+      ? Math.min(100, parsedLimit)
+      : 20;
+  return { page, limit };
+}
+
+export function normalizeIdempotencyKey(value?: string): string | undefined {
+  const normalized = value?.trim();
+  if (!normalized || normalized.length > 128) {
+    return undefined;
+  }
+  return /^[A-Za-z0-9._:-]+$/.test(normalized) ? normalized : undefined;
+}

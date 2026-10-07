@@ -868,4 +868,25 @@ Mọi cập nhật tiếp theo của Team 2 phải đi vào đây trước, đ�
 
 ---
 
+---
+
+## Daily Update - 2026-10-07 (Wave 0 execution)
+
+- Created isolated worktree `OMCODE/team2-wave0-20261007` from exact source SHA
+  `415927e5f1580d539013b55765dfba834de655e7`.
+- Hardened PostgreSQL reality ownership: states, commitments, transitions,
+  proofs, and scene actor identity no longer accept cross-tenant/header-based
+  authority.
+- Added versioned API contract `2026-10-07` with bounded pagination and
+  redacted consumer examples.
+- Reconciled monthly pricing to `30-day trial -> trial_expired -> 3 promo
+  months at 90% off`; direct monthly trial conversion is rejected.
+- Verification under Node `22.22.3`: API `81/81` plus typecheck; billing
+  `28/28` plus typecheck/build; `git diff --check` pass.
+- Extended shell QA: root shared typecheck, core `7/7`, admin/docs/auth
+  typecheck, admin/docs static builds, and app `27/27` all pass.
+- Added Wave 0 receipt and data-authority ADR. True state is
+  `VERIFIED_WORKTREE_ONLY`; Team 4 acceptance, staging bindings, migration
+  rehearsal, provider receipts, and Founder authority remain open.
+
 # END OF FILE

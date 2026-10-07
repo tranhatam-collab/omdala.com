@@ -59,9 +59,12 @@ interface Transition {
 
 const TRANSITIONS: Transition[] = [
   { from: "lead", event: "start_trial", to: "trial" },
-  { from: "trial", event: "trial_expires", to: "trial_expired" },
-  { from: "trial", event: "convert", to: "promo_1", condition: (s) => isPromoEligible(s.packageId, s.billingMode) },
-  { from: "trial", event: "convert", to: "active_monthly", condition: (s) => s.billingMode === "monthly" },
+  {
+    from: "trial",
+    event: "trial_expires",
+    to: "trial_expired",
+    condition: trialHasEnded,
+  },
   { from: "trial", event: "convert", to: "active_annual", condition: (s) => s.billingMode === "annual" },
   { from: "trial", event: "convert", to: "active_biennial", condition: (s) => s.billingMode === "biennial" },
   { from: "trial", event: "convert", to: "active_triennial", condition: (s) => s.billingMode === "triennial" },
@@ -89,6 +92,12 @@ const TRANSITIONS: Transition[] = [
 ];
 
 const GRACE_PERIOD_DAYS = 7;
+
+function trialHasEnded(sub: Subscription, now: Date): boolean {
+  if (!sub.trialEndDate) return false;
+  const trialEnd = new Date(sub.trialEndDate);
+  return !Number.isNaN(trialEnd.getTime()) && now.getTime() >= trialEnd.getTime();
+}
 
 export function withinGracePeriod(sub: Subscription, now: Date): boolean {
   if (!sub.trialEndDate) return false;

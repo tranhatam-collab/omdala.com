@@ -12,7 +12,7 @@ import type {
   RealityProofRequest,
 } from "../contracts";
 import { queryRows } from "./client";
-import { toDbQueryError } from "./errors";
+import { ResourceAccessError, toDbQueryError } from "./errors";
 
 type SqlRow = Record<string, unknown>;
 
@@ -23,6 +23,9 @@ async function runWithDbContext<T>(
   try {
     return await action();
   } catch (error) {
+    if (error instanceof ResourceAccessError) {
+      throw error;
+    }
     throw toDbQueryError(error, operation);
   }
 }
@@ -171,11 +174,19 @@ export async function listNodes(
   return rows.map(mapNode);
 }
 
-export async function listStates(env: ApiBindings): Promise<StateRecord[]> {
+export async function listStates(
+  env: ApiBindings,
+  ownerEmail: string,
+): Promise<StateRecord[]> {
   const rows = (await runWithDbContext("listStates", () =>
     queryRows(
       env,
-      "SELECT id, node_id, label, summary, status, updated_at FROM omdala.states ORDER BY updated_at DESC LIMIT 200",
+      `SELECT s.id, s.node_id, s.label, s.summary, s.status, s.updated_at
+       FROM omdala.states s
+       INNER JOIN omdala.nodes n ON n.id = s.node_id
+       WHERE n.owner_email = $1
+       ORDER BY s.updated_at DESC LIMIT 200`,
+      [ownerEmail],
     ),
   )) as SqlRow[];
   return rows.map(mapState);
@@ -183,11 +194,19 @@ export async function listStates(env: ApiBindings): Promise<StateRecord[]> {
 
 export async function listCommitments(
   env: ApiBindings,
+  ownerEmail: string,
 ): Promise<CommitmentRecord[]> {
   const rows = (await runWithDbContext("listCommitments", () =>
     queryRows(
       env,
-      "SELECT id, from_node_id, to_node_id, title, summary, amount, currency, due_at, status, created_at, updated_at FROM omdala.commitments ORDER BY created_at DESC LIMIT 200",
+      `SELECT c.id, c.from_node_id, c.to_node_id, c.title, c.summary,
+              c.amount, c.currency, c.due_at, c.status, c.created_at, c.updated_at
+       FROM omdala.commitments c
+       INNER JOIN omdala.nodes from_node ON from_node.id = c.from_node_id
+       INNER JOIN omdala.nodes to_node ON to_node.id = c.to_node_id
+       WHERE from_node.owner_email = $1 AND to_node.owner_email = $1
+       ORDER BY c.created_at DESC LIMIT 200`,
+      [ownerEmail],
     ),
   )) as SqlRow[];
   return rows.map(mapCommitment);
@@ -195,6 +214,7 @@ export async function listCommitments(
 
 export async function createCommitment(
   env: ApiBindings,
+  ownerEmail: string,
   input: Required<
     Pick<
       RealityCommitmentRequest,
@@ -212,9 +232,15 @@ export async function createCommitment(
   const rows = (await runWithDbContext("createCommitment", () =>
     queryRows(
       env,
-      `INSERT INTO omdala.commitments (id, from_node_id, to_node_id, title, summary, amount, currency, due_at, status, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9, $10)
-     RETURNING id, from_node_id, to_node_id, title, summary, amount, currency, due_at, status, created_at, updated_at`,
+      `INSERT INTO omdala.commitments
+        (id, from_node_id, to_node_id, title, summary, amount, currency, due_at, status, created_at, updated_at)
+       SELECT $1, $2, $3, $4, $5, $6, $7, $8, 'draft', $9, $10
+       FROM omdala.nodes from_node
+       INNER JOIN omdala.nodes to_node ON to_node.id = $3
+       WHERE from_node.id = $2
+         AND from_node.owner_email = $11
+         AND to_node.owner_email = $11
+       RETURNING id, from_node_id, to_node_id, title, summary, amount, currency, due_at, status, created_at, updated_at`,
       [
         id,
         input.fromNodeId,
@@ -226,12 +252,15 @@ export async function createCommitment(
         input.dueAt ?? null,
         now,
         now,
+        ownerEmail,
       ],
     ),
   )) as SqlRow[];
 
   if (!rows[0]) {
-    throw new Error("Failed to create commitment");
+    throw new ResourceAccessError(
+      "Commitment nodes are not available in the current tenant scope",
+    );
   }
 
   return mapCommitment(rows[0]);
@@ -239,11 +268,18 @@ export async function createCommitment(
 
 export async function listTransitions(
   env: ApiBindings,
+  ownerEmail: string,
 ): Promise<TransitionRecord[]> {
   const rows = (await runWithDbContext("listTransitions", () =>
     queryRows(
       env,
-      "SELECT id, commitment_id, node_id, from_state_label, to_state_label, summary, status, created_at, updated_at FROM omdala.transitions ORDER BY created_at DESC LIMIT 200",
+      `SELECT t.id, t.commitment_id, t.node_id, t.from_state_label,
+              t.to_state_label, t.summary, t.status, t.created_at, t.updated_at
+       FROM omdala.transitions t
+       INNER JOIN omdala.nodes n ON n.id = t.node_id
+       WHERE n.owner_email = $1
+       ORDER BY t.created_at DESC LIMIT 200`,
+      [ownerEmail],
     ),
   )) as SqlRow[];
   return rows.map(mapTransition);
@@ -271,6 +307,47 @@ export async function createProof(
 ): Promise<RealityProofRecord> {
   const id = generateId("proof");
   const now = new Date().toISOString();
+
+  if (input.commitmentId) {
+    const rows = (await runWithDbContext("assertProofCommitmentScope", () =>
+      queryRows(
+        env,
+        `SELECT c.id
+         FROM omdala.commitments c
+         INNER JOIN omdala.nodes from_node ON from_node.id = c.from_node_id
+         INNER JOIN omdala.nodes to_node ON to_node.id = c.to_node_id
+         WHERE c.id = $1
+           AND from_node.owner_email = $2
+           AND to_node.owner_email = $2
+         LIMIT 1`,
+        [input.commitmentId, ownerEmail],
+      ),
+    )) as SqlRow[];
+    if (!rows[0]) {
+      throw new ResourceAccessError(
+        "Commitment is not available in the current tenant scope",
+      );
+    }
+  }
+
+  if (input.transitionId) {
+    const rows = (await runWithDbContext("assertProofTransitionScope", () =>
+      queryRows(
+        env,
+        `SELECT t.id
+         FROM omdala.transitions t
+         INNER JOIN omdala.nodes n ON n.id = t.node_id
+         WHERE t.id = $1 AND n.owner_email = $2
+         LIMIT 1`,
+        [input.transitionId, ownerEmail],
+      ),
+    )) as SqlRow[];
+    if (!rows[0]) {
+      throw new ResourceAccessError(
+        "Transition is not available in the current tenant scope",
+      );
+    }
+  }
 
   const rows = (await runWithDbContext("createProof", () =>
     queryRows(

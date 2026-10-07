@@ -44,6 +44,11 @@ import type {
   RealityProofRequest,
 } from "./contracts";
 import {
+  API_CONTRACT_VERSION,
+  normalizeIdempotencyKey,
+  parsePaginationParams,
+} from "./contracts";
+import {
   getOmAiProviderObservability,
   getOmAiProviderRegistryResponse,
   getOmAiProviderRouteDecision,
@@ -66,7 +71,11 @@ import {
   writeAccountProfile,
 } from "./db/account-repository";
 import { isDatabaseConfigured, queryRows } from "./db/client";
-import { DbQueryError, mapDbErrorToHttp } from "./db/errors";
+import {
+  DbQueryError,
+  mapDbErrorToHttp,
+  ResourceAccessError,
+} from "./db/errors";
 import { createApiContractStub } from "./stub";
 // ─── Custom Security & AI Connectors ───────────────────────────────────
 import {
@@ -1150,6 +1159,10 @@ async function withV2Guard(
 
     const mapped = mapDbErrorToHttp(error);
 
+    if (error instanceof ResourceAccessError) {
+      return jsonError(c, 404, "RESOURCE_NOT_FOUND", error.message);
+    }
+
     console.error("v2/reality handler error", {
       request_id: requestId,
       path: c.req.path,
@@ -1358,7 +1371,9 @@ async function sendMail(
   env: ApiBindings,
   payload: MailRequest,
 ): Promise<MailDeliveryReceipt> {
-  const idempotencyKey = payload.message_idempotency_key ?? crypto.randomUUID();
+  const idempotencyKey =
+    normalizeIdempotencyKey(payload.message_idempotency_key) ??
+    crypto.randomUUID();
   if (!env.MAIL_API_KEY) {
     if (allowsMailConsoleFallback(env)) {
       console.warn("[sendMail] MAIL_API_KEY not set — logging email to console (dev fallback)");
@@ -1815,7 +1830,7 @@ app.get("/v2/reality/nodes", async (c) => {
 app.get("/v2/reality/states", async (c) => {
   return withV2Guard(c, async () => {
     if (hasDatabase(c.env)) {
-      const states = await listStates(c.env);
+      const states = await listStates(c.env, getRealityOwnerEmail(c));
       return jsonOk(c, { states, total: states.length });
     }
 
@@ -1829,7 +1844,10 @@ app.get("/v2/reality/states", async (c) => {
 app.get("/v2/reality/commitments", async (c) => {
   return withV2Guard(c, async () => {
     if (hasDatabase(c.env)) {
-      const commitments = await listCommitments(c.env);
+      const commitments = await listCommitments(
+        c.env,
+        getRealityOwnerEmail(c),
+      );
       return jsonOk(c, { commitments, total: commitments.length });
     }
 
@@ -1861,6 +1879,7 @@ app.post("/v2/reality/commitments", async (c) => {
     if (hasDatabase(c.env)) {
       const record = await createCommitment(
         c.env,
+        getRealityOwnerEmail(c),
         toCommitmentDbInput(payload),
       );
       return jsonOk(c, record, 201);
@@ -1899,7 +1918,10 @@ app.post("/v2/reality/commitments", async (c) => {
 app.get("/v2/reality/transitions", async (c) => {
   return withV2Guard(c, async () => {
     if (hasDatabase(c.env)) {
-      const transitions = await listTransitions(c.env);
+      const transitions = await listTransitions(
+        c.env,
+        getRealityOwnerEmail(c),
+      );
       return jsonOk(c, { transitions, total: transitions.length });
     }
 
@@ -2040,8 +2062,7 @@ app.post("/v2/reality/scenes/:id/run", async (c) => {
     const now = new Date().toISOString();
     const runId = `run_scene_${Date.now()}`;
     const proofId = `proof_${Date.now()}`;
-    const actorId =
-      c.req.header("x-user-id") ?? c.req.header("x-actor-id") ?? "scene_runner";
+    const actorId = getRealityOwnerEmail(c);
 
     const run = {
       run_id: runId,
@@ -2073,19 +2094,26 @@ app.post("/v2/reality/scenes/:id/run", async (c) => {
 
 app.get("/v2/reality/runs", async (c) => {
   return withV2Guard(c, async () => {
-    const page = Math.max(1, Number(c.req.query("page") ?? 1));
-    const limit = Math.max(
-      1,
-      Math.min(100, Number(c.req.query("limit") ?? 20)),
-    );
+    const { page, limit } = parsePaginationParams({
+      page: c.req.query("page"),
+      limit: c.req.query("limit"),
+    });
     const sorted = [...realitySeed.runs].sort((a, b) =>
       a.created_at < b.created_at ? 1 : -1,
     );
     const start = (page - 1) * limit;
     const paged = sorted.slice(start, start + limit);
+    const pagination = {
+      page,
+      limit,
+      total: sorted.length,
+      hasNextPage: start + limit < sorted.length,
+    };
     return jsonOk(c, {
+      contractVersion: API_CONTRACT_VERSION,
       runs: paged,
-      meta_pagination: { page, limit, total: sorted.length },
+      pagination,
+      meta_pagination: pagination,
     });
   });
 });

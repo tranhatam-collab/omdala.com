@@ -21,6 +21,14 @@ export class DbQueryError extends Error {
   }
 }
 
+/** A resource exists, but not in the authenticated tenant's scope. */
+export class ResourceAccessError extends Error {
+  constructor(message = "Resource not found in the current tenant scope") {
+    super(message);
+    this.name = "ResourceAccessError";
+  }
+}
+
 type PgLikeError = {
   code?: string;
   message?: string;

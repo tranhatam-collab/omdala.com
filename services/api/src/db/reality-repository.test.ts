@@ -11,8 +11,12 @@ import {
   getTrustByNodeId,
   listNodes,
   listProofs,
+  listStates,
+  listCommitments,
+  listTransitions,
   listTrust,
 } from "./reality-repository";
+import { ResourceAccessError } from "./errors";
 
 type MaybeJson = unknown;
 
@@ -119,5 +123,60 @@ describe("reality repository helpers", () => {
       expect.arrayContaining(["owner@omdala.com"]),
     );
     expect(queryRowsMock.mock.calls[0]?.[2]?.[1]).toBe("owner@omdala.com");
+  });
+
+  it("scopes states, commitments, and transitions to the authenticated owner", async () => {
+    const env = { ENVIRONMENT: "test", DATABASE_URL: "postgres://test" };
+    const ownerEmail = "owner@omdala.com";
+
+    await listStates(env, ownerEmail);
+    await listCommitments(env, ownerEmail);
+    await listTransitions(env, ownerEmail);
+
+    expect(queryRowsMock).toHaveBeenNthCalledWith(
+      1,
+      env,
+      expect.stringContaining("INNER JOIN omdala.nodes n"),
+      [ownerEmail],
+    );
+    expect(queryRowsMock).toHaveBeenNthCalledWith(
+      2,
+      env,
+      expect.stringContaining("from_node.owner_email = $1"),
+      [ownerEmail],
+    );
+    expect(queryRowsMock).toHaveBeenNthCalledWith(
+      3,
+      env,
+      expect.stringContaining("WHERE n.owner_email = $1"),
+      [ownerEmail],
+    );
+  });
+
+  it("rejects a commitment whose nodes are outside the authenticated owner scope", async () => {
+    const env = { ENVIRONMENT: "test", DATABASE_URL: "postgres://test" };
+
+    await expect(
+      import("./reality-repository").then(({ createCommitment }) =>
+        createCommitment(env, "owner@omdala.com", {
+          fromNodeId: "node_a",
+          toNodeId: "node_b",
+          title: "Scoped commitment",
+          summary: "Must not cross tenants",
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ResourceAccessError);
+  });
+
+  it("rejects a proof target outside the authenticated owner scope before insert", async () => {
+    const env = { ENVIRONMENT: "test", DATABASE_URL: "postgres://test" };
+
+    await expect(
+      createProof(env, "owner@omdala.com", {
+        commitmentId: "commitment_other_tenant",
+        type: "document",
+        summary: "Must not attach across tenants",
+      }),
+    ).rejects.toBeInstanceOf(ResourceAccessError);
   });
 });
