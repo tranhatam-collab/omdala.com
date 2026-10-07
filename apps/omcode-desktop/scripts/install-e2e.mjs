@@ -1,0 +1,207 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
+import { verifyCandidateBundle } from "./bundle-verifier.mjs";
+import { REQUIRED_RELEASE_STAGES } from "./release-receipt.mjs";
+
+const moduleRoot = path.resolve(import.meta.dirname, "..");
+const candidateApp = path.resolve(
+  process.env.OMCODE_E2E_APP || path.join(moduleRoot, "release/OMCODE.app"),
+);
+const candidate = await verifyCandidateBundle(candidateApp, moduleRoot);
+const scratch = await fs.realpath(
+  await fs.mkdtemp(path.join(os.tmpdir(), "omcode-install-e2e-")),
+);
+const home = path.join(scratch, "home");
+const releaseReceiptPath = path.join(scratch, "fixture-release-receipt.json");
+const fixtureHead = "a".repeat(40);
+const fixtureBranch = "fixture/install-e2e";
+await fs.mkdir(path.join(home, "Applications"), { recursive: true });
+await fs.writeFile(
+  path.join(home, ".zshrc"),
+  "export EDITOR=vim\nalias keep-me='printf keep'\n",
+);
+await fs.writeFile(
+  releaseReceiptPath,
+  JSON.stringify(
+    {
+      schemaVersion: 2,
+      sourceHead: fixtureHead,
+      sourceBranch: fixtureBranch,
+      sourceState: "VERIFIED_WORKTREE_ONLY",
+      sourceChanges: ["?? fixture-source"],
+      runId: "fixture-release",
+      status: "PASS",
+      exitCode: 0,
+      startedAt: new Date().toISOString(),
+      finishedAt: new Date().toISOString(),
+      time: new Date().toISOString(),
+      ok: true,
+      version: candidate.version,
+      sourceDigest: candidate.sourceDigest,
+      bundleManifestDigest: candidate.bundleManifestDigest,
+      stages: Object.fromEntries(
+        REQUIRED_RELEASE_STAGES.map((name) => [
+          name,
+          { ok: true, runId: "fixture-release", exitCode: 0 },
+        ]),
+      ),
+      fixtureOnly: true,
+    },
+    null,
+    2,
+  ),
+);
+
+const env = {
+  ...process.env,
+  HOME: home,
+  OMCODE_RELEASE_APP: candidateApp,
+  OMCODE_RELEASE_RECEIPT: releaseReceiptPath,
+  OMCODE_SOURCE_BRANCH: "stale-environment-branch-must-not-win",
+  OMCODE_SOURCE_HEAD: "b".repeat(40),
+};
+run(process.execPath, ["scripts/install-local.mjs"], env);
+
+const app = path.join(home, "Applications/OMCODE.app");
+const source = path.join(home, "Developer/OMCODE/source/apps/omcode-desktop");
+const data = path.join(home, "Library/Application Support/OMCODE");
+const first = await verifyCandidateBundle(app, source);
+assert.equal(first.bundleManifestDigest, candidate.bundleManifestDigest);
+const sentinel = path.join(data, "user-data-sentinel.txt");
+await fs.writeFile(sentinel, "preserve-user-data\n");
+const database = path.join(data, "omcode.sqlite");
+const databaseDigest = sha256(await fs.readFile(database));
+const installationPath = path.join(
+  home,
+  "Developer/OMCODE/installation-receipt.json",
+);
+const freshInstallation = JSON.parse(
+  await fs.readFile(installationPath, "utf8"),
+);
+assert.equal(freshInstallation.schemaVersion, 3);
+assert.equal(freshInstallation.sourceHead, fixtureHead);
+assert.equal(freshInstallation.sourceBranch, fixtureBranch);
+assert.equal(freshInstallation.sourceState, "VERIFIED_WORKTREE_ONLY");
+assert.deepEqual(freshInstallation.sourceChanges, ["?? fixture-source"]);
+assert.equal(freshInstallation.source, freshInstallation.target);
+assert.equal(freshInstallation.history.previousInstallation, null);
+const legacyBytes = Buffer.from(
+  JSON.stringify({
+    ...freshInstallation,
+    schemaVersion: 2,
+    upstreamBase: "c".repeat(40),
+    branch: "legacy/recovery",
+    sourceHead: "d".repeat(40),
+    sourceBranch: "legacy/recovery",
+  }),
+);
+await fs.writeFile(installationPath, legacyBytes);
+
+run(process.execPath, ["scripts/update-local.mjs"], env);
+
+const second = await verifyCandidateBundle(app, source);
+assert.equal(second.bundleManifestDigest, candidate.bundleManifestDigest);
+assert.equal(await fs.readFile(sentinel, "utf8"), "preserve-user-data\n");
+assert.equal(sha256(await fs.readFile(database)), databaseDigest);
+const shell = await fs.readFile(path.join(home, ".zshrc"), "utf8");
+assert.equal((shell.match(/# OMCODE local launcher/g) || []).length, 1);
+assert.match(shell, /alias keep-me=/);
+const installation = JSON.parse(
+  await fs.readFile(
+    path.join(home, "Developer/OMCODE/installation-receipt.json"),
+    "utf8",
+  ),
+);
+assert.equal(installation.dataPreserved, true);
+assert.equal(installation.schemaVersion, 3);
+assert.equal(installation.sourceHead, fixtureHead);
+assert.equal(installation.sourceBranch, fixtureBranch);
+assert.equal(installation.sourceState, "VERIFIED_WORKTREE_ONLY");
+assert.equal(installation.source, installation.target);
+assert.equal(Object.hasOwn(installation, "upstreamBase"), false);
+assert.equal(Object.hasOwn(installation, "branch"), false);
+const historical = installation.history.previousInstallation;
+assert.equal(historical.recordedProvenance.upstreamBase, "c".repeat(40));
+assert.equal(historical.recordedProvenance.branch, "legacy/recovery");
+assert.equal(historical.recordedProvenance.sourceHead, "d".repeat(40));
+assert.equal(historical.sha256, sha256(legacyBytes));
+assert.deepEqual(await fs.readFile(historical.receipt), legacyBytes);
+await fs.access(path.join(installation.updateBackup, "source-module-before"));
+await fs.access(
+  path.join(
+    installation.updateBackup,
+    `OMCODE-before-${candidate.version}.app`,
+  ),
+);
+
+// A developer's modified checkout must survive the next update untouched.
+const modifiedSource = path.join(source, "README.md");
+await fs.appendFile(modifiedSource, "\nUSER_SOURCE_SENTINEL\n");
+run(process.execPath, ["scripts/update-local.mjs"], env);
+const changedInstall = JSON.parse(
+  await fs.readFile(
+    path.join(home, "Developer/OMCODE/installation-receipt.json"),
+    "utf8",
+  ),
+);
+assert.notEqual(changedInstall.target, source);
+assert.equal(changedInstall.source, changedInstall.target);
+assert.equal(changedInstall.sourceHead, fixtureHead);
+assert.equal(changedInstall.sourceBranch, fixtureBranch);
+assert.match(await fs.readFile(modifiedSource, "utf8"), /USER_SOURCE_SENTINEL/);
+assert.equal(changedInstall.preservedChangedSource.path, source);
+await verifyCandidateBundle(app, changedInstall.target);
+assert.equal(sha256(await fs.readFile(database)), databaseDigest);
+const preservation = JSON.parse(
+  await fs.readFile(changedInstall.dataPreservationReceipt, "utf8"),
+);
+assert.equal(preservation.preserved, true);
+assert.ok(preservation.checkedFiles >= 2);
+
+const receipt = {
+  time: new Date().toISOString(),
+  ok: true,
+  version: candidate.version,
+  sourceDigest: candidate.sourceDigest,
+  bundleManifestDigest: candidate.bundleManifestDigest,
+  checks: [
+    "fresh-install-in-isolated-home",
+    "candidate-sidecar-verification",
+    "idempotent-update",
+    "database-byte-identical",
+    "modified-source-preserved-in-place",
+    "measured-data-preservation-manifest",
+    "user-data-sentinel-preserved",
+    "shell-update-idempotent",
+    "dated-app-and-source-backups",
+    "current-release-provenance-not-environment-or-previous-install",
+    "legacy-provenance-preserved-in-hashed-history-only",
+  ],
+  scratch,
+};
+await fs.writeFile(
+  path.join(moduleRoot, "evidence/install-e2e.json"),
+  JSON.stringify(receipt, null, 2) + "\n",
+);
+console.log(JSON.stringify(receipt, null, 2));
+
+function run(command, args, childEnv) {
+  const result = spawnSync(command, args, {
+    cwd: moduleRoot,
+    env: childEnv,
+    encoding: "utf8",
+  });
+  if (result.status !== 0)
+    throw new Error(
+      `${[command, ...args].join(" ")} failed (${result.status ?? result.signal}):\n${result.stdout}\n${result.stderr}`,
+    );
+}
+
+function sha256(bytes) {
+  return createHash("sha256").update(bytes).digest("hex");
+}
