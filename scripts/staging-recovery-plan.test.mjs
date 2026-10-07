@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import {
   chmodSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -220,6 +221,10 @@ fi
           cwd: directory,
           env: {
             ...process.env,
+            PATH: (process.env.PATH ?? "")
+              .split(":")
+              .filter((entry) => entry !== "/sbin" && entry !== "/usr/sbin")
+              .join(":"),
             WRANGLER_BIN: mock,
             STAGING_RECOVERY_POLL_SECONDS: "0",
           },
@@ -230,10 +235,23 @@ fi
       const commands = readFileSync(join(directory, "commands.log"), "utf8");
       assert.match(commands, new RegExp(`rollback ${surfaceBaseline}`));
       assert.match(commands, new RegExp(`rollback ${baselineApi}`));
+      const receiptPath = join(
+        directory,
+        "evidence/staging-recovery-receipt.json",
+      );
+      assert.equal(
+        existsSync(receiptPath),
+        true,
+        `recovery receipt was not written (status=${execution.status}, signal=${execution.signal}, error=${execution.error?.message ?? "none"})\nstdout:\n${execution.stdout}\nstderr:\n${execution.stderr}`,
+      );
       const receipt = JSON.parse(
-        readFileSync(join(directory, "evidence/staging-recovery-receipt.json"), "utf8"),
+        readFileSync(receiptPath, "utf8"),
       );
       assert.equal(receipt.verdict, "STAGING_COMPENSATING_RECOVERY_FAILED");
+      assert.equal(
+        receipt.recovery_plan_sha256,
+        digest(readFileSync(join(directory, "plan.json"))),
+      );
       assert.equal(receipt.targets.length, 2);
       assert.equal(receipt.targets[0].provider_readback_verified, false);
       assert.equal(receipt.targets[1].provider_readback_verified, true);

@@ -47,6 +47,14 @@ current_version() {
   jq -r 'if length == 0 then "" else (sort_by(.created_on) | last | .versions[0].version_id) end' "$1"
 }
 
+digest_file() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | awk '{print $1}'
+  else
+    shasum -a 256 "$1" | awk '{print $1}'
+  fi
+}
+
 recovery_failed=0
 while IFS= read -r target; do
   name="$(jq -er '.name' <<<"$target")"
@@ -154,7 +162,7 @@ while IFS= read -r target; do
   fi
 done < <(jq -c '.targets[]' "$plan_path")
 
-plan_sha256="$(sha256sum "$plan_path" | awk '{print $1}')"
+plan_sha256="$(digest_file "$plan_path")"
 if [[ "$recovery_failed" == "0" ]]; then
   recovery_verified=true
 else
