@@ -17,13 +17,13 @@ Environment variables:
 ## Structure
 
 - `src/api` – REST clients wrapping shared contracts.
-- `src/hooks` – React hooks for magic link, timeline, scenes.
+- `src/hooks` – React hooks for timeline and scenes.
 - `src/screens` – Sign in, timeline, scenes, settings screens.
 - `src/navigation` – React Navigation stack.
-- `src/session` – basic session provider (to evolve with policies).
+- `src/session` – fail-closed native session boundary.
 
 ## Next steps
 
-- Integrate real session tokens and secure storage.
+- Integrate a platform-owned OMDALA native session bridge before enabling protected API calls.
 - Add E2E smoke tests (login → timeline → scene run).
 - Wire app release CI similar to web deploy.

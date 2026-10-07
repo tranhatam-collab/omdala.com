@@ -12,9 +12,8 @@ export function SettingsScreen() {
     <View style={styles.container}>
       <NavMenu />
       <Card title="Session / Phien dang nhap">
-        <Text style={styles.meta}>Token / Ma phien: {session.token ?? 'none / khong co'}</Text>
-        <Text style={styles.meta}>Refresh token / Ma lam moi: {session.refreshToken ? 'available / san sang' : 'none / khong co'}</Text>
-        <Text style={styles.meta}>Expires at / Het han luc: {session.expiresAt ?? 'unknown / chua ro'}</Text>
+        <Text style={styles.meta}>Status / Trang thai: {session.status}</Text>
+        <Text style={styles.meta}>{session.reason}</Text>
         <AppButton title="Logout / Dang xuat" onPress={() => void logout()} />
       </Card>
     </View>

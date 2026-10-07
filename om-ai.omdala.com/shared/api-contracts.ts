@@ -61,9 +61,3 @@ export type ProofRecord = {
   confidenceScore: number;
   verifiedAt: string;
 };
-
-export type SessionTokenPayload = {
-  access_token: string;
-  refresh_token?: string;
-  expires_at?: string;
-};

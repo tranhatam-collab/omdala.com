@@ -1,6 +1,6 @@
 'use client'
 
-import { pickLanguageValue, resolveLanguage, type OmdalaLanguage } from '@omdala/core'
+import { pickLanguageValue, resolveLanguage, resolvePublicOrigin, type OmdalaLanguage } from '@omdala/core'
 import { useLocationSearchParam } from '@omdala/ui'
 import { LocaleLink } from './components/LocaleLink'
 
@@ -275,6 +275,11 @@ const USE_CASES = [
 
 export default function OmcodeLandingPage() {
   const language = resolveLanguage(useLocationSearchParam('lang'))
+  const webOrigin = resolvePublicOrigin(
+    'web',
+    process.env.NEXT_PUBLIC_WEB_ORIGIN,
+    process.env.NEXT_PUBLIC_RELEASE_ENVIRONMENT,
+  )
 
   const t = (copy: Record<OmdalaLanguage, string>) => pickLanguageValue(language, copy)
 
@@ -454,7 +459,7 @@ export default function OmcodeLandingPage() {
         <div style={{ marginBottom: '0.6rem', fontWeight: 600, color: 'var(--text)' }}>OMCode by OMDALA</div>
         <div>{t(COPY.footerCopy)}</div>
         <div style={{ marginTop: '0.8rem', display: 'flex', gap: '1.2rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a href="https://omdala.com" style={{ color: 'var(--muted)' }}>omdala.com</a>
+          <a href={webOrigin} style={{ color: 'var(--muted)' }}>{new URL(webOrigin).hostname}</a>
           <a href="https://iai.one" style={{ color: 'var(--muted)' }}>iai.one</a>
           <LocaleLink href="/workspace" style={{ color: 'var(--muted)' }}>Workspace</LocaleLink>
         </div>

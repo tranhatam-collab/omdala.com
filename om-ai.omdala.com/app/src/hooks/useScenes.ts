@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { listScenes, runScene, type SceneRunRecord } from '../api/reality';
-import type { SceneRecord } from '../../../shared/api-contracts';
+import { listScenes, runScene } from '../api/reality';
+import type { SceneRecord, SceneRunRecord } from '../../../shared/api-contracts';
 
 export function useScenes() {
   const [scenes, setScenes] = useState<SceneRecord[]>([]);

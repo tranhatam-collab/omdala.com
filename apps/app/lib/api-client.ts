@@ -1,9 +1,10 @@
-import { OMDALA_API_ORIGIN } from "@omdala/core";
+import { resolvePublicOrigin } from "@omdala/core";
 
 declare const process:
   | {
       env?: {
         NEXT_PUBLIC_API_URL?: string;
+        NEXT_PUBLIC_RELEASE_ENVIRONMENT?: string;
       };
     }
   | undefined;
@@ -31,7 +32,11 @@ type ApiEnvelope = {
 
 export function getApiBaseUrl() {
   const runtimeApiUrl = process?.env?.NEXT_PUBLIC_API_URL;
-  return (runtimeApiUrl ?? OMDALA_API_ORIGIN).replace(/\/+$/g, "");
+  return resolvePublicOrigin(
+    "api",
+    runtimeApiUrl,
+    process?.env?.NEXT_PUBLIC_RELEASE_ENVIRONMENT,
+  );
 }
 
 function toApiError(
@@ -70,4 +75,20 @@ export async function apiJsonRequest<T>(
   }
 
   return payload.data as T;
+}
+
+export async function hasValidServerSession() {
+  if (typeof window === "undefined") return false;
+
+  try {
+    const session = await apiJsonRequest<{ expiresAt?: string }>(
+      "/v1/auth/session",
+      { method: "GET", cache: "no-store" },
+      "Unable to verify the authenticated session.",
+    );
+    if (!session.expiresAt) return false;
+    return new Date(session.expiresAt).getTime() > Date.now();
+  } catch {
+    return false;
+  }
 }

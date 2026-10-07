@@ -2,10 +2,17 @@ export interface HyperdriveBinding {
   connectionString?: string;
 }
 
+export interface WorkerVersionMetadata {
+  id?: string;
+  tag?: string;
+  timestamp?: string;
+}
+
 export interface ApiBindings {
   ENVIRONMENT: string;
   RELEASE_SHA?: string;
   DEPLOYMENT_ID?: string;
+  VERSION_METADATA?: WorkerVersionMetadata;
   DATABASE_URL?: string;
   HYPERDRIVE?: HyperdriveBinding;
   APP_BASE_URL?: string;
@@ -14,6 +21,8 @@ export interface ApiBindings {
   MAIL_API_URL?: string;
   MAIL_API_KEY?: string;
   MAIL_API_WORKSPACE_ID?: string;
+  MAIL_DELIVERY_MODE?: string;
+  MAIL_STAGING_SINK_ADDRESS?: string;
   MAGIC_LINK_SECRET?: string;
   E2E_TEST_SECRET?: string;
   // Google OAuth
@@ -26,17 +35,10 @@ export interface ApiBindings {
   WEBHOOK_SECRET?: string;
   SERVICE_TOKEN_SECRET?: string;
   CSRF_SECRET?: string;
-  // AI Provider Keys (auto-connect)
-  OPENAI_API_KEY?: string;
-  ANTHROPIC_API_KEY?: string;
-  GEMINI_API_KEY?: string;
-  AZURE_OPENAI_KEY?: string;
-  AZURE_OPENAI_ENDPOINT?: string;
-  MISTRAL_API_KEY?: string;
-  GROQ_API_KEY?: string;
-  COHERE_API_KEY?: string;
-  CUSTOM_AI_ENDPOINT?: string;
-  CUSTOM_AI_KEY?: string;
+  // OMDALA delegates all model execution to the scoped AIAGENT contract.
+  AIAGENT_API_URL?: string;
+  AIAGENT_API_KEY?: string;
+  AIAGENT_WORKSPACE_ID?: string;
 }
 
 export interface ContactRequest {
@@ -77,6 +79,7 @@ export interface MagicLinkRequest {
 }
 
 export type MagicLinkPayload = {
+  jti: string;
   email: string;
   redirectTo: string;
   exp: number;
@@ -98,6 +101,12 @@ export type MailDeliveryReceipt = {
   providerMessageId: string;
   providerStatus: string;
   acceptedAt: string;
+  deliveryMode: "direct" | "sink";
+  sinkEnforced: boolean;
+  workspaceId: string;
+  originalRecipientCount: number;
+  deliveredRecipientCount: number;
+  recipientSetSha256: string;
 };
 
 export interface RealityCommitmentRequest {

@@ -22,8 +22,8 @@ export interface TaskClassification {
   requiresVision: boolean;
   requiresTools: boolean;
   estimatedTokens: number;
-  recommendedModel: string;
-  fallbackModels: string[];
+  capabilities: Array<"chat" | "code" | "reasoning" | "vision" | "tools">;
+  risk: "standard" | "sensitive" | "deployment";
 }
 
 export interface TaskContext {
@@ -127,9 +127,16 @@ export function classifyTask(
     estimatedTokens = 2000 + context.filesInvolved.length * 300;
   }
 
-  // Recommend model based on task
-  const recommendedModel = getRecommendedModel(type, complexity, context);
-  const fallbackModels = getFallbackModels(recommendedModel, type);
+  const capabilities: TaskClassification["capabilities"] = ["chat"];
+  if (requiresCode) capabilities.push("code");
+  if (requiresReasoning) capabilities.push("reasoning");
+  if (requiresVision) capabilities.push("vision");
+  if (requiresTools) capabilities.push("tools");
+  const risk: TaskClassification["risk"] = context.isSecuritySensitive
+    ? "sensitive"
+    : context.isDeployment
+      ? "deployment"
+      : "standard";
 
   return {
     type,
@@ -140,85 +147,9 @@ export function classifyTask(
     requiresVision,
     requiresTools,
     estimatedTokens,
-    recommendedModel,
-    fallbackModels,
+    capabilities,
+    risk,
   };
-}
-
-function getRecommendedModel(
-  type: TaskType,
-  complexity: TaskClassification["complexity"],
-  context: TaskContext,
-): string {
-  // For security-sensitive tasks, prefer local or private models
-  if (context.isSecuritySensitive) {
-    return "llama3.2"; // Local model
-  }
-
-  // For quick questions, use cheapest fast model
-  if (type === "quick_question") {
-    return "gpt-4o-mini";
-  }
-
-  // For code tasks, prefer code-optimized models
-  if (type === "code_fix" || type === "code_generation" || type === "test_generation") {
-    if (complexity === "simple") {
-      return "gpt-4o-mini";
-    } else if (complexity === "moderate") {
-      return "claude-3-5-sonnet-20241022";
-    } else {
-      return "gpt-4o";
-    }
-  }
-
-  // For architecture and reasoning-heavy tasks
-  if (type === "architecture_design" || type === "debug" || type === "audit") {
-    if (complexity === "complex") {
-      return "o1-preview";
-    }
-    return "claude-3-opus-20240229";
-  }
-
-  // For UI/UX creative tasks
-  if (type === "ui_ux_design") {
-    return "gemini-2.0-flash-exp";
-  }
-
-  // For deployment (needs careful reasoning)
-  if (type === "deploy") {
-    return "claude-3-5-sonnet-20241022";
-  }
-
-  // Default
-  return "gpt-4o-mini";
-}
-
-function getFallbackModels(recommendedModel: string, type: TaskType): string[] {
-  const fallbacks: string[] = [];
-
-  // If recommended is OpenAI, add Anthropic and Google as fallbacks
-  if (recommendedModel.startsWith("gpt-")) {
-    fallbacks.push("claude-3-5-sonnet-20241022", "gemini-2.0-flash-exp");
-  }
-  // If recommended is Anthropic, add OpenAI and Groq
-  else if (recommendedModel.startsWith("claude-")) {
-    fallbacks.push("gpt-4o", "llama-3.3-70b-versatile");
-  }
-  // If recommended is Google, add OpenAI
-  else if (recommendedModel.startsWith("gemini-")) {
-    fallbacks.push("gpt-4o", "claude-3-5-sonnet-20241022");
-  }
-  // If recommended is Groq/DeepSeek/Cloudflare, add OpenAI as fallback
-  else {
-    fallbacks.push("gpt-4o-mini", "claude-3-5-haiku-20241022");
-  }
-
-  // For code tasks, add code-specific fallbacks
-  if (type === "code_fix" || type === "code_generation") {
-    fallbacks.push("deepseek-coder", "codellama");
-  }
-
-  return fallbacks.slice(0, 3);
 }
 
 export function getTaskTypeLabel(type: TaskType): string {

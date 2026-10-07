@@ -15,7 +15,6 @@ export function registerApprovalsRoutes(app: FastifyInstance) {
           type: 'object',
           properties: {
             run_id: { type: 'string' },
-            requested_by: { type: 'string' },
             reason: { type: 'string' },
           },
           required: ['run_id'],
@@ -49,12 +48,15 @@ export function registerApprovalsRoutes(app: FastifyInstance) {
         },
       },
     },
-    async (request) => {
-      const body = request.body as { run_id: string; requested_by?: string; reason?: string };
+    async (request, reply) => {
+      const auth = requireSensitiveAuth(request, reply);
+      if (!auth) return;
+
+      const body = request.body as { run_id: string; reason?: string };
       const approval: ApprovalRecord = {
         approval_id: randomId('approval'),
         run_id: body.run_id,
-        requested_by: body.requested_by ?? 'user_demo_01',
+        requested_by: auth.userId,
         status: 'pending',
         reason: body.reason,
         updated_at: nowIso(),
@@ -101,8 +103,8 @@ export function registerApprovalsRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      requireSensitiveAuth(request, reply);
-      if (reply.sent) return;
+      const auth = requireSensitiveAuth(request, reply);
+      if (!auth) return;
 
       const params = request.params as { id: string };
       const approval = await persistence.getApproval(params.id);
@@ -131,8 +133,8 @@ export function registerApprovalsRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      requireSensitiveAuth(request, reply);
-      if (reply.sent) return;
+      const auth = requireSensitiveAuth(request, reply);
+      if (!auth) return;
 
       const params = request.params as { id: string };
       const approval = await persistence.getApproval(params.id);

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { unlinkSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -34,6 +34,17 @@ const steps = [
     args: ["scripts/infra-readonly-probe.mjs"],
   },
   {
+    id: "RELEASE_GOVERNANCE",
+    command: "npm",
+    args: ["run", "test:release-governance"],
+  },
+  {
+    id: "OM_AI_ROOT_DEPENDENCIES",
+    command: "npm",
+    args: ["ci", "--ignore-scripts", "--audit=false"],
+    cwd: "om-ai.omdala.com",
+  },
+  {
     id: "OM_AI_BACKEND_DEPENDENCIES",
     command: "npm",
     args: ["ci", "--ignore-scripts", "--audit=false"],
@@ -44,6 +55,12 @@ const steps = [
     command: "npm",
     args: ["ci", "--ignore-scripts", "--audit=false"],
     cwd: "om-ai.omdala.com/gateway",
+  },
+  {
+    id: "OM_AI_WEB_DEPENDENCIES",
+    command: "npm",
+    args: ["ci", "--ignore-scripts", "--audit=false"],
+    cwd: "om-ai.omdala.com/web",
   },
   {
     id: "OM_AI_MOBILE_DEPENDENCIES",
@@ -70,6 +87,14 @@ const steps = [
     requiresExternalAuditAuthorization: true,
   },
   {
+    id: "OM_AI_ROOT_SECURITY",
+    command: "npm",
+    args: ["audit", "--audit-level=high", "--json"],
+    cwd: "om-ai.omdala.com",
+    captureJson: true,
+    requiresExternalAuditAuthorization: true,
+  },
+  {
     id: "OM_AI_BACKEND_SECURITY",
     command: "npm",
     args: ["audit", "--audit-level=high", "--json"],
@@ -82,6 +107,22 @@ const steps = [
     command: "npm",
     args: ["audit", "--audit-level=high", "--json"],
     cwd: "om-ai.omdala.com/gateway",
+    captureJson: true,
+    requiresExternalAuditAuthorization: true,
+  },
+  {
+    id: "OM_AI_WEB_SECURITY",
+    command: "npm",
+    args: ["audit", "--audit-level=high", "--json"],
+    cwd: "om-ai.omdala.com/web",
+    captureJson: true,
+    requiresExternalAuditAuthorization: true,
+  },
+  {
+    id: "OM_AI_MOBILE_SECURITY",
+    command: "npm",
+    args: ["audit", "--audit-level=high", "--json"],
+    cwd: "om-ai.omdala.com/app",
     captureJson: true,
     requiresExternalAuditAuthorization: true,
   },
@@ -159,6 +200,12 @@ const steps = [
     cwd: "om-ai.omdala.com/gateway",
   },
   {
+    id: "OM_AI_WEB_TYPECHECK",
+    command: "npm",
+    args: ["run", "typecheck"],
+    cwd: "om-ai.omdala.com/web",
+  },
+  {
     id: "OM_AI_MOBILE_CONTRACT_TESTS",
     command: "npm",
     args: ["test"],
@@ -216,46 +263,72 @@ const steps = [
     cwd: "om-ai.omdala.com/gateway",
   },
   {
-    id: "API_WRANGLER_PRODUCTION_DRY_RUN",
-    command: "pnpm",
+    id: "OM_AI_WEB_BUILD",
+    command: "npm",
+    args: ["run", "build"],
+    cwd: "om-ai.omdala.com/web",
+  },
+  {
+    id: "API_WRANGLER_PRODUCTION_RENDER",
+    command: "node",
     args: [
-      "--filter",
-      "@omdala/api",
-      "exec",
-      "wrangler",
+      "scripts/render-api-wrangler-config.mjs",
+      "--environment",
+      "production",
+      "--input",
+      "services/api/wrangler.toml",
+      "--output",
+      "services/api/wrangler.release.toml",
+    ],
+    env: {
+      OMDALA_HYPERDRIVE_ID: "11111111111111111111111111111111",
+      OMDALA_GOOGLE_CLIENT_ID:
+        "123-release-verify.apps.googleusercontent.com",
+      RELEASE_SHA: releaseSha,
+    },
+  },
+  {
+    id: "API_WRANGLER_PRODUCTION_DRY_RUN",
+    command: "services/api/node_modules/.bin/wrangler",
+    args: [
       "deploy",
+      "--config",
+      "services/api/wrangler.release.toml",
       "--dry-run",
       "--strict",
-      "--keep-vars",
-      "--var",
-      "ENVIRONMENT:production",
-      "--var",
-      `RELEASE_SHA:${releaseSha}`,
-      "--var",
-      `DEPLOYMENT_ID:${deploymentId}-production`,
     ],
     env: { WRANGLER_LOG_PATH: "/tmp/omdala-release-verify-wrangler.log" },
   },
   {
-    id: "API_WRANGLER_STAGING_DRY_RUN",
-    command: "pnpm",
+    id: "API_WRANGLER_STAGING_RENDER",
+    command: "node",
     args: [
-      "--filter",
-      "@omdala/api",
-      "exec",
-      "wrangler",
+      "scripts/render-api-wrangler-config.mjs",
+      "--environment",
+      "staging",
+      "--input",
+      "services/api/wrangler.toml",
+      "--output",
+      "services/api/wrangler.release.toml",
+    ],
+    env: {
+      OMDALA_HYPERDRIVE_ID: "22222222222222222222222222222222",
+      OMDALA_GOOGLE_CLIENT_ID:
+        "123-release-verify.apps.googleusercontent.com",
+      RELEASE_SHA: releaseSha,
+    },
+  },
+  {
+    id: "API_WRANGLER_STAGING_DRY_RUN",
+    command: "services/api/node_modules/.bin/wrangler",
+    args: [
       "deploy",
+      "--config",
+      "services/api/wrangler.release.toml",
       "--dry-run",
       "--strict",
-      "--keep-vars",
       "--env",
       "staging",
-      "--var",
-      "ENVIRONMENT:staging",
-      "--var",
-      `RELEASE_SHA:${releaseSha}`,
-      "--var",
-      `DEPLOYMENT_ID:${deploymentId}-staging`,
     ],
     env: { WRANGLER_LOG_PATH: "/tmp/omdala-release-verify-wrangler.log" },
   },
@@ -292,10 +365,12 @@ const steps = [
     ],
     cwd: "apps/app",
     env: {
-      E2E_STAGING_APP_URL: "https://app-staging.invalid",
-      E2E_STAGING_API_URL: "https://api-staging.invalid",
-      E2E_STAGING_BRAND_URL: "https://brand-staging.invalid",
-      E2E_STAGING_WEB_URL: "https://web-staging.invalid",
+      E2E_STAGING_APP_URL: "https://app-staging.omdala.com",
+      E2E_STAGING_API_URL: "https://api-staging.omdala.com",
+      E2E_STAGING_AUTH_URL: "https://auth-staging.omdala.com",
+      E2E_STAGING_BRAND_URL: "https://brand-staging.omdala.com",
+      E2E_STAGING_WEB_URL: "https://staging.omdala.com",
+      E2E_STAGING_MAIL_SINK_ADDRESS: "release-verify-sink@example.invalid",
       E2E_TEST_SECRET: "discovery-only-secret-not-used-0000",
       E2E_RELEASE_SHA: releaseSha,
       E2E_API_DEPLOYMENT_ID: `${deploymentId}-staging`,
@@ -319,6 +394,8 @@ if (process.env.RELEASE_VERIFY_REMOTE === "true") {
 const results = [];
 const pnpmVersion = runText("pnpm", ["--version"]);
 const npmVersion = runText("npm", ["--version"]);
+const worktreeStatus = runText("git", ["status", "--porcelain"]);
+const worktreeClean = worktreeStatus === "";
 results.push({
   id: "TOOLCHAIN",
   state:
@@ -331,8 +408,17 @@ results.push({
   pnpm: pnpmVersion,
   npm: npmVersion,
 });
+results.push({
+  id: "SOURCE_IDENTITY",
+  state:
+    worktreeClean && /^[0-9a-f]{40}$/.test(releaseSha) ? "PASS" : "FAIL",
+  release_sha: releaseSha,
+  worktree_clean: worktreeClean,
+});
 
-for (const step of results[0].state === "PASS" ? steps : []) {
+for (
+  const step of results.every((result) => result.state === "PASS") ? steps : []
+) {
   if (
     step.requiresExternalAuditAuthorization &&
     process.env.RELEASE_VERIFY_ALLOW_NETWORK_AUDIT !== "true"
@@ -387,6 +473,12 @@ for (const step of results[0].state === "PASS" ? steps : []) {
   });
 }
 
+try {
+  unlinkSync(resolve(repoRoot, "services/api/wrangler.release.toml"));
+} catch (error) {
+  if (error?.code !== "ENOENT") throw error;
+}
+
 const failed = results.filter((result) => result.state !== "PASS");
 const receipt = {
   schema_version: 1,
@@ -397,7 +489,7 @@ const receipt = {
     remote: runText("git", ["remote", "get-url", "origin"]),
     branch: runText("git", ["branch", "--show-current"]),
     release_sha: releaseSha,
-    worktree_clean: runText("git", ["status", "--porcelain"]) === "",
+    worktree_clean: worktreeClean,
   },
   verdict: failed.length === 0 ? "PASS" : "NO_GO",
   passed: results.length - failed.length,

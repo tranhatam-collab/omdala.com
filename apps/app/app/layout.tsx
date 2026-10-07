@@ -21,7 +21,8 @@ export const metadata: Metadata = {
     title: 'OMCode — AI Coding Workspace',
     description: 'Không gian lập trình AI đầu tiên cho Việt Nam.',
   },
-  robots: { index: true, follow: true },
+  // The operator workspace is authenticated product UI, not a public search surface.
+  robots: { index: false, follow: false },
   alternates: {
     canonical: 'https://code.omdala.com',
   },

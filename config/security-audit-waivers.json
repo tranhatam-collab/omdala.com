@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "waivers": [
+    {
+      "githubAdvisoryId": "GHSA-vfj7-8cjw-p6xm",
+      "registryId": 1240992,
+      "cves": [
+        "CVE-2026-93687"
+      ],
+      "module": "braces",
+      "severity": "high",
+      "scope": "dev-only",
+      "installedVersions": [
+        "3.0.3"
+      ],
+      "vulnerableVersions": "<=3.0.3",
+      "patchedVersions": "<0.0.0",
+      "recommendation": "None",
+      "dependencyPaths": [
+        ". > eslint-config-next@16.3.8 > @next/eslint-plugin-next@16.3.8 > fast-glob@3.3.1 > micromatch@4.0.8 > braces@3.0.3"
+      ],
+      "directDevDependency": "eslint-config-next",
+      "owner": "Team 1 Release Engineering",
+      "reason": "The only affected path is the eslint-config-next lint toolchain, the production audit is clean, and the advisory registry reports no patched braces release. Remove this waiver as soon as the lint chain resolves to a patched version.",
+      "createdOn": "2026-10-08",
+      "expiresOn": "2026-10-22"
+    }
+  ]
+}

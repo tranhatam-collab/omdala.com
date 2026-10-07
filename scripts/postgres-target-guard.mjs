@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 function normalizeDatabasePath(pathname) {
@@ -22,6 +22,7 @@ export function describePostgresTarget(rawUrl) {
   if (!parsed.hostname) throw new Error("PostgreSQL URL requires a hostname");
 
   return {
+    user: decodeURIComponent(parsed.username),
     host: parsed.hostname.toLowerCase(),
     port: parsed.port || "5432",
     database: normalizeDatabasePath(parsed.pathname),
@@ -34,11 +35,95 @@ export function evaluatePostgresTargets({
   restoreUrl,
   expectedSourceHost,
   expectedSourceDatabase,
+  environment,
+  productionAuthority,
 }) {
   const source = describePostgresTarget(sourceUrl);
   const restore = describePostgresTarget(restoreUrl);
   const expectedHost = String(expectedSourceHost ?? "").trim().toLowerCase();
   const expectedDatabase = String(expectedSourceDatabase ?? "").trim();
+  const releaseEnvironment = String(environment ?? "").trim();
+  if (releaseEnvironment !== "staging" && releaseEnvironment !== "production") {
+    return {
+      accepted: false,
+      reason: "INVALID_RELEASE_ENVIRONMENT",
+      source,
+      restore,
+      environment: releaseEnvironment,
+    };
+  }
+
+  const normalizePolicy = (value) => ({
+    user: String(value?.postgres_user ?? "").trim(),
+    host: String(value?.postgres_host ?? "").trim().toLowerCase(),
+    port: String(value?.postgres_port ?? ""),
+    database: String(value?.postgres_database ?? "").trim(),
+  });
+  const production = normalizePolicy(productionAuthority?.environments?.production);
+  const environmentPolicy = normalizePolicy(
+    productionAuthority?.environments?.[releaseEnvironment],
+  );
+  if (
+    productionAuthority?.schema_version !== 1 ||
+    !/^[a-f0-9]{32}$/.test(productionAuthority?.cloudflare_account_id ?? "") ||
+    !production.user ||
+    !production.host ||
+    !/^\d+$/.test(production.port) ||
+    !production.database ||
+    !environmentPolicy.user ||
+    !environmentPolicy.host ||
+    !/^\d+$/.test(environmentPolicy.port) ||
+    !environmentPolicy.database
+  ) {
+    return {
+      accepted: false,
+      reason: "INVALID_PRODUCTION_AUTHORITY",
+      source,
+      restore,
+      environment: releaseEnvironment,
+    };
+  }
+  const sourceIsProduction =
+    source.user === production.user &&
+    source.host === production.host &&
+    source.port === production.port &&
+    source.database === production.database;
+  if (releaseEnvironment === "staging" && sourceIsProduction) {
+    return {
+      accepted: false,
+      reason: "STAGING_SOURCE_EQUALS_PRODUCTION",
+      source,
+      restore,
+      environment: releaseEnvironment,
+      production,
+    };
+  }
+  if (releaseEnvironment === "production" && !sourceIsProduction) {
+    return {
+      accepted: false,
+      reason: "PRODUCTION_SOURCE_AUTHORITY_MISMATCH",
+      source,
+      restore,
+      environment: releaseEnvironment,
+      production,
+    };
+  }
+  const sourceMatchesEnvironmentPolicy =
+    source.user === environmentPolicy.user &&
+    source.host === environmentPolicy.host &&
+    source.port === environmentPolicy.port &&
+    source.database === environmentPolicy.database;
+  if (!sourceMatchesEnvironmentPolicy) {
+    return {
+      accepted: false,
+      reason: "SOURCE_ENVIRONMENT_AUTHORITY_MISMATCH",
+      source,
+      restore,
+      environment: releaseEnvironment,
+      environmentPolicy,
+      production,
+    };
+  }
 
   if (!expectedHost || source.host !== expectedHost) {
     return {
@@ -48,6 +133,9 @@ export function evaluatePostgresTargets({
       restore,
       expectedSourceHost: expectedHost,
       expectedSourceDatabase: expectedDatabase,
+      environment: releaseEnvironment,
+      production,
+      environmentPolicy,
     };
   }
   if (!expectedDatabase || source.database !== expectedDatabase) {
@@ -58,6 +146,9 @@ export function evaluatePostgresTargets({
       restore,
       expectedSourceHost: expectedHost,
       expectedSourceDatabase: expectedDatabase,
+      environment: releaseEnvironment,
+      production,
+      environmentPolicy,
     };
   }
 
@@ -73,6 +164,9 @@ export function evaluatePostgresTargets({
       restore,
       expectedSourceHost: expectedHost,
       expectedSourceDatabase: expectedDatabase,
+      environment: releaseEnvironment,
+      production,
+      environmentPolicy,
     };
   }
 
@@ -83,6 +177,10 @@ export function evaluatePostgresTargets({
     restore,
     expectedSourceHost: expectedHost,
     expectedSourceDatabase: expectedDatabase,
+    environment: releaseEnvironment,
+    production,
+    environmentPolicy,
+    productionTargetMatch: sourceIsProduction,
   };
 }
 
@@ -92,6 +190,9 @@ function option(name) {
 }
 
 function main() {
+  const authorityPath = option("--production-authority");
+  if (!authorityPath) throw new Error("--production-authority is required");
+  const productionAuthority = JSON.parse(readFileSync(authorityPath, "utf8"));
   const result = evaluatePostgresTargets({
     sourceUrl: option("--source-url") ?? process.env.SOURCE_DATABASE_URL,
     restoreUrl: option("--restore-url") ?? process.env.RESTORE_DATABASE_URL,
@@ -100,6 +201,8 @@ function main() {
     expectedSourceDatabase:
       option("--expected-source-database") ??
       process.env.EXPECTED_SOURCE_DATABASE_NAME,
+    environment: option("--environment") ?? process.env.RELEASE_ENVIRONMENT,
+    productionAuthority,
   });
   const receipt = {
     schemaVersion: 1,

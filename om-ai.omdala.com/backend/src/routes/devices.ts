@@ -4,8 +4,7 @@ import { evaluatePolicy } from '../policyEngine.js';
 import { persistence } from '../persistence.js';
 import { createProof } from '../proofStore.js';
 import { fail, ok } from '../response.js';
-import { errorEnvelopeSchema, userRoleEnum } from '../schemas.js';
-import type { UserRole } from '../types.js';
+import { errorEnvelopeSchema } from '../schemas.js';
 import { nowIso, randomId } from '../utils.js';
 
 export function registerDevicesRoutes(app: FastifyInstance) {
@@ -120,8 +119,6 @@ export function registerDevicesRoutes(app: FastifyInstance) {
           type: 'object',
           properties: {
             action: { type: 'string' },
-            actor_id: { type: 'string' },
-            role: { type: 'string', enum: [...userRoleEnum] },
           },
           required: ['action'],
         },
@@ -151,11 +148,11 @@ export function registerDevicesRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      requireSensitiveAuth(request, reply);
-      if (reply.sent) return;
+      const auth = requireSensitiveAuth(request, reply);
+      if (!auth) return;
 
       const params = request.params as { id: string };
-      const body = request.body as { action?: string; actor_id?: string; role?: UserRole };
+      const body = request.body as { action?: string };
       const device = await persistence.getDevice(params.id);
       if (!device) {
         reply.code(404);
@@ -174,7 +171,7 @@ export function registerDevicesRoutes(app: FastifyInstance) {
                 : 'low';
 
       const policy = evaluatePolicy({
-        role: body.role ?? 'observer',
+        role: auth.role,
         actionClass,
         businessMode: false,
       });
@@ -184,7 +181,7 @@ export function registerDevicesRoutes(app: FastifyInstance) {
         return fail('policy_denied', 'Policy blocked this device action.');
       }
 
-      const actorId = body.actor_id ?? 'user_demo_01';
+      const actorId = auth.userId;
       const runId = randomId('run');
       const proof = await createProof({
         proofId: randomId('proof'),

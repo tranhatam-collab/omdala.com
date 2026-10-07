@@ -1,6 +1,9 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+import { buildOmdalaApiUrl, resolveOmdalaApiOrigin } from '../../../shared/api-origin-policy';
+
+const API_BASE_URL = resolveOmdalaApiOrigin(import.meta.env.VITE_API_BASE_URL, {
+  allowSameOrigin: true,
+});
 
 export function buildApiUrl(path: string) {
-  if (!API_BASE_URL) return path;
-  return `${API_BASE_URL}${path}`;
+  return buildOmdalaApiUrl(path, API_BASE_URL);
 }

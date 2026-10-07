@@ -76,7 +76,10 @@ const fixture = http.createServer(async (req, res) => {
 });
 await new Promise((resolve) => fixture.listen(0, "127.0.0.1", resolve));
 process.env.OMCODE_TEST_API_KEY_GATEWAY ||= "sk-aiagent-e2e-fixture-key";
-const gateway = await startGatewayFixture();
+const gateway = await startGatewayFixture({
+  tenantId: "omcode-e2e",
+  workspaceId: "omcode-e2e-ws",
+});
 runtime.store.set("providers", [
   {
     id: "fixture",
@@ -306,28 +309,70 @@ try {
     const beforeConnectionCalls = calls;
     for (const [label, id, origin] of [
       ["Kết nối AIAGENT", "aiagent", "https://api.aiagent.iai.one"],
-      ["Kết nối AIAGENT staging", "aiagent-staging", "https://staging-api.aiagent.iai.one"],
+      [
+        "Kết nối AIAGENT staging",
+        "aiagent-staging",
+        "https://staging-api.aiagent.iai.one",
+      ],
     ]) {
       await page.getByRole("button", { name: label, exact: true }).click();
-      assert.equal(await page.getByLabel("API base URL", { exact: true }).inputValue(), origin);
-      assert.equal(await page.getByLabel("API base URL", { exact: true }).getAttribute("readonly"), "");
-      const tenant = page.getByLabel("Tenant ID", { exact: true });
-      const workspace = page.getByLabel("Workspace ID", { exact: true });
-      assert.equal(await tenant.getAttribute("required"), "");
-      assert.equal(await workspace.getAttribute("required"), "");
-      await tenant.fill("aiagent");
-      await workspace.fill(`omcode-ui-${id}`);
-      if (id === "aiagent-staging") await page.screenshot({ path: path.join(evidence, `${engine}-aiagent-staging-form.png`), fullPage: true });
-      await page.getByRole("button", { name: "Lưu vào Keychain", exact: true }).click();
+      assert.equal(
+        await page.getByLabel("API base URL", { exact: true }).inputValue(),
+        origin,
+      );
+      assert.equal(
+        await page
+          .getByLabel("API base URL", { exact: true })
+          .getAttribute("readonly"),
+        "",
+      );
+      assert.equal(
+        await page.getByLabel("API key", { exact: true }).count(),
+        0,
+      );
+      assert.equal(
+        await page.getByLabel("Tenant ID", { exact: true }).count(),
+        0,
+      );
+      assert.equal(
+        await page.getByLabel("Workspace ID", { exact: true }).count(),
+        0,
+      );
+      if (id === "aiagent-staging")
+        await page.screenshot({
+          path: path.join(evidence, `${engine}-aiagent-staging-form.png`),
+          fullPage: true,
+        });
+      await page
+        .getByRole("button", { name: "Lưu cấu hình", exact: true })
+        .click();
       await page.locator(".provider-form").waitFor({ state: "hidden" });
-      const saved = runtime.store.get("providers", []).find(provider => provider.id === id);
-      assert.equal(saved.baseUrl, origin); assert.equal(saved.kind, "iai-one");
-      assert.equal(saved.tenantId, "aiagent"); assert.equal(saved.workspaceId, `omcode-ui-${id}`);
+      const saved = runtime.store
+        .get("providers", [])
+        .find((provider) => provider.id === id);
+      assert.equal(saved.baseUrl, origin);
+      assert.equal(saved.kind, "iai-one");
+      assert.equal(saved.tenantId, "omdala-com");
+      assert.equal(
+        saved.workspaceId,
+        id === "aiagent" ? "omdala-com-production" : "omdala-com-staging",
+      );
       assert.equal(saved.status, "not_checked");
     }
     assert.equal(calls, beforeConnectionCalls);
-    assert.equal(runtime.store.get("providers", []).filter(provider => ["aiagent", "aiagent-staging"].includes(provider.id)).length, 2);
-    results.push({ engine, check: "aiagent-isolated-staging-connection-form", ok: true });
+    assert.equal(
+      runtime.store
+        .get("providers", [])
+        .filter((provider) =>
+          ["aiagent", "aiagent-staging"].includes(provider.id),
+        ).length,
+      2,
+    );
+    results.push({
+      engine,
+      check: "aiagent-isolated-staging-connection-form",
+      ok: true,
+    });
     await page.route("**/api/provider/check", (route) =>
       route.fulfill({
         status: 503,
@@ -507,7 +552,9 @@ try {
     });
     assert.deepEqual(errors, []);
     results.push({ engine, check: "theme-and-no-uncaught-errors", ok: true });
-    console.log(`[e2e] ${engine}: ${results.filter((result) => result.engine === engine).length} checks passed`);
+    console.log(
+      `[e2e] ${engine}: ${results.filter((result) => result.engine === engine).length} checks passed`,
+    );
     await context.close();
     await browser.close();
     browser = null;

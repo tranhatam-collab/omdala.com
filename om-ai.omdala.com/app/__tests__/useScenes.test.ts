@@ -15,7 +15,7 @@ describe('useScenes', () => {
   });
 
   it('loads scenes and runs scene', async () => {
-    const { result } = renderHook(() => useScenes());
+    const { result, unmount } = renderHook(() => useScenes());
     await act(async () => {
       await Promise.resolve();
     });
@@ -25,5 +25,6 @@ describe('useScenes', () => {
       runResult = await result.current.run('scene1');
     });
     expect(runResult?.status).toBe('succeeded');
+    unmount();
   });
 });

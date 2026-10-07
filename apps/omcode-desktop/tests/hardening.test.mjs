@@ -38,7 +38,11 @@ async function scratch(t) {
   return { root, project, store };
 }
 async function gateway(t, options = {}) {
-  const f = await startGatewayFixture(options);
+  const f = await startGatewayFixture({
+    tenantId: "test-tenant",
+    workspaceId: "test-workspace",
+    ...options,
+  });
   t.after(() => f.close());
   const { store } = await scratch(t);
   const old = process.env.OMCODE_TEST_API_KEY_GATEWAY;
@@ -79,8 +83,13 @@ test("all 17 chat and 2 embedding contract models execute with policy and unique
   assert.equal(new Set(calls.map((r) => r.requestId)).size, 19);
   for (const r of calls) {
     assert.equal(r.requestId, r.idempotencyKey);
+    assert.equal(r.requestId, r.traceId);
     assert.equal(r.requestId, r.body.request_id);
     assert.equal(r.body.risk_level, "low");
+    assert.equal(r.workspaceHeader, undefined);
+    assert.equal(r.actorIdHeader, undefined);
+    assert.equal(r.tierHeader, undefined);
+    assert.equal(r.quotaHeader, undefined);
   }
 });
 for (const field of [
@@ -96,10 +105,10 @@ for (const field of [
     const { p } = await gateway(t, {
       mutateRun: (run) => (run[field] = "wrong"),
     });
-    const r = await completion(p, probe, [], signal());
-    assert.equal(r.billing.verified, false);
-    assert.equal(r.billing.billing_eligible, false);
-    assert.equal(r.billing.cost_usd, null);
+    await assert.rejects(
+      completion(p, probe, [], signal()),
+      /reconciliation|verification/,
+    );
   });
 for (const field of [
   "run_id",
@@ -116,9 +125,10 @@ for (const field of [
     const { p } = await gateway(t, {
       mutateReceipt: (r) => (r[field] = "wrong"),
     });
-    const r = await completion(p, probe, [], signal());
-    assert.equal(r.billing.verified, false);
-    assert.equal(r.billing.cost_usd, null);
+    await assert.rejects(
+      completion(p, probe, [], signal()),
+      /reconciliation|verification/,
+    );
   });
 test("incompatible contracts and unavailable models cannot enable a catalog", async (t) => {
   const { p } = await gateway(t, { contractVersion: "2.0.0" });
@@ -405,7 +415,11 @@ test("embedding-only catalog works and unavailable models are excluded", async (
   const { p } = await gateway(t, {
     models: [
       { id: "iai-one/echo-mini", status: "available", capabilities: ["embed"] },
-      { id: "disabled-chat", status: "unavailable", capabilities: ["chat"] },
+      {
+        id: "iai-one/disabled-chat",
+        status: "unavailable",
+        capabilities: ["chat"],
+      },
     ],
   });
   assert.equal(p.status, "connected");
@@ -424,9 +438,9 @@ test("AIAGENT full chat URL is normalized instead of producing a duplicate endpo
     name: "AIAGENT",
     baseUrl: "https://api.aiagent.iai.one/v1/ai/chat",
     kind: "iai-one",
-    tenantId: "aiagent",
-    workspaceId: "omcode-test",
   });
   assert.equal(p.baseUrl, "https://api.aiagent.iai.one");
   assert.equal(p.kind, "iai-one");
+  assert.equal(p.tenantId, "omdala-com");
+  assert.equal(p.workspaceId, "omdala-com-production");
 });

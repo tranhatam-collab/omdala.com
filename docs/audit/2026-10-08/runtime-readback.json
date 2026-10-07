@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-10-07T18:02:50Z",
+  "method": "read-only HTTPS probes with a 20 second timeout",
+  "production": {
+    "web": {
+      "url": "https://omdala.com/",
+      "http_status": 200,
+      "remote_ip": "104.21.39.92"
+    },
+    "app": {
+      "url": "https://app.omdala.com/workspace/",
+      "http_status": 404,
+      "remote_ip": "172.67.144.5"
+    },
+    "auth": {
+      "url": "https://auth.omdala.com/login/",
+      "http_status": 200,
+      "remote_ip": "172.67.144.5"
+    },
+    "brand": {
+      "url": "https://brand.omdala.com/en/",
+      "http_status": 0,
+      "error": "DNS resolution failed"
+    },
+    "api": {
+      "url": "https://api.omdala.com/health",
+      "http_status": 0,
+      "remote_ip": "172.67.144.5",
+      "error": "Timed out after 20 seconds with no response bytes"
+    }
+  },
+  "staging": {
+    "web": {
+      "url": "https://staging.omdala.com/",
+      "http_status": 0,
+      "error": "DNS resolution failed"
+    },
+    "app": {
+      "url": "https://app-staging.omdala.com/workspace/",
+      "http_status": 0,
+      "error": "DNS resolution failed"
+    },
+    "auth": {
+      "url": "https://auth-staging.omdala.com/login/",
+      "http_status": 0,
+      "error": "DNS resolution failed"
+    },
+    "brand": {
+      "url": "https://brand-staging.omdala.com/en/",
+      "http_status": 0,
+      "error": "DNS resolution failed"
+    },
+    "api": {
+      "url": "https://api-staging.omdala.com/health",
+      "http_status": 0,
+      "error": "DNS resolution failed"
+    }
+  },
+  "verdict": "RUNTIME_BLOCKED"
+}

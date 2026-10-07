@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createApp } from './app.js';
+import { createOperationalTestApp as createApp } from './testSupport.js';
 
 test('planner returns plan id and policy decision', async () => {
   const app = createApp();
@@ -41,10 +41,6 @@ test('approval request and confirm flow works', async () => {
   const confirmed = await app.inject({
     method: 'POST',
     url: `/v2/reality/approvals/${requestBody.data.approval.approval_id}/confirm`,
-    headers: {
-      'x-user-id': 'user_demo_01',
-      'x-role': 'owner',
-    },
   });
 
   assert.equal(confirmed.statusCode, 200);
@@ -70,10 +66,6 @@ test('execute creates proof and proof fetch works', async () => {
     method: 'POST',
     url: '/v2/reality/transitions/execute',
     payload: { plan_id: planBody.data.plan_id },
-    headers: {
-      'x-user-id': 'user_demo_01',
-      'x-role': 'owner',
-    },
   });
 
   assert.equal(execute.statusCode, 200);
@@ -157,10 +149,6 @@ test('can list and run scene with proof-ready result', async () => {
   const runScene = await app.inject({
     method: 'POST',
     url: `/v2/reality/scenes/${sceneId}/run`,
-    headers: {
-      'x-user-id': 'user_demo_01',
-      'x-role': 'owner',
-    },
   });
 
   assert.equal(runScene.statusCode, 200);

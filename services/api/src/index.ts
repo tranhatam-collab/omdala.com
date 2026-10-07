@@ -9,7 +9,6 @@ import {
 } from "../../../packages/core/src/mail";
 import {
   OM_AI_APP_ID,
-  OM_AI_PROVIDER_CAPABILITIES,
   OM_AI_FREE_DAILY_CALL_MINUTES,
   OM_AI_PLAN_IDS,
   OM_AI_USAGE_EVENT_NAMES,
@@ -22,7 +21,6 @@ import type {
   OmAiAccountProfile,
   OmAiBillingSubscription,
   OmAiBillingUsage,
-  OmAiProviderCapabilityId,
   RealityProofRecord,
   SharedNotificationRecord,
   StateRecord,
@@ -49,10 +47,12 @@ import {
   parsePaginationParams,
 } from "./contracts";
 import {
-  getOmAiProviderObservability,
-  getOmAiProviderRegistryResponse,
-  getOmAiProviderRouteDecision,
-} from "./provider-registry";
+  executeAiagentChat,
+  getAiagentAuthority,
+  listAiagentModels,
+  type AiagentChatInput,
+} from "./aiagent-client";
+import { applyMailDeliveryPolicy } from "./mail-delivery-policy";
 import {
   createCommitment,
   createProof,
@@ -70,7 +70,25 @@ import {
   writeAccountPreferences,
   writeAccountProfile,
 } from "./db/account-repository";
+import {
+  createAnalyticsEvent,
+  createWorkspace,
+  listOrCreateAnalyticsEvents,
+  listOrCreateNotifications,
+  listOrCreateWorkspaces,
+  markNotificationRead,
+  readBillingUsageMinutesToday,
+  readOrCreateBillingSubscription,
+} from "./db/runtime-repository";
 import { isDatabaseConfigured, queryRows } from "./db/client";
+import {
+  consumeMagicLink as consumePersistedMagicLink,
+  createAuthSession as createPersistedAuthSession,
+  isAuthSessionActive as isPersistedAuthSessionActive,
+  registerMagicLink as registerPersistedMagicLink,
+  revokeAuthSession as revokePersistedAuthSession,
+  rotateAuthSession as rotatePersistedAuthSession,
+} from "./db/auth-repository";
 import {
   DbQueryError,
   mapDbErrorToHttp,
@@ -91,11 +109,6 @@ import {
   verifyServiceToken,
   verifyWebhookSignature,
 } from "./security";
-import {
-  aiCompleteWithFallback,
-  checkAiProviderHealth,
-  discoverConnectors,
-} from "./ai-connectors";
 
 export type {
   AccessRequest,
@@ -128,6 +141,7 @@ type ApiStatus =
   | 400
   | 401
   | 404
+  | 410
   | 422
   | 429
   | 500
@@ -152,22 +166,100 @@ const localOrigins = [
   "http://localhost:3004",
 ];
 
-const contactTopicLabels = Object.fromEntries(
-  OMDALA_CONTACT_TOPICS.map((topic) => [topic.value, topic.label]),
-);
-const ALLOWED_ORIGINS = new Set([
-  OMDALA_WEB_ORIGIN,
-  OMDALA_APP_ORIGIN,
-  OMDALA_AUTH_ORIGIN,
+const fixedFirstPartyOrigins = [
   "https://docs.omdala.com",
   "https://trust.omdala.com",
   "https://admin.omdala.com",
-  "https://*.omdala.com",
-  ...localOrigins,
-]);
+];
+
+const contactTopicLabels = Object.fromEntries(
+  OMDALA_CONTACT_TOPICS.map((topic) => [topic.value, topic.label]),
+);
+
+function normalizeHttpsOrigin(value: string): string | null {
+  try {
+    const parsed = new URL(value);
+    if (
+      parsed.protocol !== "https:" ||
+      parsed.username ||
+      parsed.password ||
+      parsed.port ||
+      parsed.pathname !== "/" ||
+      parsed.search ||
+      parsed.hash
+    ) {
+      return null;
+    }
+
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+function isLocalEnvironment(environment: string | undefined): boolean {
+  return (
+    environment === "development" ||
+    environment === "dev" ||
+    environment === "local"
+  );
+}
+
+function getAllowedOrigins(env: ApiBindings): Set<string> {
+  const allowedOrigins = new Set<string>();
+
+  if (env.ENVIRONMENT === "staging" || env.ENVIRONMENT === "production") {
+    const expected =
+      env.ENVIRONMENT === "staging"
+        ? {
+            web: "https://staging.omdala.com",
+            app: "https://app-staging.omdala.com",
+            auth: "https://auth-staging.omdala.com",
+          }
+        : {
+            web: OMDALA_WEB_ORIGIN,
+            app: OMDALA_APP_ORIGIN,
+            auth: OMDALA_AUTH_ORIGIN,
+          };
+    const configured = {
+      web: env.WEB_BASE_URL ?? (env.ENVIRONMENT === "production" ? expected.web : ""),
+      app: env.APP_BASE_URL ?? (env.ENVIRONMENT === "production" ? expected.app : ""),
+      auth: env.AUTH_BASE_URL ?? (env.ENVIRONMENT === "production" ? expected.auth : ""),
+    };
+    if (
+      normalizeHttpsOrigin(configured.web) !== expected.web ||
+      normalizeHttpsOrigin(configured.app) !== expected.app ||
+      normalizeHttpsOrigin(configured.auth) !== expected.auth
+    ) {
+      return allowedOrigins;
+    }
+    allowedOrigins.add(expected.web);
+    allowedOrigins.add(expected.app);
+    allowedOrigins.add(expected.auth);
+    if (env.ENVIRONMENT === "production") {
+      for (const origin of fixedFirstPartyOrigins) allowedOrigins.add(origin);
+    }
+    return allowedOrigins;
+  }
+
+  if (isLocalEnvironment(env.ENVIRONMENT)) {
+    for (const value of [env.WEB_BASE_URL, env.APP_BASE_URL, env.AUTH_BASE_URL]) {
+      if (!value) continue;
+      const origin = normalizeHttpsOrigin(value);
+      if (origin) allowedOrigins.add(origin);
+    }
+    for (const origin of localOrigins) {
+      allowedOrigins.add(origin);
+    }
+  }
+
+  return allowedOrigins;
+}
 
 const apiContract = createApiContractStub({
-  allowedOrigins: Array.from(ALLOWED_ORIGINS),
+  allowedOrigins: Array.from(
+    getAllowedOrigins({ ENVIRONMENT: "production" }),
+  ),
 });
 
 function jsonError(
@@ -315,7 +407,12 @@ async function verifyMagicLinkToken(env: ApiBindings, token: string) {
       new TextDecoder().decode(base64UrlToBytes(payloadPart)),
     ) as MagicLinkPayload;
 
-    if (!payload.email || !payload.redirectTo || payload.exp < Date.now()) {
+    if (
+      !/^[0-9a-f-]{36}$/.test(payload.jti ?? "") ||
+      !payload.email ||
+      !payload.redirectTo ||
+      payload.exp < Date.now()
+    ) {
       return null;
     }
 
@@ -326,6 +423,8 @@ async function verifyMagicLinkToken(env: ApiBindings, token: string) {
 }
 
 type SessionTokenPayload = {
+  jti: string;
+  sid: string;
   email: string;
   type: "access" | "refresh";
   exp: number;
@@ -370,11 +469,175 @@ async function verifySessionToken(
     const payload = JSON.parse(
       new TextDecoder().decode(base64UrlToBytes(payloadPart)),
     ) as SessionTokenPayload;
-    if (payload.type !== expectedType || payload.exp < Date.now()) return null;
+    if (
+      payload.type !== expectedType ||
+      payload.exp < Date.now() ||
+      !payload.email ||
+      !/^[0-9a-f-]{36}$/.test(payload.jti ?? "") ||
+      !/^[0-9a-f-]{36}$/.test(payload.sid ?? "")
+    ) return null;
     return payload;
   } catch {
     return null;
   }
+}
+
+type EphemeralAuthSession = {
+  email: string;
+  currentRefreshJti: string;
+  refreshExpiresAt: number;
+  revoked: boolean;
+};
+
+const ephemeralMagicLinks = new Set<string>();
+const ephemeralAuthSessions = new Map<string, EphemeralAuthSession>();
+
+function permitsEphemeralAuthState(env: ApiBindings): boolean {
+  return env.ENVIRONMENT === "test" || env.ENVIRONMENT === "development";
+}
+
+async function registerMagicLinkState(
+  env: ApiBindings,
+  payload: MagicLinkPayload,
+): Promise<void> {
+  if (permitsEphemeralAuthState(env)) {
+    ephemeralMagicLinks.add(`${payload.jti}:${payload.email}`);
+    return;
+  }
+  await registerPersistedMagicLink(env, {
+    jti: payload.jti,
+    email: payload.email,
+    redirectTo: payload.redirectTo,
+    expiresAt: payload.exp,
+  });
+}
+
+async function consumeMagicLinkState(
+  env: ApiBindings,
+  payload: MagicLinkPayload,
+): Promise<boolean> {
+  if (permitsEphemeralAuthState(env)) {
+    const key = `${payload.jti}:${payload.email}`;
+    if (!ephemeralMagicLinks.has(key)) return false;
+    ephemeralMagicLinks.delete(key);
+    return payload.exp > Date.now();
+  }
+  return consumePersistedMagicLink(env, {
+    jti: payload.jti,
+    email: payload.email,
+  });
+}
+
+async function createAuthSessionState(
+  env: ApiBindings,
+  input: {
+    id: string;
+    email: string;
+    currentRefreshJti: string;
+    refreshExpiresAt: number;
+  },
+): Promise<void> {
+  if (permitsEphemeralAuthState(env)) {
+    ephemeralAuthSessions.set(input.id, {
+      email: input.email,
+      currentRefreshJti: input.currentRefreshJti,
+      refreshExpiresAt: input.refreshExpiresAt,
+      revoked: false,
+    });
+    return;
+  }
+  await createPersistedAuthSession(env, input);
+}
+
+async function rotateAuthSessionState(
+  env: ApiBindings,
+  input: {
+    id: string;
+    email: string;
+    previousRefreshJti: string;
+    nextRefreshJti: string;
+    refreshExpiresAt: number;
+  },
+): Promise<boolean> {
+  if (permitsEphemeralAuthState(env)) {
+    const current = ephemeralAuthSessions.get(input.id);
+    if (
+      !current ||
+      current.revoked ||
+      current.email !== input.email ||
+      current.currentRefreshJti !== input.previousRefreshJti ||
+      current.refreshExpiresAt <= Date.now()
+    ) {
+      if (current) current.revoked = true;
+      return false;
+    }
+    current.currentRefreshJti = input.nextRefreshJti;
+    current.refreshExpiresAt = input.refreshExpiresAt;
+    return true;
+  }
+  const rotated = await rotatePersistedAuthSession(env, input);
+  if (!rotated) await revokePersistedAuthSession(env, input.id);
+  return rotated;
+}
+
+async function revokeAuthSessionState(env: ApiBindings, id: string): Promise<void> {
+  if (permitsEphemeralAuthState(env)) {
+    const session = ephemeralAuthSessions.get(id);
+    if (session) session.revoked = true;
+    return;
+  }
+  await revokePersistedAuthSession(env, id);
+}
+
+async function isAuthSessionStateActive(
+  env: ApiBindings,
+  payload: Pick<SessionTokenPayload, "sid" | "email">,
+): Promise<boolean> {
+  if (permitsEphemeralAuthState(env)) {
+    const session = ephemeralAuthSessions.get(payload.sid);
+    if (!session) return true;
+    return Boolean(
+      !session.revoked &&
+        session.email === payload.email &&
+        session.refreshExpiresAt > Date.now(),
+    );
+  }
+  return isPersistedAuthSessionActive(env, {
+    id: payload.sid,
+    email: payload.email,
+  });
+}
+
+async function issueSessionTokens(env: ApiBindings, email: string) {
+  const now = Date.now();
+  const accessExp = now + 60 * 60 * 1000;
+  const refreshExp = now + 7 * 24 * 60 * 60 * 1000;
+  const sid = crypto.randomUUID();
+  const accessJti = crypto.randomUUID();
+  const refreshJti = crypto.randomUUID();
+  await createAuthSessionState(env, {
+    id: sid,
+    email,
+    currentRefreshJti: refreshJti,
+    refreshExpiresAt: refreshExp,
+  });
+  const [accessToken, refreshToken] = await Promise.all([
+    createSessionToken(env, {
+      jti: accessJti,
+      sid,
+      email,
+      type: "access",
+      exp: accessExp,
+    }),
+    createSessionToken(env, {
+      jti: refreshJti,
+      sid,
+      email,
+      type: "refresh",
+      exp: refreshExp,
+    }),
+  ]);
+  return { accessToken, refreshToken, accessExp, refreshExp, sid };
 }
 
 function getMailApiUrl(env: ApiBindings) {
@@ -393,9 +656,15 @@ function getWebBaseUrl(env: ApiBindings) {
   return (env.WEB_BASE_URL ?? OMDALA_WEB_ORIGIN).replace(/\/+$/g, "");
 }
 
+function getApiBaseUrl(env: ApiBindings) {
+  return env.ENVIRONMENT === "staging"
+    ? "https://api-staging.omdala.com"
+    : OMDALA_API_ORIGIN;
+}
+
 function getCookieDomain(_c: ApiContext): string | undefined {
-  // Use env-specific domain if needed; default to .omdala.com for prod
-  return undefined; // let browser infer (host-only) or set via env
+  // Omit Domain so staging and production receive separate host-only API cookies.
+  return undefined;
 }
 
 function buildSetCookie(
@@ -749,8 +1018,10 @@ function getBillingUsageForEmail(email: string): OmAiBillingUsage {
   };
 }
 
-function getDefaultWorkspacesForEmail(email: string): WorkspaceRecord[] {
-  const profile = getAccountProfileForEmail(email);
+function buildDefaultWorkspacesForEmail(
+  email: string,
+  profile: OmAiAccountProfile,
+): WorkspaceRecord[] {
   const now = new Date().toISOString();
   const baseId = toIdFromEmail(email);
   return [
@@ -776,6 +1047,13 @@ function getDefaultWorkspacesForEmail(email: string): WorkspaceRecord[] {
   ];
 }
 
+function getDefaultWorkspacesForEmail(email: string): WorkspaceRecord[] {
+  return buildDefaultWorkspacesForEmail(
+    email,
+    getAccountProfileForEmail(email),
+  );
+}
+
 function getWorkspacesForEmail(email: string): WorkspaceRecord[] {
   const existing = workspaceStore.get(email);
   if (existing) {
@@ -787,11 +1065,10 @@ function getWorkspacesForEmail(email: string): WorkspaceRecord[] {
   return workspaces;
 }
 
-function getDefaultNotificationsForEmail(
-  email: string,
+function buildDefaultNotificationsForEmail(
+  profile: OmAiAccountProfile,
+  workspace: WorkspaceRecord | undefined,
 ): SharedNotificationRecord[] {
-  const profile = getAccountProfileForEmail(email);
-  const [workspace] = getWorkspacesForEmail(email);
   const now = new Date().toISOString();
   return [
     {
@@ -820,6 +1097,15 @@ function getDefaultNotificationsForEmail(
   ];
 }
 
+function getDefaultNotificationsForEmail(
+  email: string,
+): SharedNotificationRecord[] {
+  return buildDefaultNotificationsForEmail(
+    getAccountProfileForEmail(email),
+    getWorkspacesForEmail(email)[0],
+  );
+}
+
 function getNotificationsForEmail(email: string): SharedNotificationRecord[] {
   const existing = sharedNotificationStore.get(email);
   if (existing) {
@@ -839,8 +1125,17 @@ function getAnalyticsEventsForEmail(email: string): AnalyticsEventEnvelope[] {
 
   const profile = getAccountProfileForEmail(email);
   const [workspace] = getWorkspacesForEmail(email);
+  const events = buildDefaultAnalyticsEvents(profile, workspace);
+  analyticsEventStore.set(email, events);
+  return events;
+}
+
+function buildDefaultAnalyticsEvents(
+  profile: OmAiAccountProfile,
+  workspace: WorkspaceRecord | undefined,
+): AnalyticsEventEnvelope[] {
   const now = new Date().toISOString();
-  const events: AnalyticsEventEnvelope[] = [
+  return [
     {
       id: "evt_shared_core_bootstrap",
       appId: "omdala-platform",
@@ -856,8 +1151,100 @@ function getAnalyticsEventsForEmail(email: string): AnalyticsEventEnvelope[] {
       },
     },
   ];
-  analyticsEventStore.set(email, events);
-  return events;
+}
+
+function allowsEphemeralProtectedRuntime(env: ApiBindings): boolean {
+  return ["test", "development"].includes(
+    env.ENVIRONMENT?.toLowerCase(),
+  );
+}
+
+function protectedRuntimePersistenceError(c: ApiContext): Response | null {
+  if (isDatabaseConfigured(c.env) || allowsEphemeralProtectedRuntime(c.env)) {
+    return null;
+  }
+  return jsonError(
+    c,
+    503,
+    "PERSISTENCE_REQUIRED",
+    "PostgreSQL persistence is required for this protected API in the current environment.",
+  );
+}
+
+async function getRuntimeBillingSubscription(
+  env: ApiBindings,
+  email: string,
+): Promise<OmAiBillingSubscription> {
+  const fallback = getDefaultBillingSubscription(email);
+  if (!isDatabaseConfigured(env)) return getBillingSubscriptionForEmail(email);
+  return readOrCreateBillingSubscription(env, email, fallback);
+}
+
+async function getRuntimeBillingUsage(
+  env: ApiBindings,
+  email: string,
+): Promise<OmAiBillingUsage> {
+  if (!isDatabaseConfigured(env)) return getBillingUsageForEmail(email);
+  const usedMinutes = await readBillingUsageMinutesToday(
+    env,
+    email,
+    OM_AI_USAGE_EVENT_NAMES.usageMinuteRecorded,
+  );
+  return {
+    appId: OM_AI_APP_ID,
+    quota: { callMinutesDaily: OM_AI_FREE_DAILY_CALL_MINUTES },
+    used: { callMinutesToday: usedMinutes },
+    remaining: {
+      callMinutesToday: Math.max(0, OM_AI_FREE_DAILY_CALL_MINUTES - usedMinutes),
+    },
+  };
+}
+
+async function getRuntimeWorkspaces(
+  env: ApiBindings,
+  email: string,
+): Promise<WorkspaceRecord[]> {
+  if (!isDatabaseConfigured(env)) return getWorkspacesForEmail(email);
+  const profile = await getRuntimeAccountProfile(env, email);
+  return listOrCreateWorkspaces(
+    env,
+    email,
+    buildDefaultWorkspacesForEmail(email, profile),
+  );
+}
+
+async function getRuntimeNotifications(
+  env: ApiBindings,
+  email: string,
+): Promise<SharedNotificationRecord[]> {
+  if (!isDatabaseConfigured(env)) return getNotificationsForEmail(email);
+  const profile = await getRuntimeAccountProfile(env, email);
+  const workspaces = await getRuntimeWorkspaces(env, email);
+  return listOrCreateNotifications(
+    env,
+    email,
+    buildDefaultNotificationsForEmail(profile, workspaces[0]),
+  );
+}
+
+async function getRuntimeAnalyticsEvents(
+  env: ApiBindings,
+  email: string,
+  appId?: AnalyticsEventEnvelope["appId"],
+): Promise<AnalyticsEventEnvelope[]> {
+  if (!isDatabaseConfigured(env)) {
+    return getAnalyticsEventsForEmail(email).filter((event) =>
+      appId ? event.appId === appId : true,
+    );
+  }
+  const profile = await getRuntimeAccountProfile(env, email);
+  const workspaces = await getRuntimeWorkspaces(env, email);
+  return listOrCreateAnalyticsEvents(
+    env,
+    email,
+    buildDefaultAnalyticsEvents(profile, workspaces[0]),
+    appId,
+  );
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -881,6 +1268,19 @@ async function requireAuthenticatedSession(
       401,
       "invalid_or_expired_token",
       "Session has expired.",
+    );
+  }
+
+  try {
+    if (!await isAuthSessionStateActive(c.env, payload)) {
+      return jsonError(c, 401, "session_revoked", "Session has been revoked.");
+    }
+  } catch {
+    return jsonError(
+      c,
+      503,
+      "session_authority_unavailable",
+      "Session authority is unavailable.",
     );
   }
 
@@ -1236,10 +1636,32 @@ function accountDatabaseErrorResponse(
   return jsonError(c, mapped.status, mapped.errorCode, mapped.message);
 }
 
+function protectedRuntimeDatabaseErrorResponse(
+  c: ApiContext,
+  error: unknown,
+  operation: string,
+): Response {
+  const mapped = mapDbErrorToHttp(error);
+  console.error("protected runtime database error", {
+    request_id: getOrCreateRequestId(c),
+    operation,
+    error_code: mapped.errorCode,
+    message: error instanceof Error ? error.message : String(error),
+  });
+  return jsonError(c, mapped.status, mapped.errorCode, mapped.message);
+}
+
 function releaseIdentity(env: ApiBindings) {
+  const runtimeVersionId = env.VERSION_METADATA?.id?.trim() || null;
+  const protectedEnvironment =
+    env.ENVIRONMENT === "staging" || env.ENVIRONMENT === "production";
+  const deploymentId = protectedEnvironment
+    ? runtimeVersionId
+    : runtimeVersionId ?? env.DEPLOYMENT_ID?.trim() ?? null;
   return {
     release_sha: env.RELEASE_SHA?.trim() || null,
-    deployment_id: env.DEPLOYMENT_ID?.trim() || null,
+    version_id: runtimeVersionId,
+    deployment_id: deploymentId,
   };
 }
 
@@ -1374,6 +1796,7 @@ async function sendMail(
   const idempotencyKey =
     normalizeIdempotencyKey(payload.message_idempotency_key) ??
     crypto.randomUUID();
+  const delivery = await applyMailDeliveryPolicy(env, payload);
   if (!env.MAIL_API_KEY) {
     if (allowsMailConsoleFallback(env)) {
       console.warn("[sendMail] MAIL_API_KEY not set — logging email to console (dev fallback)");
@@ -1385,6 +1808,12 @@ async function sendMail(
         providerMessageId: `console-${idempotencyKey}`,
         providerStatus: "logged",
         acceptedAt: new Date().toISOString(),
+        deliveryMode: delivery.deliveryMode,
+        sinkEnforced: delivery.sinkEnforced,
+        workspaceId: delivery.workspaceId,
+        originalRecipientCount: delivery.originalRecipientCount,
+        deliveredRecipientCount: delivery.deliveredRecipientCount,
+        recipientSetSha256: delivery.recipientSetSha256,
       };
     }
     throw new Error("MAIL_API_KEY is not configured");
@@ -1392,9 +1821,9 @@ async function sendMail(
 
   // Auto-generate idempotency key if not provided (required by IAI Mail API)
   const enrichedPayload = {
-    ...payload,
+    ...delivery.payload,
     message_idempotency_key: idempotencyKey,
-    workspace_id: payload.workspace_id ?? (env.MAIL_API_WORKSPACE_ID ?? "omdala.com"),
+    workspace_id: delivery.workspaceId,
   };
 
   const mailApiUrl = getMailApiUrl(env);
@@ -1411,7 +1840,7 @@ async function sendMail(
         headers: {
           Authorization: `Bearer ${env.MAIL_API_KEY}`,
           "Content-Type": "application/json",
-          "X-Workspace-Id": env.MAIL_API_WORKSPACE_ID ?? "omdala.com",
+          "X-Workspace-Id": delivery.workspaceId,
         },
         body: JSON.stringify(enrichedPayload),
         signal: controller.signal,
@@ -1450,6 +1879,12 @@ async function sendMail(
             mailProviderValue(responseBody, ["status", "state"]) ??
             `accepted_${response.status}`,
           acceptedAt: new Date().toISOString(),
+          deliveryMode: delivery.deliveryMode,
+          sinkEnforced: delivery.sinkEnforced,
+          workspaceId: delivery.workspaceId,
+          originalRecipientCount: delivery.originalRecipientCount,
+          deliveredRecipientCount: delivery.deliveredRecipientCount,
+          recipientSetSha256: delivery.recipientSetSha256,
         };
       }
 
@@ -1485,6 +1920,12 @@ async function sendMail(
       providerMessageId: `console-${idempotencyKey}`,
       providerStatus: "logged_after_transport_failure",
       acceptedAt: new Date().toISOString(),
+      deliveryMode: delivery.deliveryMode,
+      sinkEnforced: delivery.sinkEnforced,
+      workspaceId: delivery.workspaceId,
+      originalRecipientCount: delivery.originalRecipientCount,
+      deliveredRecipientCount: delivery.deliveredRecipientCount,
+      recipientSetSha256: delivery.recipientSetSha256,
     };
   }
 
@@ -1651,11 +2092,12 @@ function buildAccessRequestAckEmail(payload: Required<AccessRequest>) {
   };
 }
 
-// CORS — restrict to first-party OMDALA surfaces in production
+// CORS — restrict credentialed requests to exact origins for this environment
 app.use(
   "/*",
   cors({
-    origin: (origin) => resolveAllowedOrigin(origin, ALLOWED_ORIGINS),
+    origin: (origin, c) =>
+      resolveAllowedOrigin(origin, getAllowedOrigins(c.env as ApiBindings)),
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: [
       "Content-Type",
@@ -1665,6 +2107,7 @@ app.use(
       "x-csrf-token",
       "x-service-token",
       "x-e2e-test-secret",
+      "idempotency-key",
     ],
     exposeHeaders: ["x-request-id"],
     maxAge: 86400,
@@ -1695,6 +2138,34 @@ app.get("/health", (c) => {
   });
 });
 
+// Machine-readable consumer identity used by the protected AIAGENT staging
+// acceptance workflow. Keep this route dependency-free so a candidate can be
+// rejected for a SHA mismatch before any credential is issued or model spend
+// occurs. Deep health remains the readiness authority for the full API.
+app.get("/health/version", (c) => {
+  const identity = releaseIdentity(c.env);
+  const ready = Boolean(
+    (c.env.ENVIRONMENT === "staging" || c.env.ENVIRONMENT === "production") &&
+      identity.release_sha &&
+      /^[0-9a-f]{40}$/i.test(identity.release_sha) &&
+      identity.deployment_id &&
+      identity.deployment_id.length <= 128,
+  );
+  return c.json(
+    {
+      ok: ready,
+      data: {
+        service: "omdala-api",
+        environment: c.env.ENVIRONMENT,
+        source_sha: identity.release_sha,
+        version_id: identity.version_id,
+        deployment_id: identity.deployment_id,
+      },
+    },
+    ready ? 200 : 503,
+  );
+});
+
 app.get("/health/deep", async (c) => {
   const identity = releaseIdentity(c.env);
   const identityBound = Boolean(
@@ -1712,6 +2183,22 @@ app.get("/health/deep", async (c) => {
           to_regclass('omdala.proofs') AS proofs,
           to_regclass('omdala.account_profiles') AS account_profiles,
           to_regclass('omdala.account_preferences') AS account_preferences,
+          to_regclass('omdala.billing_subscriptions') AS billing_subscriptions,
+          to_regclass('omdala.workspaces') AS workspaces,
+          to_regclass('omdala.shared_notifications') AS shared_notifications,
+          to_regclass('omdala.analytics_events') AS analytics_events,
+          to_regclass('omdala.auth_magic_links') AS auth_magic_links,
+          to_regclass('omdala.auth_sessions') AS auth_sessions,
+          EXISTS (
+            SELECT 1
+            FROM omdala.schema_migrations
+            WHERE version = '0002_auth_session_state'
+          ) AS auth_session_migration,
+          EXISTS (
+            SELECT 1
+            FROM omdala.schema_migrations
+            WHERE version = '0003_protected_runtime_state'
+          ) AS protected_runtime_migration,
           (
             SELECT is_nullable = 'NO'
             FROM information_schema.columns
@@ -1734,6 +2221,14 @@ app.get("/health/deep", async (c) => {
         registry.proofs &&
         registry.account_profiles &&
         registry.account_preferences &&
+        registry.billing_subscriptions &&
+        registry.workspaces &&
+        registry.shared_notifications &&
+        registry.analytics_events &&
+        registry.auth_magic_links &&
+        registry.auth_sessions &&
+        registry.auth_session_migration === true &&
+        registry.protected_runtime_migration === true &&
         registry.nodes_owner_email_locked === true &&
         registry.proofs_owner_email_locked === true
           ? "ok"
@@ -2279,11 +2774,14 @@ app.post("/v1/_e2e/magic-link", async (c) => {
   }
 
   const expiresAt = Date.now() + 10 * 60 * 1000;
-  const token = await createMagicLinkToken(c.env, {
+  const magicLinkPayload: MagicLinkPayload = {
+    jti: crypto.randomUUID(),
     email,
     redirectTo,
     exp: expiresAt,
-  });
+  };
+  await registerMagicLinkState(c.env, magicLinkPayload);
+  const token = await createMagicLinkToken(c.env, magicLinkPayload);
 
   return jsonOk(
     c,
@@ -2330,11 +2828,14 @@ app.post("/v1/auth/magic-link/request", async (c) => {
 
   try {
     const expiresAt = Date.now() + 30 * 60 * 1000;
-    const token = await createMagicLinkToken(c.env, {
+    const magicLinkPayload: MagicLinkPayload = {
+      jti: crypto.randomUUID(),
       email,
       redirectTo,
       exp: expiresAt,
-    });
+    };
+    await registerMagicLinkState(c.env, magicLinkPayload);
+    const token = await createMagicLinkToken(c.env, magicLinkPayload);
     const link = `${getAuthBaseUrl(c.env)}/login?token=${encodeURIComponent(token)}&next=${encodeURIComponent(redirectTo)}`;
 
     const deliveryReceipt = await sendMail(
@@ -2362,42 +2863,13 @@ app.post("/v1/auth/magic-link/request", async (c) => {
   }
 });
 
-app.get("/v1/auth/magic-link", async (c) => {
-  const token = c.req.query("token") ?? "";
-  const requestedPath = c.req.query("next");
-
-  if (!token) {
-    return jsonError(c, 400, "missing_token", "Missing magic-link token.");
-  }
-
-  try {
-    const payload = await verifyMagicLinkToken(c.env, token);
-    if (!payload) {
-      return jsonError(
-        c,
-        401,
-        "invalid_or_expired_token",
-        "Magic link is invalid or has expired.",
-      );
-    }
-
-    return jsonOk(c, {
-      authenticated: true,
-      email: payload.email,
-      redirectTo: apiContract.normalizePath(requestedPath, payload.redirectTo),
-      appBaseUrl: getAppBaseUrl(c.env),
-      authBaseUrl: getAuthBaseUrl(c.env),
-      webBaseUrl: getWebBaseUrl(c.env),
-      apiBaseUrl: OMDALA_API_ORIGIN,
-    });
-  } catch (error) {
-    return jsonError(
-      c,
-      500,
-      "magic_link_verification_failed",
-      error instanceof Error ? error.message : "Unable to verify magic link.",
-    );
-  }
+app.get("/v1/auth/magic-link", (c) => {
+  return jsonError(
+    c,
+    410,
+    "magic_link_exchange_required",
+    "Use POST /v1/auth/session/exchange to consume a magic link exactly once.",
+  );
 });
 
 app.post("/v1/auth/session/exchange", async (c) => {
@@ -2419,22 +2891,19 @@ app.post("/v1/auth/session/exchange", async (c) => {
       );
     }
 
-    const now = Date.now();
-    const accessExp = now + 60 * 60 * 1000;
-    const refreshExp = now + 7 * 24 * 60 * 60 * 1000;
+    if (!await consumeMagicLinkState(c.env, payload)) {
+      return jsonError(
+        c,
+        401,
+        "invalid_or_consumed_token",
+        "Magic link is invalid, expired, or has already been used.",
+      );
+    }
 
-    const [accessToken, refreshToken] = await Promise.all([
-      createSessionToken(c.env, {
-        email: payload.email,
-        type: "access",
-        exp: accessExp,
-      }),
-      createSessionToken(c.env, {
-        email: payload.email,
-        type: "refresh",
-        exp: refreshExp,
-      }),
-    ]);
+    const { accessToken, refreshToken, accessExp } = await issueSessionTokens(
+      c.env,
+      payload.email,
+    );
 
     setSessionCookies(c, accessToken, refreshToken);
 
@@ -2445,7 +2914,7 @@ app.post("/v1/auth/session/exchange", async (c) => {
       appBaseUrl: getAppBaseUrl(c.env),
       authBaseUrl: getAuthBaseUrl(c.env),
       webBaseUrl: getWebBaseUrl(c.env),
-      apiBaseUrl: OMDALA_API_ORIGIN,
+      apiBaseUrl: getApiBaseUrl(c.env),
       expiresAt: new Date(accessExp).toISOString(),
     });
   } catch (error) {
@@ -2608,12 +3077,23 @@ app.get("/v1/billing/subscriptions", async (c) => {
     return session;
   }
 
-  const primary = getBillingSubscriptionForEmail(session.email);
-  return jsonOk(c, {
-    items: [primary],
-    total: 1,
-    primary,
-  });
+  const persistenceError = protectedRuntimePersistenceError(c);
+  if (persistenceError) return persistenceError;
+
+  try {
+    const primary = await getRuntimeBillingSubscription(c.env, session.email);
+    return jsonOk(c, {
+      items: [primary],
+      total: 1,
+      primary,
+    });
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(
+      c,
+      error,
+      "readBillingSubscription",
+    );
+  }
 });
 
 app.get("/v1/billing/usage", async (c) => {
@@ -2622,58 +3102,17 @@ app.get("/v1/billing/usage", async (c) => {
     return session;
   }
 
-  return jsonOk(c, {
-    ...getBillingUsageForEmail(session.email),
-    eventNames: Object.values(OM_AI_USAGE_EVENT_NAMES),
-  });
-});
+  const persistenceError = protectedRuntimePersistenceError(c);
+  if (persistenceError) return persistenceError;
 
-app.get("/v1/providers", async (c) => {
-  const session = await requireAuthenticatedSession(c);
-  if (session instanceof Response) {
-    return session;
+  try {
+    return jsonOk(c, {
+      ...(await getRuntimeBillingUsage(c.env, session.email)),
+      eventNames: Object.values(OM_AI_USAGE_EVENT_NAMES),
+    });
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "readBillingUsage");
   }
-
-  return jsonOk(c, getOmAiProviderRegistryResponse());
-});
-
-app.get("/v1/providers/route", async (c) => {
-  const session = await requireAuthenticatedSession(c);
-  if (session instanceof Response) {
-    return session;
-  }
-
-  const appId = c.req.query("app") ?? OM_AI_APP_ID;
-  if (appId !== OM_AI_APP_ID) {
-    return jsonError(
-      c,
-      422,
-      "unsupported_app",
-      `Unsupported app '${appId}'.`,
-    );
-  }
-
-  const capability = c.req.query("capability");
-  const capabilities = Object.values(OM_AI_PROVIDER_CAPABILITIES);
-  if (!capability || !capabilities.includes(capability as OmAiProviderCapabilityId)) {
-    return jsonError(
-      c,
-      422,
-      "invalid_capability",
-      `Capability is required. Allowed values: ${capabilities.join(", ")}.`,
-    );
-  }
-
-  return jsonOk(c, getOmAiProviderRouteDecision(capability as OmAiProviderCapabilityId));
-});
-
-app.get("/v1/providers/observability", async (c) => {
-  const session = await requireAuthenticatedSession(c);
-  if (session instanceof Response) {
-    return session;
-  }
-
-  return jsonOk(c, getOmAiProviderObservability());
 });
 
 app.get("/v1/workspaces", async (c) => {
@@ -2682,12 +3121,19 @@ app.get("/v1/workspaces", async (c) => {
     return session;
   }
 
-  const workspaces = getWorkspacesForEmail(session.email);
-  return jsonOk(c, {
-    schemaVersion: "2026-04-10",
-    workspaces,
-    total: workspaces.length,
-  });
+  const persistenceError = protectedRuntimePersistenceError(c);
+  if (persistenceError) return persistenceError;
+
+  try {
+    const workspaces = await getRuntimeWorkspaces(c.env, session.email);
+    return jsonOk(c, {
+      schemaVersion: "2026-04-10",
+      workspaces,
+      total: workspaces.length,
+    });
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "listWorkspaces");
+  }
 });
 
 app.get("/v1/workspaces/:workspaceId", async (c) => {
@@ -2696,22 +3142,29 @@ app.get("/v1/workspaces/:workspaceId", async (c) => {
     return session;
   }
 
-  const workspace = getWorkspacesForEmail(session.email).find(
-    (item) => item.id === c.req.param("workspaceId"),
-  );
-  if (!workspace) {
-    return jsonError(
-      c,
-      404,
-      "workspace_not_found",
-      "Workspace was not found in current session scope.",
-    );
-  }
+  const persistenceError = protectedRuntimePersistenceError(c);
+  if (persistenceError) return persistenceError;
 
-  return jsonOk(c, {
-    schemaVersion: "2026-04-10",
-    workspace,
-  });
+  try {
+    const workspace = (await getRuntimeWorkspaces(c.env, session.email)).find(
+      (item) => item.id === c.req.param("workspaceId"),
+    );
+    if (!workspace) {
+      return jsonError(
+        c,
+        404,
+        "workspace_not_found",
+        "Workspace was not found in current session scope.",
+      );
+    }
+
+    return jsonOk(c, {
+      schemaVersion: "2026-04-10",
+      workspace,
+    });
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "readWorkspace");
+  }
 });
 
 app.post("/v1/workspaces", async (c) => {
@@ -2759,40 +3212,54 @@ app.post("/v1/workspaces", async (c) => {
 
   const locale =
     body.locale === "en" || body.locale === "vi" ? body.locale : "vi";
-  const profile = getAccountProfileForEmail(session.email);
-  const now = new Date().toISOString();
-  const workspace: WorkspaceRecord = {
-    id: generateEntityId("ws"),
-    slug: toSlug(name),
-    name,
-    type: body.type ?? "organization",
-    timezone: body.timezone?.trim() || profile.timezone || "Asia/Ho_Chi_Minh",
-    locale,
-    ownerId: profile.id,
-    members: [
+  const persistenceError = protectedRuntimePersistenceError(c);
+  if (persistenceError) return persistenceError;
+
+  try {
+    const profile = isDatabaseConfigured(c.env)
+      ? await getRuntimeAccountProfile(c.env, session.email)
+      : getAccountProfileForEmail(session.email);
+    const now = new Date().toISOString();
+    const candidate: WorkspaceRecord = {
+      id: generateEntityId("ws"),
+      slug: toSlug(name),
+      name,
+      type: body.type ?? "organization",
+      timezone: body.timezone?.trim() || profile.timezone || "Asia/Ho_Chi_Minh",
+      locale,
+      ownerId: profile.id,
+      members: [
+        {
+          userId: profile.id,
+          role: "owner",
+          status: "active",
+          joinedAt: now,
+        },
+      ],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    let workspace = candidate;
+    if (isDatabaseConfigured(c.env)) {
+      workspace = await createWorkspace(c.env, session.email, candidate);
+    } else {
+      const workspaces = getWorkspacesForEmail(session.email);
+      workspaces.push(candidate);
+      workspaceStore.set(session.email, workspaces);
+    }
+
+    return jsonOk(
+      c,
       {
-        userId: profile.id,
-        role: "owner",
-        status: "active",
-        joinedAt: now,
+        schemaVersion: "2026-04-10",
+        workspace,
       },
-    ],
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  const workspaces = getWorkspacesForEmail(session.email);
-  workspaces.push(workspace);
-  workspaceStore.set(session.email, workspaces);
-
-  return jsonOk(
-    c,
-    {
-      schemaVersion: "2026-04-10",
-      workspace,
-    },
-    201,
-  );
+      201,
+    );
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "createWorkspace");
+  }
 });
 
 app.get("/v1/notifications", async (c) => {
@@ -2801,18 +3268,25 @@ app.get("/v1/notifications", async (c) => {
     return session;
   }
 
-  const unreadOnly = c.req.query("unreadOnly") === "true";
-  const notifications = getNotificationsForEmail(session.email);
-  const items = unreadOnly
-    ? notifications.filter((item) => !item.readAt)
-    : notifications;
+  const persistenceError = protectedRuntimePersistenceError(c);
+  if (persistenceError) return persistenceError;
 
-  return jsonOk(c, {
-    schemaVersion: "2026-04-10",
-    items,
-    total: items.length,
-    unread: notifications.filter((item) => !item.readAt).length,
-  });
+  try {
+    const unreadOnly = c.req.query("unreadOnly") === "true";
+    const notifications = await getRuntimeNotifications(c.env, session.email);
+    const items = unreadOnly
+      ? notifications.filter((item) => !item.readAt)
+      : notifications;
+
+    return jsonOk(c, {
+      schemaVersion: "2026-04-10",
+      items,
+      total: items.length,
+      unread: notifications.filter((item) => !item.readAt).length,
+    });
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "listNotifications");
+  }
 });
 
 app.post("/v1/notifications/mark-read/:notificationId", async (c) => {
@@ -2821,22 +3295,31 @@ app.post("/v1/notifications/mark-read/:notificationId", async (c) => {
     return session;
   }
 
-  const notificationId = c.req.param("notificationId");
-  const notifications = getNotificationsForEmail(session.email);
-  const found = notifications.find((item) => item.id === notificationId);
-  if (!found) {
-    return jsonError(c, 404, "notification_not_found", "Notification not found.");
-  }
+  const persistenceError = protectedRuntimePersistenceError(c);
+  if (persistenceError) return persistenceError;
 
-  if (!found.readAt) {
-    found.readAt = new Date().toISOString();
-  }
-  sharedNotificationStore.set(session.email, notifications);
+  try {
+    const notificationId = c.req.param("notificationId");
+    let found: SharedNotificationRecord | null;
+    if (isDatabaseConfigured(c.env)) {
+      found = await markNotificationRead(c.env, session.email, notificationId);
+    } else {
+      const notifications = getNotificationsForEmail(session.email);
+      found = notifications.find((item) => item.id === notificationId) ?? null;
+      if (found && !found.readAt) found.readAt = new Date().toISOString();
+      if (found) sharedNotificationStore.set(session.email, notifications);
+    }
+    if (!found) {
+      return jsonError(c, 404, "notification_not_found", "Notification not found.");
+    }
 
-  return jsonOk(c, {
-    schemaVersion: "2026-04-10",
-    notification: found,
-  });
+    return jsonOk(c, {
+      schemaVersion: "2026-04-10",
+      notification: found,
+    });
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "markNotificationRead");
+  }
 });
 
 app.post("/v1/analytics/track", async (c) => {
@@ -2903,34 +3386,48 @@ app.post("/v1/analytics/track", async (c) => {
     );
   }
 
-  const profile = getAccountProfileForEmail(session.email);
-  const event: AnalyticsEventEnvelope = {
-    id: generateEntityId("evt"),
-    appId,
-    eventName,
-    userId: profile.id,
-    ...(body.workspaceId ? { workspaceId: body.workspaceId } : {}),
-    ...(body.sessionId ? { sessionId: body.sessionId } : {}),
-    source,
-    occurredAt: body.occurredAt?.trim() || new Date().toISOString(),
-    properties: isPlainObject(body.properties)
-      ? (body.properties as AnalyticsEventEnvelope["properties"])
-      : {},
-  };
+  const persistenceError = protectedRuntimePersistenceError(c);
+  if (persistenceError) return persistenceError;
 
-  const events = getAnalyticsEventsForEmail(session.email);
-  events.push(event);
-  analyticsEventStore.set(session.email, events);
+  try {
+    const profile = isDatabaseConfigured(c.env)
+      ? await getRuntimeAccountProfile(c.env, session.email)
+      : getAccountProfileForEmail(session.email);
+    const candidate: AnalyticsEventEnvelope = {
+      id: generateEntityId("evt"),
+      appId,
+      eventName,
+      userId: profile.id,
+      ...(body.workspaceId ? { workspaceId: body.workspaceId } : {}),
+      ...(body.sessionId ? { sessionId: body.sessionId } : {}),
+      source,
+      occurredAt: body.occurredAt?.trim() || new Date().toISOString(),
+      properties: isPlainObject(body.properties)
+        ? (body.properties as AnalyticsEventEnvelope["properties"])
+        : {},
+    };
 
-  return jsonOk(
-    c,
-    {
-      envelopeVersion: "2026-04-10",
-      accepted: true,
-      eventId: event.id,
-    },
-    201,
-  );
+    let event = candidate;
+    if (isDatabaseConfigured(c.env)) {
+      event = await createAnalyticsEvent(c.env, session.email, candidate);
+    } else {
+      const events = getAnalyticsEventsForEmail(session.email);
+      events.push(candidate);
+      analyticsEventStore.set(session.email, events);
+    }
+
+    return jsonOk(
+      c,
+      {
+        envelopeVersion: "2026-04-10",
+        accepted: true,
+        eventId: event.id,
+      },
+      201,
+    );
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "createAnalyticsEvent");
+  }
 });
 
 app.get("/v1/analytics/dashboard", async (c) => {
@@ -2939,42 +3436,50 @@ app.get("/v1/analytics/dashboard", async (c) => {
     return session;
   }
 
-  const appId = c.req.query("app") as AnalyticsEventEnvelope["appId"] | undefined;
-  const events = getAnalyticsEventsForEmail(session.email).filter((item) =>
-    appId ? item.appId === appId : true,
-  );
+  const persistenceError = protectedRuntimePersistenceError(c);
+  if (persistenceError) return persistenceError;
 
-  const nowMs = Date.now();
-  const last24h = events.filter((item) => {
-    const occurredAtMs = Date.parse(item.occurredAt);
-    return Number.isFinite(occurredAtMs) && nowMs - occurredAtMs <= 24 * 60 * 60 * 1000;
-  });
+  try {
+    const appId = c.req.query("app") as
+      | AnalyticsEventEnvelope["appId"]
+      | undefined;
+    const events = await getRuntimeAnalyticsEvents(c.env, session.email, appId);
 
-  const byEventName = new Map<string, number>();
-  events.forEach((item) => {
-    byEventName.set(item.eventName, (byEventName.get(item.eventName) ?? 0) + 1);
-  });
-  const topEvents = [...byEventName.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([eventName, count]) => ({ eventName, count }));
+    const nowMs = Date.now();
+    const last24h = events.filter((item) => {
+      const occurredAtMs = Date.parse(item.occurredAt);
+      return (
+        Number.isFinite(occurredAtMs) &&
+        nowMs - occurredAtMs <= 24 * 60 * 60 * 1000
+      );
+    });
 
-  return jsonOk(c, {
-    schemaVersion: "2026-04-10",
-    summary: {
-      totalEvents: events.length,
-      eventsLast24h: last24h.length,
-      uniqueEventNames: byEventName.size,
-    },
-    topEvents,
-  });
+    const byEventName = new Map<string, number>();
+    events.forEach((item) => {
+      byEventName.set(item.eventName, (byEventName.get(item.eventName) ?? 0) + 1);
+    });
+    const topEvents = [...byEventName.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([eventName, count]) => ({ eventName, count }));
+
+    return jsonOk(c, {
+      schemaVersion: "2026-04-10",
+      summary: {
+        totalEvents: events.length,
+        eventsLast24h: last24h.length,
+        uniqueEventNames: byEventName.size,
+      },
+      topEvents,
+    });
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "readAnalyticsDashboard");
+  }
 });
 
 app.post("/v1/auth/refresh", async (c) => {
   const requestId = getOrCreateRequestId(c);
-  const body = await c.req.json<{ refresh_token?: string }>().catch(() => null);
-  const cookieRefreshToken = getCookieValue(c, "omdala_refresh_token");
-  const refreshTokenInput = body?.refresh_token ?? cookieRefreshToken;
+  const refreshTokenInput = getCookieValue(c, "omdala_refresh_token");
 
   if (!refreshTokenInput) {
     return jsonError(
@@ -3010,16 +3515,38 @@ app.post("/v1/auth/refresh", async (c) => {
     }
 
     const now = Date.now();
-    const accessExp = now + 60 * 60 * 1000; // 1 hour
-    const refreshExp = now + 7 * 24 * 60 * 60 * 1000; // 7 days
+    const accessExp = now + 60 * 60 * 1000;
+    const refreshExp = now + 7 * 24 * 60 * 60 * 1000;
+    const accessJti = crypto.randomUUID();
+    const refreshJti = crypto.randomUUID();
+
+    if (!await rotateAuthSessionState(c.env, {
+      id: payload.sid,
+      email: payload.email,
+      previousRefreshJti: payload.jti,
+      nextRefreshJti: refreshJti,
+      refreshExpiresAt: refreshExp,
+    })) {
+      clearSessionCookies(c);
+      return jsonError(
+        c,
+        401,
+        "refresh_token_reused_or_revoked",
+        "Refresh token has already been used or the session was revoked.",
+      );
+    }
 
     const [accessToken, refreshToken] = await Promise.all([
       createSessionToken(c.env, {
+        jti: accessJti,
+        sid: payload.sid,
         email: payload.email,
         type: "access",
         exp: accessExp,
       }),
       createSessionToken(c.env, {
+        jti: refreshJti,
+        sid: payload.sid,
         email: payload.email,
         type: "refresh",
         exp: refreshExp,
@@ -3037,8 +3564,7 @@ app.post("/v1/auth/refresh", async (c) => {
     setSessionCookies(c, accessToken, refreshToken);
 
     return jsonOk(c, {
-      access_token: accessToken,
-      refresh_token: refreshToken,
+      authenticated: true,
       expires_at: new Date(accessExp).toISOString(),
     });
   } catch (error) {
@@ -3052,18 +3578,34 @@ app.post("/v1/auth/refresh", async (c) => {
 });
 
 app.post("/v1/auth/logout", async (c) => {
-  // Stateless MVP: no server-side revocation store.
-  // Client must clear tokens on their side.
-  // Always returns 200 so the client can safely proceed with local cleanup.
   const requestId = getOrCreateRequestId(c);
+  const refreshToken = getCookieValue(c, "omdala_refresh_token");
+  const accessToken = getBearerToken(c) ?? getCookieValue(c, "omdala_access_token");
+  const session = refreshToken
+    ? await verifySessionToken(c.env, refreshToken, "refresh")
+    : accessToken
+      ? await verifySessionToken(c.env, accessToken, "access")
+      : null;
+  clearSessionCookies(c);
+  if (session) {
+    try {
+      await revokeAuthSessionState(c.env, session.sid);
+    } catch {
+      return jsonError(
+        c,
+        503,
+        "session_revocation_failed",
+        "Session cookies were cleared but server-side revocation failed.",
+      );
+    }
+  }
   console.log("v2_request", {
     request_id: requestId,
     route: "/v1/auth/logout",
     method: "POST",
     status: 200,
   });
-  clearSessionCookies(c);
-  return jsonOk(c, { ok: true });
+  return jsonOk(c, { revoked: Boolean(session) });
 });
 
 // Robots — API must never be indexed
@@ -3163,28 +3705,18 @@ app.post("/v1/security/service-token/verify", async (c) => {
   }
 });
 
-// ── AI Auto-Connect API ────────────────────────────────────────────────────
+// ── AIAGENT authority boundary ─────────────────────────────────────────────
 
 app.get("/v1/ai/connectors", async (c) => {
   const session = await requireAuthenticatedSession(c);
   if (session instanceof Response) return session;
 
-  const connectors = discoverConnectors({
-    openaiKey: c.env.OPENAI_API_KEY,
-    anthropicKey: c.env.ANTHROPIC_API_KEY,
-    geminiKey: c.env.GEMINI_API_KEY,
-    azureKey: c.env.AZURE_OPENAI_KEY,
-    azureEndpoint: c.env.AZURE_OPENAI_ENDPOINT,
-    mistralKey: c.env.MISTRAL_API_KEY,
-    groqKey: c.env.GROQ_API_KEY,
-    cohereKey: c.env.COHERE_API_KEY,
-    customEndpoint: c.env.CUSTOM_AI_ENDPOINT,
-    customKey: c.env.CUSTOM_AI_KEY,
-  });
+  const authority = getAiagentAuthority(c.env);
 
   return jsonOk(c, {
-    providers: connectors.map((c) => c.provider),
-    total: connectors.length,
+    providers: authority.configured ? [authority.provider] : [],
+    total: authority.configured ? 1 : 0,
+    authority,
   });
 });
 
@@ -3192,89 +3724,130 @@ app.get("/v1/ai/health", async (c) => {
   const session = await requireAuthenticatedSession(c);
   if (session instanceof Response) return session;
 
-  const connectors = discoverConnectors({
-    openaiKey: c.env.OPENAI_API_KEY,
-    anthropicKey: c.env.ANTHROPIC_API_KEY,
-    geminiKey: c.env.GEMINI_API_KEY,
-    azureKey: c.env.AZURE_OPENAI_KEY,
-    azureEndpoint: c.env.AZURE_OPENAI_ENDPOINT,
-    mistralKey: c.env.MISTRAL_API_KEY,
-    groqKey: c.env.GROQ_API_KEY,
-    cohereKey: c.env.COHERE_API_KEY,
-    customEndpoint: c.env.CUSTOM_AI_ENDPOINT,
-    customKey: c.env.CUSTOM_AI_KEY,
+  const authority = getAiagentAuthority(c.env);
+
+  // This route is read-only configuration health. A dashboard visit must never
+  // create a billable completion. Live model probes belong exclusively to the
+  // AIAGENT protected acceptance harness with its explicit spend ceiling.
+
+  return jsonOk(c, {
+    providers: [authority],
+    total: 1,
+    modelCallExecuted: false,
   });
+});
 
-  const results = await Promise.all(
-    connectors.map(async (config) => {
-      try {
-        return await checkAiProviderHealth(config);
-      } catch (error) {
-        return {
-          provider: config.provider,
-          ok: false,
-          latencyMs: 0,
-          error: error instanceof Error ? error.message : String(error),
-        };
-      }
-    }),
+app.get("/v1/ai/models", async (c) => {
+  const session = await requireAuthenticatedSession(c);
+  if (session instanceof Response) return session;
+
+  if (isRateLimited(`ai-catalog:${session.email}`, 30, 60 * 1000)) {
+    return jsonError(c, 429, "rate_limited", "Too many catalog requests.");
+  }
+
+  try {
+    const models = await listAiagentModels(c.env);
+    return jsonOk(c, {
+      authority: getAiagentAuthority(c.env),
+      models,
+      total: models.length,
+    });
+  } catch {
+    return jsonError(
+      c,
+      503,
+      "aiagent_catalog_unavailable",
+      "The verified AIAGENT catalog is unavailable.",
+    );
+  }
+});
+
+app.post("/v1/ai/chat", async (c) => {
+  const session = await requireAuthenticatedSession(c);
+  if (session instanceof Response) return session;
+
+  const idempotencyKey = normalizeIdempotencyKey(
+    c.req.header("idempotency-key"),
   );
+  if (!idempotencyKey) {
+    return jsonError(
+      c,
+      400,
+      "idempotency_key_required",
+      "A valid Idempotency-Key header is required.",
+    );
+  }
+  if (isRateLimited(`ai-chat:${session.email}`, 20, 60 * 1000)) {
+    return jsonError(c, 429, "rate_limited", "Too many AI requests.");
+  }
 
-  return jsonOk(c, { providers: results, total: results.length });
+  const body = await c.req.json<unknown>().catch(() => null);
+  if (!isPlainObject(body) || typeof body.model !== "string" || !Array.isArray(body.messages)) {
+    return jsonError(c, 400, "invalid_request", "A model and messages are required.");
+  }
+  const maxTokens =
+    typeof body.maxTokens === "number"
+      ? body.maxTokens
+      : typeof body.max_tokens === "number"
+        ? body.max_tokens
+        : 1024;
+  const input: AiagentChatInput = {
+    model: body.model,
+    messages: body.messages as AiagentChatInput["messages"],
+    maxTokens,
+  };
+
+  try {
+    const result = await executeAiagentChat(
+      c.env,
+      session.email,
+      idempotencyKey,
+      input,
+    );
+    return jsonOk(c, result);
+  } catch (error) {
+    const code = error instanceof Error ? error.message : "AIAGENT_UNKNOWN_ERROR";
+    if (code === "AIAGENT_CHAT_INPUT_INVALID" || code === "AIAGENT_MODEL_NOT_AVAILABLE") {
+      return jsonError(c, 422, "invalid_ai_request", "The requested AI model or input is invalid.");
+    }
+    if (
+      code === "AIAGENT_RUNTIME_NOT_CONFIGURED" ||
+      code === "AIAGENT_DESTINATION_NOT_CONFIGURED" ||
+      code === "AIAGENT_CREDENTIAL_NOT_CONFIGURED"
+    ) {
+      return jsonError(
+        c,
+        503,
+        "aiagent_not_configured",
+        "AIAGENT is not configured for this environment.",
+      );
+    }
+    return jsonError(
+      c,
+      502,
+      "aiagent_reconciliation_failed",
+      "AIAGENT execution did not produce complete run, receipt, usage, and cost evidence.",
+    );
+  }
 });
 
 app.post("/v1/ai/complete", async (c) => {
   const session = await requireAuthenticatedSession(c);
   if (session instanceof Response) return session;
 
-  const body = await c.req.json<{
-    messages?: Array<{ role: string; content: string }>;
-    maxTokens?: number;
-    temperature?: number;
-  }>().catch(() => null);
-
-  if (!body?.messages?.length) {
-    return jsonError(c, 400, "invalid_request", "messages array is required.");
-  }
-
-  const connectors = discoverConnectors({
-    openaiKey: c.env.OPENAI_API_KEY,
-    anthropicKey: c.env.ANTHROPIC_API_KEY,
-    geminiKey: c.env.GEMINI_API_KEY,
-    azureKey: c.env.AZURE_OPENAI_KEY,
-    azureEndpoint: c.env.AZURE_OPENAI_ENDPOINT,
-    mistralKey: c.env.MISTRAL_API_KEY,
-    groqKey: c.env.GROQ_API_KEY,
-    cohereKey: c.env.COHERE_API_KEY,
-    customEndpoint: c.env.CUSTOM_AI_ENDPOINT,
-    customKey: c.env.CUSTOM_AI_KEY,
-  });
-
-  if (!connectors.length) {
-    return jsonError(c, 501, "no_providers", "No AI providers are configured.");
-  }
-
-  try {
-    const result = await aiCompleteWithFallback(connectors, {
-      messages: body.messages.map((m) => ({
-        role:
-          m.role === "system" || m.role === "assistant" || m.role === "user"
-            ? m.role
-            : "user",
-        content: m.content,
-      })),
-      maxTokens: body.maxTokens,
-      temperature: body.temperature,
-    });
-    return jsonOk(c, result);
-  } catch (error) {
-    return jsonError(c, 502, "all_providers_failed", error instanceof Error ? error.message : "Unknown error");
-  }
+  return jsonError(
+    c,
+    501,
+    "direct_ai_disabled",
+    "Direct model execution is disabled. Use the scoped AIAGENT 1.0.0 client contract.",
+  );
 });
 
 // ── Google OAuth ─────────────────────────────────────────────────────────────
 
 const GOOGLE_STATE_TTL_S = 10 * 60;
+const GOOGLE_STATE_COOKIE = "__Host-omdala_google_state";
+const GOOGLE_PKCE_COOKIE = "__Host-omdala_google_pkce";
 
 async function hmacHex(secret: string, msg: string): Promise<string> {
   const key = await crypto.subtle.importKey(
@@ -3303,11 +3876,37 @@ async function verifyGoogleState(secret: string, token: string): Promise<boolean
   const parts = String(token || "").split(".");
   if (parts.length !== 2 || !parts[0] || !parts[1]) return false;
   const expected = await hmacHex(secret, parts[0]);
-  if (expected !== parts[1]) return false;
+  if (!await secureStringEqual(expected, parts[1])) return false;
   try {
     const p = JSON.parse(fromb64url(parts[0])) as { exp?: number };
     return typeof p.exp === "number" && p.exp > Math.floor(Date.now() / 1000);
   } catch { return false; }
+}
+
+async function buildGooglePkce(): Promise<{ verifier: string; challenge: string }> {
+  const verifier = bytesToBase64Url(crypto.getRandomValues(new Uint8Array(32)));
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(verifier),
+  );
+  return { verifier, challenge: bytesToBase64Url(new Uint8Array(digest)) };
+}
+
+function setGoogleOAuthCookies(c: ApiContext, state: string, verifier: string): void {
+  for (const [name, value] of [
+    [GOOGLE_STATE_COOKIE, state],
+    [GOOGLE_PKCE_COOKIE, verifier],
+  ] as const) {
+    c.header("Set-Cookie", buildSetCookie(c, name, value, GOOGLE_STATE_TTL_S), {
+      append: true,
+    });
+  }
+}
+
+function clearGoogleOAuthCookies(c: ApiContext): void {
+  for (const name of [GOOGLE_STATE_COOKIE, GOOGLE_PKCE_COOKIE]) {
+    c.header("Set-Cookie", buildClearCookie(c, name), { append: true });
+  }
 }
 
 app.get("/v1/auth/google/start", async (c) => {
@@ -3319,20 +3918,29 @@ app.get("/v1/auth/google/start", async (c) => {
     return jsonError(c, 501, "oauth_not_configured", "Google OAuth is not configured.");
   }
 
-  const state = await buildGoogleState(stateSecret);
+  const [state, pkce] = await Promise.all([
+    buildGoogleState(stateSecret),
+    buildGooglePkce(),
+  ]);
   const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("response_type", "code");
   url.searchParams.set("scope", "openid email profile");
   url.searchParams.set("state", state);
+  url.searchParams.set("code_challenge", pkce.challenge);
+  url.searchParams.set("code_challenge_method", "S256");
   url.searchParams.set("prompt", "select_account");
-  return Response.redirect(url.toString(), 302);
+  setGoogleOAuthCookies(c, state, pkce.verifier);
+  return c.redirect(url.toString(), 302);
 });
 
 app.get("/v1/auth/google/callback", async (c) => {
   const appBase = getAppBaseUrl(c.env);
-  const errRedirect = (r: string) => Response.redirect(`${appBase}/login?error=${encodeURIComponent(r)}`, 302);
+  const errRedirect = (r: string) => {
+    clearGoogleOAuthCookies(c);
+    return c.redirect(`${appBase}/login?error=${encodeURIComponent(r)}`, 302);
+  };
 
   const clientId = (c.env.GOOGLE_CLIENT_ID ?? "").trim();
   const clientSecret = (c.env.GOOGLE_CLIENT_SECRET ?? "").trim();
@@ -3344,16 +3952,26 @@ app.get("/v1/auth/google/callback", async (c) => {
   const code = c.req.query("code") ?? "";
   const state = c.req.query("state") ?? "";
   const providerError = c.req.query("error") ?? "";
+  const expectedState = getCookieValue(c, GOOGLE_STATE_COOKIE) ?? "";
+  const codeVerifier = getCookieValue(c, GOOGLE_PKCE_COOKIE) ?? "";
 
   if (providerError) return errRedirect("oauth_provider_error");
   if (!code || !state) return errRedirect("missing_code_or_state");
-  if (!await verifyGoogleState(stateSecret, state)) return errRedirect("invalid_oauth_state");
+  if (
+    !expectedState ||
+    !codeVerifier ||
+    !await secureStringEqual(expectedState, state) ||
+    !await verifyGoogleState(stateSecret, state)
+  ) {
+    return errRedirect("invalid_oauth_state");
+  }
+  clearGoogleOAuthCookies(c);
 
   // Exchange code for tokens
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: "authorization_code" }),
+    body: new URLSearchParams({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: "authorization_code", code_verifier: codeVerifier }),
   });
   const tokenData = await tokenRes.json().catch(() => ({})) as Record<string, unknown>;
   if (!tokenRes.ok || !tokenData.access_token) return errRedirect("oauth_exchange_failed");
@@ -3368,16 +3986,11 @@ app.get("/v1/auth/google/callback", async (c) => {
 
   const email = String(profile.email).trim().toLowerCase();
 
-  // Create session tokens (stateless, HMAC-based — same as magic-link flow)
   if (!c.env.MAGIC_LINK_SECRET) return errRedirect("session_secret_missing");
-  const now = Date.now();
-  const [accessToken, refreshToken] = await Promise.all([
-    createSessionToken(c.env, { email, type: "access", exp: now + 60 * 60 * 1000 }),
-    createSessionToken(c.env, { email, type: "refresh", exp: now + 7 * 24 * 60 * 60 * 1000 }),
-  ]);
+  const { accessToken, refreshToken } = await issueSessionTokens(c.env, email);
 
   setSessionCookies(c, accessToken, refreshToken);
-  return Response.redirect(`${appBase}/`, 302);
+  return c.redirect(`${appBase}/`, 302);
 });
 
 export default app;

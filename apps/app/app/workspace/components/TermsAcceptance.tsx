@@ -98,8 +98,8 @@ export function TermsAcceptance({ onAccept }: { onAccept: () => void }) {
             content="OMCODE is provided AS IS. Angel Edu Tam Foundation and IAI ONE disclaim all liability for data loss, corruption, or security breaches. Maximum liability is capped at $100 USD."
           />
           <RiskSection
-            title="5. API Keys in localStorage"
-            content="Your API keys are stored in browser localStorage. They are never sent to our servers, but any script on localhost:3000 can access them. Rotate keys regularly."
+            title="5. Server-managed AI credential"
+            content="The browser never receives or stores the AIAGENT credential. AI requests use the authenticated OMDALA API, which holds a scoped credential in the protected server secret store."
           />
           <RiskSection
             title="6. Backup Responsibility"
@@ -113,7 +113,7 @@ export function TermsAcceptance({ onAccept }: { onAccept: () => void }) {
               <li>Review every AI-generated command before execution</li>
               <li>Test AI code in a separate branch before applying to main</li>
               <li>Keep regular backups of important projects</li>
-              <li>Use separate API keys for development vs production</li>
+              <li>Keep staging and production credentials isolated in protected environments</li>
             </ul>
           </div>
 

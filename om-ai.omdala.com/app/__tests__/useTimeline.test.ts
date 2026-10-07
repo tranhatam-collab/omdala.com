@@ -23,7 +23,7 @@ describe('useTimeline', () => {
   });
 
   it('loads timeline entries', async () => {
-    const { result } = renderHook(() => useTimeline());
+    const { result, unmount } = renderHook(() => useTimeline());
     await act(async () => {
       await Promise.resolve();
     });
@@ -32,5 +32,6 @@ describe('useTimeline', () => {
     });
     expect(result.current.entries).toHaveLength(1);
     expect(result.current.entries[0].proof?.proofId).toBe('proof_1');
+    unmount();
   });
 });

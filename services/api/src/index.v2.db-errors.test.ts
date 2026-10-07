@@ -25,6 +25,11 @@ vi.mock("./db/reality-repository", () => ({
   listTrust: repoMocks.listTrust,
 }));
 
+vi.mock("./db/auth-repository", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./db/auth-repository")>()),
+  isAuthSessionActive: vi.fn(async () => true),
+}));
+
 import app from "./index";
 
 const env = {
@@ -38,6 +43,8 @@ async function createAccessToken(
 ): Promise<string> {
   const payloadPart = Buffer.from(
     JSON.stringify({
+      jti: "11111111-1111-4111-8111-111111111111",
+      sid: "22222222-2222-4222-8222-222222222222",
       email,
       type: "access",
       exp: Date.now() + 60 * 60 * 1000,

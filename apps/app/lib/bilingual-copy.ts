@@ -189,7 +189,7 @@ export const APP_COPY = {
       nodes: { en: "Persisted nodes", vi: "Nút đã lưu" },
       trust: { en: "Trust records", vi: "Bản ghi niềm tin" },
       pendingProofs: { en: "Pending proofs", vi: "Bằng chứng chờ duyệt" },
-      aiProviders: { en: "Healthy AI providers", vi: "Nhà cung cấp AI hoạt động tốt" },
+      aiProviders: { en: "AIAGENT authority", vi: "Thẩm quyền AIAGENT" },
       connected: { en: "Connected", vi: "Đã kết nối" },
       unavailable: { en: "Unavailable", vi: "Không khả dụng" },
       realityStore: { en: "Reality store", vi: "Kho dữ liệu thực tế" },
@@ -606,8 +606,8 @@ export const APP_COPY = {
     eyebrow: { en: "Settings Runtime", vi: "Lớp vận hành cài đặt" },
     settings: { en: "Settings", vi: "Cài đặt" },
     intro: {
-      en: "Manage language, notifications, plan visibility, usage, and AI provider routing.",
-      vi: "Quản lý ngôn ngữ, thông báo, mức hiển thị gói, mức sử dụng và định tuyến nhà cung cấp AI.",
+      en: "Manage language, notifications, plan visibility, usage, and the verified AIAGENT authority.",
+      vi: "Quản lý ngôn ngữ, thông báo, mức hiển thị gói, mức sử dụng và thẩm quyền AIAGENT đã xác minh.",
     },
     introSuffix: {
       en: "Account changes are saved through the authenticated API.",
@@ -625,8 +625,8 @@ export const APP_COPY = {
     themeApplied: { en: "with theme set to", vi: "với giao diện đang dùng là" },
     usedToday: { en: "call minutes used today.", vi: "phút gọi đã dùng hôm nay." },
     billingAwareEvents: {
-      en: "billing-aware provider events are now locked.",
-      vi: "các sự kiện provider gắn với thanh toán hiện đã được khóa.",
+      en: "billing-aware usage events are now locked.",
+      vi: "các sự kiện sử dụng gắn với thanh toán hiện đã được khóa.",
     },
     appId: { en: "App ID", vi: "Mã ứng dụng" },
     billingCycle: { en: "Billing cycle", vi: "Chu kỳ thanh toán" },
@@ -680,24 +680,6 @@ export const APP_COPY = {
     loadFailure: {
       en: "Unable to load account settings.",
       vi: "Không thể tải cài đặt tài khoản.",
-    },
-  },
-  providerRoutingStatus: {
-    title: { en: "Provider routing snapshot", vi: "Ảnh chụp nhanh định tuyến nhà cung cấp" },
-    source: { en: "Provider source", vi: "Nguồn nhà cung cấp" },
-    apiLive: { en: "API live", vi: "API trực tiếp" },
-    snapshotFallback: {
-      en: "snapshot fallback",
-      vi: "phương án dự phòng từ ảnh chụp nhanh",
-    },
-    registry: { en: "Provider registry", vi: "Danh mục nhà cung cấp" },
-    lastSynced: { en: "Last synced", vi: "Đồng bộ lúc" },
-    none: { en: "none", vi: "không có" },
-    fallback: { en: "fallback", vi: "dự phòng" },
-    score: { en: "score", vi: "điểm số" },
-    refreshFailure: {
-      en: "Unable to refresh provider routing from API.",
-      vi: "Không thể làm mới định tuyến nhà cung cấp từ API.",
     },
   },
 } as const;

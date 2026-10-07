@@ -14,7 +14,7 @@ const copy = {
     },
     eyebrow: "Managed inquiry",
     lead: "This public page records no private evidence and handles no payment. Continue in the authenticated workspace to start the managed request.",
-    action: "Continue to app.omdala.com",
+    action: "Continue to",
   },
   vi: {
     labels: {
@@ -26,7 +26,7 @@ const copy = {
     },
     eyebrow: "Yêu cầu có quản lý",
     lead: "Trang công khai này không ghi nhận proof riêng tư và không xử lý thanh toán. Hãy tiếp tục trong workspace có xác thực để bắt đầu yêu cầu.",
-    action: "Tiếp tục tới app.omdala.com",
+    action: "Tiếp tục tới",
   },
 } as const;
 
@@ -80,6 +80,7 @@ function InquiryHandoffView({
 
   const text = copy[locale];
   const workspaceHref = `${appOrigin}/brands/${encodeURIComponent(slug)}?intent=${encodeURIComponent(requestType)}`;
+  const appHostname = new URL(appOrigin).hostname;
 
   return (
     <main className="market-information" lang={locale}>
@@ -92,7 +93,7 @@ function InquiryHandoffView({
       </header>
       <div className="market-actions">
         <a className="market-button market-button--solid" href={workspaceHref}>
-          {text.action}
+          {text.action} {appHostname}
         </a>
       </div>
     </main>

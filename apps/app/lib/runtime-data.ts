@@ -1,4 +1,4 @@
-import { getAiActionSuggestions, getOmAiProviderRoutingSnapshot } from '@omdala/ai-service'
+import { getAiActionSuggestions } from '@omdala/ai-service'
 import {
   OM_AI_APP_ID,
   OM_AI_FREE_DAILY_CALL_MINUTES,
@@ -76,7 +76,6 @@ export function getAccountBillingSnapshot(): {
   usage: OmAiBillingUsage
   usageEventNames: string[]
   betaGate: OmAiBetaGate
-  providerRouting: ReturnType<typeof getOmAiProviderRoutingSnapshot>
 } {
   const session = getMockSession()
 
@@ -122,7 +121,6 @@ export function getAccountBillingSnapshot(): {
     },
     usageEventNames: Object.values(OM_AI_USAGE_EVENT_NAMES),
     betaGate: resolveOmAiBetaGate(subscription),
-    providerRouting: getOmAiProviderRoutingSnapshot(),
   }
 }
 

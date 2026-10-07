@@ -12,46 +12,54 @@ const ROLE_SET: ReadonlySet<UserRole> = new Set([
   'observer',
 ]);
 
-export type AuthContext = {
+const VERIFIED_AUTH_CONTEXT = Symbol('omdala.verified-auth-context');
+
+export type AuthContext = Readonly<{
   userId: string;
   role: UserRole;
+}>;
+
+type VerifiedRequest = FastifyRequest & {
+  [VERIFIED_AUTH_CONTEXT]?: AuthContext;
 };
 
-export function getAuthContext(request: FastifyRequest): AuthContext | null {
-  const authorization = request.headers.authorization;
-  if (typeof authorization === 'string' && authorization.startsWith('Bearer ')) {
-    const token = authorization.slice('Bearer '.length).trim();
-    const [userId, roleRaw] = token.split(':');
-    if (userId && roleRaw && ROLE_SET.has(roleRaw as UserRole)) {
-      return { userId, role: roleRaw as UserRole };
-    }
+/** Bind identity only after a server-side OMDALA session verifier succeeds. */
+export function bindVerifiedAuthContext(request: FastifyRequest, context: AuthContext): void {
+  const userId = context.userId.trim();
+  if (!userId || !ROLE_SET.has(context.role)) {
+    throw new TypeError('Verified OMDALA identity is invalid.');
   }
 
-  if (process.env.AUTH_MODE === 'dev' && process.env.DEV_AUTH_BYPASS === '1') {
-    return { userId: 'dev_user', role: 'owner' };
-  }
-
-  const userIdHeader = request.headers['x-user-id'];
-  const roleHeader = request.headers['x-role'];
-
-  const userId = typeof userIdHeader === 'string' ? userIdHeader.trim() : '';
-  const roleRaw = typeof roleHeader === 'string' ? roleHeader.trim() : '';
-
-  if (!userId || !roleRaw) return null;
-  if (!ROLE_SET.has(roleRaw as UserRole)) return null;
-
-  return { userId, role: roleRaw as UserRole };
+  Object.defineProperty(request, VERIFIED_AUTH_CONTEXT, {
+    configurable: false,
+    enumerable: false,
+    writable: false,
+    value: Object.freeze({ userId, role: context.role }),
+  });
 }
 
-export function requireSensitiveAuth(request: FastifyRequest, reply: FastifyReply) {
+export function getAuthContext(request: FastifyRequest): AuthContext | null {
+  return (request as VerifiedRequest)[VERIFIED_AUTH_CONTEXT] ?? null;
+}
+
+export function requireSensitiveAuth(
+  request: FastifyRequest,
+  reply: FastifyReply,
+): AuthContext | null {
   const auth = getAuthContext(request);
   if (!auth) {
-    reply.code(401).send({
-      error: 'unauthorized',
-      reason: 'Missing or invalid x-user-id/x-role headers.',
-    });
-    return;
+    reply
+      .code(503)
+      .header('cache-control', 'no-store')
+      .send({
+        data: null,
+        error: {
+          code: 'omdala_identity_authority_unavailable',
+          reason: 'Direct OM-AI access is disabled until the canonical OMDALA session verifier is integrated.',
+        },
+      });
+    return null;
   }
 
-  (request as FastifyRequest & { auth: AuthContext }).auth = auth;
+  return auth;
 }

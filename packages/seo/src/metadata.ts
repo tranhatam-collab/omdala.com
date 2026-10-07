@@ -28,6 +28,10 @@ export function buildMetadata(input: PageMetadataInput): Metadata {
   const url        = buildSeoUrl(path)
   const fullTitle  = `${title} — ${SEO_DEFAULTS.siteName}`
   const alternates = alternateLanguages ?? buildLanguageAlternates(path)
+  const releaseAllowsIndexing =
+    process.env.NEXT_PUBLIC_RELEASE_ENVIRONMENT === 'production' &&
+    process.env.OMDALA_NOINDEX !== 'true'
+  const effectiveNoindex = noindex || !releaseAllowsIndexing
 
   return {
     title,
@@ -39,7 +43,7 @@ export function buildMetadata(input: PageMetadataInput): Metadata {
       languages: alternates,
     },
 
-    robots: noindex
+    robots: effectiveNoindex
       ? { index: false, follow: false }
       : { index: true,  follow: true  },
 

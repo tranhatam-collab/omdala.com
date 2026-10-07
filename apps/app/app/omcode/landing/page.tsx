@@ -4,30 +4,30 @@
 import * as React from "react";
 
 const FEATURES = [
-  { icon: "🤖", title: "7 AI Providers", desc: "OpenAI, Anthropic, Google, Groq, DeepSeek, Cloudflare, Ollama — switch instantly." },
-  { icon: "⚡", title: "Auto Model Router", desc: "Task Classifier chọn model phù hợp theo độ phức tạp — tiết kiệm 40% cost." },
-  { icon: "💬", title: "Streaming AI Chat", desc: "AI trả lời từng chữ, không chờ full response. 7 ngôn ngữ." },
+  { icon: "🤖", title: "Verified AI Catalog", desc: "Danh sách model lấy từ AIAGENT contract 1.0.0 qua OMDALA API đã xác thực." },
+  { icon: "⚡", title: "Single AI Authority", desc: "Mọi AI request đi qua OMDALA API và AIAGENT; không có direct-provider fallback." },
+  { icon: "💬", title: "Reconciled AI Chat", desc: "Chỉ hiển thị kết quả sau khi run, signed receipt, usage và cost đã đối soát." },
   { icon: "/", title: "Slash Commands", desc: "/explain /test /refactor /fix /doc /commit — 1 click auto-fill context." },
   { icon: "@", title: "@-mentions", desc: "@filename trong chat để AI đọc thêm context từ file cụ thể." },
   { icon: "📝", title: "Code Apply + Diff", desc: "AI sinh code → xem diff → Apply vào file. Before/after preview." },
   { icon: "⌘I", title: "Inline AI", desc: "Chọn code → Ctrl+I → AI auto-fill context trong chat." },
-  { icon: "📊", title: "Cost Dashboard", desc: "Track token usage, chi phí theo ngày/tuần, breakdown theo model real-time." },
+  { icon: "📊", title: "Cost Dashboard", desc: "Theo dõi token và chi phí authoritative từ AIAGENT receipt theo ngày/tuần." },
   { icon: "🗨️", title: "Chat History", desc: "Lưu toàn bộ lịch sử chat, search, filter theo workspace." },
   { icon: "📁", title: "File System Access", desc: "Mở folder thật từ MacBook. Không qua server. Local-first 100%." },
   { icon: "🖥️", title: "Monaco Editor", desc: "VS Code-grade editor với syntax highlight, IntelliSense, error squiggles." },
   { icon: "🌳", title: "Git Native", desc: "Stage, commit, branch, diff — full git workflow trong IDE." },
   { icon: "📊", title: "Status Bar", desc: "Git branch, changes, file count, language, UTF-8, online indicator." },
-  { icon: "🔑", title: "Account + API Gateway", desc: "Link với aiagent.iai.one. Free / Pro / Enterprise plans." },
+  { icon: "🔑", title: "Protected API Gateway", desc: "Browser dùng phiên OMDALA; credential AIAGENT chỉ tồn tại trong secret store phía server." },
   { icon: "⚛️", title: "Project Detection", desc: "Auto-detect React, Next.js, Vue, Rust, Go, Python... + logo project." },
 ];
 
 const SECURITY = [
-  { icon: "🔒", title: "Local-First", desc: "Dữ liệu không rời máy. File System Access API. Không cloud storage." },
-  { icon: "🔑", title: "API Keys in Browser", desc: "Keys lưu localStorage, không gửi server. Bạn kiểm soát hoàn toàn." },
+  { icon: "🔒", title: "Local-First Workspace", desc: "File dự án ở trên máy; chỉ context người dùng chọn mới được gửi khi chủ động gọi AI." },
+  { icon: "🔑", title: "No Browser AI Keys", desc: "Credential AIAGENT có scope nằm trong Cloudflare/GitHub secret store, không ở localStorage." },
   { icon: "⚠️", title: "Risk Acknowledgment", desc: "Terms of Service bắt buộc trước lần dùng đầu tiên. Terminal/file warnings." },
-  { icon: "🛡️", title: "Permission Layer", desc: "Approval workflow cho AI actions nguy hiểm. Auto-approve configurable." },
+  { icon: "🛡️", title: "Permission Layer", desc: "Luồng duyệt rõ ràng cho thay đổi file và lệnh có ảnh hưởng." },
   { icon: "📜", title: "MIT Licensed", desc: "Open source core. Kiểm tra code bất cứ lúc nào. Không vendor lock-in." },
-  { icon: "🔍", title: "Full Auditability", desc: "Chat history, code edit history, cost log — tất cả lưu local, không mất." },
+  { icon: "🔍", title: "Receipt-backed Audit", desc: "Chat history, code edits và cost log gắn với run/receipt đã đối soát." },
 ];
 
 export default function OmcCodeLanding() {
@@ -53,8 +53,8 @@ export default function OmcCodeLanding() {
           OMCODE
         </h1>
         <p style={{ fontSize: 18, color: "#6b7f99", maxWidth: 600, margin: "0 auto 32px", lineHeight: 1.6 }}>
-          AI Code OS — Local-first IDE with 7 AI providers, streaming chat, slash commands,
-          code diff preview, cost tracking, and native Git. All on your MacBook. No cloud.
+          AI Code OS — local-first workspace with one verified AIAGENT authority, receipt-backed chat,
+          code diff preview, cost tracking, and native Git.
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <a href="/omcode" style={{
@@ -77,10 +77,10 @@ export default function OmcCodeLanding() {
       {/* Stats */}
       <div style={{ display: "flex", justifyContent: "center", gap: 40, padding: "40px 24px", flexWrap: "wrap" }}>
         {[
-          { n: "7", l: "AI Providers" },
+          { n: "1", l: "AI Authority" },
           { n: "14", l: "Project Types" },
-          { n: "0", l: "Data Leaves Machine" },
-          { n: "100%", l: "Local-First" },
+          { n: "0", l: "Browser AI Keys" },
+          { n: "100%", l: "Receipt Required" },
         ].map((s) => (
           <div key={s.l} style={{ textAlign: "center" }}>
             <div style={{ fontSize: 32, fontWeight: 800, color: "#7ef2ff" }}>{s.n}</div>
@@ -136,9 +136,9 @@ export default function OmcCodeLanding() {
         </h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
           {[
-            { name: "Free", price: "$0", color: "#6b7f99", features: ["7 AI providers", "Local-first", "Basic chat", "File explorer", "Monaco editor", "Git panel", "Cost dashboard"] },
-            { name: "Pro", price: "$9/mo", color: "#7ef2ff", features: ["Unlimited tokens", "Priority routing", "Custom models", "Team sharing", "Advanced diff", "Export history", "API gateway"] },
-            { name: "Enterprise", price: "Custom", color: "#4ade80", features: ["Dedicated gateway", "SSO / SAML", "SLA 99.9%", "On-premise option", "Custom integrations", "Priority support", "Audit logs"] },
+            { name: "Free", price: "$0", color: "#6b7f99", features: ["Verified AIAGENT catalog", "Local-first workspace", "Basic chat", "File explorer", "Monaco editor", "Git panel", "Cost dashboard"] },
+            { name: "Pro", price: "$9/mo", color: "#7ef2ff", features: ["Plan-scoped quota", "Receipt-backed AI", "Team sharing", "Advanced diff", "Export history", "Protected API gateway", "Usage ledger"] },
+            { name: "Enterprise", price: "Custom", color: "#4ade80", features: ["Scoped workspace", "SSO / SAML", "Contracted SLA", "Isolated credentials", "Custom integrations", "Priority support", "Audit receipts"] },
           ].map((p) => (
             <div key={p.name} style={{
               padding: 24, borderRadius: 12,

@@ -5,6 +5,9 @@ import { getPageCopy } from "./lib/bilingual-source";
 import "./globals.css";
 
 const homeSeo = getPageCopy("home", "en");
+const allowIndexing =
+  process.env.NEXT_PUBLIC_RELEASE_ENVIRONMENT === "production" &&
+  process.env.OMDALA_NOINDEX !== "true";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://omdala.com"),
@@ -38,8 +41,8 @@ export const metadata: Metadata = {
     card: "summary_large_image",
   },
   robots: {
-    index: true,
-    follow: true,
+    index: allowIndexing,
+    follow: allowIndexing,
   },
 };
 

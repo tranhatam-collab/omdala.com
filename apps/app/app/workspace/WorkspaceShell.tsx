@@ -11,7 +11,7 @@ import { EditorPanel } from "./components/EditorPanel";
 import { TerminalPanel } from "./components/TerminalPanel";
 import { GitPanel } from "./components/GitPanel";
 import { AIChatPanel } from "./components/AIChatPanel";
-import { SettingsPanel, loadSettings, applySettingsToRouter } from "./components/SettingsPanel";
+import { SettingsPanel, loadSettings } from "./components/SettingsPanel";
 import { WelcomeScreen, saveRecentProject } from "./components/WelcomeScreen";
 import { StatusBar } from "./components/StatusBar";
 import { AICommandPalette } from "../ai/AICommandPalette";
@@ -51,11 +51,6 @@ export function WorkspaceShell() {
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [projectKey, setProjectKey] = React.useState<string | null>(null);
   const [isOnline, setIsOnline] = React.useState(true);
-
-  // Apply persisted settings to model router on mount
-  React.useEffect(() => {
-    applySettingsToRouter(loadSettings());
-  }, []);
 
   // Check terms acceptance
   React.useEffect(() => {

@@ -54,23 +54,29 @@ for (const [name, options, reconciled] of [
         workspaceId: "omcode-ws",
       });
       const provider = await checkProvider(store, "gateway");
-      const result = await embedding(
-        { ...provider, model: GATEWAY_EMBED_MODELS[0] },
-        "Synthetic E2E",
-        signal(),
-      );
-      assert.equal(result.embeddings.length, 1);
-      assert.equal(result.billing.billing_eligible, reconciled);
-      assert.equal(result.billing.cost_usd, reconciled ? 0.00042 : null);
-      assert.equal(result.billing_eligible, reconciled);
-      assert.equal(result.cost_usd, reconciled ? 0.00042 : null);
-      assert.equal(
-        result.cost_ledger_status,
-        reconciled ? "reconciled" : "unverified",
-      );
+      const invoke = () =>
+        embedding(
+          { ...provider, model: GATEWAY_EMBED_MODELS[0] },
+          "Synthetic E2E",
+          signal(),
+        );
+      if (reconciled) {
+        const result = await invoke();
+        assert.equal(result.embeddings.length, 1);
+        assert.equal(result.billing.billing_eligible, true);
+        assert.equal(result.billing.cost_usd, 0.00042);
+        assert.equal(result.billing_eligible, true);
+        assert.equal(result.cost_usd, 0.00042);
+        assert.equal(result.cost_ledger_status, "reconciled");
+      } else {
+        await assert.rejects(
+          invoke(),
+          /ledger|receipt|reconciliation|verification|identity|usage|cost/i,
+        );
+      }
       const urls = fixture.state.requests.map((r) => r.url);
-      assert.ok(urls.includes("/v1/runs/run_1"));
-      assert.ok(urls.includes("/v1/ai/verify"));
+      if (!options.omitLedger) assert.ok(urls.includes("/v1/runs/run_1"));
+      if (!options.omitLedger) assert.ok(urls.includes("/v1/ai/verify"));
     });
   });
 
@@ -97,7 +103,7 @@ test("egress policy blocks credential material in outbound payloads", () => {
     "token: ghp_abcdefghijklmnopqrstuvwxyz123456",
     'curl -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"',
     "-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA7",
-    "api_key: AKIAIOSFODNN7EXAMPLE",
+    ["api_key: AKIA", "IOSFODNN7EXAMPLE"].join(""),
     "safe text ​with hidden char",
     `token = "xJ9${"aQ2ZmK8pL3vB7nR4tY6uI0oP".repeat(2)}wE1"`,
   ];
@@ -195,6 +201,8 @@ test("gateway catalog binds to credential fingerprint and revision", async (t) =
     assert.equal(checked.embeddingModels.length, GATEWAY_EMBED_MODELS.length);
     assert.equal(checked.catalog.fingerprint, credentialFingerprint(KEY));
     assert.equal(checked.catalog.revision, 0);
+    assert.equal(checked.catalog.origin, fixture.baseUrl);
+    assert.equal(checked.catalog.namespace, "iai-one");
 
     const providers = store.get("providers", []);
     const provider = providers.find((p) => p.id === "gateway");
@@ -211,6 +219,70 @@ test("gateway catalog binds to credential fingerprint and revision", async (t) =
       result.message.content,
       "Đã chuẩn bị bản sửa. Chờ bạn áp dụng.",
     );
+    const invocation = fixture.state.requests.find(
+      (request) => request.url === "/v1/ai/chat",
+    );
+    assert.equal(invocation.requestId, invocation.traceId);
+    assert.equal(invocation.requestId, invocation.idempotencyKey);
+    assert.equal(invocation.workspaceHeader, undefined);
+    assert.equal(invocation.actorIdHeader, undefined);
+    assert.equal(invocation.tierHeader, undefined);
+    assert.equal(invocation.quotaHeader, undefined);
+  });
+});
+
+for (const [name, catalogIdentity] of [
+  ["wrong origin", { transport_origin: "https://attacker.invalid" }],
+  ["wrong namespace", { namespace: "vendor" }],
+  ["wrong authority", { authority: "attacker.invalid" }],
+])
+  test(`gateway rejects catalog with ${name}`, async (t) => {
+    const fixture = await startGatewayFixture({ catalogIdentity });
+    t.after(() => fixture.close());
+    const store = await tempStore();
+    t.after(() => store.close());
+    await saveProvider(store, {
+      id: "gateway",
+      name: "IAI One",
+      baseUrl: fixture.baseUrl,
+      kind: "iai-one",
+      tenantId: "omcode-test",
+      workspaceId: "omcode-ws",
+    });
+    await withKey(KEY, async () => {
+      const checked = await checkProvider(store, "gateway");
+      assert.equal(checked.status, "error");
+      assert.equal(checked.catalog, null);
+      assert.match(checked.error, /catalog/i);
+    });
+  });
+
+test("gateway rejects models outside the iai-one namespace", async (t) => {
+  const fixture = await startGatewayFixture({
+    models: [
+      {
+        id: "vendor/direct-model",
+        status: "available",
+        capabilities: ["chat"],
+      },
+    ],
+  });
+  t.after(() => fixture.close());
+  const store = await tempStore();
+  t.after(() => store.close());
+  await saveProvider(store, {
+    id: "gateway",
+    name: "IAI One",
+    baseUrl: fixture.baseUrl,
+    kind: "iai-one",
+    tenantId: "omcode-test",
+    workspaceId: "omcode-ws",
+  });
+  await withKey(KEY, async () => {
+    const checked = await checkProvider(store, "gateway");
+    assert.equal(checked.status, "error");
+    assert.equal(checked.catalog, null);
+    assert.match(checked.error, /namespace/);
   });
 });
 
@@ -368,7 +440,7 @@ test("billing requires ledger ID plus authenticated run/receipt read-back", asyn
   });
 });
 
-test("unverified read-back never reports billable cost", async (t) => {
+test("unverified read-back rejects the generation", async (t) => {
   const fixture = await startGatewayFixture({ failVerify: true });
   t.after(() => fixture.close());
   const store = await tempStore();
@@ -383,23 +455,22 @@ test("unverified read-back never reports billable cost", async (t) => {
       workspaceId: "omcode-ws",
     });
     const provider = await checkProvider(store, "gateway");
-    const result = await completion(
-      provider,
-      [
-        { role: "user", content: "hi" },
-        { role: "tool", tool_call_id: "x", content: "{}" },
-      ],
-      [],
-      signal(),
+    await assert.rejects(
+      completion(
+        provider,
+        [
+          { role: "user", content: "hi" },
+          { role: "tool", tool_call_id: "x", content: "{}" },
+        ],
+        [],
+        signal(),
+      ),
+      /verification/,
     );
-    assert.equal(result.billing.verified, false);
-    assert.equal(result.billing.cost_usd, null);
-    assert.equal(result.billing.cost_status, "readback_failed");
-    assert.ok(result.billing.readback_error);
   });
 });
 
-test("missing ledger entry keeps cost non-billable even when read-back verifies", async (t) => {
+test("missing ledger entry rejects the generation before acceptance", async (t) => {
   const fixture = await startGatewayFixture({ omitLedger: true });
   t.after(() => fixture.close());
   const store = await tempStore();
@@ -414,19 +485,18 @@ test("missing ledger entry keeps cost non-billable even when read-back verifies"
       workspaceId: "omcode-ws",
     });
     const provider = await checkProvider(store, "gateway");
-    const result = await completion(
-      provider,
-      [
-        { role: "user", content: "hi" },
-        { role: "tool", tool_call_id: "x", content: "{}" },
-      ],
-      [],
-      signal(),
+    await assert.rejects(
+      completion(
+        provider,
+        [
+          { role: "user", content: "hi" },
+          { role: "tool", tool_call_id: "x", content: "{}" },
+        ],
+        [],
+        signal(),
+      ),
+      /ledger/,
     );
-    assert.equal(result.billing.verified, true);
-    assert.equal(result.billing.ledger_entry_id, null);
-    assert.equal(result.billing.cost_usd, null);
-    assert.equal(result.billing.cost_status, "no_ledger_not_billable");
   });
 });
 
@@ -440,6 +510,8 @@ test("gateway without a credential fails closed before egress", async (t) => {
     baseUrl: fixture.baseUrl,
     kind: "iai-one",
     model: "iai-one/iris-3",
+    tenantId: "omcode-test",
+    workspaceId: "omcode-ws",
   });
   const provider = store.get("providers", []).find((p) => p.id === "gateway");
   const previous = process.env[KEY_ENV];

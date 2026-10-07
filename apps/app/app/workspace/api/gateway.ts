@@ -1,166 +1,157 @@
-// ─── AI Gateway API Client — aiagent.iai.one ──────────────────────────────
+import { apiJsonRequest } from "@/lib/api-client";
 
-const DEFAULT_TIMEOUT = 15000;
-const MAX_RETRIES = 2;
+export const AIAGENT_CONTRACT_VERSION = "1.0.0";
+export const AIAGENT_TENANT_ID = "omdala-com";
 
-export interface GatewayAccount {
-  email: string;
-  token: string;
-  plan: "free" | "pro" | "enterprise";
-  apiGatewayUrl: string;
-  expiresAt: number;
+const LEGACY_ACCOUNT_KEY = "omcode:account";
+const MODEL_PATTERN = /^iai-one\/[a-z0-9][a-z0-9-]{1,63}$/;
+
+export interface AiagentModel {
+  id: string;
+  capabilities: string[];
+  status: "available";
 }
 
-export interface LoginPayload {
-  email: string;
-  password: string;
-}
-
-export interface RegisterPayload extends LoginPayload {
-  confirmPassword?: string;
-}
-
-export interface GatewayResponse {
-  success: boolean;
-  account?: GatewayAccount;
-  error?: string;
-}
-
-class GatewayError extends Error {
-  constructor(message: string, public status?: number) {
-    super(message);
-    this.name = "GatewayError";
-  }
-}
-
-async function fetchWithTimeout(
-  url: string,
-  options: RequestInit,
-  timeout = DEFAULT_TIMEOUT,
-): Promise<Response> {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    return res;
-  } finally {
-    clearTimeout(id);
-  }
-}
-
-async function request(
-  url: string,
-  payload: unknown,
-  retries = MAX_RETRIES,
-): Promise<GatewayResponse> {
-  let lastError: Error | undefined;
-
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const res = await fetchWithTimeout(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => "Unknown error");
-        throw new GatewayError(`HTTP ${res.status}: ${text}`, res.status);
-      }
-
-      const data = await res.json().catch(() => null);
-      if (!data) {
-        throw new GatewayError("Invalid JSON response");
-      }
-
-      if (data.error) {
-        throw new GatewayError(data.error);
-      }
-
-      const accountPayload = payload as {
-        apiGatewayUrl?: string;
-        email?: string;
-      };
-
-      return {
-        success: true,
-        account: {
-          email: data.email || accountPayload.email || "",
-          token: data.token || data.accessToken || "",
-          plan: data.plan || "free",
-          apiGatewayUrl: data.apiGatewayUrl || accountPayload.apiGatewayUrl || "",
-          expiresAt: data.expiresAt || Date.now() + 30 * 86400000,
-        },
-      };
-    } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
-      if (i < retries) {
-        await new Promise((r) => setTimeout(r, 500 * (i + 1)));
-      }
-    }
-  }
-
-  return {
-    success: false,
-    error: lastError?.message || "Network error",
+export interface AiagentCatalog {
+  authority: {
+    provider: "aiagent";
+    configured: true;
+    ready: true;
+    origin: string;
+    contractVersion: "1.0.0";
+    tenant: "omdala-com";
+    workspace: string;
+    probe: "configuration-only";
+    directUpstreamAllowed: false;
   };
+  models: AiagentModel[];
+  total: number;
 }
 
-export async function loginToGateway(
-  baseUrl: string,
-  payload: LoginPayload,
-): Promise<GatewayResponse> {
-  const url = `${baseUrl.replace(/\/$/, "")}/auth/login`;
-  return request(url, payload);
+export interface AiagentChatResult {
+  response: string;
+  model: string;
+  request_id: string;
+  tenant_id: "omdala-com";
+  workspace_id: string;
+  run_id: string;
+  receipt_id: string;
+  ledger_entry_id: string;
+  usage: {
+    input_tokens: number;
+    output_tokens: number;
+    total_tokens: number;
+  };
+  cost_usd: number;
+  billing_eligible: true;
+  cost_ledger_status: "reconciled";
 }
 
-export async function registerOnGateway(
-  baseUrl: string,
-  payload: RegisterPayload,
-): Promise<GatewayResponse> {
-  const url = `${baseUrl.replace(/\/$/, "")}/auth/register`;
-  return request(url, payload);
+function objectValue(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export async function verifyGatewayToken(
-  baseUrl: string,
-  token: string,
-): Promise<GatewayResponse> {
+export function isAiagentModelId(value: string): boolean {
+  return MODEL_PATTERN.test(value);
+}
+
+export function clearLegacyAiBrowserState(): void {
+  if (typeof window === "undefined") return;
   try {
-    const url = `${baseUrl.replace(/\/$/, "")}/auth/verify`;
-    const res = await fetchWithTimeout(url, {
+    localStorage.removeItem(LEGACY_ACCOUNT_KEY);
+  } catch {
+    // A browser that blocks storage remains safe; no credential fallback exists.
+  }
+}
+
+export async function getVerifiedAiagentCatalog(): Promise<AiagentCatalog> {
+  clearLegacyAiBrowserState();
+  const catalog = await apiJsonRequest<AiagentCatalog>(
+    "/v1/ai/models",
+    {
+      method: "GET",
+      credentials: "include",
+      redirect: "error",
+    },
+    "Unable to load the verified AIAGENT catalog.",
+  );
+  if (
+    catalog.authority?.provider !== "aiagent" ||
+    catalog.authority.contractVersion !== AIAGENT_CONTRACT_VERSION ||
+    catalog.authority.tenant !== AIAGENT_TENANT_ID ||
+    catalog.authority.configured !== true ||
+    catalog.authority.ready !== true ||
+    catalog.authority.directUpstreamAllowed !== false ||
+    !Array.isArray(catalog.models) ||
+    catalog.models.length === 0 ||
+    catalog.total !== catalog.models.length ||
+    catalog.models.some(
+      (model) =>
+        !isAiagentModelId(model.id) ||
+        model.status !== "available" ||
+        !Array.isArray(model.capabilities),
+    )
+  ) {
+    throw new Error("AIAGENT_CATALOG_PROXY_INVALID");
+  }
+  return catalog;
+}
+
+export async function chatViaAiagent(input: {
+  model: string;
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  maxTokens?: number;
+}): Promise<AiagentChatResult> {
+  if (!isAiagentModelId(input.model)) {
+    throw new Error("AIAGENT_MODEL_NAMESPACE_REQUIRED");
+  }
+  const idempotencyKey = `omdala-browser-${crypto.randomUUID()}`;
+  const result = await apiJsonRequest<AiagentChatResult>(
+    "/v1/ai/chat",
+    {
       method: "POST",
+      credentials: "include",
+      redirect: "error",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        "Idempotency-Key": idempotencyKey,
       },
-      body: JSON.stringify({}),
-    });
-
-    if (!res.ok) {
-      return { success: false, error: `Token invalid (HTTP ${res.status})` };
-    }
-
-    const data = await res.json().catch(() => null);
-    if (!data) return { success: false, error: "Invalid verify response" };
-
-    return {
-      success: true,
-      account: {
-        email: data.email || "",
-        token,
-        plan: data.plan || "free",
-        apiGatewayUrl: baseUrl,
-        expiresAt: data.expiresAt || Date.now() + 30 * 86400000,
-      },
-    };
-  } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : "Verify failed",
-    };
+      body: JSON.stringify({
+        model: input.model,
+        messages: input.messages,
+        maxTokens: Math.min(Math.max(Math.trunc(input.maxTokens ?? 1024), 1), 2048),
+      }),
+    },
+    "AIAGENT request failed or could not be reconciled.",
+  );
+  if (
+    !objectValue(result) ||
+    typeof result.response !== "string" ||
+    !result.response.trim() ||
+    result.model !== input.model ||
+    result.tenant_id !== AIAGENT_TENANT_ID ||
+    typeof result.workspace_id !== "string" ||
+    !result.workspace_id ||
+    typeof result.request_id !== "string" ||
+    !result.request_id ||
+    typeof result.run_id !== "string" ||
+    !result.run_id ||
+    typeof result.receipt_id !== "string" ||
+    !result.receipt_id ||
+    typeof result.ledger_entry_id !== "string" ||
+    !result.ledger_entry_id ||
+    result.billing_eligible !== true ||
+    result.cost_ledger_status !== "reconciled" ||
+    typeof result.cost_usd !== "number" ||
+    !Number.isFinite(result.cost_usd) ||
+    result.cost_usd < 0 ||
+    !objectValue(result.usage) ||
+    !Number.isSafeInteger(result.usage.input_tokens) ||
+    !Number.isSafeInteger(result.usage.output_tokens) ||
+    result.usage.total_tokens !==
+      result.usage.input_tokens + result.usage.output_tokens
+  ) {
+    throw new Error("AIAGENT_PROXY_RECEIPT_INVALID");
   }
+  return result;
 }

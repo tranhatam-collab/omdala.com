@@ -1,9 +1,14 @@
 "use client";
 
-import { resolveLanguage, type OmdalaLanguage } from "@omdala/core";
+import {
+  normalizePublicPath,
+  resolveLanguage,
+  resolvePublicOrigin,
+  type OmdalaLanguage,
+} from "@omdala/core";
 import { useEffect, useState } from "react";
+import { hasValidServerSession } from "@/lib/api-client";
 import { APP_COPY, t } from "@/lib/bilingual-copy";
-import { hasValidServerSession } from "@/lib/session-client";
 
 export function DashboardAuthGate({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
@@ -30,7 +35,18 @@ export function DashboardAuthGate({ children }: { children: React.ReactNode }) {
             : `${window.location.pathname || "/dashboard"}${window.location.search || ""}`;
 
         if (typeof window !== "undefined") {
-          window.location.href = `https://auth.omdala.com/login?lang=${locale}&next=${encodeURIComponent(currentPath)}`;
+          const authOrigin = resolvePublicOrigin(
+            "auth",
+            process.env.NEXT_PUBLIC_AUTH_ORIGIN,
+            process.env.NEXT_PUBLIC_RELEASE_ENVIRONMENT,
+          );
+          const authUrl = new URL("/login", `${authOrigin}/`);
+          authUrl.searchParams.set("lang", locale);
+          authUrl.searchParams.set(
+            "next",
+            normalizePublicPath(currentPath, "/dashboard"),
+          );
+          window.location.replace(authUrl.toString());
         }
       }
     })();

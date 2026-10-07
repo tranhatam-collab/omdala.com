@@ -87,41 +87,6 @@ async function mockAccountRuntime(page: Page) {
       }),
     });
   });
-  await page.route("**/v1/providers", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        ok: true,
-        data: {
-          appId: "om-ai",
-          source: "memory-store",
-          lastSyncedAt: "2026-08-29T00:00:00.000Z",
-          items: [],
-          total: 0,
-        },
-      }),
-    });
-  });
-  await page.route("**/v1/providers/route?**", async (route) => {
-    const capability = new URL(route.request().url()).searchParams.get("capability");
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        ok: true,
-        data: {
-          appId: "om-ai",
-          capability,
-          providerId: "openai-responses",
-          providerName: "OpenAI Responses",
-          reason: "healthy primary",
-          fallbackProviderId: "fallback-mock",
-          score: 0.95,
-        },
-      }),
-    });
-  });
   await page.route("**/v2/reality/nodes", async (route) => {
     await route.fulfill({
       status: 200,
@@ -173,8 +138,21 @@ async function mockAccountRuntime(page: Page) {
       body: JSON.stringify({
         ok: true,
         data: {
-          providers: [{ provider: "openai", ok: true, latencyMs: 42 }],
+          providers: [
+            {
+              provider: "aiagent",
+              configured: true,
+              ready: true,
+              origin: "https://api.aiagent.iai.one",
+              contractVersion: "1.0.0",
+              tenant: "omdala-com",
+              workspace: "omdala-com-production",
+              probe: "configuration-only",
+              directUpstreamAllowed: false,
+            },
+          ],
           total: 1,
+          modelCallExecuted: false,
         },
       }),
     });
@@ -312,9 +290,9 @@ test("profile renders Team 1 account identity contract when session is valid", a
   await expect(page.getByRole("heading", { name: "Updated Operator" })).toBeVisible();
 });
 
-// ─── Authenticated settings (Team 1 billing + provider routing) ─────────
+// ─── Authenticated settings (billing + AIAGENT authority) ─────────
 
-test("settings renders Team 1 billing contract and provider routing when session is valid", async ({ page }) => {
+test("settings renders billing contract and AIAGENT authority when session is valid", async ({ page }) => {
   await mockAuthedSession(page);
   await mockAccountRuntime(page);
   await page.goto("/settings?lang=en");
@@ -323,7 +301,7 @@ test("settings renders Team 1 billing contract and provider routing when session
   // Settings is the Team 1 entry point
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   await expect(
-    page.getByText("Manage language, notifications, plan visibility, usage, and AI provider routing."),
+    page.getByText("Manage language, notifications, plan visibility, usage, and the verified AIAGENT authority."),
   ).toBeVisible();
 
   // Billing contract summary
@@ -332,19 +310,16 @@ test("settings renders Team 1 billing contract and provider routing when session
   await expect(page.getByText("Billing cycle: monthly")).toBeVisible();
   await expect(page.getByText("Subscription visibility: limited visibility")).toBeVisible();
   await expect(page.getByText(/call minutes used today/i)).toBeVisible();
-  await expect(page.getByText(/billing-aware provider events are now locked/i)).toBeVisible();
+  await expect(page.getByText(/billing-aware usage events are now locked/i)).toBeVisible();
 
   // Beta gate
   await expect(page.getByRole("heading", { name: "Beta gate" })).toBeVisible();
   await expect(page.getByText("plan_not_eligible")).toBeVisible();
 
-  // Provider routing snapshot
-  await expect(page.getByRole("heading", { name: "Provider routing snapshot" })).toBeVisible();
-  await expect(page.getByText(/Provider source: memory-store/i)).toBeVisible();
-  // Each capability route should be listed with provider, fallback, and score
-  const routeRows = page.locator("li", { hasText: /score/i });
-  await expect(routeRows.first()).toBeVisible();
-  expect(await routeRows.count()).toBeGreaterThanOrEqual(1);
+  await expect(page.getByRole("heading", { name: "AIAGENT authority" })).toBeVisible();
+  await expect(page.getByText(/Contract 1\.0\.0; tenant omdala-com; workspace omdala-com-production/i)).toBeVisible();
+  await expect(page.getByText("Credential ready: true")).toBeVisible();
+  await expect(page.getByText("Direct upstream allowed: false")).toBeVisible();
 
   await page.getByLabel("Theme").selectOption("dark");
   await page.getByRole("button", { name: "Save preferences contract" }).click();

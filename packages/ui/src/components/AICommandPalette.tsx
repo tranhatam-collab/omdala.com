@@ -46,7 +46,7 @@ const TRANSLATIONS = {
 
 export function AICommandPalette({
   commands = [],
-  aiEnabled = true,
+  aiEnabled = false,
   locale = "vi",
   onClose,
 }: AICommandPaletteProps) {

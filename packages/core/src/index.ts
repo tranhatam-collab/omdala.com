@@ -13,6 +13,11 @@ export {
   withLanguageParam,
 } from "./i18n";
 export type { OmdalaLanguage, OmdalaLocalizedValue } from "./i18n";
+export {
+  normalizePublicPath,
+  resolvePublicOrigin,
+  validatePublicOrigin,
+} from "./public-origins.mjs";
 export { THEME, glass, animations, gradients } from "./theme";
 export type { Theme } from "./theme";
 export { VI } from "./vi-dictionary";
@@ -36,12 +41,6 @@ export {
   OM_AI_USAGE_EVENT_NAMES,
   resolveOmAiBetaGate,
 } from "./om-ai-billing";
-export {
-  OM_AI_PROVIDER_CAPABILITIES,
-  OM_AI_PROVIDER_REGISTRY,
-  OM_AI_PROVIDER_RUNTIME_METRICS,
-  resolveOmAiProviderRoute,
-} from "./om-ai-provider-routing";
 export {
   assertSameTenant,
   assertTenantId,
@@ -76,14 +75,8 @@ export {
   listRequestsForNode,
   listResourcesForNode,
 } from "./demo-data";
-export { AI_PROVIDERS, getModelById, getModelsByCapability, getCheapestModelForTask } from "./ai-gateway";
-export type { AIProvider, AIModel, AIRequest, AIResponse, AIProviderConfig } from "./ai-gateway";
 export { classifyTask, getTaskTypeLabel } from "./task-classifier";
 export type { TaskType, TaskClassification, TaskContext } from "./task-classifier";
-export { ModelRouter, modelRouter } from "./model-router";
-export type { RouterConfig, RouterResult } from "./model-router";
-export { AgentOrchestrator, initAgentOrchestrator, getAgentOrchestrator } from "./agent-orchestrator";
-export type { Agent, AgentRole, AgentCapability, AgentTask, OrchestratorPlan } from "./agent-orchestrator";
 export { ContextEngine, contextEngine } from "./context-engine";
 export type { RepoStructure, RepoFile, RepoDirectory, ProjectDependencies, CodeRule, ErrorRecord, ContextQuery, ContextResult } from "./context-engine";
 export { PermissionLayer, permissionLayer } from "./permission-layer";

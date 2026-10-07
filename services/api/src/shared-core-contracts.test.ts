@@ -8,6 +8,8 @@ const env = {
 
 async function createAccessToken(email = "team2@omdala.com") {
   const payload = {
+    jti: crypto.randomUUID(),
+    sid: crypto.randomUUID(),
     email,
     type: "access" as const,
     exp: Date.now() + 60 * 60 * 1000,

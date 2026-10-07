@@ -315,27 +315,7 @@ export function resolveAllowedOrigin(
   allowedOrigins: Set<string>,
 ): string | null {
   if (!origin) return null;
-  // Exact match
-  if (allowedOrigins.has(origin)) return origin;
-  // Wildcard subdomain match (e.g., https://*.omdala.com)
-  for (const allowed of allowedOrigins) {
-    if (allowed.startsWith("https://*.")) {
-      const suffix = allowed.slice("https://*.".length).toLowerCase();
-      try {
-        const candidate: URL = new URL(origin);
-        if (
-          candidate.protocol === "https:" &&
-          candidate.origin === origin &&
-          candidate.hostname.toLowerCase().endsWith(`.${suffix}`)
-        ) {
-          return origin;
-        }
-      } catch {
-        return null;
-      }
-    }
-  }
-  return null;
+  return allowedOrigins.has(origin) ? origin : null;
 }
 
 // ─── Service-to-Service Trust Token ──────────────────────────────────────

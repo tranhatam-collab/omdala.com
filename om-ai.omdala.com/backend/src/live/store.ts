@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { getLiveAiAuthorityDecision } from '../aiAuthority.js';
 import { nowIso, randomId } from '../utils.js';
 import type {
   CreateLiveSessionInput,
@@ -7,7 +8,6 @@ import type {
   LivePersona,
   LivePlanDefinition,
   LivePlanId,
-  LiveProviderRoutingDecision,
   LiveSession,
   LiveSubscription,
   LiveUsageDaily,
@@ -74,39 +74,31 @@ const PLAN_DEFINITIONS: LivePlanDefinition[] = [
   },
 ];
 
-function resolveProviderRouting(input: {
-  planId: LivePlanId;
-  avatarEnabled: boolean;
-}): LiveProviderRoutingDecision {
-  if (input.planId === 'free') {
-    return {
-      primary: 'openai_realtime',
-      fallback: ['voice_only'],
-      reason: 'free_plan_cost_control',
-    };
-  }
+export function sanitizeLiveSessionRecords(records: unknown): LiveSession[] {
+  if (!Array.isArray(records)) return [];
 
-  if (input.avatarEnabled) {
-    if (input.planId === 'business' || input.planId === 'enterprise_custom') {
-      return {
-        primary: 'tavus',
-        fallback: ['heygen', 'openai_realtime', 'voice_only'],
-        reason: 'business_avatar_priority',
-      };
+  return records.flatMap((record) => {
+    if (!record || typeof record !== 'object') return [];
+    const {
+      provider_routing: _legacyProviderRouting,
+      ai_authority: _untrustedAuthority,
+      ...rest
+    } = record as Record<string, unknown>;
+    if (
+      typeof rest.session_id !== 'string' ||
+      typeof rest.user_id !== 'string' ||
+      typeof rest.persona_id !== 'string' ||
+      typeof rest.session_type !== 'string'
+    ) {
+      return [];
     }
 
-    return {
-      primary: 'heygen',
-      fallback: ['tavus', 'openai_realtime', 'voice_only'],
-      reason: 'avatar_requested',
-    };
-  }
-
-  return {
-    primary: 'openai_realtime',
-    fallback: ['voice_only'],
-    reason: 'voice_first_default',
-  };
+    return [{
+      ...(rest as unknown as Omit<LiveSession, 'status' | 'ai_authority'>),
+      status: rest.status === 'ended' ? 'ended' : 'blocked',
+      ai_authority: getLiveAiAuthorityDecision(),
+    }];
+  });
 }
 
 const DEFAULT_STATE: LiveState = {
@@ -206,7 +198,7 @@ class LiveStore {
       const parsed = JSON.parse(raw) as Partial<LiveState>;
       this.state = {
         personas: parsed.personas ?? DEFAULT_STATE.personas,
-        sessions: parsed.sessions ?? DEFAULT_STATE.sessions,
+        sessions: sanitizeLiveSessionRecords(parsed.sessions),
         memory_profiles: parsed.memory_profiles ?? DEFAULT_STATE.memory_profiles,
         daily_usage: parsed.daily_usage ?? DEFAULT_STATE.daily_usage,
         subscriptions: parsed.subscriptions ?? DEFAULT_STATE.subscriptions,
@@ -413,7 +405,7 @@ class LiveStore {
       user_id: input.user_id,
       persona_id: input.persona_id,
       session_type: input.session_type,
-      status: 'ready',
+      status: 'blocked',
       created_at: nowIso(),
       avatar_enabled: Boolean(input.avatar_enabled),
       goal: input.goal,
@@ -422,10 +414,7 @@ class LiveStore {
       billable_seconds: 0,
       free_seconds_applied: 0,
       premium_seconds_applied: 0,
-      provider_routing: resolveProviderRouting({
-        planId: plan,
-        avatarEnabled: Boolean(input.avatar_enabled),
-      }),
+      ai_authority: getLiveAiAuthorityDecision(),
     };
 
     this.state.sessions.push(session);
@@ -457,23 +446,6 @@ class LiveStore {
   async getSession(sessionId: string) {
     await this.ensureLoaded();
     return this.state.sessions.find((s) => s.session_id === sessionId);
-  }
-
-  async connectSession(sessionId: string) {
-    await this.ensureLoaded();
-    const session = await this.getSession(sessionId);
-    if (!session) return null;
-    if (session.status === 'ended') return session;
-
-    const connected = {
-      ...session,
-      status: 'active' as const,
-      connected_at: session.connected_at ?? nowIso(),
-    };
-
-    this.state.sessions = [...this.state.sessions.filter((s) => s.session_id !== sessionId), connected];
-    await this.persist();
-    return connected;
   }
 
   async endSession(sessionId: string, overrideBillableSeconds?: number, options?: { idempotencyKey?: string }) {
@@ -509,7 +481,8 @@ class LiveStore {
     const startedAt = session.connected_at ? Date.parse(session.connected_at) : Date.parse(session.created_at);
     const endedAt = Date.now();
     const computed = Number.isFinite(startedAt) ? Math.max(0, Math.round((endedAt - startedAt) / 1000)) : 0;
-    const billable = Math.max(0, Math.floor(overrideBillableSeconds ?? computed));
+    const requestedBillable = Math.max(0, Math.floor(overrideBillableSeconds ?? computed));
+    const billable = session.status === 'active' ? requestedBillable : 0;
 
     const usage = await this.getUsageToday(session.user_id);
     const freeAvailable = usage.free_seconds_remaining;
@@ -550,19 +523,6 @@ class LiveStore {
     };
   }
 
-  async issueRealtimeToken(sessionId: string, userId: string) {
-    const session = await this.getSession(sessionId);
-    if (!session) return null;
-    if (session.user_id !== userId) return null;
-
-    return {
-      session_id: sessionId,
-      realtime_transport: 'webrtc',
-      realtime_bootstrap_token: randomId('rt_ephemeral'),
-      expires_in_seconds: 60,
-      provider_routing: session.provider_routing,
-    };
-  }
 }
 
 export const liveStore = new LiveStore();

@@ -8,6 +8,16 @@ import { injectWorkspaceFixture } from "./fixtures/workspace-fixture";
 
 test.describe("OMCODE Critical Flows — IDE with project fixture", () => {
   test.beforeEach(async ({ page }) => {
+    await page.route("**/v1/ai/models", async (route) => {
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: false,
+          error: { code: "aiagent_catalog_unavailable", message: "AIAGENT catalog unavailable" },
+        }),
+      });
+    });
     await injectWorkspaceFixture(page);
     // Pre-accept terms via localStorage to skip the Terms modal
     await page.addInitScript(() => {
@@ -24,7 +34,7 @@ test.describe("OMCODE Critical Flows — IDE with project fixture", () => {
     await expect(page.getByText("package.json", { exact: true })).toBeVisible();
   });
 
-  test("02 — AI Chat accepts input and reports missing local provider configuration", async ({ page }) => {
+  test("02 — AI Chat accepts input and fails closed without a verified AIAGENT catalog", async ({ page }) => {
     // Chat panel is open by default (chatOpen = true)
     // The chat input is a textarea with placeholder containing "Hỏi AI"
     const input = page.locator('textarea[placeholder*="Hỏi AI"]');
@@ -34,7 +44,7 @@ test.describe("OMCODE Critical Flows — IDE with project fixture", () => {
     // The user message should appear in the chat
     await expect(page.getByText("Hello AI").first()).toBeVisible({ timeout: 10000 });
     await expect(
-      page.getByText(/Lỗi: No API key configured for provider/),
+      page.getByText(/Lỗi: AIAGENT_VERIFIED_CATALOG_REQUIRED/),
     ).toBeVisible({ timeout: 10000 });
   });
 
@@ -56,11 +66,15 @@ test.describe("OMCODE Critical Flows — IDE with project fixture", () => {
     await expect(page.getByText(/Lệnh có sẵn/)).toBeVisible({ timeout: 10000 });
   });
 
-  test("05 — Account panel opens with login/register UI", async ({ page }) => {
+  test("05 — Account panel exposes the session-bound AIAGENT authority and fails closed", async ({ page }) => {
     const accountBtn = page.locator("button[title*='Plans'], button[title*='Gói dịch vụ']").first();
     await accountBtn.click({ noWaitAfter: true });
-    // Account panel should show login/register buttons
-    await expect(page.getByRole("button", { name: /Đăng nhập|Login/i })).toBeVisible({ timeout: 10000 });
-    await expect(page.getByRole("button", { name: /Đăng ký|Register/i })).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.getByText("OMDALA session → AIAGENT contract 1.0.0"),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.getByText(/Browser chỉ gọi API OMDALA đã khóa theo môi trường/),
+    ).toBeVisible();
+    await expect(page.getByText("AIAGENT catalog unavailable")).toBeVisible();
   });
 });

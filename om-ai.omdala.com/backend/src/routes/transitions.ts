@@ -4,8 +4,8 @@ import { evaluatePolicy } from '../policyEngine.js';
 import { createProof } from '../proofStore.js';
 import { persistence } from '../persistence.js';
 import { fail, ok } from '../response.js';
-import { actionClassEnum, errorEnvelopeSchema, policyDecisionEnum, userRoleEnum } from '../schemas.js';
-import type { PlanRecord, UserRole } from '../types.js';
+import { actionClassEnum, errorEnvelopeSchema, policyDecisionEnum } from '../schemas.js';
+import type { PlanRecord } from '../types.js';
 import { nowIso, randomId } from '../utils.js';
 
 export function registerTransitionRoutes(app: FastifyInstance) {
@@ -17,12 +17,11 @@ export function registerTransitionRoutes(app: FastifyInstance) {
         body: {
           type: 'object',
           properties: {
-            role: { type: 'string', enum: [...userRoleEnum] },
             actionClass: { type: 'string', enum: [...actionClassEnum] },
             businessMode: { type: 'boolean' },
             raw_input: { type: 'string' },
           },
-          required: ['role', 'actionClass'],
+          required: ['actionClass'],
         },
         response: {
           200: {
@@ -46,23 +45,25 @@ export function registerTransitionRoutes(app: FastifyInstance) {
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
+      const auth = requireSensitiveAuth(request, reply);
+      if (!auth) return;
+
       const body = request.body as {
-        role?: UserRole;
         actionClass?: 'observe' | 'low' | 'medium' | 'sensitive' | 'high' | 'critical';
         businessMode?: boolean;
         raw_input?: string;
       };
 
       const decision = evaluatePolicy({
-        role: body.role ?? 'observer',
+        role: auth.role,
         actionClass: body.actionClass ?? 'observe',
         businessMode: body.businessMode ?? false,
       });
 
       const plan: PlanRecord = {
         plan_id: randomId('plan'),
-        role: body.role ?? 'observer',
+        role: auth.role,
         actionClass: body.actionClass ?? 'observe',
         policy_decision: decision,
         steps: [
@@ -136,7 +137,6 @@ export function registerTransitionRoutes(app: FastifyInstance) {
           type: 'object',
           properties: {
             plan_id: { type: 'string' },
-            actor_id: { type: 'string' },
           },
           required: ['plan_id'],
         },
@@ -175,10 +175,10 @@ export function registerTransitionRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      requireSensitiveAuth(request, reply);
-      if (reply.sent) return;
+      const auth = requireSensitiveAuth(request, reply);
+      if (!auth) return;
 
-      const body = request.body as { plan_id?: string; actor_id?: string };
+      const body = request.body as { plan_id?: string };
       const planId = body.plan_id ?? randomId('run');
       const plan = await persistence.getPlan(planId);
       if (!plan) {
@@ -187,7 +187,7 @@ export function registerTransitionRoutes(app: FastifyInstance) {
       }
 
       const runId = randomId('run');
-      const actorId = body.actor_id ?? 'user_demo_01';
+      const actorId = auth.userId;
       const proof = await createProof({
         proofId: randomId('proof'),
         runId,

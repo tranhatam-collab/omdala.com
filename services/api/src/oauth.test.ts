@@ -11,6 +11,16 @@ const env = {
   APP_BASE_URL: "https://app.omdala.com",
 };
 
+function oauthCookieHeader(response: Response): string {
+  const headers = response.headers as Headers & { getSetCookie?: () => string[] };
+  const values = headers.getSetCookie?.() ?? [response.headers.get("set-cookie") ?? ""];
+  return values
+    .flatMap((value) => value.split(/,(?=\s*__Host-)/))
+    .map((value) => value.trim().split(";", 1)[0])
+    .filter(Boolean)
+    .join("; ");
+}
+
 describe("v1/auth/google OAuth flow", () => {
   it("GET /v1/auth/google/start returns 302 redirect to Google", async () => {
     const response = await app.request(
@@ -25,6 +35,13 @@ describe("v1/auth/google OAuth flow", () => {
     expect(location).toMatch(/^https:\/\/accounts\.google\.com/);
     expect(location).toContain("client_id=test_client_id");
     expect(location).toContain("state=");
+    expect(location).toContain("code_challenge=");
+    expect(location).toContain("code_challenge_method=S256");
+    const cookies = response.headers.get("set-cookie") ?? "";
+    expect(cookies).toContain("__Host-omdala_google_state=");
+    expect(cookies).toContain("__Host-omdala_google_pkce=");
+    expect(cookies).toContain("HttpOnly");
+    expect(cookies).toContain("Secure");
   });
 
   it("GET /v1/auth/google/callback — happy path creates session and redirects", async () => {
@@ -37,13 +54,16 @@ describe("v1/auth/google OAuth flow", () => {
     expect(startResponse.status).toBe(302);
     const startLocation = startResponse.headers.get("Location")!;
     const state = new URL(startLocation).searchParams.get("state")!;
+    const cookies = oauthCookieHeader(startResponse);
     expect(state).toBeTruthy();
 
     // 2. Mock Google token + userinfo endpoints
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
-      async (input: RequestInfo | URL) => {
+      async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
         if (url.includes("oauth2.googleapis.com/token")) {
+          const body = new URLSearchParams(init?.body as string);
+          expect(body.get("code_verifier")).toMatch(/^[A-Za-z0-9_-]{43}$/);
           return new Response(
             JSON.stringify({ access_token: "mock_access_token", token_type: "Bearer" }),
             { status: 200, headers: { "Content-Type": "application/json" } },
@@ -66,7 +86,7 @@ describe("v1/auth/google OAuth flow", () => {
     try {
       const callbackResponse = await app.request(
         `http://localhost/v1/auth/google/callback?code=mock_auth_code&state=${encodeURIComponent(state)}`,
-        {},
+        { headers: { cookie: cookies } },
         env,
       );
 
@@ -79,6 +99,8 @@ describe("v1/auth/google OAuth flow", () => {
       expect(setCookie).toContain("omdala_access_token=");
       expect(setCookie).toContain("omdala_refresh_token=");
       expect(setCookie).toContain("HttpOnly");
+      expect(setCookie).toContain("__Host-omdala_google_state=");
+      expect(setCookie).toContain("Max-Age=0");
     } finally {
       fetchSpy.mockRestore();
     }
@@ -96,6 +118,22 @@ describe("v1/auth/google OAuth flow", () => {
     expect(location).toContain("error=invalid_oauth_state");
   });
 
+  it("rejects a valid signed state when it is not bound to this browser", async () => {
+    const startResponse = await app.request(
+      "http://localhost/v1/auth/google/start",
+      {},
+      env,
+    );
+    const state = new URL(startResponse.headers.get("Location")!).searchParams.get("state")!;
+    const response = await app.request(
+      `http://localhost/v1/auth/google/callback?code=mock_code&state=${encodeURIComponent(state)}`,
+      {},
+      env,
+    );
+    expect(response.status).toBe(302);
+    expect(response.headers.get("Location")).toContain("error=invalid_oauth_state");
+  });
+
   it("GET /v1/auth/google/callback — unverified email returns 302 with oauth_email_unverified", async () => {
     // 1. Obtain a valid state
     const startResponse = await app.request(
@@ -106,6 +144,7 @@ describe("v1/auth/google OAuth flow", () => {
     expect(startResponse.status).toBe(302);
     const startLocation = startResponse.headers.get("Location")!;
     const state = new URL(startLocation).searchParams.get("state")!;
+    const cookies = oauthCookieHeader(startResponse);
 
     // 2. Mock Google endpoints: token OK, but email unverified
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(
@@ -133,7 +172,7 @@ describe("v1/auth/google OAuth flow", () => {
     try {
       const response = await app.request(
         `http://localhost/v1/auth/google/callback?code=mock_auth_code&state=${encodeURIComponent(state)}`,
-        {},
+        { headers: { cookie: cookies } },
         env,
       );
 

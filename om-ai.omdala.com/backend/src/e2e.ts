@@ -1,4 +1,4 @@
-import { createApp } from './app.js';
+import { createOperationalTestApp as createApp } from './testSupport.js';
 
 async function run() {
   const app = createApp();
@@ -20,13 +20,8 @@ async function run() {
   const execute = await app.inject({
     method: 'POST',
     url: '/v2/reality/transitions/execute',
-    headers: {
-      'x-user-id': 'user_demo_01',
-      'x-role': 'owner',
-    },
     payload: {
       plan_id: planBody.data.plan_id,
-      actor_id: 'user_demo_01',
     },
   });
 
@@ -61,10 +56,6 @@ async function run() {
   const approvalConfirm = await app.inject({
     method: 'POST',
     url: `/v2/reality/approvals/${approvalReqBody.data.approval.approval_id}/confirm`,
-    headers: {
-      'x-user-id': 'user_demo_01',
-      'x-role': 'owner',
-    },
   });
 
   const approvalConfirmBody = approvalConfirm.json() as { data: { approval: { status: string } } };

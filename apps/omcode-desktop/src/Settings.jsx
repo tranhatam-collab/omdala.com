@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   AlertCircle,
   PlugZap,
-  KeyRound,
   Play,
 } from "lucide-react";
 import { api } from "./api";
@@ -79,7 +78,7 @@ export function Settings({ data, refresh, onError }) {
           aria-label="Thêm provider"
           title="Thêm provider"
           onClick={() =>
-            setForm({ name: "", baseUrl: "", model: "", apiKey: "" })
+            setForm({ name: "", baseUrl: "", model: "", kind: "local" })
           }
         >
           <Plus size={18} />
@@ -131,7 +130,7 @@ export function Settings({ data, refresh, onError }) {
             </div>
             <button
               className="secondary small"
-              onClick={() => setForm({ ...provider, apiKey: "" })}
+              onClick={() => setForm({ ...provider })}
             >
               Chỉnh sửa
             </button>
@@ -254,49 +253,12 @@ export function Settings({ data, refresh, onError }) {
             />
           </label>
           {form.kind === "iai-one" && (
-            <>
-              <p>
-                Tài khoản Keychain: <code>{form.id}</code>. Chỉ nhập client key;
-                không nhập ADMIN_KEY. Tenant và workspace phải khớp biên bản cấp
-                khóa.
-              </p>
-              <label>
-                Tenant ID
-                <input
-                  required
-                  pattern="[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}"
-                  value={form.tenantId || ""}
-                  onChange={(event) =>
-                    setForm({ ...form, tenantId: event.target.value })
-                  }
-                />
-              </label>
-              <label>
-                Workspace ID
-                <input
-                  required
-                  pattern="[a-zA-Z0-9][a-zA-Z0-9_-]{0,79}"
-                  value={form.workspaceId || ""}
-                  onChange={(event) =>
-                    setForm({ ...form, workspaceId: event.target.value })
-                  }
-                />
-              </label>
-            </>
+            <p>
+              Tài khoản Keychain native: <code>{form.id}</code>. Credential,
+              tenant và workspace không đi qua trình duyệt; backend lấy identity
+              từ deployment và credential đã được cấp quyền.
+            </p>
           )}
-          <label>
-            API key
-            <KeyRound size={14} />
-            <input
-              type="password"
-              autoComplete="off"
-              value={form.apiKey}
-              onChange={(event) =>
-                setForm({ ...form, apiKey: event.target.value })
-              }
-              placeholder={form.id ? "Giữ khóa hiện tại" : ""}
-            />
-          </label>
           <div className="form-actions">
             <button
               type="button"
@@ -306,7 +268,7 @@ export function Settings({ data, refresh, onError }) {
               Hủy
             </button>
             <button className="primary" disabled={!!busy}>
-              Lưu vào Keychain
+              Lưu cấu hình
             </button>
           </div>
         </form>
@@ -424,7 +386,8 @@ export function Settings({ data, refresh, onError }) {
         <code>{data.dataDirectory}</code>
         <p>
           Dữ liệu lưu local dạng plaintext với quyền thư mục 0700, tệp 0600.
-          Không tự xóa lịch sử. API key chỉ lưu trong Keychain.
+          Không tự xóa lịch sử. Provider credential chỉ tồn tại trong native
+          Keychain và không đi qua UI.
         </p>
         <button
           className="secondary"

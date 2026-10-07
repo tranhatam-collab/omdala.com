@@ -1,11 +1,6 @@
-import {
-  OM_AI_PROVIDER_CAPABILITIES,
-  resolveOmAiProviderRoute,
-} from "@omdala/core";
 import type {
   AiActionSuggestion,
   NodeRecord,
-  OmAiProviderRouteDecision,
   ResourceRecord,
 } from "@omdala/types";
 
@@ -60,10 +55,4 @@ export function getAiActionSuggestions(
     if (priorityDiff !== 0) return priorityDiff
     return (b.confidence ?? 0) - (a.confidence ?? 0)
   })
-}
-
-export function getOmAiProviderRoutingSnapshot(): OmAiProviderRouteDecision[] {
-  return Object.values(OM_AI_PROVIDER_CAPABILITIES).map((capability) =>
-    resolveOmAiProviderRoute(capability),
-  );
 }

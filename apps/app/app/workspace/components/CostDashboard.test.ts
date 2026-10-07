@@ -59,10 +59,10 @@ describe("CostDashboard pure functions", () => {
 
   describe("recordUsage & getUsage", () => {
     it("records and retrieves usage entries", () => {
-      recordUsage("gpt-4", "openai", 100, 50, 0.005);
+      recordUsage("iai-one/iris-7", "aiagent", 100, 50, 0.005);
       const entries = getUsage();
       expect(entries).toHaveLength(1);
-      expect(entries[0].model).toBe("gpt-4");
+      expect(entries[0].model).toBe("iai-one/iris-7");
       expect(entries[0].tokensIn).toBe(100);
       expect(entries[0].cost).toBe(0.005);
     });
@@ -71,7 +71,7 @@ describe("CostDashboard pure functions", () => {
       // O(N²) re-serialization per call; bump timeout to keep CI green
       // without altering the local recordUsage implementation.
       for (let i = 0; i < 520; i++) {
-        recordUsage("gpt-4", "openai", 1, 1, 0.001);
+        recordUsage("iai-one/iris-7", "aiagent", 1, 1, 0.001);
       }
       const entries = getUsage();
       expect(entries).toHaveLength(500);
@@ -99,9 +99,9 @@ describe("CostDashboard pure functions", () => {
     it("groups entries by date and aggregates", () => {
       const now = Date.now();
       const entries = [
-        { timestamp: now, model: "gpt-4", provider: "openai", tokensIn: 10, tokensOut: 5, cost: 0.01 },
-        { timestamp: now, model: "gpt-4", provider: "openai", tokensIn: 20, tokensOut: 10, cost: 0.02 },
-        { timestamp: now - 86400000, model: "gpt-4", provider: "openai", tokensIn: 5, tokensOut: 5, cost: 0.005 },
+        { timestamp: now, model: "iai-one/iris-7", provider: "aiagent", tokensIn: 10, tokensOut: 5, cost: 0.01 },
+        { timestamp: now, model: "iai-one/iris-7", provider: "aiagent", tokensIn: 20, tokensOut: 10, cost: 0.02 },
+        { timestamp: now - 86400000, model: "iai-one/iris-7", provider: "aiagent", tokensIn: 5, tokensOut: 5, cost: 0.005 },
       ];
       const grouped = groupByDay(entries);
       expect(grouped).toHaveLength(2);
@@ -118,15 +118,15 @@ describe("CostDashboard pure functions", () => {
   describe("groupByModel", () => {
     it("groups by model sorted by cost descending", () => {
       const entries = [
-        { timestamp: Date.now(), model: "gpt-4", provider: "openai", tokensIn: 10, tokensOut: 5, cost: 0.05 },
-        { timestamp: Date.now(), model: "claude-3", provider: "anthropic", tokensIn: 10, tokensOut: 5, cost: 0.03 },
-        { timestamp: Date.now(), model: "gpt-4", provider: "openai", tokensIn: 10, tokensOut: 5, cost: 0.02 },
+        { timestamp: Date.now(), model: "iai-one/iris-7", provider: "aiagent", tokensIn: 10, tokensOut: 5, cost: 0.05 },
+        { timestamp: Date.now(), model: "iai-one/pulse-3", provider: "aiagent", tokensIn: 10, tokensOut: 5, cost: 0.03 },
+        { timestamp: Date.now(), model: "iai-one/iris-7", provider: "aiagent", tokensIn: 10, tokensOut: 5, cost: 0.02 },
       ];
       const grouped = groupByModel(entries);
       expect(grouped).toHaveLength(2);
-      expect(grouped[0][0]).toBe("gpt-4");
+      expect(grouped[0][0]).toBe("iai-one/iris-7");
       expect(grouped[0][1].cost).toBeCloseTo(0.07, 5);
-      expect(grouped[1][0]).toBe("claude-3");
+      expect(grouped[1][0]).toBe("iai-one/pulse-3");
     });
   });
 });

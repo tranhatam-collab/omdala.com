@@ -3,10 +3,6 @@ import type {
   OmAiAccountProfile,
   OmAiBillingSubscription,
   OmAiBillingUsage,
-  OmAiProviderCapabilityId,
-  OmAiProviderObservabilityResponse,
-  OmAiProviderRegistryResponse,
-  OmAiProviderRouteDecision,
   OmAiUsageEventName,
   NodeRecord,
   RealityProofRecord,
@@ -25,8 +21,6 @@ export type OmAiBillingUsageResponse = OmAiBillingUsage & {
   eventNames: OmAiUsageEventName[];
 };
 
-export type OmAiProvidersResponse = OmAiProviderRegistryResponse;
-
 export type RealityNodesResponse = { nodes: NodeRecord[]; total: number };
 export type RealityTrustResponse = { trust: TrustScoreRecord[]; total: number };
 export type RealityProofsResponse = {
@@ -36,11 +30,17 @@ export type RealityProofsResponse = {
 export type AiProviderHealthResponse = {
   providers: Array<{
     provider: string;
-    ok: boolean;
-    latencyMs: number;
-    error?: string;
+    configured: boolean;
+    origin: string | null;
+    contractVersion: "1.0.0";
+    tenant: "omdala-com";
+    probe: "configuration-only";
+    directUpstreamAllowed: false;
+    ready: boolean;
+    workspace: string | null;
   }>;
   total: number;
+  modelCallExecuted?: false;
 };
 
 export function getAccountProfile() {
@@ -113,36 +113,6 @@ export function getBillingUsage() {
   );
 }
 
-export function getProviders() {
-  return apiJsonRequest<OmAiProvidersResponse>(
-    "/v1/providers",
-    {
-      method: "GET",
-    },
-    "Unable to load provider registry.",
-  );
-}
-
-export function getProviderRoute(capability: OmAiProviderCapabilityId) {
-  return apiJsonRequest<OmAiProviderRouteDecision>(
-    `/v1/providers/route?app=om-ai&capability=${encodeURIComponent(capability)}`,
-    {
-      method: "GET",
-    },
-    "Unable to resolve provider route.",
-  );
-}
-
-export function getProviderObservability() {
-  return apiJsonRequest<OmAiProviderObservabilityResponse>(
-    "/v1/providers/observability",
-    {
-      method: "GET",
-    },
-    "Unable to load provider observability.",
-  );
-}
-
 export function getRealityNodes() {
   return apiJsonRequest<RealityNodesResponse>(
     "/v2/reality/nodes",
@@ -171,6 +141,6 @@ export function getAiProviderHealth() {
   return apiJsonRequest<AiProviderHealthResponse>(
     "/v1/ai/health",
     { method: "GET" },
-    "Unable to load AI provider health.",
+    "Unable to load AIAGENT authority health.",
   );
 }

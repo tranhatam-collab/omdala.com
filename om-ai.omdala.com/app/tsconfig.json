@@ -8,9 +8,8 @@
     "esModuleInterop": true,
     "moduleResolution": "Bundler",
     "skipLibCheck": true,
-    "types": ["react-native", "jest"],
-    "baseUrl": "."
+    "types": ["react-native", "jest"]
   },
-  "include": ["src", "../shared/**/*.ts"],
+  "include": ["App.tsx", "src", "../shared/**/*.ts"],
   "extends": "expo/tsconfig.base"
 }

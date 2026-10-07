@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { CommandDispatcher } from "../src/dispatcher.js";
 import { PluginRegistry } from "../src/registry.js";
-import { LiveProviderRouter } from "../src/liveProviderRouter.js";
+import { AiAuthorityRouter } from "../src/aiAuthorityRouter.js";
 import type { GatewayPlugin } from "../src/plugin.js";
 
 // ─── Plugin Registry Tests ──────────────────────────────────────────────
@@ -57,48 +57,27 @@ describe("CommandDispatcher", () => {
   });
 });
 
-// ─── Live Provider Router Tests ─────────────────────────────────────────
+// ─── AI authority boundary tests ────────────────────────────────────────
 
-describe("LiveProviderRouter", () => {
-  const router = new LiveProviderRouter();
+describe("AiAuthorityRouter", () => {
+  const router = new AiAuthorityRouter();
 
-  it("routes free plan to openai_realtime with voice_only fallback", () => {
-    const decision = router.route({
-      workspaceType: "personal",
-      planId: "free",
-      avatarRequested: false,
-    });
-    assert.equal(decision.primary, "openai_realtime");
-    assert.deepEqual(decision.fallback, ["voice_only"]);
+  it("routes chat only through the OMDALA API AIAGENT contract", () => {
+    const decision = router.route("chat");
+    assert.equal(decision.authority, "omdala_api_aiagent");
+    assert.equal(decision.executionPath, "/v1/ai/chat");
+    assert.equal(decision.status, "routed");
+    assert.equal(decision.directProviderEgress, false);
   });
 
-  it("routes avatar request on business to tavus", () => {
-    const decision = router.route({
-      workspaceType: "business",
-      planId: "business",
-      avatarRequested: true,
-    });
-    assert.equal(decision.primary, "tavus");
-    assert.ok(decision.fallback.includes("heygen"));
-  });
-
-  it("routes avatar request on non-business to heygen", () => {
-    const decision = router.route({
-      workspaceType: "personal",
-      planId: "personal_pro",
-      avatarRequested: true,
-    });
-    assert.equal(decision.primary, "heygen");
-    assert.ok(decision.fallback.includes("tavus"));
-  });
-
-  it("routes voice-only to openai_realtime", () => {
-    const decision = router.route({
-      workspaceType: "family",
-      planId: "personal_pro",
-      avatarRequested: false,
-    });
-    assert.equal(decision.primary, "openai_realtime");
+  it("fails closed for realtime capabilities without an authority endpoint", () => {
+    for (const capability of ["realtime_voice", "realtime_avatar"] as const) {
+      const decision = router.route(capability);
+      assert.equal(decision.authority, "omdala_api_aiagent");
+      assert.equal(decision.executionPath, null);
+      assert.equal(decision.status, "blocked");
+      assert.equal(decision.directProviderEgress, false);
+    }
   });
 });
 

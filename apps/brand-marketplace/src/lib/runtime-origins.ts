@@ -1,17 +1,18 @@
-const PRODUCTION_APP_ORIGIN = "https://app.omdala.com";
+import { resolvePublicOrigin } from "@omdala/core";
 
 export function getAppWorkspaceOrigin(): string {
   const configured = process.env.NEXT_PUBLIC_APP_ORIGIN?.trim();
-  if (!configured) return PRODUCTION_APP_ORIGIN;
-
-  try {
-    const origin = new URL(configured).origin;
-    if (origin.startsWith("https://") || origin.startsWith("http://127.0.0.1")) {
-      return origin;
+  const environment = process.env.NEXT_PUBLIC_RELEASE_ENVIRONMENT;
+  if (!environment && configured) {
+    const local = new URL(configured);
+    if (
+      local.protocol === "http:" &&
+      local.hostname === "127.0.0.1" &&
+      !local.username &&
+      !local.password
+    ) {
+      return local.origin;
     }
-  } catch {
-    // Fall through to the production-safe origin.
   }
-
-  return PRODUCTION_APP_ORIGIN;
+  return resolvePublicOrigin("app", configured, environment);
 }

@@ -1,0 +1,634 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-07T21:53:56Z",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "repository": "tranhatam-collab/omdala.com",
+  "branch": "OMCODE/infra-staging-final-20261007",
+  "base_sha": "355693bfd5798ea222f0eaf7f466c05167205f5a",
+  "successor_sha": null,
+  "successor_sha_source": "Git commit containing this packet and the pull-request head; the packet does not self-embed its own commit hash.",
+  "scope": "Final source integration and the remaining staging-to-production execution gates for infra.omdala.com and all OMDALA product surfaces.",
+  "authorization_boundary": {
+    "source_commit_and_push": "AUTHORIZED_BY_FOUNDER",
+    "isolated_staging_provision_and_deploy": "AUTHORIZED_BY_FOUNDER",
+    "production_deploy": "NOT_AUTHORIZED_AND_HOLD",
+    "live_ai_spend_cap_usd": 0.25,
+    "live_ai_spend_consumed_usd": 0,
+    "secret_entry_channels": [
+      "GitHub protected environment",
+      "Cloudflare protected secret store"
+    ]
+  },
+  "verdict": {
+    "source": "VERIFIED_WORKTREE_ONLY_SAFE_HOLD",
+    "exact_committed_candidate": "BLOCKED",
+    "github_release_controls": "BLOCKED",
+    "cloudflare_staging": "BLOCKED",
+    "staging_runtime": "BLOCKED",
+    "current_live_runtime": "BLOCKED",
+    "production": "HOLD_NO_GO"
+  },
+  "classification": {
+    "VERIFIED_WORKTREE_ONLY": "Observed or tested in a mutable local worktree. It is not exact-SHA CI, deployment, runtime, approval, or release proof.",
+    "BLOCKED": "A required dependency, external control, immutable receipt, or runtime resource is absent or failed.",
+    "HOLD_NO_GO": "Production change and go-live are prohibited until every hard gate has immutable evidence and the Founder issues a decision."
+  },
+  "receipt_hashes": {
+    "runtime_readback_sha256": "349a23345c42eaa112976049232c6862f483547a7c0da0336b81a57851b8a3d2",
+    "terraform_backend_bootstrap_sha256": "ba033c54bf1c2f2db04dd8dbc1e7c596935894ebf26f675fa5cc86468eb0c013",
+    "mobile_npm_prod_audit_sha256": "b6acb054a89740ff477bd1d86b9b426038ff3a6e9c6d7f72a6ad977c19f99918",
+    "final_candidate_secret_scan_sha256": "f8f09d776ddbc0bc0e32022d0b5ca456eb9f292a4e5b91cad222803fdd7b7693",
+    "team_ai_exact_bundle_sha256": "c8fa958ed9cb6bc461cefc8da2852657d5f7865a8d76355c28161b8c0e3d96ea",
+    "team_ai_source_inputs_digest": "97803f58e2b2d109b81daa47ca0d378cc113cd77657397094866aa1d74c17170",
+    "final_candidate_receipt_sha256": "EXTERNAL_EXACT_SHA_RECEIPT_REQUIRED",
+    "final_execution_status_markdown_sha256": "COVERED_BY_FINAL_PATH_MANIFEST",
+    "final_execution_status_json_sha256": "COVERED_BY_FINAL_PATH_MANIFEST",
+    "runtime_readback_2026_10_08_sha256": "d0fd42067e8842dcdac457473ca51d42025d8df286dd344c3ed4fa3fab337d61"
+  },
+  "evidence": [
+    {
+      "id": "SOURCE-GATES",
+      "status": "VERIFIED_WORKTREE_ONLY",
+      "claim": "The integration worktree fail-closes every staging and production mutation path before deployment. Staging remains blocked until one protected transaction job can own deployment, acceptance, and compensation.",
+      "evidence_paths": [
+        ".github/workflows/staging-transaction.yml",
+        ".github/workflows/deploy.yml",
+        ".github/workflows/deploy-surfaces.yml",
+        ".github/workflows/staging-go-live-e2e.yml",
+        ".github/workflows/production-go-live-e2e.yml",
+        "scripts/staging-transaction-contract.mjs",
+        "scripts/production-transaction-hold.mjs",
+        "scripts/production-acceptance-receipt.mjs"
+      ],
+      "limit": "Source mutation safety is verified only in a mutable worktree. Staging and production are deliberately unreachable and no exact-SHA CI or runtime receipt exists."
+    },
+    {
+      "id": "LOCAL-VALIDATION",
+      "status": "VERIFIED_WORKTREE_ONLY",
+      "claim": "Current local runs pass product, browser, build, dependency, and release-governance suites while all deployment paths remain fail-closed.",
+      "observed_results": [
+        "Release governance 264/264",
+        "Release controls 34/34",
+        "Production hold mutation tests 9/9",
+        "API tests 133/133",
+        "App tests 27/27",
+        "Core tests 7/7",
+        "Brand core tests 33/33",
+        "Brand marketplace tests 4/4",
+        "Billing tests 28/28",
+        "Infrastructure worker tests 22/22",
+        "Infrastructure gateway tests 23/23",
+        "OM-AI backend tests 19/19",
+        "OM-AI gateway tests 7/7",
+        "OM-AI mobile contract/unit tests 8/8 and 4/4",
+        "Desktop tests 113/113",
+        "App/Web/Brand browser tests 18/18, 1/1, 13/13",
+        "All Web/App/Docs/Admin/Auth/Brand, OM-AI, and desktop builds passed",
+        "Included non-mobile production dependency audits high/critical 0"
+      ],
+      "limit": "The worktree is still mutable. The exact successor commit must rerun release:verify and CI; these results do not prove staging or production."
+    },
+    {
+      "id": "AUTH-AND-PERSISTENCE",
+      "status": "VERIFIED_WORKTREE_ONLY",
+      "claim": "Source implements server-side session persistence, single-use magic links, refresh rotation/reuse-family revocation, logout, OAuth state/PKCE, protected cookies, and protected runtime persistence.",
+      "evidence_paths": [
+        "services/api/src/db/auth-repository.ts",
+        "services/api/src/db/runtime-repository.ts",
+        "infra/postgres/migrations/0002_auth_session_state.sql",
+        "infra/postgres/migrations/0003_protected_runtime_state.sql"
+      ],
+      "limit": "No staging database, migration receipt, authenticated staging session, or recovery receipt exists."
+    },
+    {
+      "id": "OM-AI-PUBLIC-BOUNDARY",
+      "status": "VERIFIED_WORKTREE_ONLY",
+      "claim": "OM-AI public web, mobile, iOS, backend, and gateway paths fail closed instead of trusting client identity or incompatible direct-session calls.",
+      "evidence_paths": [
+        "docs/audit/2026-10-08/OM_AI_PUBLIC_AUTH_BOUNDARY.md",
+        "om-ai.omdala.com/backend/src/publicBoundary.ts",
+        "om-ai.omdala.com/web/src/api/client.ts",
+        "om-ai.omdala.com/app/src/api/client.ts",
+        "om-ai.omdala.com/ios/AIOmApp/Core/Network/APIClient.swift"
+      ],
+      "limit": "OM-AI is intentionally unavailable for public runtime use until a canonical session bridge is implemented and accepted."
+    },
+    {
+      "id": "TEAM-AI-PROVIDER",
+      "status": "VERIFIED_WORKTREE_ONLY",
+      "claim": "The separate Team AI worktree reports provider-contract, quota, receipt, ledger, streaming, and forged-header coverage with an exact provider bundle.",
+      "exact_bundle_sha256": "c8fa958ed9cb6bc461cefc8da2852657d5f7865a8d76355c28161b8c0e3d96ea",
+      "limit": "Its consumer is not yet pinned to the successor commit, so cross-repository acceptance and staging execution are not closed."
+    },
+    {
+      "id": "MOBILE-AUDIT",
+      "status": "BLOCKED",
+      "claim": "The committed-intended mobile production audit contains 28 vulnerabilities: 23 high and 5 moderate, with 0 critical.",
+      "evidence_paths": [
+        "docs/audit/2026-10-08/receipts/mobile-npm-prod-audit.json"
+      ],
+      "limit": "Mobile/native release is outside the release set until dependencies are remediated or an explicit, time-bounded exception is approved with native build evidence."
+    },
+    {
+      "id": "RUNTIME-READBACK",
+      "status": "BLOCKED",
+      "claim": "At 2026-10-07T21:53:56Z, all five staging hostnames had no A, AAAA, or CNAME answer; production API health returned 522; App /workspace returned 404; Brand did not resolve; Web/Auth release manifests returned 404; Auth home returned 200 but contained __next_error__.",
+      "evidence_paths": [
+        "docs/audit/2026-10-08/runtime-readback-2026-10-08.json"
+      ]
+    },
+    {
+      "id": "TERRAFORM-AUTHORITY",
+      "status": "BLOCKED",
+      "claim": "The R2 backend bucket exists, but no bucket-scoped key, identified/migrated state, verified locking, or accepted zero-destroy authority handoff exists.",
+      "evidence_paths": [
+        "docs/audit/2026-10-08/terraform-backend-bootstrap.json",
+        "infra/tf/API_WORKER_STATE_HANDOFF.md"
+      ],
+      "receipt_sha256": "ba033c54bf1c2f2db04dd8dbc1e7c596935894ebf26f675fa5cc86468eb0c013"
+    }
+  ],
+  "remaining_work": [
+    {
+      "id": "FINAL-01",
+      "priority": 0,
+      "phase": "source_candidate",
+      "status": "OPEN",
+      "owner": "Team 1 integration owner",
+      "dependencies": [],
+      "actions": [
+        "Finish final workflow and contract mutations.",
+        "Run the full required suite with Node 22.22.3, npm 10.9.8, and pnpm 9.15.0.",
+        "Review the complete staged path list, secret scan, generated-file exclusions, and git diff.",
+        "Create one clean successor commit and publish its exact SHA in the PR and post-commit receipt."
+      ],
+      "exit_evidence": [
+        "Clean git status at the successor SHA",
+        "Exact staged path manifest and SHA-256 manifest",
+        "PASS release:verify receipt produced from the committed SHA",
+        "No unresolved high/critical dependency gate in the included release set"
+      ],
+      "blocks": [
+        "FINAL-02",
+        "FINAL-03",
+        "FINAL-10"
+      ]
+    },
+    {
+      "id": "FINAL-02",
+      "priority": 0,
+      "phase": "cross_repository",
+      "status": "OPEN",
+      "owner": "Team AI provider owner",
+      "dependencies": [
+        "FINAL-01"
+      ],
+      "actions": [
+        "Pin the OMDALA successor SHA in provider CI and audit documents.",
+        "Rerun Team AI audit:all, contract, cross-repo, provenance, web build, dependency audit, and workflow lint gates.",
+        "Commit and push the provider candidate and open/update its review PR."
+      ],
+      "exit_evidence": [
+        "Provider commit SHA and clean worktree",
+        "Cross-repo receipt naming the exact OMDALA successor SHA",
+        "Exact provider bundle hash c8fa958ed9cb6bc461cefc8da2852657d5f7865a8d76355c28161b8c0e3d96ea or a documented replacement hash",
+        "Passing immutable provider CI run"
+      ],
+      "blocks": [
+        "FINAL-10",
+        "FINAL-11"
+      ]
+    },
+    {
+      "id": "FINAL-03",
+      "priority": 0,
+      "phase": "github_governance",
+      "status": "BLOCKED",
+      "owner": "Repository administrator and independent reviewer",
+      "dependencies": [
+        "FINAL-01"
+      ],
+      "actions": [
+        "Push the successor branch and open/update the OMDALA PR.",
+        "Protect main with required exact-SHA CI and Independent Exact-SHA Review checks.",
+        "Ensure every active independent CHANGES_REQUESTED veto is resolved by that reviewer or formally dismissed.",
+        "Assign a trusted reviewer who is neither the author nor the deploy actor."
+      ],
+      "exit_evidence": [
+        "Branch protection or ruleset API readback",
+        "Required-check list naming the exact release checks",
+        "APPROVED review for the exact successor SHA",
+        "No active independent change request",
+        "Green PR checks bound to the exact successor SHA"
+      ],
+      "blocks": [
+        "FINAL-10",
+        "FINAL-11",
+        "FINAL-18"
+      ]
+    },
+    {
+      "id": "FINAL-04",
+      "priority": 0,
+      "phase": "github_environments",
+      "status": "BLOCKED",
+      "owner": "Repository administrator",
+      "dependencies": [
+        "FINAL-03"
+      ],
+      "actions": [
+        "Configure staging as a protected environment with an independent reviewer and prevent self-review.",
+        "Create production only as a protected environment; do not authorize or start a production deployment.",
+        "Populate the exact variables and secret names required by the workflows through GitHub/Cloudflare protected stores only.",
+        "Verify environment branch/tag restrictions and deployment policy by API readback."
+      ],
+      "exit_evidence": [
+        "Environment protection JSON readback",
+        "Independent reviewer identity and prevent-self-review=true",
+        "Redacted exact secret-name inventory and variable-value readback",
+        "No plaintext secret in repository or artifacts"
+      ],
+      "blocks": [
+        "FINAL-10",
+        "FINAL-17"
+      ]
+    },
+    {
+      "id": "FINAL-05",
+      "priority": 0,
+      "phase": "staging_cloudflare",
+      "status": "BLOCKED",
+      "owner": "Cloudflare infrastructure owner",
+      "dependencies": [
+        "FINAL-04"
+      ],
+      "actions": [
+        "Provision isolated staging API and static-surface Workers in the locked account f3f9e76222dcb488d5e303e29e8ba192.",
+        "Provision a staging-only PostgreSQL database and Hyperdrive binding; never reuse production Hyperdrive b9c4907f49ca48cc9ee489013c3aa033.",
+        "Apply exact bindings and an empty secret inventory to static-surface Workers with strict deployment authority.",
+        "Record resource IDs and version readbacks before DNS attachment."
+      ],
+      "exit_evidence": [
+        "Cloudflare account/resource inventory",
+        "Distinct staging database and Hyperdrive IDs",
+        "Worker version readback for API, Web, App, Auth, and Brand staging surfaces",
+        "Static-worker secret lists exactly empty",
+        "API binding and secret-name inventory matches the workflow contract"
+      ],
+      "blocks": [
+        "FINAL-06",
+        "FINAL-07",
+        "FINAL-10"
+      ]
+    },
+    {
+      "id": "FINAL-06",
+      "priority": 0,
+      "phase": "staging_database",
+      "status": "BLOCKED",
+      "owner": "Team 2 data owner and Cloudflare infrastructure owner",
+      "dependencies": [
+        "FINAL-05"
+      ],
+      "actions": [
+        "Restore or initialize the isolated staging database through the guarded migration path.",
+        "Verify migration 0001 as the production baseline and apply only manifest-declared expand-only pending migrations.",
+        "Run backup, decrypt, ephemeral restore, row-count, target-identity, migration, deep-health, and rollback-readiness checks."
+      ],
+      "exit_evidence": [
+        "Redacted database target receipt",
+        "Encrypted backup hash plus decrypt/byte-compare receipt",
+        "Ephemeral restore and row-count receipt",
+        "Migration compatibility receipt covering every SQL file",
+        "Deep health reports persistence and migrations ready"
+      ],
+      "blocks": [
+        "FINAL-10",
+        "FINAL-11"
+      ]
+    },
+    {
+      "id": "FINAL-07",
+      "priority": 0,
+      "phase": "staging_dns_tls",
+      "status": "BLOCKED",
+      "owner": "DNS and Cloudflare zone owner",
+      "dependencies": [
+        "FINAL-05"
+      ],
+      "actions": [
+        "Attach staging.omdala.com, app-staging.omdala.com, auth-staging.omdala.com, brand-staging.omdala.com, and api-staging.omdala.com to the verified staging resources.",
+        "Verify certificates, routes, HTTP status, release metadata, security headers, and absence of production resource IDs."
+      ],
+      "exit_evidence": [
+        "Authoritative DNS records and resolved targets",
+        "TLS certificate/readback for all five hostnames",
+        "HTTP and release.json readbacks bound to staging deployment IDs",
+        "Negative proof that no staging hostname routes to production resources"
+      ],
+      "blocks": [
+        "FINAL-10",
+        "FINAL-11"
+      ]
+    },
+    {
+      "id": "FINAL-08",
+      "priority": 1,
+      "phase": "staging_auth",
+      "status": "BLOCKED",
+      "owner": "Team 2 Auth owner",
+      "dependencies": [
+        "FINAL-04",
+        "FINAL-07"
+      ],
+      "actions": [
+        "Register exact staging OAuth origins and redirect URIs.",
+        "Provision staging auth and session secrets in protected stores.",
+        "Verify magic-link single use, OAuth state/PKCE, cookie scope, refresh rotation/reuse revocation, logout, tenant/workspace boundaries, and forged-identity rejection."
+      ],
+      "exit_evidence": [
+        "OAuth provider configuration readback",
+        "Authenticated browser receipt with redacted identity",
+        "Expired, revoked, replayed, wrong-tenant, and wrong-workspace negative receipts",
+        "No session or credential in URL, localStorage, logs, or artifacts"
+      ],
+      "blocks": [
+        "FINAL-11"
+      ]
+    },
+    {
+      "id": "FINAL-09",
+      "priority": 1,
+      "phase": "staging_mail",
+      "status": "BLOCKED",
+      "owner": "Team 3 mail owner",
+      "dependencies": [
+        "FINAL-04",
+        "FINAL-07"
+      ],
+      "actions": [
+        "Provision mail workspace omdala.com-staging and a credential scoped to it.",
+        "Enter the controlled sink address through the protected staging environment.",
+        "Verify every staging recipient is replaced by the sink before egress and obtain provider/inbox readback."
+      ],
+      "exit_evidence": [
+        "Mail workspace and credential-scope readback",
+        "Sink-mode receipt without the sink address",
+        "Exact provider message IDs",
+        "Inbox or provider delivery-event evidence for those IDs",
+        "Negative receipt for a missing or invalid sink policy"
+      ],
+      "blocks": [
+        "FINAL-11"
+      ]
+    },
+    {
+      "id": "FINAL-10",
+      "priority": 0,
+      "phase": "staging_deploy",
+      "status": "BLOCKED",
+      "owner": "Team 1 release operator",
+      "dependencies": [
+        "FINAL-01",
+        "FINAL-02",
+        "FINAL-03",
+        "FINAL-04",
+        "FINAL-05",
+        "FINAL-06",
+        "FINAL-07"
+      ],
+      "actions": [
+        "Replace the protected multi-job chain with one environment-gated transaction job that owns API, Web, App, Auth, Brand, acceptance, and reverse compensation.",
+        "Create and hash-bind a recovery capsule before the first mutation; recovery must not require a second approval and must run on failure or cancellation.",
+        "Only after independent review, remove the staging atomicity hold and deploy the exact successor/control-plane SHA."
+      ],
+      "exit_evidence": [
+        "Source contract proves one approval boundary and one fixed concurrency authority",
+        "Recovery executes after failure/cancellation without a second approval and attempts every target",
+        "Immutable API, surface, transaction, acceptance, and recovery artifacts share the exact SHA and transaction ID",
+        "Provider readback matches every deployed or restored baseline",
+        "No --keep-vars or undeclared binding"
+      ],
+      "blocks": [
+        "FINAL-11",
+        "FINAL-12"
+      ]
+    },
+    {
+      "id": "FINAL-11",
+      "priority": 0,
+      "phase": "staging_acceptance",
+      "status": "BLOCKED",
+      "owner": "Team 4 independent QA",
+      "dependencies": [
+        "FINAL-08",
+        "FINAL-09",
+        "FINAL-10"
+      ],
+      "actions": [
+        "Run authenticated staging E2E against all deployed surfaces.",
+        "Verify Auth, tenant/workspace isolation, persistence, API deep health, mail sink, AI catalog/chat/run/SSE/receipt/usage/cost ledger, and release provenance.",
+        "Use real AI calls only when necessary and stop before total verified cost exceeds USD 0.25.",
+        "Run negative tests for forged authority, wrong tenant, expiry, revocation, quota/cost ceilings, malformed streaming, and receipt mismatch."
+      ],
+      "exit_evidence": [
+        "STAGING_ACCEPTED receipt bound to successor SHA and both release workflow run IDs",
+        "Playwright JSON report with all required scenarios executed and zero unexpected/skipped/flaky results",
+        "Provider-signed AI receipts and reconciled usage/cost ledger at or below USD 0.25",
+        "Mail delivery and database persistence receipts",
+        "Independent QA signature for the exact artifact set"
+      ],
+      "blocks": [
+        "FINAL-12",
+        "FINAL-18"
+      ]
+    },
+    {
+      "id": "FINAL-12",
+      "priority": 0,
+      "phase": "staging_recovery",
+      "status": "BLOCKED",
+      "owner": "Team 1 release operator and Team 4 independent QA",
+      "dependencies": [
+        "FINAL-10",
+        "FINAL-11"
+      ],
+      "actions": [
+        "Exercise API and all surface rollback from the cross-workflow gate artifact.",
+        "Verify provider state returns to the recorded baseline and additive database migrations remain compatible.",
+        "Restore the staging backup into an isolated target and rerun smoke/deep-health checks."
+      ],
+      "exit_evidence": [
+        "Rollback receipt for API, Web, App, Auth, and Brand",
+        "Post-rollback provider version readbacks",
+        "Backup restore drill receipt and data-integrity comparison",
+        "Recovery time and operator/runbook evidence",
+        "Independent reviewer acceptance of recovery evidence"
+      ],
+      "blocks": [
+        "FINAL-18"
+      ]
+    },
+    {
+      "id": "FINAL-13",
+      "priority": 1,
+      "phase": "terraform_authority",
+      "status": "BLOCKED",
+      "owner": "Infrastructure authority owner",
+      "dependencies": [],
+      "actions": [
+        "Create a bucket-scoped R2 access credential through the protected channel.",
+        "Identify the authoritative Terraform state and migrate it to omdala/production/terraform.tfstate without applying infrastructure changes.",
+        "Verify state locking and complete the Wrangler-versus-Terraform API Worker authority handoff with a zero-destroy plan."
+      ],
+      "exit_evidence": [
+        "Remote backend init and state lineage receipt",
+        "Concurrent-lock contention test",
+        "Accepted authority-handoff document",
+        "Terraform plan showing zero destroy/recreate for Wrangler-owned API resources",
+        "No credentials committed or uploaded"
+      ],
+      "blocks": [
+        "FINAL-17",
+        "FINAL-18"
+      ]
+    },
+    {
+      "id": "FINAL-14",
+      "priority": 1,
+      "phase": "om_ai_runtime",
+      "status": "BLOCKED",
+      "owner": "OM-AI owner and Team 2 Auth owner",
+      "dependencies": [
+        "FINAL-08",
+        "FINAL-11"
+      ],
+      "actions": [
+        "Design and implement a canonical server-side session bridge with explicit route allowlists.",
+        "Bind user, role, tenant, workspace, expiry, and revocation state server-side.",
+        "Complete cross-user, replay, forged-identity, approval-policy, and provider-boundary tests before attaching public DNS."
+      ],
+      "exit_evidence": [
+        "Approved bridge contract and threat review",
+        "Negative identity/authorization test receipts",
+        "Exact-SHA staging deployment and /ready acceptance",
+        "Independent approval before public route attachment"
+      ],
+      "blocks": [
+        "OM-AI_PUBLIC_RELEASE"
+      ]
+    },
+    {
+      "id": "FINAL-15",
+      "priority": 1,
+      "phase": "mobile_native",
+      "status": "BLOCKED",
+      "owner": "Mobile owner and security reviewer",
+      "dependencies": [],
+      "actions": [
+        "Eliminate or isolate the 23 high and 5 moderate production dependency findings, or obtain an explicit time-bounded exception for each accepted risk.",
+        "Run clean native iOS/Android builds, signed-device tests, deep-link rejection, secure-session, revocation, and network-origin tests.",
+        "Keep mobile outside Web/API production release scope until its own gates pass."
+      ],
+      "exit_evidence": [
+        "Updated npm audit receipt with accepted threshold",
+        "Dependency exception register with owner and expiry if any risk remains",
+        "Signed native build provenance",
+        "Physical-device and distribution-channel acceptance receipts"
+      ],
+      "blocks": [
+        "MOBILE_RELEASE"
+      ]
+    },
+    {
+      "id": "FINAL-16",
+      "priority": 0,
+      "phase": "current_live_incident",
+      "status": "BLOCKED",
+      "owner": "Operations owner",
+      "dependencies": [],
+      "actions": [
+        "Diagnose production API health timeout/previous 522 without mutating production.",
+        "Identify why App /workspace returns 404 and why Brand does not resolve.",
+        "Inventory production release.json/provenance and current Worker/route/DNS origins.",
+        "Restore only through a separately authorized, reviewed incident change."
+      ],
+      "exit_evidence": [
+        "Incident timeline and read-only origin/route/log evidence",
+        "Root-cause statement with affected deployment IDs",
+        "Reviewed remediation and rollback plan",
+        "Post-change health, route, and release-provenance receipt if a production fix is later authorized"
+      ],
+      "blocks": [
+        "FINAL-18"
+      ]
+    },
+    {
+      "id": "FINAL-17",
+      "priority": 1,
+      "phase": "production_control_plane",
+      "status": "HOLD_NO_GO",
+      "owner": "Repository administrator, Cloudflare owner, and Founder",
+      "dependencies": [
+        "FINAL-03",
+        "FINAL-04",
+        "FINAL-12",
+        "FINAL-13",
+        "FINAL-16"
+      ],
+      "actions": [
+        "Build one unified production transaction for API, four surfaces, acceptance, and reverse compensation while keeping all current holds active.",
+        "Prepare the protected production control plane, exact resource/config inventory, and pre-mutation backup/rollback baselines.",
+        "Present staging, recovery, and independent-review receipts to the Founder for an exact-SHA decision."
+      ],
+      "exit_evidence": [
+        "Unified production transaction with a pre-mutation capsule and reverse compensation",
+        "Production environment protection and redacted config inventory readback",
+        "Independent release recommendation",
+        "Founder GO naming exact SHA, scope, window, spend limit, and rollback authority"
+      ],
+      "blocks": [
+        "FINAL-18"
+      ]
+    },
+    {
+      "id": "FINAL-18",
+      "priority": 1,
+      "phase": "production_release",
+      "status": "HOLD_NO_GO",
+      "owner": "Founder-authorized release operator and independent reviewer",
+      "dependencies": [
+        "FINAL-03",
+        "FINAL-11",
+        "FINAL-12",
+        "FINAL-13",
+        "FINAL-16",
+        "FINAL-17"
+      ],
+      "actions": [
+        "Do not execute until the Founder issues the exact production GO decision.",
+        "When authorized, release the accepted SHA through the protected production workflow only.",
+        "Verify backup, migration compatibility, API and surface versions, authenticated E2E, provenance, monitoring, and rollback readiness before final acceptance.",
+        "If any gate fails, execute the recorded rollback and retain production HOLD."
+      ],
+      "exit_evidence": [
+        "Successful production workflow bound to merged protected main SHA",
+        "Deployment IDs and provider readback for every component",
+        "Authenticated production E2E and deep-health receipt with no paid AI invocation",
+        "Backup/recovery and rollback gate artifacts",
+        "Independent acceptance and final Founder sign-off"
+      ],
+      "blocks": [
+        "PRODUCTION_GO_LIVE"
+      ]
+    }
+  ],
+  "hard_stops": [
+    "Do not describe the mutable worktree as an exact candidate.",
+    "Do not enable OM-AI public runtime routes before the canonical session bridge passes independent review.",
+    "Do not include mobile/native in a release while its security and native-build gates remain open.",
+    "Do not mutate production, merge, migrate production data, change production DNS, or claim go-live without an explicit Founder GO decision for the exact SHA.",
+    "Do not remove STAGING_TRANSACTION_BLOCKED_PROTECTED_ENVIRONMENT_ATOMICITY until one protected transaction owns deployment, acceptance, and compensation without a second approval.",
+    "Do not remove any PRODUCTION_HOLD_UNIFIED_TRANSACTION_REQUIRED marker before a unified production transaction and independent mutation review exist."
+  ]
+}

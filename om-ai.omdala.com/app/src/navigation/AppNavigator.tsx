@@ -15,7 +15,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function AppNavigator() {
   const { session } = useSession();
-  const isSignedIn = Boolean(session.token);
+  const isSignedIn = session.authenticated;
 
   return (
     <NavigationContainer>

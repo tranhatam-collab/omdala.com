@@ -14,6 +14,24 @@ export const AIAGENT_HOSTS = Object.freeze([
   "api.aiagent.iai.one",
   "staging-api.aiagent.iai.one",
 ]);
+export const AIAGENT_TENANT_ID = "omdala-com";
+export const AIAGENT_NAMESPACE = "iai-one";
+export const AIAGENT_DEPLOYMENTS = Object.freeze({
+  aiagent: Object.freeze({
+    id: "aiagent",
+    environment: "production",
+    origin: "https://api.aiagent.iai.one",
+    tenantId: AIAGENT_TENANT_ID,
+    workspaceId: "omdala-com-production",
+  }),
+  "aiagent-staging": Object.freeze({
+    id: "aiagent-staging",
+    environment: "staging",
+    origin: "https://staging-api.aiagent.iai.one",
+    tenantId: AIAGENT_TENANT_ID,
+    workspaceId: "omdala-com-staging",
+  }),
+});
 const LOCAL_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
 export class EndpointPolicyError extends Error {
   constructor(message) {
@@ -27,6 +45,19 @@ export function isAiagentHost(hostname) {
 }
 export function isLocalHost(hostname) {
   return LOCAL_HOSTS.includes(hostname);
+}
+export function aiagentDeploymentForOrigin(value) {
+  let origin;
+  try {
+    origin = new URL(value).origin;
+  } catch {
+    return null;
+  }
+  return (
+    Object.values(AIAGENT_DEPLOYMENTS).find(
+      (deployment) => deployment.origin === origin,
+    ) || null
+  );
 }
 export function validateUrl(value) {
   let url;

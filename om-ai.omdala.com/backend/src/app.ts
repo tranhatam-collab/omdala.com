@@ -1,12 +1,13 @@
 import Fastify from 'fastify';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import { installDirectPublicBoundary } from './publicBoundary.js';
 import { registerRoutes } from './routes.js';
 
 export function createApp() {
   const app = Fastify({ logger: true });
 
-  const enableDocs = process.env.OM_AI_ENABLE_DOCS !== '0';
+  const enableDocs = process.env.OM_AI_ENABLE_DOCS === '1';
 
   if (enableDocs) {
     void app.register(swagger, {
@@ -18,15 +19,6 @@ export function createApp() {
           description: 'Policy-first, proof-first, and live-session-ready API for Om AI Reality and Om AI Live.',
         },
         servers: [{ url: 'http://localhost:3001' }],
-        components: {
-          securitySchemes: {
-            BearerAuth: {
-              type: 'http',
-              scheme: 'bearer',
-              bearerFormat: 'Token as userId:role in dev',
-            },
-          },
-        },
       },
     });
 
@@ -41,6 +33,7 @@ export function createApp() {
     });
   }
 
+  installDirectPublicBoundary(app);
   registerRoutes(app);
   return app;
 }

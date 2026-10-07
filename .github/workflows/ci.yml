@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   release-governance-tests:
-    name: Release Governance Tests (19 tests)
+    name: Release Governance Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,7 +37,7 @@ jobs:
       - run: pnpm typecheck
 
   test-api:
-    name: API Tests (74 tests)
+    name: API Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,7 +53,7 @@ jobs:
       - run: pnpm --filter @omdala/api run check
 
   test-app:
-    name: App Tests (27 tests)
+    name: App Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -83,7 +83,7 @@ jobs:
       - run: pnpm --filter @omdala/core test
 
   test-brand-core:
-    name: Brand Core Tests (33 tests)
+    name: Brand Core Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -113,7 +113,7 @@ jobs:
       - run: pnpm --filter @omdala/brand-marketplace test
 
   test-billing:
-    name: Billing and Promotion Tests (27 tests)
+    name: Billing and Promotion Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -128,7 +128,7 @@ jobs:
       - run: pnpm --filter @omdala/billing test
 
   test-om-ai-backend:
-    name: OM AI Backend Tests (11 tests)
+    name: OM AI Backend Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -143,7 +143,7 @@ jobs:
         working-directory: om-ai.omdala.com/backend
 
   test-om-ai-gateway:
-    name: OM AI Gateway Tests (9 tests)
+    name: OM AI Gateway Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -155,8 +155,25 @@ jobs:
       - run: npm test
         working-directory: om-ai.omdala.com/gateway
 
+  test-om-ai-web:
+    name: OM AI Web Typecheck and Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+          cache: npm
+          cache-dependency-path: om-ai.omdala.com/web/package-lock.json
+      - run: npm ci
+        working-directory: om-ai.omdala.com/web
+      - run: npm run typecheck
+        working-directory: om-ai.omdala.com/web
+      - run: npm run build
+        working-directory: om-ai.omdala.com/web
+
   test-om-ai-mobile-contract:
-    name: OM AI Mobile Contract Tests (2 tests)
+    name: OM AI Mobile Contract Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -346,8 +363,11 @@ jobs:
         run: |
           set -euo pipefail
           for directory in \
+            om-ai.omdala.com \
             om-ai.omdala.com/backend \
             om-ai.omdala.com/gateway \
+            om-ai.omdala.com/web \
+            om-ai.omdala.com/app \
             infra/services/api-gateway \
             infra/services/worker
           do
@@ -356,9 +376,18 @@ jobs:
       - name: Audit OM AI backend dependencies
         run: npm audit --audit-level=high
         working-directory: om-ai.omdala.com/backend
+      - name: Audit OM AI root dependencies
+        run: npm audit --audit-level=high
+        working-directory: om-ai.omdala.com
       - name: Audit OM AI gateway dependencies
         run: npm audit --audit-level=high
         working-directory: om-ai.omdala.com/gateway
+      - name: Audit OM AI web dependencies
+        run: npm audit --audit-level=high
+        working-directory: om-ai.omdala.com/web
+      - name: Audit OM AI mobile dependencies
+        run: npm audit --audit-level=high
+        working-directory: om-ai.omdala.com/app
       - name: Audit Infra API Gateway dependencies
         run: npm audit --audit-level=high
         working-directory: infra/services/api-gateway

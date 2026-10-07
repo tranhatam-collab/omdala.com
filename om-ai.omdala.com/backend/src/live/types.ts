@@ -1,3 +1,5 @@
+import type { LiveAiAuthorityDecision } from '../aiAuthority.js';
+
 export type LivePlanId =
   | 'free'
   | 'personal_pro'
@@ -12,15 +14,7 @@ export type LivePersonaRole =
   | 'communication_coach'
   | 'lecturer';
 
-export type LiveSessionStatus = 'ready' | 'active' | 'ended' | 'failed';
-
-export type LiveProviderId = 'openai_realtime' | 'tavus' | 'heygen' | 'voice_only';
-
-export type LiveProviderRoutingDecision = {
-  primary: LiveProviderId;
-  fallback: LiveProviderId[];
-  reason: string;
-};
+export type LiveSessionStatus = 'blocked' | 'active' | 'ended' | 'failed';
 
 export type LivePersona = {
   persona_id: string;
@@ -68,7 +62,7 @@ export type LiveSession = {
   billable_seconds: number;
   free_seconds_applied: number;
   premium_seconds_applied: number;
-  provider_routing: LiveProviderRoutingDecision;
+  ai_authority: LiveAiAuthorityDecision;
 };
 
 export type LiveMemoryProfile = {

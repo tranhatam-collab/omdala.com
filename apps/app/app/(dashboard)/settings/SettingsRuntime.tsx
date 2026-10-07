@@ -2,7 +2,6 @@
 
 import {
   OM_AI_APP_ID,
-  OM_AI_PROVIDER_CAPABILITIES,
   resolveLanguage,
   resolveOmAiBetaGate,
 } from "@omdala/core";
@@ -10,17 +9,16 @@ import type {
   OmAiAccountPreferences,
   OmAiBillingSubscription,
   OmAiBillingUsage,
-  OmAiProviderRouteDecision,
   OmAiUsageEventName,
 } from "@omdala/types";
 import { useLocationSearchParam } from "@omdala/ui";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   getAccountPreferences,
+  getAiProviderHealth,
   getBillingSubscriptions,
   getBillingUsage,
-  getProviderRoute,
-  getProviders,
+  type AiProviderHealthResponse,
   updateAccountPreferences,
 } from "@/lib/account-billing-client";
 import { APP_COPY, t } from "@/lib/bilingual-copy";
@@ -30,8 +28,7 @@ type SettingsData = {
   subscription: OmAiBillingSubscription;
   usage: OmAiBillingUsage;
   usageEventNames: OmAiUsageEventName[];
-  providerSource: string;
-  providerRoutes: OmAiProviderRouteDecision[];
+  aiAuthority: AiProviderHealthResponse["providers"][number];
 };
 
 export function SettingsRuntime() {
@@ -49,25 +46,23 @@ export function SettingsRuntime() {
       getAccountPreferences(),
       getBillingSubscriptions(),
       getBillingUsage(),
-      getProviders(),
-      Promise.all(
-        Object.values(OM_AI_PROVIDER_CAPABILITIES).map((capability) =>
-          getProviderRoute(capability),
-        ),
-      ),
+      getAiProviderHealth(),
     ])
-      .then(([preferences, subscriptions, usage, providers, providerRoutes]) => {
+      .then(([preferences, subscriptions, usage, aiHealth]) => {
         if (!active) return;
         if (!subscriptions.primary) {
           throw new Error("Primary subscription is missing");
+        }
+        const aiAuthority = aiHealth.providers[0];
+        if (!aiAuthority || aiHealth.total !== 1 || aiHealth.modelCallExecuted !== false) {
+          throw new Error("AIAGENT authority health is incomplete");
         }
         const nextData: SettingsData = {
           preferences,
           subscription: subscriptions.primary,
           usage,
           usageEventNames: usage.eventNames,
-          providerSource: providers.source,
-          providerRoutes,
+          aiAuthority,
         };
         setData(nextData);
         setDraft(preferences);
@@ -271,23 +266,16 @@ export function SettingsRuntime() {
           </form>
 
           <article className="detail-card">
-            <h2>{t(language, APP_COPY.providerRoutingStatus.title)}</h2>
+            <h2>AIAGENT authority</h2>
             <p className="app-copy">
-              {t(language, APP_COPY.providerRoutingStatus.source)}:{" "}
-              {data.providerSource}
+              Contract {data.aiAuthority.contractVersion}; tenant {data.aiAuthority.tenant};
+              workspace {data.aiAuthority.workspace ?? "not configured"}.
             </p>
             <ul className="dashboard-list">
-              {data.providerRoutes.map((route) => (
-                <li key={route.capability}>
-                  {route.capability}: {route.providerId ?? "none"} ({t(
-                    language,
-                    APP_COPY.providerRoutingStatus.fallback,
-                  )}: {route.fallbackProviderId ?? "none"}) {t(
-                    language,
-                    APP_COPY.providerRoutingStatus.score,
-                  )}: {route.score.toFixed(3)}
-                </li>
-              ))}
+              <li>Configured: {String(data.aiAuthority.configured)}</li>
+              <li>Credential ready: {String(data.aiAuthority.ready)}</li>
+              <li>Direct upstream allowed: {String(data.aiAuthority.directUpstreamAllowed)}</li>
+              <li>Probe: {data.aiAuthority.probe}; no model call executed</li>
             </ul>
           </article>
         </section>

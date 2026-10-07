@@ -2,54 +2,18 @@
 "use client";
 
 import * as React from "react";
-import {
-  classifyTask,
-  modelRouter,
-  initAgentOrchestrator,
-  getAgentOrchestrator,
-} from "@omdala/core";
-import { ModelPickerWithAuto } from "./ModelPicker";
+import { classifyTask } from "@omdala/core";
+import { ModelPickerWithAuto, resolveAiagentModel } from "./ModelPicker";
 import { loadSettings } from "./SettingsPanel";
+import {
+  chatViaAiagent,
+  getVerifiedAiagentCatalog,
+  type AiagentModel,
+} from "../api/gateway";
 import { SlashMenu } from "./SlashCommands";
 import { recordUsage } from "./CostDashboard";
 import { saveChatMessage } from "./ChatHistoryPanel";
 import { getAgentSystemPrompt } from "@/lib/permission-layer";
-
-// ── Gateway account helper (minimal bridge) ──────────────────────────────────
-function loadGatewayAccount(): { token: string; url: string } | null {
-  try {
-    const raw = localStorage.getItem("omcode:account");
-    if (!raw) return null;
-    const a = JSON.parse(raw);
-    if (a?.token && a?.apiGatewayUrl) return { token: a.token, url: a.apiGatewayUrl };
-  } catch {}
-  return null;
-}
-
-async function routeViaGateway(
-  gateway: { token: string; url: string },
-  body: { model: string; messages: Array<{ role: string; content: string }>; maxTokens: number },
-): Promise<{ content: string; usage?: { promptTokens: number; completionTokens: number; totalTokens: number }; modelUsed: string } | null> {
-  try {
-    const res = await fetch(`${gateway.url.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${gateway.token}`,
-      },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return {
-      content: data.choices?.[0]?.message?.content ?? "",
-      usage: data.usage,
-      modelUsed: data.model ?? body.model,
-    };
-  } catch {
-    return null;
-  }
-}
 
 interface ChatMessage {
   id: string;
@@ -160,20 +124,26 @@ export function AIChatPanel({ workspaceFiles, workspaceName, activePath, onApply
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
   const [isProcessing, setIsProcessing] = React.useState(false);
-  const [selectedModel, setSelectedModel] = React.useState<string>("auto");
+  const [selectedModel, setSelectedModel] = React.useState<string>("");
+  const [models, setModels] = React.useState<AiagentModel[]>([]);
+  const [catalogError, setCatalogError] = React.useState<string | null>(null);
   const [slashQuery, setSlashQuery] = React.useState<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   React.useEffect(() => {
-    let orchestrator = getAgentOrchestrator();
-    if (!orchestrator) {
-      orchestrator = initAgentOrchestrator(modelRouter);
-    }
     const s = loadSettings();
-    if (s.defaultModel) {
-      queueMicrotask(() => setSelectedModel(s.defaultModel ?? "auto"));
-    }
+    getVerifiedAiagentCatalog()
+      .then((catalog) => {
+        setModels(catalog.models);
+        setSelectedModel(resolveAiagentModel(s.defaultModel, catalog.models));
+        setCatalogError(null);
+      })
+      .catch(() => {
+        setModels([]);
+        setSelectedModel("");
+        setCatalogError("Catalog AIAGENT chưa được xác minh.");
+      });
 
     function onInlineAI(e: Event) {
       const sel = (e as CustomEvent).detail as string;
@@ -259,76 +229,34 @@ Trả lời ngắn gọn, dùng tiếng Việt.`;
 
       const systemPrompt = getAgentSystemPrompt(baseSystemPrompt);
 
-      // Override recommended model if user picked specific
-      const effectiveClassification =
-        selectedModel && selectedModel !== "auto"
-          ? { ...classification, recommendedModel: selectedModel }
-          : classification;
-
-      const gateway = loadGatewayAccount();
-      let result: { response: { content: string; usage?: { promptTokens: number; completionTokens: number; totalTokens: number } }; modelUsed: string; totalCost?: number };
-
-      if (gateway) {
-        const gatewayRes = await routeViaGateway(gateway, {
-          model: effectiveClassification.recommendedModel,
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages.slice(-6).map((m) => ({
-              role: (m.role === "system" ? "user" : m.role) as "user" | "assistant",
-              content: m.content,
-            })),
-            { role: "user", content: text },
-          ],
-          maxTokens: 1024,
-        });
-        if (gatewayRes) {
-          result = { response: { content: gatewayRes.content, usage: gatewayRes.usage }, modelUsed: gatewayRes.modelUsed, totalCost: 0 };
-        } else {
-          // Gateway fail → fallback local
-          result = await modelRouter.route(
-            {
-              model: effectiveClassification.recommendedModel,
-              messages: [
-                { role: "system", content: systemPrompt },
-                ...messages.slice(-6).map((m) => ({
-                  role: (m.role === "system" ? "user" : m.role) as "user" | "assistant",
-                  content: m.content,
-                })),
-                { role: "user", content: text },
-              ],
-              maxTokens: 1024,
-            },
-            classification,
-          );
-        }
-      } else {
-        result = await modelRouter.route(
-          {
-            model: effectiveClassification.recommendedModel,
-            messages: [
-              { role: "system", content: systemPrompt },
-              ...messages.slice(-6).map((m) => ({
-                role: (m.role === "system" ? "user" : m.role) as "user" | "assistant",
-                content: m.content,
-              })),
-              { role: "user", content: text },
-            ],
-            maxTokens: 1024,
-          },
-          classification,
-        );
+      const model = resolveAiagentModel(selectedModel, models);
+      if (!model) {
+        throw new Error("AIAGENT_VERIFIED_CATALOG_REQUIRED");
       }
+      const result = await chatViaAiagent({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages.slice(-6).map((message) => ({
+            role: (message.role === "system" ? "user" : message.role) as
+              | "user"
+              | "assistant",
+            content: message.content,
+          })),
+          { role: "user", content: text },
+        ],
+        maxTokens: 1024,
+      });
 
       // Track usage
-      const providerId = result.modelUsed?.split(":")[0] || "unknown";
       recordUsage(
-        result.modelUsed || "unknown",
-        providerId,
-        result.response.usage?.promptTokens || 0,
-        result.response.usage?.completionTokens || 0,
-        result.totalCost || 0,
+        result.model,
+        "iai-one",
+        result.usage.input_tokens,
+        result.usage.output_tokens,
+        result.cost_usd,
       );
-      saveChatMessage({ id: `u-${Date.now()}`, role: "user", content: text, timestamp: Date.now(), workspace: workspaceName, model: result.modelUsed });
+      saveChatMessage({ id: `u-${Date.now()}`, role: "user", content: text, timestamp: Date.now(), workspace: workspaceName, model: result.model });
 
       // Streaming reveal
       const msgId = `m-${Date.now() + 1}`;
@@ -340,19 +268,19 @@ Trả lời ngắn gọn, dùng tiếng Việt.`;
           content: "",
           timestamp: Date.now(),
           meta: {
-            model: result.modelUsed,
-            cost: result.totalCost,
-            tokens: result.response.usage?.totalTokens,
+            model: result.model,
+            cost: result.cost_usd,
+            tokens: result.usage.total_tokens,
           },
         },
       ]);
 
       // Save assistant message after streaming (approximate)
       setTimeout(() => {
-        saveChatMessage({ id: msgId, role: "assistant", content: result.response.content, timestamp: Date.now(), workspace: workspaceName, model: result.modelUsed });
+        saveChatMessage({ id: msgId, role: "assistant", content: result.response, timestamp: Date.now(), workspace: workspaceName, model: result.model });
       }, 2000);
 
-      const fullText = result.response.content;
+      const fullText = result.response;
       const words = fullText.split(/(\s+)/);
       let idx = 0;
       const interval = setInterval(() => {
@@ -373,7 +301,7 @@ Trả lời ngắn gọn, dùng tiếng Việt.`;
         {
           id: `m-${Date.now() + 1}`,
           role: "system",
-          content: `Lỗi: ${errorMessage}\n\nMẹo: kiểm tra API key trong Settings.`,
+          content: `Lỗi: ${errorMessage}\n\nKiểm tra phiên đăng nhập và AIAGENT catalog trong Account.`,
           timestamp: Date.now(),
         },
       ]);
@@ -420,7 +348,11 @@ Trả lời ngắn gọn, dùng tiếng Việt.`;
           </button>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <ModelPickerWithAuto value={selectedModel} onChange={setSelectedModel} />
+          <ModelPickerWithAuto
+            value={selectedModel}
+            models={models}
+            onChange={setSelectedModel}
+          />
         </div>
       </div>
 
@@ -429,7 +361,9 @@ Trả lời ngắn gọn, dùng tiếng Việt.`;
           <div style={{ color: "#6b7f99", fontSize: 12, textAlign: "center", marginTop: 24 }}>
             Hỏi AI về code workspace của bạn.
             <br />
-            <span style={{ fontSize: 11 }}>Cần config API key trong ⚙️ Settings.</span>
+            <span style={{ fontSize: 11 }}>
+              {catalogError ?? "Model lấy từ AIAGENT catalog đã xác minh."}
+            </span>
           </div>
         )}
         {messages.map((m) => (

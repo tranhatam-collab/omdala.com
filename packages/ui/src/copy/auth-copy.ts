@@ -37,8 +37,8 @@ export const AUTH_COPY = {
       vi: "Đăng nhập an toàn cho các bề mặt vận hành của OMDALA.",
     },
     body: {
-      en: "Continue with passwordless sign-in on the dedicated auth host. Session cookies are scoped for OMDALA subdomains.",
-      vi: "Tiếp tục đăng nhập không mật khẩu trên host xác thực chuyên biệt. Cookie phiên được áp dụng cho toàn bộ subdomain của OMDALA.",
+      en: "Continue with passwordless sign-in on the dedicated auth host. Session cookies are host-only on the OMDALA API.",
+      vi: "Tiếp tục đăng nhập không mật khẩu trên host xác thực chuyên biệt. Cookie phiên chỉ thuộc host API của OMDALA.",
     },
     preparing: {
       en: "Preparing login...",
@@ -50,20 +50,20 @@ export const AUTH_COPY = {
     },
     topologyItems: {
       host: {
-        en: "Host: auth.omdala.com",
-        vi: "Host: auth.omdala.com",
+        en: "Host: protected auth surface",
+        vi: "Host: bề mặt xác thực được bảo vệ",
       },
       cookieDomain: {
-        en: "Session cookie domain: .omdala.com",
-        vi: "Miền cookie phiên: .omdala.com",
+        en: "Session cookie scope: API host only",
+        vi: "Phạm vi cookie phiên: chỉ host API",
       },
       redirectChain: {
         en: "Redirect chain: app -> auth -> app",
         vi: "Chuỗi điều hướng: app -> auth -> app",
       },
       tokenVerification: {
-        en: "Token verification via api.omdala.com",
-        vi: "Xác minh token qua api.omdala.com",
+        en: "Token verification via the protected API surface",
+        vi: "Xác minh token qua bề mặt API được bảo vệ",
       },
       exchange: {
         en: "Cookie exchange via /v1/auth/session/exchange",
@@ -81,16 +81,16 @@ export const AUTH_COPY = {
       vi: "Tiếp tục trên bề mặt xác thực riêng của OMDALA.",
     },
     body: {
-      en: "OMDALA now uses an isolated authentication host at auth.omdala.com with cookie-scoped session handling for all app subdomains.",
-      vi: "OMDALA hiện dùng một host xác thực tách riêng tại auth.omdala.com, với cơ chế quản lý phiên bằng cookie cho toàn bộ các subdomain ứng dụng.",
+      en: "OMDALA uses an isolated authentication surface and host-only session cookies on its API surface.",
+      vi: "OMDALA dùng bề mặt xác thực tách riêng và cookie phiên host-only trên bề mặt API.",
     },
     sourceOfTruth: {
       en: "Source of truth",
       vi: "Nguồn dữ liệu chuẩn",
     },
     openAuth: {
-      en: "Open auth.omdala.com",
-      vi: "Mở auth.omdala.com",
+      en: "Open the auth surface",
+      vi: "Mở bề mặt xác thực",
     },
     topology: {
       en: "Auth topology",
@@ -110,12 +110,12 @@ export const AUTH_COPY = {
     },
     topologyItems: {
       entryHost: {
-        en: "Entry host: auth.omdala.com",
-        vi: "Host vào hệ: auth.omdala.com",
+        en: "Entry host: protected auth surface",
+        vi: "Host vào hệ: bề mặt xác thực được bảo vệ",
       },
       cookieDomain: {
-        en: "Cookie domain: .omdala.com",
-        vi: "Miền cookie: .omdala.com",
+        en: "Cookie scope: API host only",
+        vi: "Phạm vi cookie: chỉ host API",
       },
       sessionValidation: {
         en: "App routes validate server session before unlock.",

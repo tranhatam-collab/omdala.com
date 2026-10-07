@@ -1,6 +1,10 @@
 "use client";
 
-import { resolveLanguage, type OmdalaLanguage } from "@omdala/core";
+import {
+  resolveLanguage,
+  resolvePublicOrigin,
+  type OmdalaLanguage,
+} from "@omdala/core";
 import { AUTH_COPY, pickBilingualValue, useLocationSearchParam } from "@omdala/ui";
 import { Suspense } from "react";
 import { AuthLoginForm } from "./AuthLoginForm";
@@ -8,6 +12,22 @@ import { AuthLoginForm } from "./AuthLoginForm";
 export default function LoginPage() {
   const language: OmdalaLanguage = resolveLanguage(useLocationSearchParam("lang"));
   const copy = AUTH_COPY.authHostLoginPage;
+  const releaseEnvironment = process.env.NEXT_PUBLIC_RELEASE_ENVIRONMENT;
+  const authHostname = new URL(resolvePublicOrigin(
+    "auth",
+    process.env.NEXT_PUBLIC_AUTH_ORIGIN,
+    releaseEnvironment,
+  )).hostname;
+  const appHostname = new URL(resolvePublicOrigin(
+    "app",
+    process.env.NEXT_PUBLIC_APP_ORIGIN,
+    releaseEnvironment,
+  )).hostname;
+  const apiHostname = new URL(resolvePublicOrigin(
+    "api",
+    process.env.NEXT_PUBLIC_AUTH_API_BASE,
+    releaseEnvironment,
+  )).hostname;
 
   return (
     <main className="auth-shell">
@@ -25,10 +45,10 @@ export default function LoginPage() {
         <aside className="auth-panel">
           <p className="auth-eyebrow">{pickBilingualValue(language, copy.topology)}</p>
           <ul className="auth-list">
-            <li>{pickBilingualValue(language, copy.topologyItems.host)}</li>
-            <li>{pickBilingualValue(language, copy.topologyItems.cookieDomain)}</li>
-            <li>{pickBilingualValue(language, copy.topologyItems.redirectChain)}</li>
-            <li>{pickBilingualValue(language, copy.topologyItems.tokenVerification)}</li>
+            <li>Host: {authHostname}</li>
+            <li>{language === "vi" ? "Cookie phiên chỉ thuộc host" : "Session cookie is host-only on"}: {apiHostname}</li>
+            <li>{language === "vi" ? "Chuỗi điều hướng" : "Redirect chain"}: {appHostname} -&gt; {authHostname} -&gt; {appHostname}</li>
+            <li>{language === "vi" ? "Xác minh token qua" : "Token verification via"}: {apiHostname}</li>
             <li>{pickBilingualValue(language, copy.topologyItems.exchange)}</li>
           </ul>
         </aside>

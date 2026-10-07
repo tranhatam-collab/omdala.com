@@ -1,39 +1,48 @@
 name: OMDALA Surface Release
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       ref:
-        description: Exact branch, tag, or commit SHA to release
         required: true
-        default: main
+        type: string
       environment:
-        description: Protected GitHub environment
         required: true
-        type: choice
-        options:
-          - staging
-          - production
+        type: string
       confirmation:
-        description: Type DEPLOY_OMDALA_SURFACES to authorize the release
         required: true
+        type: string
       source_pr_number:
-        description: Pull request containing the exact candidate and its independent approval
         required: true
         type: string
       staging_acceptance_run_id:
-        description: Successful staging acceptance workflow run ID; required for production
         required: false
         type: string
+        default: ""
+      orchestrated_staging:
+        required: false
+        type: boolean
+        default: false
+      staging_transaction_id:
+        required: false
+        type: string
+        default: ""
+      control_plane_sha:
+        required: false
+        type: string
+        default: ""
+    outputs:
+      candidate_sha:
+        value: ${{ jobs.build-and-deploy.outputs.candidate_sha }}
+      surface_release_artifact_name:
+        value: ${{ jobs.build-and-deploy.outputs.release_artifact_name }}
+      surface_receipt_sha256:
+        value: ${{ jobs.build-and-deploy.outputs.receipt_sha256 }}
 
 permissions:
   contents: read
   actions: read
   pull-requests: read
-
-concurrency:
-  group: omdala-surfaces-${{ inputs.environment }}
-  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
@@ -42,8 +51,96 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     environment: ${{ inputs.environment }}
+    outputs:
+      candidate_sha: ${{ steps.identity.outputs.sha }}
+      release_artifact_name: ${{ steps.surface_release_receipt.outputs.release_artifact_name }}
+      receipt_sha256: ${{ steps.surface_release_receipt.outputs.receipt_sha256 }}
+    env:
+      RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+      SOURCE_PR_NUMBER: ${{ inputs.source_pr_number }}
+      STAGING_ACCEPTANCE_RUN_ID: ${{ inputs.staging_acceptance_run_id }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Require the single staging transaction caller before mutation
+        shell: bash
+        env:
+          ORCHESTRATED_STAGING: ${{ inputs.orchestrated_staging }}
+          STAGING_TRANSACTION_ID: ${{ inputs.staging_transaction_id }}
+          CONTROL_PLANE_SHA: ${{ inputs.control_plane_sha }}
+        run: |
+          set -euo pipefail
+          case "$RELEASE_ENVIRONMENT" in
+            staging) ;;
+            production)
+              echo "::error::PRODUCTION_HOLD_UNIFIED_TRANSACTION_REQUIRED"
+              exit 1
+              ;;
+            *)
+              echo "::error::INVALID_RELEASE_ENVIRONMENT"
+              exit 1
+              ;;
+          esac
+          test "$GITHUB_RUN_ATTEMPT" = "1" || {
+            echo "::error::STAGING_TRANSACTION_RERUN_BLOCKED_START_A_NEW_DISPATCH"
+            exit 1
+          }
+          expected_transaction_id="staging-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          expected_workflow_ref="${GITHUB_REPOSITORY}/.github/workflows/staging-transaction.yml@refs/heads/main"
+          test "$ORCHESTRATED_STAGING" = "true" || {
+            echo "::error::DIRECT_STAGING_CHILD_DISPATCH_BLOCKED"
+            exit 1
+          }
+          test "$GITHUB_WORKFLOW" = "OMDALA Staging Transaction" || {
+            echo "::error::UNTRUSTED_STAGING_TRANSACTION_CALLER"
+            exit 1
+          }
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_WORKFLOW_REF" = "$expected_workflow_ref"
+          test "$GITHUB_WORKFLOW_SHA" = "$CONTROL_PLANE_SHA"
+          test "$STAGING_TRANSACTION_ID" = "$expected_transaction_id" || {
+            echo "::error::STAGING_TRANSACTION_ID_MISMATCH"
+            exit 1
+          }
+          test "$CONTROL_PLANE_SHA" = "$GITHUB_SHA" || {
+            echo "::error::STAGING_CONTROL_PLANE_MISMATCH"
+            exit 1
+          }
+      - name: Hold split-lane production releases until one transaction owns rollback
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          echo "::error::PRODUCTION_HOLD_UNIFIED_TRANSACTION_REQUIRED"
+          echo "::error::API, surfaces, acceptance, and rollback must run under one production transaction."
+          exit 1
+      - name: Require the workflow control plane from current main
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main" || {
+            echo "::error::Release workflows must be dispatched from main"
+            exit 1
+          }
+          current_main="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" | jq -er '.object.sha')"
+          test "$GITHUB_SHA" = "$current_main" || {
+            echo "::error::Workflow SHA is not the current main control-plane SHA"
+            exit 1
+          }
+      - name: Checkout trusted release controls
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Preserve trusted independent-review policy
+        shell: bash
+        run: cp scripts/release-review-policy.mjs "$RUNNER_TEMP/omdala-release-review-policy.mjs"
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
@@ -56,36 +153,65 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          [[ "$SOURCE_PR_NUMBER" =~ ^[1-9][0-9]*$ ]] || {
+            echo "::error::source_pr_number must be a positive integer"
+            exit 1
+          }
           sha="$(git rev-parse HEAD)"
+          tree_sha="$(git rev-parse 'HEAD^{tree}')"
           release_id="pages-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${sha:0:12}"
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-          echo "release_id=$release_id" >> "$GITHUB_OUTPUT"
+          {
+            echo "sha=$sha"
+            echo "tree_sha=$tree_sha"
+            echo "release_id=$release_id"
+          } >> "$GITHUB_OUTPUT"
       - id: independent_review
         name: Require independent exact-SHA approval
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: >-
-          node scripts/release-review-policy.mjs
-          --repository "${{ github.repository }}"
-          --pull-request "${{ inputs.source_pr_number }}"
+          node "$RUNNER_TEMP/omdala-release-review-policy.mjs"
+          --repository "$GITHUB_REPOSITORY"
+          --pull-request "$SOURCE_PR_NUMBER"
           --sha "${{ steps.identity.outputs.sha }}"
+          --mode "$RELEASE_ENVIRONMENT"
           --receipt independent-review-receipt.json
+      - name: Require protected Cloudflare account authority
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: >-
+          node scripts/verify-infra-authority-handoff.mjs
+          --wrangler-config services/api/wrangler.toml
+          --account-id "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Require immutable Terraform authority handoff for production
+        if: inputs.environment == 'production'
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TERRAFORM_HANDOFF_SHA256: ${{ vars.OMDALA_TERRAFORM_HANDOFF_SHA256 }}
+        run: >-
+          node scripts/verify-infra-authority-handoff.mjs
+          --wrangler-config services/api/wrangler.toml
+          --receipt infra/tf/terraform-authority-handoff.json
+          --sha256 "$TERRAFORM_HANDOFF_SHA256"
+          --account-id "$CLOUDFLARE_ACCOUNT_ID"
       - name: Require staging acceptance run for production
         if: inputs.environment == 'production'
         shell: bash
         run: |
           set -euo pipefail
-          [[ "${{ inputs.staging_acceptance_run_id }}" =~ ^[0-9]+$ ]] || {
+          [[ "$STAGING_ACCEPTANCE_RUN_ID" =~ ^[0-9]+$ ]] || {
             echo "::error::A numeric staging_acceptance_run_id is required for production"
             exit 1
           }
-      - name: Verify staging acceptance workflow identity
+      - id: staging_acceptance_run
+        name: Verify staging acceptance control-plane workflow identity
         if: inputs.environment == 'production'
         shell: bash
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ steps.identity.outputs.sha }}
           ACCEPTANCE_RUN_ID: ${{ inputs.staging_acceptance_run_id }}
         run: |
           set -euo pipefail
@@ -95,21 +221,24 @@ jobs:
             --header "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${ACCEPTANCE_RUN_ID}")"
           jq -e \
-            --arg sha "$EXPECTED_SHA" \
+            --arg path ".github/workflows/staging-go-live-e2e.yml" \
             '.name == "OMDALA Staging Go-Live E2E" and
+             (.path == $path or .path == ($path + "@refs/heads/main")) and
              .event == "workflow_dispatch" and
+             .head_branch == "main" and
+             (.head_sha | test("^[0-9a-f]{40}$")) and
              .status == "completed" and
-             .conclusion == "success" and
-             .head_sha == $sha' \
+             .conclusion == "success"' \
             <<<"$run_json" >/dev/null || {
-              echo "::error::Staging acceptance run is not a successful exact-SHA run"
+              echo "::error::Staging acceptance run is not a successful trusted-main workflow run"
               exit 1
             }
+          echo "control_plane_sha=$(jq -er '.head_sha' <<<"$run_json")" >> "$GITHUB_OUTPUT"
       - name: Download immutable staging acceptance receipt
         if: inputs.environment == 'production'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: omdala-staging-acceptance-${{ steps.identity.outputs.sha }}
+          name: omdala-staging-acceptance-${{ steps.independent_review.outputs.reviewed_sha }}
           path: staging-acceptance
           github-token: ${{ github.token }}
           run-id: ${{ inputs.staging_acceptance_run_id }}
@@ -117,28 +246,51 @@ jobs:
         if: inputs.environment == 'production'
         shell: bash
         env:
-          EXPECTED_SHA: ${{ steps.identity.outputs.sha }}
+          STAGED_SHA: ${{ steps.independent_review.outputs.reviewed_sha }}
+          STAGED_TREE_SHA: ${{ steps.independent_review.outputs.reviewed_tree_sha }}
+          PRODUCTION_TREE_SHA: ${{ steps.identity.outputs.tree_sha }}
+          ACCEPTANCE_CONTROL_PLANE_SHA: ${{ steps.staging_acceptance_run.outputs.control_plane_sha }}
           ACCEPTANCE_RUN_ID: ${{ inputs.staging_acceptance_run_id }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
           jq -e \
-            --arg sha "$EXPECTED_SHA" \
+            --arg staged_sha "$STAGED_SHA" \
+            --arg staged_tree_sha "$STAGED_TREE_SHA" \
+            --arg production_tree_sha "$PRODUCTION_TREE_SHA" \
+            --arg control_plane_sha "$ACCEPTANCE_CONTROL_PLANE_SHA" \
+            --arg cloudflare_account_id "$CLOUDFLARE_ACCOUNT_ID" \
             --arg run_id "$ACCEPTANCE_RUN_ID" \
             --arg repository "$GITHUB_REPOSITORY" \
-            '.verdict == "STAGING_ACCEPTED" and
-             .candidate_sha == $sha and
+            --arg source_pr_number "$SOURCE_PR_NUMBER" \
+            --arg reviewer "${{ steps.independent_review.outputs.reviewer }}" \
+            --arg review_id "${{ steps.independent_review.outputs.review_id }}" \
+            '.schema_version == 2 and
+             .verdict == "STAGING_ACCEPTED" and
+             .candidate_sha == $staged_sha and
+             .reviewed_sha == $staged_sha and
+             .candidate_tree_sha == $staged_tree_sha and
+             .reviewed_tree_sha == $staged_tree_sha and
+             .candidate_tree_sha == $production_tree_sha and
+             .control_plane_sha == $control_plane_sha and
+             .cloudflare_account_id == $cloudflare_account_id and
              .workflow_run_id == ($run_id | tonumber) and
              .repository == $repository and
-             (.source_pr_number | tostring) == "${{ inputs.source_pr_number }}" and
-             (.independent_reviewer | length) > 0 and
-             (.independent_review_id | tonumber) > 0 and
+             (.source_pr_number | tostring) == $source_pr_number and
+             .independent_reviewer == $reviewer and
+             (.independent_review_id | tostring) == $review_id and
              (.database_backup_receipt_sha256 | length) == 64 and
              (.api_release_run_id | tonumber) > 0 and
              (.surface_release_run_id | tonumber) > 0 and
              (.api_deployment_id | length) > 0 and
+             .api_deployment_id == .consumer_version_id and
+             (.api_hyperdrive_id | test("^[0-9a-f]{32}$")) and
+             .api_hyperdrive_binding == "HYPERDRIVE" and
+             .api_hyperdrive_binding_verified == true and
+             (.api_wrangler_config_sha256 | test("^[0-9a-f]{64}$")) and
              (.surface_release_id | length) > 0' \
             staging-acceptance/staging-acceptance.json >/dev/null || {
-              echo "::error::Staging acceptance artifact does not bind this production SHA"
+              echo "::error::Staging acceptance artifact does not bind the reviewed PR-head tree to this production tree"
               exit 1
             }
       - name: Guard production release SHA on main
@@ -147,8 +299,8 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --no-tags origin main
-          git merge-base --is-ancestor "${{ steps.identity.outputs.sha }}" origin/main || {
-            echo "::error::Production surface SHA is not on origin/main"
+          test "${{ steps.identity.outputs.sha }}" = "$(git rev-parse origin/main)" || {
+            echo "::error::Production surface SHA must equal current origin/main"
             exit 1
           }
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
@@ -166,9 +318,11 @@ jobs:
           set -euo pipefail
           pnpm lint
           pnpm typecheck
+          npm run test:release-governance
           pnpm --filter @omdala/api test
           pnpm --filter @omdala/api run check
           pnpm --filter @omdala/app test
+          pnpm --filter @omdala/auth run typecheck
           pnpm --filter @omdala/brand-marketplace test
           pnpm --filter @omdala/brand-marketplace run lint
           pnpm --filter @omdala/brand-marketplace run typecheck
@@ -181,85 +335,443 @@ jobs:
         env:
           API_URL: ${{ vars.OMDALA_API_URL }}
           APP_URL: ${{ vars.OMDALA_APP_URL }}
+          AUTH_URL: ${{ vars.OMDALA_AUTH_URL }}
           WEB_URL: ${{ vars.OMDALA_WEB_URL }}
           BRAND_URL: ${{ vars.OMDALA_BRAND_URL }}
           WEB_PROJECT: ${{ vars.OMDALA_WEB_PAGES_PROJECT }}
           APP_PROJECT: ${{ vars.OMDALA_APP_PAGES_PROJECT }}
+          AUTH_PROJECT: ${{ vars.OMDALA_AUTH_PAGES_PROJECT }}
           BRAND_PROJECT: ${{ vars.OMDALA_BRAND_PAGES_PROJECT }}
-          PRODUCTION_BRANCH: ${{ vars.OMDALA_PAGES_PRODUCTION_BRANCH }}
-          STAGING_BRANCH: ${{ vars.OMDALA_PAGES_STAGING_BRANCH }}
+          WEB_PRODUCTION_BRANCH: ${{ vars.OMDALA_WEB_PAGES_PRODUCTION_BRANCH }}
+          APP_PRODUCTION_BRANCH: ${{ vars.OMDALA_APP_PAGES_PRODUCTION_BRANCH }}
+          AUTH_PRODUCTION_BRANCH: ${{ vars.OMDALA_AUTH_PAGES_PRODUCTION_BRANCH }}
+          BRAND_PRODUCTION_BRANCH: ${{ vars.OMDALA_BRAND_PAGES_PRODUCTION_BRANCH }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -euo pipefail
-          for name in API_URL APP_URL WEB_URL BRAND_URL WEB_PROJECT APP_PROJECT BRAND_PROJECT CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN; do
+          for name in API_URL APP_URL AUTH_URL WEB_URL BRAND_URL CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN; do
             test -n "${!name:-}" || {
               echo "::error::Protected environment value $name is required"
               exit 1
             }
           done
-          if [[ "${{ inputs.environment }}" == "production" ]]; then
-            test -n "${PRODUCTION_BRANCH:-}" || {
-              echo "::error::OMDALA_PAGES_PRODUCTION_BRANCH is required"
-              exit 1
-            }
-          else
-            test -n "${STAGING_BRANCH:-}" || {
-              echo "::error::OMDALA_PAGES_STAGING_BRANCH is required"
-              exit 1
-            }
+          if [[ "$RELEASE_ENVIRONMENT" == "production" ]]; then
+            for name in WEB_PROJECT APP_PROJECT AUTH_PROJECT BRAND_PROJECT WEB_PRODUCTION_BRANCH APP_PRODUCTION_BRANCH AUTH_PRODUCTION_BRANCH BRAND_PRODUCTION_BRANCH; do
+              test -n "${!name:-}" || {
+                echo "::error::Protected production value $name is required"
+                exit 1
+              }
+            done
           fi
       - name: Build static surface artifacts
         env:
           NEXT_PUBLIC_API_URL: ${{ vars.OMDALA_API_URL }}
+          NEXT_PUBLIC_AUTH_API_BASE: ${{ vars.OMDALA_API_URL }}
           NEXT_PUBLIC_OMDALA_API_BASE_URL: ${{ vars.OMDALA_API_URL }}
+          NEXT_PUBLIC_WEB_ORIGIN: ${{ vars.OMDALA_WEB_URL }}
           NEXT_PUBLIC_APP_ORIGIN: ${{ vars.OMDALA_APP_URL }}
+          NEXT_PUBLIC_AUTH_ORIGIN: ${{ vars.OMDALA_AUTH_URL }}
+          NEXT_PUBLIC_BRAND_ORIGIN: ${{ vars.OMDALA_BRAND_URL }}
+          NEXT_PUBLIC_RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+          OMDALA_NOINDEX: ${{ inputs.environment == 'staging' && 'true' || '' }}
         run: |
           set -euo pipefail
+          node scripts/validate-surface-public-config.mjs
           pnpm --filter @omdala/web run build
           pnpm --filter @omdala/app run build
+          pnpm --filter @omdala/auth run build
           pnpm --filter @omdala/brand-marketplace run build
-          node scripts/write-surface-release.mjs apps/web/out web "${{ inputs.environment }}" "${{ steps.identity.outputs.sha }}" "${{ steps.identity.outputs.release_id }}"
-          node scripts/write-surface-release.mjs apps/app/out app "${{ inputs.environment }}" "${{ steps.identity.outputs.sha }}" "${{ steps.identity.outputs.release_id }}"
-          node scripts/write-surface-release.mjs apps/brand-marketplace/out brand "${{ inputs.environment }}" "${{ steps.identity.outputs.sha }}" "${{ steps.identity.outputs.release_id }}"
-      - name: Deploy Web, App, and Brand Pages artifacts
+          node scripts/write-surface-release.mjs apps/web/out web "$RELEASE_ENVIRONMENT" "${{ steps.identity.outputs.sha }}" "${{ steps.identity.outputs.release_id }}"
+          node scripts/write-surface-release.mjs apps/app/out app "$RELEASE_ENVIRONMENT" "${{ steps.identity.outputs.sha }}" "${{ steps.identity.outputs.release_id }}"
+          node scripts/write-surface-release.mjs apps/auth/out auth "$RELEASE_ENVIRONMENT" "${{ steps.identity.outputs.sha }}" "${{ steps.identity.outputs.release_id }}"
+          node scripts/write-surface-release.mjs apps/brand-marketplace/out brand "$RELEASE_ENVIRONMENT" "${{ steps.identity.outputs.sha }}" "${{ steps.identity.outputs.release_id }}"
+          node scripts/verify-surface-artifacts.mjs "$RELEASE_ENVIRONMENT"
+      - name: Deploy production Pages artifacts with exact rollback state
+        if: inputs.environment == 'production'
         shell: bash
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           WEB_PROJECT: ${{ vars.OMDALA_WEB_PAGES_PROJECT }}
           APP_PROJECT: ${{ vars.OMDALA_APP_PAGES_PROJECT }}
+          AUTH_PROJECT: ${{ vars.OMDALA_AUTH_PAGES_PROJECT }}
           BRAND_PROJECT: ${{ vars.OMDALA_BRAND_PAGES_PROJECT }}
-          PRODUCTION_BRANCH: ${{ vars.OMDALA_PAGES_PRODUCTION_BRANCH }}
-          STAGING_BRANCH: ${{ vars.OMDALA_PAGES_STAGING_BRANCH }}
+          WEB_PRODUCTION_BRANCH: ${{ vars.OMDALA_WEB_PAGES_PRODUCTION_BRANCH }}
+          APP_PRODUCTION_BRANCH: ${{ vars.OMDALA_APP_PAGES_PRODUCTION_BRANCH }}
+          AUTH_PRODUCTION_BRANCH: ${{ vars.OMDALA_AUTH_PAGES_PRODUCTION_BRANCH }}
+          BRAND_PRODUCTION_BRANCH: ${{ vars.OMDALA_BRAND_PAGES_PRODUCTION_BRANCH }}
+          WEB_URL: ${{ vars.OMDALA_WEB_URL }}
+          APP_URL: ${{ vars.OMDALA_APP_URL }}
+          AUTH_URL: ${{ vars.OMDALA_AUTH_URL }}
+          BRAND_URL: ${{ vars.OMDALA_BRAND_URL }}
         run: |
           set -euo pipefail
-          if [[ "${{ inputs.environment }}" == "production" ]]; then
-            branch="$PRODUCTION_BRANCH"
-          else
-            branch="$STAGING_BRANCH"
-          fi
-          common=(--branch "$branch" --commit-hash "${{ steps.identity.outputs.sha }}" --commit-message "${{ steps.identity.outputs.release_id }}")
-          services/api/node_modules/.bin/wrangler pages deploy apps/web/out --project-name "$WEB_PROJECT" "${common[@]}"
-          services/api/node_modules/.bin/wrangler pages deploy apps/app/out --project-name "$APP_PROJECT" "${common[@]}"
-          services/api/node_modules/.bin/wrangler pages deploy apps/brand-marketplace/out --project-name "$BRAND_PROJECT" "${common[@]}"
+          mkdir -p surface-pages-deployments/pre surface-pages-deployments/post surface-pages-deployments/provider surface-pages-deployments/projects
+          : > surface-pages-deployments/attempted
+          project_for() {
+            case "$1" in
+              web) printf '%s\n' "$WEB_PROJECT" ;;
+              app) printf '%s\n' "$APP_PROJECT" ;;
+              auth) printf '%s\n' "$AUTH_PROJECT" ;;
+              brand) printf '%s\n' "$BRAND_PROJECT" ;;
+              *) return 1 ;;
+            esac
+          }
+          expected_project_for() {
+            case "$1" in
+              web) printf '%s\n' omdala-web ;;
+              app) printf '%s\n' omdala-app ;;
+              auth) printf '%s\n' omdala-auth ;;
+              brand) printf '%s\n' omdala-brand ;;
+              *) return 1 ;;
+            esac
+          }
+          branch_for() {
+            case "$1" in
+              web) printf '%s\n' "$WEB_PRODUCTION_BRANCH" ;;
+              app) printf '%s\n' "$APP_PRODUCTION_BRANCH" ;;
+              auth) printf '%s\n' "$AUTH_PRODUCTION_BRANCH" ;;
+              brand) printf '%s\n' "$BRAND_PRODUCTION_BRANCH" ;;
+              *) return 1 ;;
+            esac
+          }
+          origin_for() {
+            case "$1" in
+              web) printf '%s\n' "$WEB_URL" ;;
+              app) printf '%s\n' "$APP_URL" ;;
+              auth) printf '%s\n' "$AUTH_URL" ;;
+              brand) printf '%s\n' "$BRAND_URL" ;;
+              *) return 1 ;;
+            esac
+          }
+          directory_for() {
+            case "$1" in
+              web) printf '%s\n' apps/web/out ;;
+              app) printf '%s\n' apps/app/out ;;
+              auth) printf '%s\n' apps/auth/out ;;
+              brand) printf '%s\n' apps/brand-marketplace/out ;;
+              *) return 1 ;;
+            esac
+          }
+          pages_list() {
+            local project="$1"
+            local output="$2"
+            [[ "$project" =~ ^[a-z0-9][a-z0-9-]{0,62}$ ]]
+            curl --fail --silent --show-error \
+              --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              --header "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}/deployments?env=production&per_page=25" \
+              > "$output"
+            jq -e '.success == true and (.result | type == "array")' "$output" >/dev/null
+          }
+          pages_project() {
+            local project="$1"
+            local output="$2"
+            [[ "$project" =~ ^[a-z0-9][a-z0-9-]{0,62}$ ]]
+            curl --fail --silent --show-error \
+              --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              --header "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
+              > "$output"
+            jq -e '.success == true and (.result | type == "object")' "$output" >/dev/null
+          }
+
+          [[ "$(printf '%s\n' "$WEB_PROJECT" "$APP_PROJECT" "$AUTH_PROJECT" "$BRAND_PROJECT" | sort -u | wc -l | tr -d ' ')" == "4" ]] || {
+            echo "::error::Each production surface must use a distinct locked Pages project"
+            exit 1
+          }
+          for surface in web app auth brand; do
+            project="$(project_for "$surface")"
+            branch="$(branch_for "$surface")"
+            test "$project" = "$(expected_project_for "$surface")" || {
+              echo "::error::$surface protected Pages project does not match the locked project name"
+              exit 1
+            }
+            origin="$(origin_for "$surface")"
+            hostname="$(node -e 'process.stdout.write(new URL(process.argv[1]).hostname)' "$origin")"
+            project_pre="surface-pages-deployments/projects/${surface}-pre.json"
+            pages_project "$project" "$project_pre"
+            jq -e \
+              --arg project "$project" \
+              --arg hostname "$hostname" \
+              --arg branch "$branch" \
+              '.result.name == $project and
+               .result.production_branch == $branch and
+               .result.source == null and
+               (.result.domains | type == "array") and
+               (.result.domains | index($hostname)) != null and
+               (.result.canonical_deployment.id | type == "string") and
+               .result.canonical_deployment.environment == "production" and
+               .result.canonical_deployment.latest_stage.status == "success"' \
+              "$project_pre" >/dev/null || {
+                echo "::error::$surface Pages project lacks the locked identity, Direct Upload authority, custom domain, production branch, or canonical rollback baseline"
+                exit 1
+              }
+            pages_list "$project" "surface-pages-deployments/pre/${surface}.json"
+          done
+
+          for surface in web app auth brand; do
+            project="$(project_for "$surface")"
+            branch="$(branch_for "$surface")"
+            printf '%s\n' "$surface" >> surface-pages-deployments/attempted
+            services/api/node_modules/.bin/wrangler pages deploy \
+              "$(directory_for "$surface")" \
+              --project-name "$project" \
+              --branch "$branch" \
+              --commit-hash "${{ steps.identity.outputs.sha }}" \
+              --commit-message "${{ steps.identity.outputs.release_id }}"
+            post="surface-pages-deployments/post/${surface}.json"
+            provider="surface-pages-deployments/provider/${surface}.json"
+            project_post="surface-pages-deployments/projects/${surface}-post.json"
+            previous_deployment_id="$(jq -r '.result.canonical_deployment.id // ""' "surface-pages-deployments/projects/${surface}-pre.json")"
+            matched=false
+            for _ in {1..12}; do
+              pages_list "$project" "$post"
+              pages_project "$project" "$project_post"
+              if jq -e \
+                --arg sha "${{ steps.identity.outputs.sha }}" \
+                --arg release_id "${{ steps.identity.outputs.release_id }}" \
+                --arg branch "$branch" \
+                --arg previous_id "$previous_deployment_id" \
+                '.result.canonical_deployment |
+                 select(type == "object") |
+                 select(.id != $previous_id) |
+                 select(.environment == "production") |
+                 select(.deployment_trigger.metadata.commit_hash == $sha) |
+                 select(.deployment_trigger.metadata.commit_message == $release_id) |
+                 select(.deployment_trigger.metadata.branch == $branch) |
+                 select(.latest_stage.status == "success")' \
+                "$project_post" > "$provider"; then
+                deployment_id="$(jq -r '.id' "$provider")"
+                if ! jq -e --arg id "$deployment_id" '.result | any(.id == $id)' "$post" >/dev/null; then
+                  sleep 10
+                  continue
+                fi
+                matched=true
+                break
+              fi
+              sleep 10
+            done
+            [[ "$matched" == "true" ]] || {
+              echo "::error::$surface Pages deployment did not become the canonical successful deployment for this SHA, release ID, and branch"
+              exit 1
+            }
+
+            jq -n \
+              --arg surface "$surface" \
+              --arg project_name "$project" \
+              --arg release_id "${{ steps.identity.outputs.release_id }}" \
+              --arg source_sha "${{ steps.identity.outputs.sha }}" \
+              --arg deployment_id "$(jq -r '.id' "$provider")" \
+              --arg previous_deployment_id "$previous_deployment_id" \
+              --arg deployment_url "$(jq -r '.url' "$provider")" \
+              --arg production_branch "$branch" \
+              --arg deployment_status "$(jq -r '.latest_stage.status' "$provider")" \
+              --arg custom_domain "$(node -e 'process.stdout.write(new URL(process.argv[1]).hostname)' "$(origin_for "$surface")")" \
+              --arg captured_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              '{
+                schema_version: 1,
+                surface: $surface,
+                platform: "cloudflare-pages",
+                environment: "production",
+                project_name: $project_name,
+                release_id: $release_id,
+                source_sha: $source_sha,
+                deployment_id: $deployment_id,
+                previous_deployment_id: (if $previous_deployment_id == "" then null else $previous_deployment_id end),
+                deployment_url: $deployment_url,
+                production_branch: $production_branch,
+                deployment_status: $deployment_status,
+                custom_domain: $custom_domain,
+                canonical_after_deploy: true,
+                captured_at: $captured_at
+              }' > "surface-pages-deployments/${surface}.json"
+          done
+      - name: Deploy isolated staging surface Workers with exact rollback state
+        if: inputs.environment == 'staging'
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p \
+            surface-worker-deployments/pre \
+            surface-worker-deployments/post \
+            surface-worker-deployments/versions \
+            surface-worker-deployments/secrets-pre \
+            surface-worker-deployments/secrets-post \
+            surface-worker-deployments/authority
+          : > surface-worker-deployments/attempted
+
+          config_for() {
+            case "$1" in
+              web) printf '%s\n' infra/staging/surfaces/web.wrangler.jsonc ;;
+              app) printf '%s\n' infra/staging/surfaces/app.wrangler.jsonc ;;
+              auth) printf '%s\n' infra/staging/surfaces/auth.wrangler.jsonc ;;
+              brand) printf '%s\n' infra/staging/surfaces/brand.wrangler.jsonc ;;
+              *) return 1 ;;
+            esac
+          }
+
+          snapshot_current() {
+            local surface="$1"
+            local config="$2"
+            local output="surface-worker-deployments/pre/${surface}.json"
+            local error="surface-worker-deployments/pre/${surface}.stderr"
+            if services/api/node_modules/.bin/wrangler deployments list --config "$config" --json > "${output}.tmp" 2> "$error"; then
+              mv "${output}.tmp" "$output"
+              jq -e '
+                type == "array" and
+                (length == 0 or
+                  ((sort_by(.created_on) | last | .versions | length) == 1 and
+                   (sort_by(.created_on) | last | .versions[0].percentage) == 100))
+              ' "$output" >/dev/null || {
+                echo "::error::$surface has no single exact 100% rollback version"
+                return 1
+              }
+            elif grep -Eqi "does not exist|could not find|10007" "$error"; then
+              printf '[]\n' > "$output"
+              : > "surface-worker-deployments/pre/${surface}.worker-missing"
+              rm -f "${output}.tmp"
+            else
+              cat "$error" >&2
+              return 1
+            fi
+          }
+
+          for surface in web app auth brand; do
+            snapshot_current "$surface" "$(config_for "$surface")"
+          done
+
+          snapshot_secret_inventory() {
+            local surface="$1"
+            local config="$2"
+            local output="surface-worker-deployments/secrets-pre/${surface}.json"
+            local error="surface-worker-deployments/secrets-pre/${surface}.stderr"
+            local receipt="surface-worker-deployments/authority/${surface}-secrets-pre.json"
+            local missing_args=()
+            if services/api/node_modules/.bin/wrangler secret list \
+              --config "$config" \
+              --format json > "${output}.tmp" 2> "$error"; then
+              mv "${output}.tmp" "$output"
+            elif [[ -f "surface-worker-deployments/pre/${surface}.worker-missing" ]] && \
+              grep -Eqi "does not exist|could not find|10007" "$error"; then
+              printf '[]\n' > "$output"
+              rm -f "${output}.tmp"
+              missing_args+=(--provider-worker-missing)
+            else
+              cat "$error" >&2
+              return 1
+            fi
+            node scripts/verify-surface-worker-authority.mjs \
+              --surface "$surface" \
+              --secret-json "$output" \
+              --phase preflight \
+              "${missing_args[@]}" \
+              --receipt "$receipt" >/dev/null
+          }
+
+          for surface in web app auth brand; do
+            snapshot_secret_inventory "$surface" "$(config_for "$surface")"
+          done
+
+          for surface in web app auth brand; do
+            config="$(config_for "$surface")"
+            printf '%s\n' "$surface" >> surface-worker-deployments/attempted
+            services/api/node_modules/.bin/wrangler deploy \
+              --config "$config" \
+              --strict \
+              --message "${{ steps.identity.outputs.release_id }}"
+            post="surface-worker-deployments/post/${surface}.json"
+            services/api/node_modules/.bin/wrangler deployments list --config "$config" --json > "$post"
+            deployment_id="$(jq -er 'sort_by(.created_on) | last | select(.versions | length == 1) | select(.versions[0].percentage == 100) | .id' "$post")"
+            version_id="$(jq -er 'sort_by(.created_on) | last | .versions[0].version_id' "$post")"
+            version="surface-worker-deployments/versions/${surface}.json"
+            services/api/node_modules/.bin/wrangler versions view "$version_id" --config "$config" --json > "$version"
+            post_secrets="surface-worker-deployments/secrets-post/${surface}.json"
+            services/api/node_modules/.bin/wrangler secret list \
+              --config "$config" \
+              --format json > "$post_secrets"
+            node scripts/verify-surface-worker-authority.mjs \
+              --surface "$surface" \
+              --secret-json "$post_secrets" \
+              --phase postdeploy \
+              --receipt "surface-worker-deployments/authority/${surface}-secrets-post.json" >/dev/null
+            node scripts/verify-surface-worker-authority.mjs \
+              --surface "$surface" \
+              --version-json "$version" \
+              --version-id "$version_id" \
+              --release-id "${{ steps.identity.outputs.release_id }}" \
+              --receipt "surface-worker-deployments/authority/${surface}-version.json" >/dev/null
+
+            previous_deployment_id="$(jq -r 'if length == 0 then "" else (sort_by(.created_on) | last | .id) end' "surface-worker-deployments/pre/${surface}.json")"
+            previous_version_id="$(jq -r 'if length == 0 then "" else (sort_by(.created_on) | last | .versions[0].version_id) end' "surface-worker-deployments/pre/${surface}.json")"
+            pre_secret_inventory_verified="$(jq -er '.verdict == "SURFACE_WORKER_SECRET_INVENTORY_EXACT_EMPTY" and .phase == "preflight" and .actual_secret_names == []' "surface-worker-deployments/authority/${surface}-secrets-pre.json")"
+            post_secret_inventory_verified="$(jq -er '.verdict == "SURFACE_WORKER_SECRET_INVENTORY_EXACT_EMPTY" and .phase == "postdeploy" and .actual_secret_names == []' "surface-worker-deployments/authority/${surface}-secrets-post.json")"
+            worker_authority_verified="$(jq -er '.verdict == "SURFACE_WORKER_AUTHORITY_EXACT" and .bindings == [{"name":"ASSETS","type":"assets"}]' "surface-worker-deployments/authority/${surface}-version.json")"
+            asset_binding_name="$(jq -er '.bindings[0].name' "surface-worker-deployments/authority/${surface}-version.json")"
+            jq -n \
+              --arg surface "$surface" \
+              --arg worker_name "omdala-surface-${surface}-staging" \
+              --arg release_id "${{ steps.identity.outputs.release_id }}" \
+              --arg deployment_id "$deployment_id" \
+              --arg version_id "$version_id" \
+              --arg previous_deployment_id "$previous_deployment_id" \
+              --arg previous_version_id "$previous_version_id" \
+              --arg version_etag "$(jq -r '.resources.script.etag // ""' "$version")" \
+              --argjson pre_secret_inventory_verified "$pre_secret_inventory_verified" \
+              --argjson post_secret_inventory_verified "$post_secret_inventory_verified" \
+              --argjson worker_authority_verified "$worker_authority_verified" \
+              --arg asset_binding_name "$asset_binding_name" \
+              --arg pre_secret_inventory_receipt_sha256 "$(sha256sum "surface-worker-deployments/authority/${surface}-secrets-pre.json" | awk '{print $1}')" \
+              --arg post_secret_inventory_receipt_sha256 "$(sha256sum "surface-worker-deployments/authority/${surface}-secrets-post.json" | awk '{print $1}')" \
+              --arg worker_authority_receipt_sha256 "$(sha256sum "surface-worker-deployments/authority/${surface}-version.json" | awk '{print $1}')" \
+              --arg captured_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              '{
+                schema_version: 1,
+                surface: $surface,
+                platform: "cloudflare-workers-static-assets",
+                worker_name: $worker_name,
+                release_id: $release_id,
+                deployment_id: $deployment_id,
+                version_id: $version_id,
+                previous_deployment_id: (if $previous_deployment_id == "" then null else $previous_deployment_id end),
+                previous_version_id: (if $previous_version_id == "" then null else $previous_version_id end),
+                version_etag: $version_etag,
+                secret_inventory_verified: ($pre_secret_inventory_verified and $post_secret_inventory_verified),
+                pre_secret_inventory_verified: $pre_secret_inventory_verified,
+                post_secret_inventory_verified: $post_secret_inventory_verified,
+                worker_authority_verified: $worker_authority_verified,
+                asset_binding_verified: $worker_authority_verified,
+                asset_binding_name: $asset_binding_name,
+                pre_secret_inventory_receipt_sha256: $pre_secret_inventory_receipt_sha256,
+                post_secret_inventory_receipt_sha256: $post_secret_inventory_receipt_sha256,
+                worker_authority_receipt_sha256: $worker_authority_receipt_sha256,
+                captured_at: $captured_at
+              }' > "surface-worker-deployments/${surface}.json"
+          done
       - name: Verify live surface identity and semantic routes
         shell: bash
         env:
           WEB_URL: ${{ vars.OMDALA_WEB_URL }}
           APP_URL: ${{ vars.OMDALA_APP_URL }}
+          AUTH_URL: ${{ vars.OMDALA_AUTH_URL }}
           BRAND_URL: ${{ vars.OMDALA_BRAND_URL }}
           EXPECTED_SHA: ${{ steps.identity.outputs.sha }}
           EXPECTED_RELEASE_ID: ${{ steps.identity.outputs.release_id }}
         run: |
           set -euo pipefail
+          mkdir -p surface-release-manifests
           verify_release() {
             local surface="$1"
             local base_url="$2"
             local receipt=""
             for _ in {1..12}; do
               if receipt="$(curl --fail --silent --show-error "${base_url%/}/release.json")"; then
-                if jq -e --arg surface "$surface" --arg environment "${{ inputs.environment }}" --arg sha "$EXPECTED_SHA" --arg release_id "$EXPECTED_RELEASE_ID" '.surface == $surface and .environment == $environment and .release_sha == $sha and .release_id == $release_id' <<<"$receipt" >/dev/null; then
+                if jq -e --arg surface "$surface" --arg environment "$RELEASE_ENVIRONMENT" --arg sha "$EXPECTED_SHA" --arg release_id "$EXPECTED_RELEASE_ID" '.surface == $surface and .environment == $environment and .release_sha == $sha and .release_id == $release_id' <<<"$receipt" >/dev/null; then
+                  printf '%s\n' "$receipt" > "surface-release-manifests/${surface}.json"
                   return 0
                 fi
               fi
@@ -270,55 +782,359 @@ jobs:
           }
           verify_release web "$WEB_URL"
           verify_release app "$APP_URL"
+          verify_release auth "$AUTH_URL"
           verify_release brand "$BRAND_URL"
-          curl --fail --silent --show-error "${WEB_URL%/}/" >/dev/null
-          curl --fail --silent --show-error "${WEB_URL%/}/vi/" >/dev/null
-          curl --fail --silent --show-error "${APP_URL%/}/workspace/" >/dev/null
-          curl --fail --silent --show-error "${BRAND_URL%/}/en/" >/dev/null
-          curl --fail --silent --show-error "${BRAND_URL%/}/vi/" >/dev/null
+          require_direct_200() {
+            local url="$1"
+            local status
+            status="$(curl --silent --show-error --max-redirs 0 --output /dev/null --write-out '%{http_code}' "$url")"
+            [[ "$status" == "200" ]] || {
+              echo "::error::$url returned $status; redirects and non-200 responses are forbidden"
+              return 1
+            }
+          }
+          require_direct_200 "${WEB_URL%/}/"
+          require_direct_200 "${WEB_URL%/}/vi/"
+          require_direct_200 "${APP_URL%/}/workspace/"
+          require_direct_200 "${AUTH_URL%/}/login/"
+          require_direct_200 "${BRAND_URL%/}/en/"
+          require_direct_200 "${BRAND_URL%/}/vi/"
+          if [[ "$RELEASE_ENVIRONMENT" == "staging" ]]; then
+            mkdir -p surface-live-policy
+            verify_staging_policy() {
+              local surface="$1"
+              local base_url="$2"
+              local route="$3"
+              local require_api_csp="$4"
+              local headers="surface-live-policy/${surface}.headers"
+              local body="surface-live-policy/${surface}.html"
+              local robots="surface-live-policy/${surface}.robots.txt"
+              curl --fail --silent --show-error --max-redirs 0 \
+                --dump-header "$headers" \
+                --output "$body" \
+                "${base_url%/}${route}"
+              grep -Eiq '^x-robots-tag:[[:space:]]*noindex,[[:space:]]*nofollow[[:space:]]*$' "$headers"
+              grep -Eiq "<meta[^>]+name=[\"']robots[\"'][^>]+content=[\"'][^\"']*noindex[^\"']*nofollow" "$body"
+              curl --fail --silent --show-error --max-redirs 0 \
+                "${base_url%/}/robots.txt" > "$robots"
+              grep -Eiq '^Disallow:[[:space:]]*/[[:space:]]*$' "$robots"
+              if [[ "$require_api_csp" == "true" ]]; then
+                grep -Fq 'https://api-staging.omdala.com' "$headers"
+                if grep -Eq "https://api\\.omdala\\.com([;[:space:]\"']|$)" "$headers"; then
+                  echo "::error::$surface live staging CSP permits the production API origin"
+                  return 1
+                fi
+              fi
+            }
+            verify_staging_policy web "$WEB_URL" / true
+            verify_staging_policy app "$APP_URL" /workspace/ true
+            verify_staging_policy auth "$AUTH_URL" /login/ true
+            verify_staging_policy brand "$BRAND_URL" /en/ false
+          fi
           {
             echo "### OMDALA surface deployment receipt"
-            echo "- Environment: ${{ inputs.environment }}"
+            echo "- Environment: $RELEASE_ENVIRONMENT"
             echo "- Release SHA: $EXPECTED_SHA"
             echo "- Surface release ID: $EXPECTED_RELEASE_ID"
-            echo "- Web/App/Brand identity: PASS"
+            echo "- Web/App/Auth/Brand identity: PASS"
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Write immutable surface release receipt
+      - id: surface_release_receipt
+        name: Write immutable surface release receipt
         shell: bash
+        env:
+          WEB_URL: ${{ vars.OMDALA_WEB_URL }}
+          APP_URL: ${{ vars.OMDALA_APP_URL }}
+          AUTH_URL: ${{ vars.OMDALA_AUTH_URL }}
+          BRAND_URL: ${{ vars.OMDALA_BRAND_URL }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          jq -n \
-            --arg environment "${{ inputs.environment }}" \
-            --arg candidate_sha "${{ steps.identity.outputs.sha }}" \
-            --arg release_id "${{ steps.identity.outputs.release_id }}" \
-            --arg source_pr_number "${{ inputs.source_pr_number }}" \
-            --arg independent_reviewer "${{ steps.independent_review.outputs.reviewer }}" \
-            --arg independent_review_id "${{ steps.independent_review.outputs.review_id }}" \
-            --arg workflow_run_id "$GITHUB_RUN_ID" \
-            --arg workflow_run_attempt "$GITHUB_RUN_ATTEMPT" \
-            --arg repository "$GITHUB_REPOSITORY" \
-            --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{
-              verdict: "SURFACE_RELEASE_ACCEPTED",
-              environment: $environment,
-              candidate_sha: $candidate_sha,
-              release_id: $release_id,
-              source_pr_number: ($source_pr_number | tonumber),
-              independent_reviewer: $independent_reviewer,
-              independent_review_id: ($independent_review_id | tonumber),
-              workflow_run_id: ($workflow_run_id | tonumber),
-              workflow_run_attempt: ($workflow_run_attempt | tonumber),
-              repository: $repository,
-              created_at: $created_at
-            }' > surface-release.json
+          deployment_args=()
+          pages_deployment_args=()
+          if [[ "$RELEASE_ENVIRONMENT" == "staging" ]]; then
+            deployment_args+=(
+              --deployment web=surface-worker-deployments/web.json
+              --deployment app=surface-worker-deployments/app.json
+              --deployment auth=surface-worker-deployments/auth.json
+              --deployment brand=surface-worker-deployments/brand.json
+            )
+          else
+            pages_deployment_args+=(
+              --pages-deployment web=surface-pages-deployments/web.json
+              --pages-deployment app=surface-pages-deployments/app.json
+              --pages-deployment auth=surface-pages-deployments/auth.json
+              --pages-deployment brand=surface-pages-deployments/brand.json
+            )
+          fi
+          node scripts/surface-release-contract.mjs \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --candidate-sha "${{ steps.identity.outputs.sha }}" \
+            --candidate-tree-sha "${{ steps.identity.outputs.tree_sha }}" \
+            --reviewed-sha "${{ steps.independent_review.outputs.reviewed_sha }}" \
+            --reviewed-tree-sha "${{ steps.independent_review.outputs.reviewed_tree_sha }}" \
+            --control-plane-sha "$GITHUB_SHA" \
+            --staging-transaction-id "${{ inputs.staging_transaction_id }}" \
+            --cloudflare-account-id "$CLOUDFLARE_ACCOUNT_ID" \
+            --release-id "${{ steps.identity.outputs.release_id }}" \
+            --source-pr-number "$SOURCE_PR_NUMBER" \
+            --independent-reviewer "${{ steps.independent_review.outputs.reviewer }}" \
+            --independent-review-id "${{ steps.independent_review.outputs.review_id }}" \
+            --workflow-run-id "$GITHUB_RUN_ID" \
+            --workflow-run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --reusable-workflow-ref "${GITHUB_REPOSITORY}/.github/workflows/deploy-surfaces.yml@${GITHUB_SHA}" \
+            --reusable-workflow-sha "$GITHUB_SHA" \
+            --reusable-workflow-path ".github/workflows/deploy-surfaces.yml" \
+            --repository "$GITHUB_REPOSITORY" \
+            --manifest web=surface-release-manifests/web.json \
+            --manifest app=surface-release-manifests/app.json \
+            --manifest auth=surface-release-manifests/auth.json \
+            --manifest brand=surface-release-manifests/brand.json \
+            "${deployment_args[@]}" \
+            "${pages_deployment_args[@]}" \
+            --url "web=$WEB_URL" \
+            --url "app=$APP_URL" \
+            --url "auth=$AUTH_URL" \
+            --url "brand=$BRAND_URL" \
+            --output surface-release.json
           jq -e \
             --arg sha "${{ steps.identity.outputs.sha }}" \
-            '.verdict == "SURFACE_RELEASE_ACCEPTED" and .candidate_sha == $sha' \
+            --arg tree_sha "${{ steps.identity.outputs.tree_sha }}" \
+            --arg reviewed_sha "${{ steps.independent_review.outputs.reviewed_sha }}" \
+            --arg reviewed_tree_sha "${{ steps.independent_review.outputs.reviewed_tree_sha }}" \
+            --arg control_plane_sha "$GITHUB_SHA" \
+            --arg staging_transaction_id "${{ inputs.staging_transaction_id }}" \
+            --arg cloudflare_account_id "$CLOUDFLARE_ACCOUNT_ID" \
+            --arg reusable_workflow_ref "${GITHUB_REPOSITORY}/.github/workflows/deploy-surfaces.yml@${GITHUB_SHA}" \
+            --arg reusable_workflow_sha "$GITHUB_SHA" \
+            '.schema_version == 4 and
+             .verdict == "SURFACE_RELEASE_ACCEPTED" and
+             .candidate_sha == $sha and
+             .candidate_tree_sha == $tree_sha and
+             .reviewed_sha == $reviewed_sha and
+             .reviewed_tree_sha == $reviewed_tree_sha and
+             .candidate_tree_sha == .reviewed_tree_sha and
+             .control_plane_sha == $control_plane_sha and
+             (if .environment == "staging" then
+                .staging_transaction_id == $staging_transaction_id and
+                (.staging_transaction_id | test("^staging-[1-9][0-9]*-[1-9][0-9]*$"))
+              else
+                .staging_transaction_id == null
+              end) and
+             .cloudflare_account_id == $cloudflare_account_id and
+             .reusable_workflow_ref == $reusable_workflow_ref and
+             .reusable_workflow_sha == $reusable_workflow_sha and
+             .reusable_workflow_path == ".github/workflows/deploy-surfaces.yml" and
+             .surface_names == ["web", "app", "auth", "brand"] and
+             .surfaces.auth.surface == "auth" and
+             .surfaces.auth.release_sha == $sha and
+             (if .environment == "staging" then
+                (.worker_deployments | keys | sort) == ["app", "auth", "brand", "web"] and
+                ([.worker_deployments[].deployment_id | length] | all(. == 36)) and
+                ([.worker_deployments[].version_id | length] | all(. == 36)) and
+                ([.worker_deployments[].secret_inventory_verified] | all(. == true)) and
+                ([.worker_deployments[].pre_secret_inventory_verified] | all(. == true)) and
+                ([.worker_deployments[].post_secret_inventory_verified] | all(. == true)) and
+                ([.worker_deployments[].worker_authority_verified] | all(. == true)) and
+                ([.worker_deployments[].asset_binding_verified] | all(. == true)) and
+                ([.worker_deployments[].asset_binding_name] | all(. == "ASSETS")) and
+                ([.worker_deployments[].pre_secret_inventory_receipt_sha256 | test("^[0-9a-f]{64}$")] | all) and
+                ([.worker_deployments[].post_secret_inventory_receipt_sha256 | test("^[0-9a-f]{64}$")] | all) and
+                ([.worker_deployments[].worker_authority_receipt_sha256 | test("^[0-9a-f]{64}$")] | all)
+              else
+                .worker_deployments == {} and
+                (.pages_deployments | keys | sort) == ["app", "auth", "brand", "web"] and
+                ([.pages_deployments[].deployment_id | length] | all(. == 36))
+              end)' \
             surface-release.json >/dev/null
+          {
+            if [[ "$RELEASE_ENVIRONMENT" == "staging" ]]; then
+              echo "release_artifact_name=omdala-surface-release-${{ steps.identity.outputs.sha }}-staging-${{ inputs.staging_transaction_id }}"
+            else
+              echo "release_artifact_name=omdala-surface-release-${{ steps.identity.outputs.sha }}-production"
+            fi
+            echo "receipt_sha256=$(sha256sum surface-release.json | awk '{print $1}')"
+          } >> "$GITHUB_OUTPUT"
+      - name: Upload raw surface provider evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-surface-provider-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            surface-release-manifests/
+            surface-worker-deployments/
+            surface-pages-deployments/
+            surface-live-policy/
+          if-no-files-found: ignore
+          retention-days: 30
       - name: Upload immutable surface release receipt
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: omdala-surface-release-${{ steps.identity.outputs.sha }}-${{ inputs.environment }}
-          path: surface-release.json
+          name: ${{ inputs.environment == 'staging' && format('omdala-surface-release-{0}-staging-{1}', steps.identity.outputs.sha, inputs.staging_transaction_id) || format('omdala-surface-release-{0}-production', steps.identity.outputs.sha) }}
+          path: |
+            surface-release.json
+            surface-worker-deployments/
+            surface-pages-deployments/*.json
           if-no-files-found: error
+          retention-days: 30
+      - name: Roll back staging surfaces after a partial deployment or failed probe
+        if: (failure() || cancelled()) && inputs.environment == 'staging'
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -o nounset
+          attempted="surface-worker-deployments/attempted"
+          if [[ ! -s "$attempted" ]]; then
+            echo "No staging surface deployment was attempted; rollback is unnecessary."
+            exit 0
+          fi
+          rollback_failed=0
+          while IFS= read -r surface; do
+            case "$surface" in
+              web) config=infra/staging/surfaces/web.wrangler.jsonc ;;
+              app) config=infra/staging/surfaces/app.wrangler.jsonc ;;
+              auth) config=infra/staging/surfaces/auth.wrangler.jsonc ;;
+              brand) config=infra/staging/surfaces/brand.wrangler.jsonc ;;
+              *) rollback_failed=1; continue ;;
+            esac
+            previous="$(jq -r 'if length == 0 then "" else (sort_by(.created_on) | last | .versions[0].version_id) end' "surface-worker-deployments/pre/${surface}.json")"
+            current_json="surface-worker-deployments/rollback-${surface}-current.json"
+            current_stderr="surface-worker-deployments/rollback-${surface}-current.stderr"
+            current=""
+            current_count=0
+            if services/api/node_modules/.bin/wrangler deployments list --config "$config" --json > "$current_json" 2> "$current_stderr"; then
+              current_count="$(jq -r 'length' "$current_json")"
+              current="$(jq -r 'if length == 0 then "" else (sort_by(.created_on) | last | if ((.versions | length) == 1 and .versions[0].percentage == 100) then .versions[0].version_id else "" end) end' "$current_json")"
+            elif ! grep -q "does not exist" "$current_stderr"; then
+              cat "$current_stderr" >&2
+              rollback_failed=1
+              continue
+            fi
+            if { [[ -n "$previous" ]] && [[ "$current" == "$previous" ]]; } || { [[ -z "$previous" ]] && [[ "$current_count" == "0" ]]; }; then
+              echo "$surface provider state is unchanged from the rollback baseline."
+              continue
+            fi
+            if [[ -z "$previous" ]]; then
+              worker_name="omdala-surface-${surface}-staging"
+              echo "First deployment for $surface failed release acceptance; deleting exact staging-only Worker $worker_name."
+              services/api/node_modules/.bin/wrangler delete "$worker_name" \
+                --config "$config" \
+                --force || rollback_failed=1
+            else
+              services/api/node_modules/.bin/wrangler rollback "$previous" \
+                --config "$config" \
+                --message "automatic rollback after ${{ steps.identity.outputs.release_id }}" \
+                --yes || rollback_failed=1
+            fi
+            rollback_verified=false
+            for _ in {1..12}; do
+              readback="surface-worker-deployments/rollback-${surface}-readback.json"
+              readback_stderr="surface-worker-deployments/rollback-${surface}-readback.stderr"
+              if services/api/node_modules/.bin/wrangler deployments list --config "$config" --json > "$readback" 2> "$readback_stderr"; then
+                readback_count="$(jq -r 'length' "$readback")"
+                restored="$(jq -r 'if length == 0 then "" else (sort_by(.created_on) | last | if ((.versions | length) == 1 and .versions[0].percentage == 100) then .versions[0].version_id else "" end) end' "$readback")"
+                if [[ -n "$previous" ]] && [[ "$restored" == "$previous" ]]; then
+                  rollback_verified=true
+                  break
+                elif [[ -z "$previous" ]] && [[ "$readback_count" == "0" ]]; then
+                  rollback_verified=true
+                  break
+                fi
+              elif [[ -z "$previous" ]] && grep -q "does not exist" "$readback_stderr"; then
+                rollback_verified=true
+                break
+              fi
+              sleep 10
+            done
+            if [[ "$rollback_verified" != "true" ]]; then
+              echo "::error::$surface rollback provider readback did not reach the exact baseline"
+              rollback_failed=1
+            fi
+          done < <(tac "$attempted")
+          exit "$rollback_failed"
+      - name: Roll back production Pages after a partial deployment or failed probe
+        if: (failure() || cancelled()) && inputs.environment == 'production'
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          WEB_PROJECT: ${{ vars.OMDALA_WEB_PAGES_PROJECT }}
+          APP_PROJECT: ${{ vars.OMDALA_APP_PAGES_PROJECT }}
+          AUTH_PROJECT: ${{ vars.OMDALA_AUTH_PAGES_PROJECT }}
+          BRAND_PROJECT: ${{ vars.OMDALA_BRAND_PAGES_PROJECT }}
+        run: |
+          set -o nounset
+          attempted="surface-pages-deployments/attempted"
+          if [[ ! -s "$attempted" ]]; then
+            echo "No production Pages deployment was attempted; rollback is unnecessary."
+            exit 0
+          fi
+          project_for() {
+            case "$1" in
+              web) printf '%s\n' "$WEB_PROJECT" ;;
+              app) printf '%s\n' "$APP_PROJECT" ;;
+              auth) printf '%s\n' "$AUTH_PROJECT" ;;
+              brand) printf '%s\n' "$BRAND_PROJECT" ;;
+              *) return 1 ;;
+            esac
+          }
+          rollback_failed=0
+          mkdir -p surface-pages-deployments/rollback
+          while IFS= read -r surface; do
+            project="$(project_for "$surface")"
+            previous="$(jq -r '.result.canonical_deployment.id // ""' "surface-pages-deployments/projects/${surface}-pre.json")"
+            if [[ -z "$previous" ]]; then
+              echo "::error::$surface has no canonical production rollback baseline"
+              rollback_failed=1
+              continue
+            fi
+            curl --fail --silent --show-error \
+              --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              --header "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
+              > "surface-pages-deployments/rollback/${surface}-current.json" || {
+                rollback_failed=1
+                continue
+              }
+            current="$(jq -r '.result.canonical_deployment.id // ""' "surface-pages-deployments/rollback/${surface}-current.json")"
+            if [[ "$current" == "$previous" ]]; then
+              echo "$surface provider state is unchanged from the canonical rollback baseline."
+              continue
+            fi
+            curl --fail --silent --show-error \
+              --request POST \
+              --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              --header "Content-Type: application/json" \
+              --data '{}' \
+              "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}/deployments/${previous}/rollback" \
+              > "surface-pages-deployments/rollback/${surface}.json" || rollback_failed=1
+            jq -e '.success == true' "surface-pages-deployments/rollback/${surface}.json" >/dev/null || rollback_failed=1
+            for _ in {1..12}; do
+              if curl --fail --silent --show-error \
+                --header "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+                --header "Content-Type: application/json" \
+                "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${project}" \
+                > "surface-pages-deployments/rollback/${surface}-readback.json"; then
+                jq -e --arg previous "$previous" \
+                  '.success == true and .result.canonical_deployment.id == $previous' \
+                  "surface-pages-deployments/rollback/${surface}-readback.json" >/dev/null && break
+              fi
+              sleep 10
+            done
+            jq -e --arg previous "$previous" \
+              '.success == true and .result.canonical_deployment.id == $previous' \
+              "surface-pages-deployments/rollback/${surface}-readback.json" >/dev/null || rollback_failed=1
+          done < <(tac "$attempted")
+          exit "$rollback_failed"
+      - name: Upload surface rollback evidence
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-surface-rollback-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            surface-worker-deployments/
+            surface-pages-deployments/rollback/
+            surface-pages-deployments/projects/
+          if-no-files-found: ignore
           retention-days: 30

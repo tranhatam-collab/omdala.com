@@ -12,7 +12,6 @@ import { useApprovals } from './hooks/useApprovals';
 import { useRunDetails } from './hooks/useRunDetails';
 import { useRuns } from './hooks/useRuns';
 import { useScenes } from './hooks/useScenes';
-import { buildApiUrl } from './config/env';
 import { LiveExecutionCard } from './components/LiveExecutionCard';
 import { useAppStore } from './state/store';
 
@@ -40,7 +39,7 @@ export function App() {
   const [selectedProofId, setSelectedProofId] = useState<string>('');
   const [selectedRequestedState, setSelectedRequestedState] = useState<string>('');
   const [selectedActualState, setSelectedActualState] = useState<string>('');
-  const [apiReady, setApiReady] = useState<'checking' | 'ready' | 'down'>('checking');
+  const apiReady = 'blocked' as const;
   const [apiCheckedAt, setApiCheckedAt] = useState<string>('');
   const [lastRequestId, setLastRequestId] = useState<string>('');
   const [authEmail, setAuthEmail] = useState('');
@@ -62,12 +61,7 @@ export function App() {
   }, []);
 
   const cooldownSeconds = Math.max(0, Math.ceil((cooldownUntil - nowTick) / 1000));
-  const apiReadyLabel =
-    apiReady === 'ready'
-      ? 'ready / san sang'
-      : apiReady === 'down'
-        ? 'down / khong san sang'
-        : 'checking / dang kiem tra';
+  const apiReadyLabel = 'blocked pending canonical session bridge / bi chan cho cau noi phien canonical';
 
   const featurePoints = [
     'Natural language to safe execution plans with explicit policy decisions. / Ngon ngu tu nhien thanh ke hoach thuc thi an toan voi quyet dinh chinh sach ro rang.',
@@ -102,25 +96,12 @@ export function App() {
     }
   }
 
-  async function onCheckApiReady() {
-    setApiReady('checking');
-    try {
-      const response = await fetch(buildApiUrl('/ready'));
-      if (!response.ok) {
-        setApiReady('down');
-        setApiCheckedAt(new Date().toISOString());
-        return;
-      }
-      setApiReady('ready');
-      setApiCheckedAt(new Date().toISOString());
-    } catch {
-      setApiReady('down');
-      setApiCheckedAt(new Date().toISOString());
-    }
+  function onCheckApiReady() {
+    setApiCheckedAt(new Date().toISOString());
   }
 
   useEffect(() => {
-    void onCheckApiReady();
+    onCheckApiReady();
   }, []);
 
   useEffect(() => {
@@ -256,19 +237,20 @@ export function App() {
           <span className="status-pill">Status / Trang thai: {deployStatus}</span>
           <span className="status-pill">Release / Phien ban: {releaseTag}</span>
           <span className="status-pill">API: {apiBaseUrl}</span>
-          <span className={`status-pill ${apiReady === 'ready' ? 'status-ok' : apiReady === 'down' ? 'status-down' : ''}`}>
+          <span className="status-pill status-down">
             API ready / API san sang: {apiReadyLabel}
           </span>
-          <button className="button-secondary" onClick={() => void onCheckApiReady()}>
-            Check API / Kiem tra API
+          <button className="button-secondary" onClick={onCheckApiReady}>
+            Show bridge status / Xem trang thai cau noi
           </button>
         </div>
         {lastRequestId ? <p className="meta-line">Latest request id / Request id moi nhat: {lastRequestId}</p> : null}
         {apiCheckedAt ? <p className="meta-line">Last API check / Lan kiem tra API gan nhat: {apiCheckedAt}</p> : null}
-        {apiReady === 'down' ? (
+        {apiReady === 'blocked' ? (
           <p className="meta-line warning-line">
-            API is not available right now. Check backend health, `VITE_API_BASE_URL`, and CORS settings. / API hien
-            tai chua san sang. Hay kiem tra health backend, `VITE_API_BASE_URL`, va cau hinh CORS.
+            Protected actions are disabled before network access until this surface has a verified canonical OMDALA
+            session bridge. / Cac thao tac duoc bao ve bi tat truoc khi truy cap mang cho den khi surface nay co cau noi
+            phien OMDALA canonical da xac minh.
           </p>
         ) : null}
       </section>

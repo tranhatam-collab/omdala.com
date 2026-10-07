@@ -1,37 +1,19 @@
-import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useMagicLink } from '../hooks/useMagicLink';
 import { Card } from '../components/Card';
 import { colors } from '../theme/colors';
-import { AppButton } from '../components/AppButton';
-import { AppInput } from '../components/AppInput';
 import { AppAlert } from '../components/AppAlert';
+import { useSession } from '../session/sessionStore';
 
 export function SignInScreen() {
-  const { send, loading, error, success, setError, setSuccess } = useMagicLink();
-  const [email, setEmail] = useState('');
-
-  async function onSend() {
-    setError(null);
-    setSuccess(null);
-    await send(email.trim());
-  }
+  const { session } = useSession();
 
   return (
     <View style={styles.container}>
-      <Card title="Sign in / Dang nhap (magic link)">
-        <Text style={styles.label}>Email address / Dia chi email</Text>
-        <AppInput
-          placeholder="you@omdala.com / ban@omdala.com"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <AppButton title={loading ? 'Sending... / Dang gui...' : 'Send magic link / Gui magic link'} onPress={onSend} disabled={loading} />
-        <AppAlert tone="info">Open your magic-link email on this device to continue sign in. / Mo email magic-link tren thiet bi nay de tiep tuc dang nhap.</AppAlert>
-        {success ? <AppAlert tone="success">{success}</AppAlert> : null}
-        {error ? <AppAlert tone="warning">{error}</AppAlert> : null}
+      <Card title="Native sign-in unavailable / Dang nhap native chua kha dung">
+        <Text style={styles.label}>Status / Trang thai: {session.status}</Text>
+        <AppAlert tone="warning">
+          Protected features are disabled until the native app has a verified OMDALA session bridge. Use the OMDALA web app for authenticated access. / Cac tinh nang duoc bao ve dang tat cho den khi ung dung native co cau noi phien OMDALA da xac minh. Hay dung ung dung web OMDALA de truy cap co xac thuc.
+        </AppAlert>
       </Card>
     </View>
   );

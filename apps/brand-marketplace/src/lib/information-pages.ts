@@ -16,7 +16,7 @@ const pages: Record<MarketplaceLocale, Record<string, InformationPage>> = {
       sections: [
         { title: "1. Compare packages", body: "Review tier, included assets, public verification summary, valuation context, and transfer conditions." },
         { title: "2. Start an inquiry", body: "Request information, make an offer, or ask for proof access. High-value assets never use an instant checkout.", bullets: ["No public sensitive-document gallery", "No automatic legal ownership confirmation", "No public buyer qualification result"] },
-        { title: "3. Continue in the workspace", body: "Approved buyer and seller workflows move to app.omdala.com for private proof, deal-room coordination, and transfer tracking." },
+        { title: "3. Continue in the workspace", body: "Approved buyer and seller workflows move to the authenticated App surface for private proof, deal-room coordination, and transfer tracking." },
       ],
     },
     sell: {
@@ -91,7 +91,7 @@ const pages: Record<MarketplaceLocale, Record<string, InformationPage>> = {
       sections: [
         { title: "1. Browse", body: "Find an approved Brand Package and see its public asset and verification summary." },
         { title: "2. Request", body: "Choose an accountable inquiry or offer path instead of a direct payment action." },
-        { title: "3. Execute", body: "Qualified work continues in app.omdala.com with private proof and a documented transfer workflow." },
+        { title: "3. Execute", body: "Qualified work continues in the authenticated App surface with private proof and a documented transfer workflow." },
       ],
     },
   },
@@ -103,7 +103,7 @@ const pages: Record<MarketplaceLocale, Record<string, InformationPage>> = {
       sections: [
         { title: "1. So sánh gói", body: "Xem tier, tài sản đi kèm, tóm tắt xác minh, bối cảnh định giá và điều kiện chuyển nhượng." },
         { title: "2. Gửi yêu cầu", body: "Yêu cầu thông tin, gửi đề nghị hoặc hỏi quyền xem proof. Tài sản giá trị cao không có checkout tức thì." },
-        { title: "3. Tiếp tục trong workspace", body: "Luồng buyer/seller được duyệt chuyển sang app.omdala.com để xử lý proof riêng tư và bàn giao." },
+        { title: "3. Tiếp tục trong workspace", body: "Luồng buyer/seller được duyệt chuyển sang bề mặt App có xác thực để xử lý proof riêng tư và bàn giao." },
       ],
     },
     "ban-thuong-hieu-so": {
@@ -140,7 +140,7 @@ const pages: Record<MarketplaceLocale, Record<string, InformationPage>> = {
       sections: [
         { title: "1. Khám phá", body: "Xem Brand Package đã duyệt và tóm tắt tài sản, xác minh công khai." },
         { title: "2. Yêu cầu", body: "Bắt đầu bằng inquiry hoặc offer có trách nhiệm thay vì thanh toán trực tiếp." },
-        { title: "3. Thực thi", body: "Luồng đủ điều kiện chuyển sang app.omdala.com với proof riêng tư và checklist bàn giao." },
+        { title: "3. Thực thi", body: "Luồng đủ điều kiện chuyển sang bề mặt App có xác thực với proof riêng tư và checklist bàn giao." },
       ],
     },
     "xac-minh": {

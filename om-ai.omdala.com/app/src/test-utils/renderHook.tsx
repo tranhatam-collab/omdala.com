@@ -1,13 +1,14 @@
-import { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 
 type RenderHookResult<T> = {
   result: { current: T };
   rerender: () => void;
+  unmount: () => void;
 };
 
 type Options = {
-  wrapper?: ({ children }: { children: ReactNode }) => JSX.Element;
+  wrapper?: ({ children }: { children: ReactNode }) => ReactElement;
 };
 
 export function renderHook<T>(callback: () => T, options?: Options): RenderHookResult<T> {
@@ -38,6 +39,11 @@ export function renderHook<T>(callback: () => T, options?: Options): RenderHookR
     rerender: () => {
       act(() => {
         renderer.update(element);
+      });
+    },
+    unmount: () => {
+      act(() => {
+        renderer.unmount();
       });
     },
   };

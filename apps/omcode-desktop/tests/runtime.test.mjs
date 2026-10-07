@@ -17,6 +17,7 @@ import {
   normalizeModelId,
   providerKey,
   completion,
+  prepareCompletion,
   embedding,
   checkProvider,
   saveProvider,
@@ -375,6 +376,55 @@ test("provider endpoints outside AIAGENT are rejected before any credential is r
   );
   assert.deepEqual(Object.keys(IMPORT_TARGETS), []);
 });
+test("generic chat compatibility is loopback-only and remote AI uses canonical AIAGENT", () => {
+  const remote = {
+    id: "aiagent",
+    name: "AIAGENT",
+    kind: "iai-one",
+    baseUrl: "https://api.aiagent.iai.one",
+    tenantId: "omdala-com",
+    workspaceId: "omdala-com-production",
+    model: "iai-one/iris-3",
+  };
+  assert.equal(
+    prepareCompletion(remote, [{ role: "user", content: "hello" }], [])
+      .destination,
+    "https://api.aiagent.iai.one/v1/ai/chat",
+  );
+  assert.throws(
+    () => prepareCompletion({ ...remote, kind: "openai" }, [], []),
+    /không khớp/,
+  );
+  assert.equal(
+    prepareCompletion(
+      {
+        id: "local-fixture",
+        name: "Local",
+        kind: "local",
+        baseUrl: "http://127.0.0.1:11434/v1",
+        model: "local-model",
+      },
+      [{ role: "user", content: "hello" }],
+      [],
+    ).destination,
+    "http://127.0.0.1:11434/v1/chat/completions",
+  );
+  assert.throws(
+    () =>
+      prepareCompletion(
+        {
+          id: "vendor",
+          name: "Vendor",
+          kind: "openai",
+          baseUrl: "https://api.openai.com/v1",
+          model: "vendor-model",
+        },
+        [],
+        [],
+      ),
+    /AIAGENT/,
+  );
+});
 test("persisted third-party provider records fail closed before any credential or request", async () => {
   const legacy = {
     id: "deepseek",
@@ -430,7 +480,6 @@ test("persisted third-party provider records fail closed before any credential o
         name: "x",
         baseUrl: "https://api.deepseek.com",
         model: "m",
-        apiKey: "k",
       }),
       /AIAGENT/,
     );
@@ -469,8 +518,8 @@ test("persisted third-party provider records fail closed before any credential o
       name: "AIAGENT downgraded",
       kind: "openai",
       baseUrl: "https://api.aiagent.iai.one",
-      tenantId: "aiagent",
-      workspaceId: "omcode-test",
+      tenantId: "omdala-com",
+      workspaceId: "omdala-com-production",
       model: "fixture-model",
       status: "connected",
     };
@@ -522,8 +571,8 @@ test("Keychain failures stop before any provider request", async () => {
           kind: "iai-one",
           model: "unused",
           baseUrl: "https://api.aiagent.iai.one",
-          tenantId: "aiagent",
-          workspaceId: "omcode-test",
+          tenantId: "omdala-com",
+          workspaceId: "omdala-com-production",
         },
         [],
         [],

@@ -5,16 +5,18 @@ import * as React from "react";
 import {
   classifyTask,
   getTaskTypeLabel,
-  modelRouter,
-  initAgentOrchestrator,
-  getAgentOrchestrator,
   contextEngine,
-  permissionLayer,
   type TaskClassification,
-  type OrchestratorPlan,
-  type ApprovalRequest,
 } from "@omdala/core";
-import { ModelPickerWithAuto } from "../workspace/components/ModelPicker";
+import {
+  ModelPickerWithAuto,
+  resolveAiagentModel,
+} from "../workspace/components/ModelPicker";
+import {
+  chatViaAiagent,
+  getVerifiedAiagentCatalog,
+  type AiagentModel,
+} from "../workspace/api/gateway";
 
 interface AICommandPaletteProps {
   isOpen: boolean;
@@ -32,12 +34,10 @@ export function AICommandPalette({
   const [input, setInput] = React.useState("");
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [classification, setClassification] = React.useState<TaskClassification | null>(null);
-  const [plan, setPlan] = React.useState<OrchestratorPlan | null>(null);
-  const [pendingApproval, setPendingApproval] = React.useState<ApprovalRequest | null>(null);
-  const [hasApproval, setHasApproval] = React.useState(false);
   const [response, setResponse] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = React.useState<string>("auto");
+  const [selectedModel, setSelectedModel] = React.useState<string>("");
+  const [models, setModels] = React.useState<AiagentModel[]>([]);
 
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -47,13 +47,18 @@ export function AICommandPalette({
     }
   }, [isOpen]);
 
-  // Initialize orchestrator on mount
   React.useEffect(() => {
-    let orchestrator = getAgentOrchestrator();
-    if (!orchestrator) {
-      orchestrator = initAgentOrchestrator(modelRouter);
-    }
-  }, []);
+    if (!isOpen) return;
+    getVerifiedAiagentCatalog()
+      .then((catalog) => {
+        setModels(catalog.models);
+        setSelectedModel((current) => resolveAiagentModel(current, catalog.models));
+      })
+      .catch(() => {
+        setModels([]);
+        setSelectedModel("");
+      });
+  }, [isOpen]);
 
   // Analyze repo on mount
   React.useEffect(() => {
@@ -68,9 +73,6 @@ export function AICommandPalette({
     setIsProcessing(true);
     setError(null);
     setResponse(null);
-    setPlan(null);
-    setPendingApproval(null);
-    setHasApproval(false);
 
     try {
       // Step 1: Classify task
@@ -83,28 +85,6 @@ export function AICommandPalette({
       });
       setClassification(taskClassification);
 
-      // Step 2: Check permission for the action
-      const permission = await permissionLayer.checkPermission(
-        "write_file",
-        "*",
-        "ai-agent",
-      );
-
-      if (permission.level === "ask" && !hasApproval) {
-        const approval = await permissionLayer.requestApproval(
-          "write_file",
-          "*",
-          `AI agent wants to execute: ${input}`,
-          "ai-agent",
-        );
-        if (approval.status === "pending") {
-          setPendingApproval(approval);
-          setIsProcessing(false);
-          return;
-        }
-      }
-
-      // Step 3: Get context
       const context = await contextEngine.queryContext({
         task: input,
         filesInvolved: workspaceFiles.map((f) => f.path),
@@ -114,53 +94,40 @@ export function AICommandPalette({
         preferRecent: true,
       });
 
-      // Step 4: Create execution plan
-      const orchestrator = getAgentOrchestrator();
-      if (!orchestrator) {
-        throw new Error("Agent orchestrator not initialized");
-      }
-      // Apply user-selected model override if not auto
-      const effectiveClassification =
-        selectedModel && selectedModel !== "auto"
-          ? { ...taskClassification, recommendedModel: selectedModel }
-          : taskClassification;
-      const executionPlan = await orchestrator.plan(input, effectiveClassification, {
-        files: context.files.map((file) => file.path),
-        language: "typescript",
+      const model = resolveAiagentModel(selectedModel, models);
+      if (!model) throw new Error("AIAGENT_VERIFIED_CATALOG_REQUIRED");
+      const result = await chatViaAiagent({
+        model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Bạn là OMCODE AI. Chỉ lập kế hoạch bằng văn bản; không tự thực thi, sửa file hoặc gọi tool. Trả lời bằng tiếng Việt.",
+          },
+          {
+            role: "user",
+            content: [
+              input,
+              `Task type: ${taskClassification.type}`,
+              `Files: ${context.files.map((file) => file.path).join(", ") || "(none)"}`,
+            ].join("\n"),
+          },
+        ],
+        maxTokens: 1024,
       });
-      setPlan(executionPlan);
-      onExecuteAction("orchestrator_plan_created", {
+      setResponse(result.response);
+      onExecuteAction("aiagent_plan_received", {
         prompt: input,
-        taskCount: executionPlan.tasks.length,
         contextTokens: context.totalTokens,
+        model: result.model,
+        runId: result.run_id,
+        receiptId: result.receipt_id,
       });
-
-      // Step 5: Execute plan (simplified - just show plan for now)
-      setResponse(`Kế hoạch thực thi đã tạo với ${executionPlan.tasks.length} tasks:\n\n` +
-        executionPlan.tasks.map((t: { description: string; agentId: string }, i: number) => `${i + 1}. ${t.description} (${t.agentId})`).join("\n"));
 
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const handleApprove = () => {
-    if (pendingApproval) {
-      permissionLayer.approveRequest(pendingApproval.id);
-      setPendingApproval(null);
-      setHasApproval(true); // Set approval flag to avoid loop
-      // Continue execution
-      handleSubmit();
-    }
-  };
-
-  const handleDeny = () => {
-    if (pendingApproval) {
-      permissionLayer.denyRequest(pendingApproval.id, "User denied");
-      setPendingApproval(null);
-      setError("User denied the action");
     }
   };
 
@@ -223,7 +190,7 @@ export function AICommandPalette({
                 AI Command Palette
               </h2>
               <p style={{ fontSize: 12, color: "#6b7f99", margin: "4px 0 0" }}>
-                Được hỗ trợ bởi Multi-Agent Orchestration System
+                Lập kế hoạch qua OMDALA API và AIAGENT; không tự thực thi
               </p>
             </div>
           </div>
@@ -350,135 +317,13 @@ export function AICommandPalette({
                 </span>
                 <ModelPickerWithAuto
                   value={selectedModel}
+                  models={models}
                   onChange={setSelectedModel}
                   size="sm"
                 />
                 <span style={{ fontSize: 10, color: "#6b7f99", whiteSpace: "nowrap" }}>
-                  (đề xuất: {classification.recommendedModel})
+                  catalog đã xác minh
                 </span>
-              </div>
-            </div>
-          )}
-
-          {pendingApproval && (
-            <div style={{
-              padding: 16,
-              borderRadius: 8,
-              background: "rgba(251,191,36,0.1)",
-              border: "1px solid rgba(251,191,36,0.3)",
-              marginBottom: 16,
-            }}>
-              <p style={{ fontSize: 13, color: "#fbbf24", margin: "0 0 12px", fontWeight: 600 }}>
-                ⚠️ Yêu cầu phê duyệt
-              </p>
-              <p style={{ fontSize: 12, color: "#a8b9d0", margin: "0 0 16px" }}>
-                {pendingApproval.description}
-              </p>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={handleApprove}
-                  style={{
-                    flex: 1,
-                    padding: "10px",
-                    borderRadius: 8,
-                    border: "none",
-                    background: "rgba(74,222,128,0.2)",
-                    color: "#4ade80",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  ✓ Phê duyệt
-                </button>
-                <button
-                  onClick={handleDeny}
-                  style={{
-                    flex: 1,
-                    padding: "10px",
-                    borderRadius: 8,
-                    border: "none",
-                    background: "rgba(248,113,113,0.2)",
-                    color: "#f87171",
-                    fontWeight: 600,
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  ✕ Từ chối
-                </button>
-              </div>
-            </div>
-          )}
-
-          {plan && (
-            <div style={{
-              padding: 16,
-              borderRadius: 8,
-              background: "rgba(255,255,255,0.02)",
-              border: "1px solid rgba(255,255,255,0.06)",
-              marginBottom: 16,
-            }}>
-              <p style={{ fontSize: 11, color: "#6b7f99", margin: "0 0 12px", textTransform: "uppercase" }}>
-                Kế hoạch thực thi
-              </p>
-              {plan.tasks.map((task, i) => (
-                <div
-                  key={task.id}
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 6,
-                    background: "rgba(255,255,255,0.02)",
-                    marginBottom: 8,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  <span style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 6,
-                    background: "rgba(126,242,255,0.15)",
-                    color: "#7ef2ff",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}>
-                    {i + 1}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontSize: 13, color: "#f7fbff", margin: 0, fontWeight: 500 }}>
-                      {task.description}
-                    </p>
-                    <p style={{ fontSize: 11, color: "#6b7f99", margin: "4px 0 0" }}>
-                      Agent: {task.agentId}
-                    </p>
-                  </div>
-                  <span style={{
-                    padding: "4px 8px",
-                    borderRadius: 4,
-                    background: "rgba(168,185,208,0.15)",
-                    color: "#a8b9d0",
-                    fontSize: 10,
-                  }}>
-                    {task.status}
-                  </span>
-                </div>
-              ))}
-              <div style={{
-                marginTop: 12,
-                paddingTop: 12,
-                borderTop: "1px solid rgba(255,255,255,0.06)",
-                display: "flex",
-                gap: 16,
-                fontSize: 11,
-                color: "#6b7f99",
-              }}>
-                <span>⏱️ Thời gian ước tính: {plan.estimatedDuration}s</span>
-                <span>💰 Chi phí ước tính: ${plan.estimatedCost.toFixed(4)}</span>
               </div>
             </div>
           )}
@@ -518,7 +363,7 @@ export function AICommandPalette({
           color: "#6b7f99",
         }}>
           <span>⌘K để mở</span>
-          <span>Được hỗ trợ bởi Task Classifier • Model Router • Agent Orchestrator • Context Engine • Permission Layer</span>
+          <span>Được hỗ trợ bởi Task Classifier • OMDALA API • AIAGENT receipts • Context Engine • Permission Layer</span>
         </div>
       </div>
 

@@ -49,6 +49,8 @@ node scripts/postgres-target-guard.mjs \
   --restore-url "$RESTORE_DATABASE_URL" \
   --expected-source-host "$EXPECTED_SOURCE_DATABASE_HOST" \
   --expected-source-database "$EXPECTED_SOURCE_DATABASE_NAME" \
+  --environment "$RELEASE_ENVIRONMENT" \
+  --production-authority config/production-data-authority.json \
   --receipt "$target_receipt" >/dev/null
 
 pg_dump "$SOURCE_DATABASE_URL" \
@@ -150,6 +152,8 @@ jq -n \
     created_at: $created_at,
     source: $targets[0].source,
     restore: $targets[0].restore,
+    production_target_match: $targets[0].productionTargetMatch,
+    production_authority: $targets[0].production,
     source_and_restore_distinct: true,
     dump_sha256: $dump_sha256,
     encrypted_backup_sha256: $encrypted_backup_sha256,

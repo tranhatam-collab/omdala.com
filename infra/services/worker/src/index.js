@@ -11,6 +11,7 @@ import { aiTaskJob } from './jobs/ai-task.js';
 import { deployJob } from './jobs/deploy.js';
 import { dbQueryJob } from './jobs/db-query.js';
 import { codeReviewJob } from './jobs/code-review.js';
+import { createWorkerHealthPayload } from './lib/health.js';
 
 const redis = new IORedis(process.env.REDIS_URL || 'redis://valkey:6379');
 
@@ -20,13 +21,11 @@ const dlq = new Queue('omdala-dlq', { connection: redis });
 // Health endpoint
 const healthServer = http.createServer((req, res) => {
   if (req.url === '/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      status: 'ok',
-      service: 'worker',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-    }));
+    // Configuration/process liveness only: this path never invokes AIAGENT or
+    // an upstream model, so health polling cannot consume model budget.
+    const health = createWorkerHealthPayload();
+    res.writeHead(health.status === 'ok' ? 200 : 503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(health));
   } else {
     res.writeHead(404);
     res.end('Not Found');

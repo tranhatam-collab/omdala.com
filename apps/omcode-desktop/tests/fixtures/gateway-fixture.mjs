@@ -35,12 +35,13 @@ function modelEntry(id) {
   };
 }
 
-export function gatewayCatalog() {
+export function gatewayCatalog(transportOrigin = "http://127.0.0.1") {
   const models = [...GATEWAY_CHAT_MODELS, ...GATEWAY_EMBED_MODELS].map(
     modelEntry,
   );
   return {
     authority: "aiagent.iai.one",
+    transport_origin: transportOrigin,
     schema_version: "1.0.0",
     namespace: "iai-one",
     tier: "business",
@@ -61,15 +62,23 @@ export function startGatewayFixture(options = {}) {
     let input = "";
     for await (const chunk of req) input += chunk;
     const body = input ? JSON.parse(input) : {};
-    const tenant = req.headers["x-tenant-id"] || "aiagent";
-    const workspace = req.headers["x-workspace-id"] || "unknown";
+    // The real AIAGENT strips caller authority and rebuilds it from the scoped
+    // credential. This fixture mirrors that behavior instead of trusting
+    // browser/server supplied workspace identity.
+    const tenant = options.tenantId || "omcode-test";
+    const workspace = options.workspaceId || "omcode-ws";
     state.requests.push({
       url: req.url,
       body,
       tenant,
       workspace,
       requestId: req.headers["x-request-id"],
+      traceId: req.headers["x-trace-id"],
       idempotencyKey: req.headers["idempotency-key"],
+      workspaceHeader: req.headers["x-workspace-id"],
+      actorIdHeader: req.headers["x-actor-id"],
+      tierHeader: req.headers["x-tier"],
+      quotaHeader: req.headers["x-quota"],
     });
     res.setHeader("Content-Type", "application/json");
     const envelope = (data) =>
@@ -81,8 +90,17 @@ export function startGatewayFixture(options = {}) {
     if (req.url === "/v1/ai/models" && req.method === "GET")
       return res.end(
         envelope({
-          ...gatewayCatalog(),
-          models: options.models || gatewayCatalog().models,
+          ...gatewayCatalog(`http://${req.headers.host}`),
+          ...(options.catalogIdentity || {}),
+          models:
+            options.models ||
+            gatewayCatalog(`http://${req.headers.host}`).models,
+          count:
+            options.catalogIdentity?.count ??
+            (
+              options.models ||
+              gatewayCatalog(`http://${req.headers.host}`).models
+            ).length,
         }),
       );
     if (
@@ -134,6 +152,7 @@ export function startGatewayFixture(options = {}) {
           input_tokens: 10,
           output_tokens: isEmbed ? 0 : 5,
           total_tokens: isEmbed ? 10 : 15,
+          token_usage_status: "provider_reported",
         },
         cost_usd: 0.00042,
         estimated_cost_usd: 0.00042,
@@ -144,6 +163,7 @@ export function startGatewayFixture(options = {}) {
         receipt_id: receiptId,
         run_id: runId,
         finish_reason: "stop",
+        policy_decision: "allow",
         task_type: isEmbed ? "embed" : "agent-task",
         tool_calls:
           probe || hasToolResult
@@ -176,6 +196,12 @@ export function startGatewayFixture(options = {}) {
         tenant_id: tenant,
         workspace_id: workspace,
         receipt_id: receiptId,
+        input_tokens: data.usage.input_tokens,
+        output_tokens: data.usage.output_tokens,
+        cost_usd: data.cost_usd,
+        billing_eligible: data.billing_eligible,
+        cost_ledger_status: data.cost_ledger_status,
+        ledger_entry_id: data.ledger_entry_id,
       });
       state.receipts.set(receiptId, {
         receipt_id: receiptId,
@@ -189,6 +215,11 @@ export function startGatewayFixture(options = {}) {
         cost_usd: 0.00042,
         billing_eligible: Boolean(ledgerId),
         cost_ledger_status: "reconciled",
+        input_tokens: data.usage.input_tokens,
+        output_tokens: data.usage.output_tokens,
+        authority: "aiagent.iai.one",
+        receipt_schema: "aiagent.provider-receipt.v1",
+        contract_version: "1.0.0",
       });
       if (options.mutateRun) options.mutateRun(state.runs.get(runId));
       if (options.mutateReceipt)
@@ -226,6 +257,8 @@ export function startGatewayFixture(options = {}) {
         envelope({
           receipt_id: receipt.receipt_id,
           verified: true,
+          verification_method: "ed25519-canonical-payload-sha256",
+          execution_status: "success",
           receipt,
         }),
       );

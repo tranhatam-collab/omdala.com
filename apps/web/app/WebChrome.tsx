@@ -1,5 +1,6 @@
 import {
   ANGEL_EDU_TAM_FOUNDATION,
+  resolvePublicOrigin,
   type OmdalaLanguage,
 } from "@omdala/core";
 import { OMDALA_PAGES } from "@omdala/seo";
@@ -29,6 +30,21 @@ export function WebChrome({
   language: OmdalaLanguage;
 }) {
   const text = getChromeCopy(language);
+  const appOrigin = resolvePublicOrigin(
+    "app",
+    process.env.NEXT_PUBLIC_APP_ORIGIN,
+    process.env.NEXT_PUBLIC_RELEASE_ENVIRONMENT,
+  );
+  const apiOrigin = resolvePublicOrigin(
+    "api",
+    process.env.NEXT_PUBLIC_API_URL,
+    process.env.NEXT_PUBLIC_RELEASE_ENVIRONMENT,
+  );
+  const appEntryUrl = new URL("/", `${appOrigin}/`);
+  if (language !== "en") {
+    appEntryUrl.searchParams.set("lang", language);
+  }
+  const appEntry = appEntryUrl.toString();
 
   return (
     <>
@@ -61,7 +77,7 @@ export function WebChrome({
           <div className="site-header__actions">
             <LanguageSwitcher ariaLabel={text.labels.languageSwitcher} />
             <a
-              href={`https://app.omdala.com${language === "en" ? "" : `?lang=${language}`}`}
+              href={appEntry}
               className="site-button site-button--ghost"
             >
               {text.enterApp}
@@ -110,9 +126,9 @@ export function WebChrome({
 
           <div className="footer-block">
             <p className="footer-heading">{text.sections.surfaces}</p>
-            <a href="https://app.omdala.com">{text.links.app}</a>
+            <a href={appOrigin}>{text.links.app}</a>
             <a href="https://docs.omdala.com">{text.links.docs}</a>
-            <a href="https://api.omdala.com/health">{text.links.apiHealth}</a>
+            <a href={`${apiOrigin}/health`}>{text.links.apiHealth}</a>
           </div>
 
           <div className="footer-block">

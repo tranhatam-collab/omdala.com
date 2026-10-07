@@ -1,5 +1,4 @@
 import type { FastifyInstance } from 'fastify';
-import { getAuthContext } from '../auth.js';
 import { requireSensitiveAuth } from '../auth.js';
 import { createProof } from '../proofStore.js';
 import { persistence } from '../persistence.js';
@@ -37,7 +36,10 @@ export function registerScenesRoutes(app: FastifyInstance) {
         },
       },
     },
-    async (request) => {
+    async (request, reply) => {
+      const auth = requireSensitiveAuth(request, reply);
+      if (!auth) return;
+
       const body = request.body as {
         display_name: string;
         safety_class: SceneRecord['safety_class'];
@@ -71,8 +73,8 @@ export function registerScenesRoutes(app: FastifyInstance) {
       },
     },
     async (request, reply) => {
-      requireSensitiveAuth(request, reply);
-      if (reply.sent) return;
+      const auth = requireSensitiveAuth(request, reply);
+      if (!auth) return;
 
       const params = request.params as { id: string };
       const scene = await persistence.getScene(params.id);
@@ -82,8 +84,7 @@ export function registerScenesRoutes(app: FastifyInstance) {
       }
 
       const runId = randomId('run_scene');
-      const auth = getAuthContext(request);
-      const actorId = auth?.userId ?? 'scene_runner';
+      const actorId = auth.userId;
       const proof = await createProof({
         proofId: randomId('proof'),
         runId,

@@ -21,12 +21,12 @@
     "@codemirror/lang-javascript": "^6.2.4",
     "@codemirror/state": "^6.5.2",
     "@codemirror/view": "^6.38.1",
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "codemirror": "^6.0.2",
     "lucide-react": "1.45.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "smol-toml": "^1.4.2",
+    "smol-toml": "^1.9.0",
     "yaml": "^2.8.1"
   },
   "devDependencies": {

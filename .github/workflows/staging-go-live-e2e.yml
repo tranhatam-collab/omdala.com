@@ -1,33 +1,51 @@
 name: OMDALA Staging Go-Live E2E
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       candidate_sha:
-        description: Exact candidate SHA already deployed to the staging surfaces
         required: true
         type: string
       source_pr_number:
-        description: Pull request containing the exact candidate and independent approval
         required: true
         type: string
-      api_release_run_id:
-        description: Successful OMDALA Release staging workflow run ID
+      team_ai_staging_acceptance_run_id:
         required: true
         type: string
-      surface_release_run_id:
-        description: Successful OMDALA Surface Release staging workflow run ID
+      api_release_artifact_name:
         required: true
         type: string
+      backup_artifact_name:
+        required: true
+        type: string
+      surface_release_artifact_name:
+        required: true
+        type: string
+      api_receipt_sha256:
+        required: true
+        type: string
+      surface_receipt_sha256:
+        required: true
+        type: string
+      orchestrated_staging:
+        required: true
+        type: boolean
+      staging_transaction_id:
+        required: true
+        type: string
+      control_plane_sha:
+        required: true
+        type: string
+    outputs:
+      acceptance_artifact_name:
+        value: ${{ jobs.exact-candidate-acceptance.outputs.acceptance_artifact_name }}
+      acceptance_receipt_sha256:
+        value: ${{ jobs.exact-candidate-acceptance.outputs.acceptance_receipt_sha256 }}
 
 permissions:
   contents: read
   actions: read
   pull-requests: read
-
-concurrency:
-  group: omdala-staging-go-live-${{ inputs.candidate_sha }}
-  cancel-in-progress: false
 
 jobs:
   exact-candidate-acceptance:
@@ -35,14 +53,93 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment: staging
+    outputs:
+      acceptance_artifact_name: ${{ steps.acceptance_receipt.outputs.acceptance_artifact_name }}
+      acceptance_receipt_sha256: ${{ steps.acceptance_receipt.outputs.acceptance_receipt_sha256 }}
+    env:
+      CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      SOURCE_PR_NUMBER: ${{ inputs.source_pr_number }}
+      API_RELEASE_RUN_ID: ${{ github.run_id }}
+      SURFACE_RELEASE_RUN_ID: ${{ github.run_id }}
+      TEAM_AI_STAGING_RUN_ID: ${{ inputs.team_ai_staging_acceptance_run_id }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Require the workflow control plane from current main
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ORCHESTRATED_STAGING: ${{ inputs.orchestrated_staging }}
+          STAGING_TRANSACTION_ID: ${{ inputs.staging_transaction_id }}
+          CONTROL_PLANE_SHA: ${{ inputs.control_plane_sha }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1" || {
+            echo "::error::STAGING_TRANSACTION_RERUN_BLOCKED_START_A_NEW_DISPATCH"
+            exit 1
+          }
+          expected_transaction_id="staging-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          expected_workflow_ref="${GITHUB_REPOSITORY}/.github/workflows/staging-transaction.yml@refs/heads/main"
+          test "$ORCHESTRATED_STAGING" = "true" || {
+            echo "::error::DIRECT_STAGING_CHILD_DISPATCH_BLOCKED"
+            exit 1
+          }
+          test "$GITHUB_WORKFLOW" = "OMDALA Staging Transaction" || {
+            echo "::error::UNTRUSTED_STAGING_TRANSACTION_CALLER"
+            exit 1
+          }
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_WORKFLOW_REF" = "$expected_workflow_ref"
+          test "$GITHUB_WORKFLOW_SHA" = "$CONTROL_PLANE_SHA"
+          test "$STAGING_TRANSACTION_ID" = "$expected_transaction_id" || {
+            echo "::error::STAGING_TRANSACTION_ID_MISMATCH"
+            exit 1
+          }
+          test "$CONTROL_PLANE_SHA" = "$GITHUB_SHA" || {
+            echo "::error::STAGING_CONTROL_PLANE_MISMATCH"
+            exit 1
+          }
+          [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::candidate_sha must be a full lowercase Git SHA"
+            exit 1
+          }
+          [[ "$SOURCE_PR_NUMBER" =~ ^[1-9][0-9]*$ ]] || {
+            echo "::error::source_pr_number must be a positive integer"
+            exit 1
+          }
+          [[ "$TEAM_AI_STAGING_RUN_ID" =~ ^[1-9][0-9]*$ ]] || exit 1
+          test "$GITHUB_REF" = "refs/heads/main" || {
+            echo "::error::Acceptance workflows must be dispatched from main"
+            exit 1
+          }
+          current_main="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" | jq -er '.object.sha')"
+          test "$GITHUB_SHA" = "$current_main" || {
+            echo "::error::Workflow SHA is not the current main control-plane SHA"
+            exit 1
+          }
+      - name: Checkout trusted release controls
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Preserve trusted independent-review policy
+        shell: bash
+        run: cp scripts/release-review-policy.mjs "$RUNNER_TEMP/omdala-release-review-policy.mjs"
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.candidate_sha }}
           persist-credentials: false
-      - name: Verify checked-out candidate
+      - id: candidate_identity
+        name: Verify checked-out candidate identity
         shell: bash
-        run: test "$(git rev-parse HEAD)" = "${{ inputs.candidate_sha }}"
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          echo "tree_sha=$(git rev-parse 'HEAD^{tree}')" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.22.3
@@ -52,68 +149,108 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: >-
-          node scripts/release-review-policy.mjs
-          --repository "${{ github.repository }}"
-          --pull-request "${{ inputs.source_pr_number }}"
-          --sha "${{ inputs.candidate_sha }}"
+          node "$RUNNER_TEMP/omdala-release-review-policy.mjs"
+          --repository "$GITHUB_REPOSITORY"
+          --pull-request "$SOURCE_PR_NUMBER"
+          --sha "$CANDIDATE_SHA"
           --receipt independent-review-receipt.json
-      - name: Verify exact API and surface release workflow runs
+      - name: Require protected Cloudflare account authority
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: >-
+          node scripts/verify-infra-authority-handoff.mjs
+          --wrangler-config services/api/wrangler.toml
+          --account-id "$CLOUDFLARE_ACCOUNT_ID"
+      - id: release_runs
+        name: Bind API and surfaces to this same staging transaction run
+        shell: bash
+        env:
+          API_RELEASE_ARTIFACT_NAME: ${{ inputs.api_release_artifact_name }}
+          BACKUP_ARTIFACT_NAME: ${{ inputs.backup_artifact_name }}
+          SURFACE_RELEASE_ARTIFACT_NAME: ${{ inputs.surface_release_artifact_name }}
+          API_RECEIPT_SHA256: ${{ inputs.api_receipt_sha256 }}
+          SURFACE_RECEIPT_SHA256: ${{ inputs.surface_receipt_sha256 }}
         run: |
           set -euo pipefail
-          verify_run() {
-            local run_id="$1"
-            local workflow_name="$2"
-            [[ "$run_id" =~ ^[0-9]+$ ]] || {
-              echo "::error::Release workflow run ID must be numeric"
-              return 1
-            }
-            run_json="$(curl --fail --silent --show-error \
-              --header "Authorization: Bearer $GITHUB_TOKEN" \
-              --header "Accept: application/vnd.github+json" \
-              --header "X-GitHub-Api-Version: 2022-11-28" \
-              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}")"
-            jq -e \
-              --arg name "$workflow_name" \
-              --arg sha "${{ inputs.candidate_sha }}" \
-              '.name == $name and
-               .event == "workflow_dispatch" and
-               .status == "completed" and
-               .conclusion == "success" and
-               .head_sha == $sha' \
-              <<<"$run_json" >/dev/null || {
-                echo "::error::$workflow_name is not a successful exact-SHA release run"
-                return 1
-              }
+          suffix="${CANDIDATE_SHA}-staging-${{ inputs.staging_transaction_id }}"
+          [[ "$API_RELEASE_ARTIFACT_NAME" == "omdala-api-release-${suffix}" ]]
+          [[ "$BACKUP_ARTIFACT_NAME" == "omdala-pre-migration-backup-${suffix}" ]]
+          [[ "$SURFACE_RELEASE_ARTIFACT_NAME" == "omdala-surface-release-${suffix}" ]]
+          [[ "$API_RECEIPT_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$SURFACE_RECEIPT_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          {
+            echo "api_control_plane_sha=$GITHUB_SHA"
+            echo "surface_control_plane_sha=$GITHUB_SHA"
+          } >> "$GITHUB_OUTPUT"
+      - id: team_ai_run
+        name: Verify protected Team AI staging acceptance workflow run
+        shell: bash
+        env:
+          AIAGENT_CROSS_REPO_READ_TOKEN: ${{ secrets.AIAGENT_CROSS_REPO_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$AIAGENT_CROSS_REPO_READ_TOKEN" || {
+            echo "::error::AIAGENT_CROSS_REPO_READ_TOKEN is required for the private cross-repository receipt"
+            exit 1
           }
-          verify_run "${{ inputs.api_release_run_id }}" "OMDALA Release"
-          verify_run "${{ inputs.surface_release_run_id }}" "OMDALA Surface Release"
+          mkdir -p release-chain/team-ai/run
+          curl --fail --silent --show-error \
+            --header "Authorization: Bearer $AIAGENT_CROSS_REPO_READ_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/tranhatam-collab/AI.OMDALA.COM/actions/runs/${TEAM_AI_STAGING_RUN_ID}" \
+            > release-chain/team-ai/run/workflow-run.json
+          jq -e \
+            --arg run_id "$TEAM_AI_STAGING_RUN_ID" \
+            --arg name "OMDALA protected staging AI acceptance" \
+            --arg path ".github/workflows/omdala-staging-acceptance.yml" \
+            --arg repository "tranhatam-collab/AI.OMDALA.COM" \
+            '(.id | tostring) == $run_id and
+             .name == $name and
+             (.path == $path or .path == ($path + "@refs/heads/main")) and
+             .event == "workflow_dispatch" and
+             .head_branch == "main" and
+             (.head_sha | test("^[0-9a-f]{40}$")) and
+             .status == "completed" and
+             .conclusion == "success" and
+             .repository.full_name == $repository' \
+            release-chain/team-ai/run/workflow-run.json >/dev/null || {
+              echo "::error::Team AI receipt source is not the successful protected main workflow"
+              exit 1
+            }
+          echo "head_sha=$(jq -er '.head_sha' release-chain/team-ai/run/workflow-run.json)" >> "$GITHUB_OUTPUT"
+      - name: Download immutable full Team AI protected staging receipt
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: omdala-staging-ai-receipt-${{ steps.team_ai_run.outputs.head_sha }}
+          path: release-chain/team-ai/receipt
+          repository: tranhatam-collab/AI.OMDALA.COM
+          github-token: ${{ secrets.AIAGENT_CROSS_REPO_READ_TOKEN }}
+          run-id: ${{ inputs.team_ai_staging_acceptance_run_id }}
       - name: Download immutable API release receipt
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: omdala-api-release-${{ inputs.candidate_sha }}-staging
+          name: ${{ inputs.api_release_artifact_name }}
           path: release-chain/api
-          github-token: ${{ github.token }}
-          run-id: ${{ inputs.api_release_run_id }}
       - name: Download immutable encrypted backup receipt
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: omdala-pre-migration-backup-${{ inputs.candidate_sha }}-staging
+          name: ${{ inputs.backup_artifact_name }}
           path: release-chain/backup
-          github-token: ${{ github.token }}
-          run-id: ${{ inputs.api_release_run_id }}
       - name: Download immutable surface release receipt
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: omdala-surface-release-${{ inputs.candidate_sha }}-staging
+          name: ${{ inputs.surface_release_artifact_name }}
           path: release-chain/surfaces
-          github-token: ${{ github.token }}
-          run-id: ${{ inputs.surface_release_run_id }}
       - id: release_chain
         name: Verify release and backup receipt chain
         shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          EXPECTED_API_RECEIPT_SHA256: ${{ inputs.api_receipt_sha256 }}
+          EXPECTED_SURFACE_RECEIPT_SHA256: ${{ inputs.surface_receipt_sha256 }}
+          STAGING_TRANSACTION_ID: ${{ inputs.staging_transaction_id }}
         run: |
           set -euo pipefail
           api_receipt=release-chain/api/api-release.json
@@ -121,18 +258,72 @@ jobs:
           surface_receipt=release-chain/surfaces/surface-release.json
           encrypted_backup="$(find release-chain/backup -maxdepth 1 -type f -name '*.dump.enc' -print -quit)"
           test -n "$encrypted_backup"
+          api_receipt_sha256="$(sha256sum "$api_receipt" | awk '{print $1}')"
+          surface_receipt_sha256="$(sha256sum "$surface_receipt" | awk '{print $1}')"
+          test "$api_receipt_sha256" = "$EXPECTED_API_RECEIPT_SHA256" || {
+            echo "::error::API receipt hash does not match the API reusable-workflow output"
+            exit 1
+          }
+          test "$surface_receipt_sha256" = "$EXPECTED_SURFACE_RECEIPT_SHA256" || {
+            echo "::error::Surface receipt hash does not match the surface reusable-workflow output"
+            exit 1
+          }
           backup_receipt_sha256="$(sha256sum "$backup_receipt" | awk '{print $1}')"
           encrypted_backup_sha256="$(sha256sum "$encrypted_backup" | awk '{print $1}')"
           jq -e \
-            --arg sha "${{ inputs.candidate_sha }}" \
-            --arg pr "${{ inputs.source_pr_number }}" \
+            --arg sha "$CANDIDATE_SHA" \
+            --arg tree_sha "${{ steps.candidate_identity.outputs.tree_sha }}" \
+            --arg reviewed_sha "${{ steps.independent_review.outputs.reviewed_sha }}" \
+            --arg reviewed_tree_sha "${{ steps.independent_review.outputs.reviewed_tree_sha }}" \
+            --arg control_plane_sha "${{ steps.release_runs.outputs.api_control_plane_sha }}" \
+            --arg staging_transaction_id "$STAGING_TRANSACTION_ID" \
+            --arg cloudflare_account_id "$CLOUDFLARE_ACCOUNT_ID" \
+            --arg pr "$SOURCE_PR_NUMBER" \
             --arg reviewer "${{ steps.independent_review.outputs.reviewer }}" \
             --arg review_id "${{ steps.independent_review.outputs.review_id }}" \
             --arg backup_hash "$backup_receipt_sha256" \
-            --arg run_id "${{ inputs.api_release_run_id }}" \
-            '.verdict == "API_RELEASE_ACCEPTED" and
+            --arg run_id "$API_RELEASE_RUN_ID" \
+            '.schema_version == 2 and
+             .verdict == "API_RELEASE_ACCEPTED" and
              .environment == "staging" and
              .candidate_sha == $sha and
+             .candidate_tree_sha == $tree_sha and
+             .reviewed_sha == $reviewed_sha and
+             .reviewed_tree_sha == $reviewed_tree_sha and
+             .candidate_tree_sha == .reviewed_tree_sha and
+             .control_plane_sha == $control_plane_sha and
+             .staging_transaction_id == $staging_transaction_id and
+             .cloudflare_account_id == $cloudflare_account_id and
+             .api_url == "https://api-staging.omdala.com" and
+             .deployment_id == .version_id and
+             (.version_id | length) == 36 and
+             (.cloudflare_deployment_id | length) == 36 and
+             (.hyperdrive_id | test("^[0-9a-f]{32}$")) and
+             .hyperdrive_binding == "HYPERDRIVE" and
+             .hyperdrive_binding_verified == true and
+             .secret_inventory_verified == true and
+             .worker_authority_verified == true and
+             (.worker_authority_evidence_sha256 | test("^[0-9a-f]{64}$")) and
+             .hyperdrive_target_verified == true and
+             .hyperdrive_isolated_from_production == true and
+             (.hyperdrive_name | length) > 0 and
+             (.hyperdrive_origin_host | length) > 0 and
+             .hyperdrive_origin_port > 0 and
+             .hyperdrive_origin_database == "omdala_staging" and
+             .hyperdrive_origin_user == "omdala_staging" and
+             .hyperdrive_origin_scheme == "postgresql" and
+             (.hyperdrive_origin_fingerprint_sha256 | test("^[0-9a-f]{64}$")) and
+             (.hyperdrive_authority_sha256 | test("^[0-9a-f]{64}$")) and
+             (.wrangler_config_sha256 | test("^[0-9a-f]{64}$")) and
+             .migration_compatibility_verified == true and
+             (.migration_compatibility_receipt_sha256 | test("^[0-9a-f]{64}$")) and
+             (.migration_manifest_sha256 | test("^[0-9a-f]{64}$")) and
+             (.migration_ledger_receipt_sha256 | test("^[0-9a-f]{64}$")) and
+             .rollback_scope == "code_and_worker_only_database_schema_is_not_reverted" and
+             .database_schema_reverted_by_code_rollback == false and
+             .pre_migration_remote_preflight_verified == true and
+             (.api_remote_preflight_receipt_sha256 | test("^[0-9a-f]{64}$")) and
+             (.hyperdrive_remote_preflight_receipt_sha256 | test("^[0-9a-f]{64}$")) and
              (.source_pr_number | tostring) == $pr and
              .independent_reviewer == $reviewer and
              (.independent_review_id | tostring) == $review_id and
@@ -140,34 +331,67 @@ jobs:
              (.workflow_run_id | tostring) == $run_id' \
             "$api_receipt" >/dev/null
           jq -e \
-            --arg sha "${{ inputs.candidate_sha }}" \
+            --arg sha "$CANDIDATE_SHA" \
             --arg encrypted_hash "$encrypted_backup_sha256" \
             '.verdict == "BACKUP_RESTORE_VERIFIED" and
              .environment == "staging" and
              .candidate_sha == $sha and
              .source_and_restore_distinct == true and
+             .production_target_match == false and
              .exact_row_counts_match == true and
              .encrypted_backup_decrypt_verified == true and
              .encrypted_backup_sha256 == $encrypted_hash' \
             "$backup_receipt" >/dev/null
           jq -e \
-            --arg sha "${{ inputs.candidate_sha }}" \
-            --arg pr "${{ inputs.source_pr_number }}" \
+            --arg sha "$CANDIDATE_SHA" \
+            --arg tree_sha "${{ steps.candidate_identity.outputs.tree_sha }}" \
+            --arg reviewed_sha "${{ steps.independent_review.outputs.reviewed_sha }}" \
+            --arg reviewed_tree_sha "${{ steps.independent_review.outputs.reviewed_tree_sha }}" \
+            --arg control_plane_sha "${{ steps.release_runs.outputs.surface_control_plane_sha }}" \
+            --arg staging_transaction_id "$STAGING_TRANSACTION_ID" \
+            --arg cloudflare_account_id "$CLOUDFLARE_ACCOUNT_ID" \
+            --arg pr "$SOURCE_PR_NUMBER" \
             --arg reviewer "${{ steps.independent_review.outputs.reviewer }}" \
             --arg review_id "${{ steps.independent_review.outputs.review_id }}" \
-            --arg run_id "${{ inputs.surface_release_run_id }}" \
-            '.verdict == "SURFACE_RELEASE_ACCEPTED" and
+            --arg run_id "$SURFACE_RELEASE_RUN_ID" \
+            '.schema_version == 4 and
+             .verdict == "SURFACE_RELEASE_ACCEPTED" and
              .environment == "staging" and
              .candidate_sha == $sha and
+             .candidate_tree_sha == $tree_sha and
+             .reviewed_sha == $reviewed_sha and
+             .reviewed_tree_sha == $reviewed_tree_sha and
+             .candidate_tree_sha == .reviewed_tree_sha and
+             .control_plane_sha == $control_plane_sha and
+             .staging_transaction_id == $staging_transaction_id and
+             .cloudflare_account_id == $cloudflare_account_id and
              (.source_pr_number | tostring) == $pr and
              .independent_reviewer == $reviewer and
              (.independent_review_id | tostring) == $review_id and
-             (.workflow_run_id | tostring) == $run_id' \
+             (.workflow_run_id | tostring) == $run_id and
+             .surface_names == ["web", "app", "auth", "brand"] and
+             .surfaces.web.release_sha == $sha and
+             .surfaces.app.release_sha == $sha and
+             .surfaces.auth.release_sha == $sha and
+             .surfaces.brand.release_sha == $sha and
+             .surfaces.auth.environment == "staging"' \
             "$surface_receipt" >/dev/null
           {
             echo "api_deployment_id=$(jq -r '.deployment_id' "$api_receipt")"
+            echo "consumer_version_id=$(jq -r '.version_id' "$api_receipt")"
+            echo "api_hyperdrive_id=$(jq -r '.hyperdrive_id' "$api_receipt")"
+            echo "api_hyperdrive_origin_fingerprint_sha256=$(jq -r '.hyperdrive_origin_fingerprint_sha256' "$api_receipt")"
+            echo "api_hyperdrive_authority_sha256=$(jq -r '.hyperdrive_authority_sha256' "$api_receipt")"
+            echo "api_wrangler_config_sha256=$(jq -r '.wrangler_config_sha256' "$api_receipt")"
+            echo "api_worker_authority_evidence_sha256=$(jq -r '.worker_authority_evidence_sha256' "$api_receipt")"
+            echo "api_url=$(jq -r '.api_url' "$api_receipt")"
             echo "surface_release_id=$(jq -r '.release_id' "$surface_receipt")"
+            echo "web_url=$(jq -r '.surfaces.web.url' "$surface_receipt")"
+            echo "app_url=$(jq -r '.surfaces.app.url' "$surface_receipt")"
+            echo "auth_url=$(jq -r '.surfaces.auth.url' "$surface_receipt")"
+            echo "brand_url=$(jq -r '.surfaces.brand.url' "$surface_receipt")"
             echo "database_backup_receipt_sha256=$backup_receipt_sha256"
+            echo "cloudflare_account_id=$CLOUDFLARE_ACCOUNT_ID"
           } >> "$GITHUB_OUTPUT"
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
@@ -181,15 +405,19 @@ jobs:
       - name: Run fail-closed staging E2E
         run: pnpm e2e:staging
         env:
-          E2E_STAGING_APP_URL: ${{ secrets.OMDALA_STAGING_APP_URL }}
-          E2E_STAGING_API_URL: ${{ secrets.OMDALA_STAGING_API_URL }}
-          E2E_STAGING_BRAND_URL: ${{ secrets.OMDALA_STAGING_BRAND_URL }}
-          E2E_STAGING_WEB_URL: ${{ secrets.OMDALA_STAGING_WEB_URL }}
+          E2E_STAGING_APP_URL: ${{ steps.release_chain.outputs.app_url }}
+          E2E_STAGING_AUTH_URL: ${{ steps.release_chain.outputs.auth_url }}
+          E2E_STAGING_API_URL: ${{ steps.release_chain.outputs.api_url }}
+          E2E_STAGING_BRAND_URL: ${{ steps.release_chain.outputs.brand_url }}
+          E2E_STAGING_WEB_URL: ${{ steps.release_chain.outputs.web_url }}
           E2E_TEST_SECRET: ${{ secrets.OMDALA_STAGING_E2E_TEST_SECRET }}
           E2E_RELEASE_SHA: ${{ inputs.candidate_sha }}
           E2E_API_DEPLOYMENT_ID: ${{ steps.release_chain.outputs.api_deployment_id }}
           E2E_SURFACE_RELEASE_ID: ${{ steps.release_chain.outputs.surface_release_id }}
           E2E_STAGING_JSON_REPORT: staging-e2e-results.json
+          E2E_STAGING_AI_CALL_EVIDENCE: staging-ai-call-evidence.json
+          E2E_STAGING_MAIL_SINK_ADDRESS: ${{ secrets.OMDALA_MAIL_STAGING_SINK_ADDRESS }}
+          E2E_STAGING_MAIL_SINK_EVIDENCE: staging-mail-sink-evidence.json
       - id: e2e_receipt
         name: Verify all staging scenarios actually executed
         shell: bash
@@ -198,56 +426,267 @@ jobs:
           --report staging-e2e-results.json
           --receipt staging-e2e-receipt.json
           --expected 4
-          --sha "${{ inputs.candidate_sha }}"
-      - name: Write exact-candidate staging acceptance receipt
+          --sha "$CANDIDATE_SHA"
+      - id: staging_mail_sink
+        name: Verify protected staging mail sink receipt
+        shell: bash
+        env:
+          MAIL_SINK_ADDRESS: ${{ secrets.OMDALA_MAIL_STAGING_SINK_ADDRESS }}
+        run: |
+          set -euo pipefail
+          expected_sink_sha256="$(node --input-type=module -e '
+            import { createHash } from "node:crypto";
+            const address = (process.env.MAIL_SINK_ADDRESS ?? "").trim().toLowerCase();
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) process.exit(1);
+            process.stdout.write(createHash("sha256").update(address).digest("hex"));
+          ')"
+          jq -e \
+            --arg sha "$CANDIDATE_SHA" \
+            --arg consumer_version_id "${{ steps.release_chain.outputs.consumer_version_id }}" \
+            --arg api_origin "${{ steps.release_chain.outputs.api_url }}" \
+            --arg sink_sha256 "$expected_sink_sha256" \
+            '.schema_version == 1 and
+             .verdict == "STAGING_MAIL_SINK_ACCEPTED" and
+             .candidate_sha == $sha and
+             .consumer_version_id == $consumer_version_id and
+             .api_origin == $api_origin and
+             .workspace_id == "omdala.com-staging" and
+             .delivery_mode == "sink" and
+             .sink_enforced == true and
+             .sink_address_sha256 == $sink_sha256 and
+             .provider_message_count == 5 and
+             (.provider_message_ids | length) == 5 and
+             all(.provider_message_ids[]; type == "string" and length > 0) and
+             (.provider_statuses | length) == 5 and
+             all(.provider_statuses[]; type == "string" and length > 0) and
+             .original_recipient_count == 5 and
+             .delivered_recipient_count == 5 and
+             .sink_address_persisted == false' \
+            staging-mail-sink-evidence.json >/dev/null
+          {
+            echo "evidence_sha256=$(sha256sum staging-mail-sink-evidence.json | awk '{print $1}')"
+            echo "sink_address_sha256=$expected_sink_sha256"
+          } >> "$GITHUB_OUTPUT"
+      - id: staging_ai_chain
+        name: Verify and bind Team AI and authenticated OMDALA AI receipts
+        shell: bash
+        run: >-
+          node scripts/verify-team-ai-staging-receipt.mjs
+          --run release-chain/team-ai/run/workflow-run.json
+          --receipt release-chain/team-ai/receipt/omdala-staging-ai-receipt.json
+          --ai-call-evidence staging-ai-call-evidence.json
+          --candidate-sha "$CANDIDATE_SHA"
+          --consumer-version-id "${{ steps.release_chain.outputs.consumer_version_id }}"
+          --run-id "$TEAM_AI_STAGING_RUN_ID"
+          --output staging-ai-chain.json
+      - id: acceptance_receipt
+        name: Write exact-candidate staging acceptance receipt
         shell: bash
         run: |
           set -euo pipefail
           jq -n \
-            --arg candidate_sha "${{ inputs.candidate_sha }}" \
-            --arg source_pr_number "${{ inputs.source_pr_number }}" \
+            --arg candidate_sha "$CANDIDATE_SHA" \
+            --arg candidate_tree_sha "${{ steps.candidate_identity.outputs.tree_sha }}" \
+            --arg reviewed_sha "${{ steps.independent_review.outputs.reviewed_sha }}" \
+            --arg reviewed_tree_sha "${{ steps.independent_review.outputs.reviewed_tree_sha }}" \
+            --arg control_plane_sha "$GITHUB_SHA" \
+            --arg staging_transaction_id "${{ inputs.staging_transaction_id }}" \
+            --arg api_release_control_plane_sha "${{ steps.release_runs.outputs.api_control_plane_sha }}" \
+            --arg surface_release_control_plane_sha "${{ steps.release_runs.outputs.surface_control_plane_sha }}" \
+            --arg api_receipt_sha256 "${{ inputs.api_receipt_sha256 }}" \
+            --arg surface_receipt_sha256 "${{ inputs.surface_receipt_sha256 }}" \
+            --arg cloudflare_account_id "${{ steps.release_chain.outputs.cloudflare_account_id }}" \
+            --arg source_pr_number "$SOURCE_PR_NUMBER" \
             --arg independent_reviewer "${{ steps.independent_review.outputs.reviewer }}" \
             --arg independent_review_id "${{ steps.independent_review.outputs.review_id }}" \
-            --arg api_release_run_id "${{ inputs.api_release_run_id }}" \
-            --arg surface_release_run_id "${{ inputs.surface_release_run_id }}" \
+            --arg api_release_run_id "$API_RELEASE_RUN_ID" \
+            --arg surface_release_run_id "$SURFACE_RELEASE_RUN_ID" \
             --arg api_deployment_id "${{ steps.release_chain.outputs.api_deployment_id }}" \
+            --arg consumer_version_id "${{ steps.release_chain.outputs.consumer_version_id }}" \
+            --arg api_hyperdrive_id "${{ steps.release_chain.outputs.api_hyperdrive_id }}" \
+            --arg api_hyperdrive_origin_fingerprint_sha256 "${{ steps.release_chain.outputs.api_hyperdrive_origin_fingerprint_sha256 }}" \
+            --arg api_hyperdrive_authority_sha256 "${{ steps.release_chain.outputs.api_hyperdrive_authority_sha256 }}" \
+            --arg api_wrangler_config_sha256 "${{ steps.release_chain.outputs.api_wrangler_config_sha256 }}" \
+            --arg api_worker_authority_evidence_sha256 "${{ steps.release_chain.outputs.api_worker_authority_evidence_sha256 }}" \
             --arg surface_release_id "${{ steps.release_chain.outputs.surface_release_id }}" \
             --arg database_backup_receipt_sha256 "${{ steps.release_chain.outputs.database_backup_receipt_sha256 }}" \
             --arg e2e_report_sha256 "${{ steps.e2e_receipt.outputs.report_sha256 }}" \
             --arg e2e_scenarios_executed "${{ steps.e2e_receipt.outputs.executed }}" \
+            --arg team_ai_staging_acceptance_run_id "$TEAM_AI_STAGING_RUN_ID" \
+            --arg team_ai_receipt_sha256 "${{ steps.staging_ai_chain.outputs.team_ai_receipt_sha256 }}" \
+            --arg authenticated_ai_call_evidence_sha256 "${{ steps.staging_ai_chain.outputs.ai_call_evidence_sha256 }}" \
+            --arg staging_ai_chain_sha256 "${{ steps.staging_ai_chain.outputs.staging_ai_chain_sha256 }}" \
+            --arg mail_sink_evidence_sha256 "${{ steps.staging_mail_sink.outputs.evidence_sha256 }}" \
+            --arg mail_sink_address_sha256 "${{ steps.staging_mail_sink.outputs.sink_address_sha256 }}" \
             --arg workflow_run_id "${GITHUB_RUN_ID}" \
             --arg workflow_run_attempt "${GITHUB_RUN_ATTEMPT}" \
+            --arg reusable_workflow_ref "${GITHUB_REPOSITORY}/.github/workflows/staging-go-live-e2e.yml@${GITHUB_SHA}" \
+            --arg reusable_workflow_sha "$GITHUB_SHA" \
+            --arg reusable_workflow_path ".github/workflows/staging-go-live-e2e.yml" \
             --arg repository "${GITHUB_REPOSITORY}" \
             --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --slurpfile team_ai_chain staging-ai-chain.json \
+            --slurpfile mail_sink staging-mail-sink-evidence.json \
             '{
+              schema_version: 2,
               verdict: "STAGING_ACCEPTED",
               candidate_sha: $candidate_sha,
+              candidate_tree_sha: $candidate_tree_sha,
+              reviewed_sha: $reviewed_sha,
+              reviewed_tree_sha: $reviewed_tree_sha,
+              control_plane_sha: $control_plane_sha,
+              staging_transaction_id: $staging_transaction_id,
+              api_release_control_plane_sha: $api_release_control_plane_sha,
+              surface_release_control_plane_sha: $surface_release_control_plane_sha,
+              api_receipt_sha256: $api_receipt_sha256,
+              surface_receipt_sha256: $surface_receipt_sha256,
+              cloudflare_account_id: $cloudflare_account_id,
               source_pr_number: ($source_pr_number | tonumber),
               independent_reviewer: $independent_reviewer,
               independent_review_id: ($independent_review_id | tonumber),
               api_release_run_id: ($api_release_run_id | tonumber),
               surface_release_run_id: ($surface_release_run_id | tonumber),
               api_deployment_id: $api_deployment_id,
+              consumer_version_id: $consumer_version_id,
+              api_hyperdrive_id: $api_hyperdrive_id,
+              api_hyperdrive_binding: "HYPERDRIVE",
+              api_hyperdrive_binding_verified: true,
+              api_hyperdrive_target_verified: true,
+              api_hyperdrive_isolated_from_production: true,
+              api_hyperdrive_origin_fingerprint_sha256: $api_hyperdrive_origin_fingerprint_sha256,
+              api_hyperdrive_authority_sha256: $api_hyperdrive_authority_sha256,
+              api_wrangler_config_sha256: $api_wrangler_config_sha256,
+              api_secret_inventory_verified: true,
+              api_worker_authority_verified: true,
+              api_worker_authority_evidence_sha256: $api_worker_authority_evidence_sha256,
               surface_release_id: $surface_release_id,
               database_backup_receipt_sha256: $database_backup_receipt_sha256,
               e2e_report_sha256: $e2e_report_sha256,
               e2e_scenarios_executed: ($e2e_scenarios_executed | tonumber),
+              team_ai_staging_acceptance_run_id: ($team_ai_staging_acceptance_run_id | tonumber),
+              team_ai_receipt_sha256: $team_ai_receipt_sha256,
+              authenticated_ai_call_evidence_sha256: $authenticated_ai_call_evidence_sha256,
+              staging_ai_chain_sha256: $staging_ai_chain_sha256,
+              team_ai: $team_ai_chain[0],
+              mail_sink_evidence_sha256: $mail_sink_evidence_sha256,
+              mail_sink_address_sha256: $mail_sink_address_sha256,
+              mail_sink: $mail_sink[0],
               workflow_run_id: ($workflow_run_id | tonumber),
               workflow_run_attempt: ($workflow_run_attempt | tonumber),
+              reusable_workflow_ref: $reusable_workflow_ref,
+              reusable_workflow_sha: $reusable_workflow_sha,
+              reusable_workflow_path: $reusable_workflow_path,
               repository: $repository,
               created_at: $created_at
             }' > staging-acceptance.json
           jq -e \
-            --arg sha "${{ inputs.candidate_sha }}" \
-            '.verdict == "STAGING_ACCEPTED" and
+            --arg sha "$CANDIDATE_SHA" \
+            --arg tree_sha "${{ steps.candidate_identity.outputs.tree_sha }}" \
+            --arg control_plane_sha "$GITHUB_SHA" \
+            --arg staging_transaction_id "${{ inputs.staging_transaction_id }}" \
+            --arg api_receipt_sha256 "${{ inputs.api_receipt_sha256 }}" \
+            --arg surface_receipt_sha256 "${{ inputs.surface_receipt_sha256 }}" \
+            --arg reusable_workflow_ref "${GITHUB_REPOSITORY}/.github/workflows/staging-go-live-e2e.yml@${GITHUB_SHA}" \
+            '.schema_version == 2 and
+             .verdict == "STAGING_ACCEPTED" and
              .candidate_sha == $sha and
+             .reviewed_sha == $sha and
+             .candidate_tree_sha == $tree_sha and
+             .reviewed_tree_sha == $tree_sha and
+             .control_plane_sha == $control_plane_sha and
+             .staging_transaction_id == $staging_transaction_id and
+             (.staging_transaction_id | test("^staging-[1-9][0-9]*-[1-9][0-9]*$")) and
+             .api_release_control_plane_sha == $control_plane_sha and
+             .surface_release_control_plane_sha == $control_plane_sha and
+             .api_receipt_sha256 == $api_receipt_sha256 and
+             .surface_receipt_sha256 == $surface_receipt_sha256 and
+             .reusable_workflow_ref == $reusable_workflow_ref and
+             .reusable_workflow_sha == $control_plane_sha and
+             .reusable_workflow_path == ".github/workflows/staging-go-live-e2e.yml" and
+             (.cloudflare_account_id | test("^[0-9a-f]{32}$")) and
+             .api_deployment_id == .consumer_version_id and
+             (.consumer_version_id | length) == 36 and
+             (.api_hyperdrive_id | test("^[0-9a-f]{32}$")) and
+             .api_hyperdrive_binding == "HYPERDRIVE" and
+             .api_hyperdrive_binding_verified == true and
+             .api_hyperdrive_target_verified == true and
+             .api_hyperdrive_isolated_from_production == true and
+             (.api_hyperdrive_origin_fingerprint_sha256 | test("^[0-9a-f]{64}$")) and
+             (.api_hyperdrive_authority_sha256 | test("^[0-9a-f]{64}$")) and
+             (.api_wrangler_config_sha256 | test("^[0-9a-f]{64}$")) and
+             .api_secret_inventory_verified == true and
+             .api_worker_authority_verified == true and
+             (.api_worker_authority_evidence_sha256 | test("^[0-9a-f]{64}$")) and
              .e2e_scenarios_executed == 4 and
+             (.team_ai_staging_acceptance_run_id | tonumber) > 0 and
+             (.team_ai_receipt_sha256 | test("^[0-9a-f]{64}$")) and
+             (.authenticated_ai_call_evidence_sha256 | test("^[0-9a-f]{64}$")) and
+             (.staging_ai_chain_sha256 | test("^[0-9a-f]{64}$")) and
+             .team_ai.schema_version == 1 and
+             .team_ai.verdict == "STAGING_AI_CHAIN_ACCEPTED" and
+             .team_ai.source_repository == "tranhatam-collab/AI.OMDALA.COM" and
+             .team_ai.workflow.run_id == .team_ai_staging_acceptance_run_id and
+             .team_ai.workflow.name == "OMDALA protected staging AI acceptance" and
+             .team_ai.workflow.path == ".github/workflows/omdala-staging-acceptance.yml" and
+             .team_ai.workflow.head_branch == "main" and
+             .team_ai.workflow.conclusion == "success" and
+             .team_ai.provider.source_sha == .team_ai.workflow.head_sha and
+             .team_ai.ledger.source_sha == .team_ai.workflow.head_sha and
+             .team_ai.consumer.source_sha == $sha and
+             .team_ai.consumer.version_id == .consumer_version_id and
+             .team_ai.consumer.deployment_id == .consumer_version_id and
+             .team_ai.team_ai_receipt_sha256 == .team_ai_receipt_sha256 and
+             (.team_ai.provider.version_id | test("^[a-f0-9-]{36}$")) and
+             .team_ai.provider.deployment_id == .team_ai.provider.version_id and
+             (.team_ai.provider.bundle_sha256 | test("^[a-f0-9]{64}$")) and
+             (.team_ai.ledger.version_id | test("^[a-f0-9-]{36}$")) and
+             .team_ai.ledger.deployment_id == .team_ai.ledger.version_id and
+             (.team_ai.ledger.bundle_sha256 | test("^[a-f0-9]{64}$")) and
+             .team_ai.matrix.tenant_id == "omdala-com" and
+             .team_ai.matrix.workspace_id == "omdala-com-staging" and
+             .team_ai.matrix.model_count == 19 and
+             .team_ai.matrix.invocation_count == 20 and
+             (.team_ai.matrix.models | length) == 19 and
+             (.team_ai.matrix.models | unique | length) == 19 and
+             .team_ai.matrix.configured_acceptance_ceiling_usd <= 0.25 and
+             .team_ai.matrix.reconciled_cost_usd <= 0.25 and
+             .team_ai.total_live_acceptance_cost_usd <= 0.25 and
+             .team_ai.matrix.provider_side_aggregate_spend_reservation_verified == true and
+             .team_ai.matrix.lifecycle.wrong_tenant_status == 403 and
+             .team_ai.matrix.lifecycle.expired_credential_status == 401 and
+             .team_ai.matrix.lifecycle.quota_exhausted_status == 429 and
+             .team_ai.matrix.lifecycle.budget_exhausted_status == 402 and
+             .team_ai.matrix.lifecycle.post_revoke_status == 401 and
+             .team_ai.authenticated_omdala_ai_call.evidence_sha256 == .authenticated_ai_call_evidence_sha256 and
+             .team_ai.authenticated_omdala_ai_call.candidate_sha == $sha and
+             .team_ai.authenticated_omdala_ai_call.consumer_version_id == .consumer_version_id and
+             .team_ai.authenticated_omdala_ai_call.tenant_id == "omdala-com" and
+             .team_ai.authenticated_omdala_ai_call.workspace_id == "omdala-com-staging" and
+             .team_ai.authenticated_omdala_ai_call.authoritative_reconciled_cost_usd <= 0.25 and
+             (.mail_sink_evidence_sha256 | test("^[a-f0-9]{64}$")) and
+             (.mail_sink_address_sha256 | test("^[a-f0-9]{64}$")) and
+             .mail_sink.schema_version == 1 and
+             .mail_sink.verdict == "STAGING_MAIL_SINK_ACCEPTED" and
+             .mail_sink.candidate_sha == $sha and
+             .mail_sink.consumer_version_id == .consumer_version_id and
+             .mail_sink.workspace_id == "omdala.com-staging" and
+             .mail_sink.delivery_mode == "sink" and
+             .mail_sink.sink_enforced == true and
+             .mail_sink.sink_address_sha256 == .mail_sink_address_sha256 and
+             .mail_sink.provider_message_count == 5 and
+             .mail_sink.original_recipient_count == 5 and
+             .mail_sink.delivered_recipient_count == 5 and
+             .mail_sink.sink_address_persisted == false and
              (.database_backup_receipt_sha256 | length) == 64' \
             staging-acceptance.json >/dev/null
+          {
+            echo "acceptance_artifact_name=omdala-staging-acceptance-${CANDIDATE_SHA}-${{ inputs.staging_transaction_id }}"
+            echo "acceptance_receipt_sha256=$(sha256sum staging-acceptance.json | awk '{print $1}')"
+          } >> "$GITHUB_OUTPUT"
       - name: Upload immutable staging acceptance receipt
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: omdala-staging-acceptance-${{ inputs.candidate_sha }}
+          name: omdala-staging-acceptance-${{ inputs.candidate_sha }}-${{ inputs.staging_transaction_id }}
           path: |
             staging-acceptance.json
             independent-review-receipt.json
@@ -256,5 +695,10 @@ jobs:
             release-chain/surfaces/surface-release.json
             staging-e2e-results.json
             staging-e2e-receipt.json
+            staging-ai-call-evidence.json
+            staging-ai-chain.json
+            staging-mail-sink-evidence.json
+            release-chain/team-ai/run/workflow-run.json
+            release-chain/team-ai/receipt/omdala-staging-ai-receipt.json
           if-no-files-found: error
           retention-days: 30

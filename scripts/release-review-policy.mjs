@@ -15,11 +15,51 @@ function chronological(reviews) {
   });
 }
 
-export function evaluateIndependentReview({ pullRequest, reviews, expectedSha }) {
+export function evaluateIndependentReview({
+  pullRequest,
+  reviews,
+  expectedSha,
+  mode = "staging",
+  candidateTreeSha,
+  reviewedTreeSha,
+}) {
   const author = pullRequest?.user?.login?.trim().toLowerCase() ?? "";
   const headSha = pullRequest?.head?.sha ?? "";
+  const fullSha = /^[0-9a-f]{40}$/;
 
-  if (!expectedSha || headSha !== expectedSha) {
+  if (mode !== "staging" && mode !== "production") {
+    return { accepted: false, reason: "INVALID_REVIEW_MODE", mode };
+  }
+
+  if (pullRequest?.base?.ref !== "main") {
+    return {
+      accepted: false,
+      reason: "PR_BASE_BRANCH_MISMATCH",
+      author,
+      expectedSha,
+      headSha,
+      baseBranch: pullRequest?.base?.ref ?? "",
+    };
+  }
+  if (
+    mode === "staging" &&
+    (pullRequest?.state !== "open" ||
+      pullRequest?.draft !== false ||
+      pullRequest?.merged === true)
+  ) {
+    return {
+      accepted: false,
+      reason: "STAGING_PR_NOT_OPEN_READY",
+      author,
+      expectedSha,
+      headSha,
+      state: pullRequest?.state ?? "",
+      draft: pullRequest?.draft ?? null,
+      merged: pullRequest?.merged === true,
+    };
+  }
+
+  if (!expectedSha || (mode === "staging" && headSha !== expectedSha)) {
     return {
       accepted: false,
       reason: "PR_HEAD_SHA_MISMATCH",
@@ -28,8 +68,42 @@ export function evaluateIndependentReview({ pullRequest, reviews, expectedSha })
       headSha,
     };
   }
+  if (
+    !fullSha.test(candidateTreeSha ?? "") ||
+    !fullSha.test(reviewedTreeSha ?? "") ||
+    candidateTreeSha !== reviewedTreeSha
+  ) {
+    return {
+      accepted: false,
+      reason:
+        mode === "production"
+          ? "MERGED_TREE_DIFFERS_FROM_REVIEWED_HEAD"
+          : "REVIEWED_TREE_IDENTITY_MISMATCH",
+      author,
+      expectedSha,
+      headSha,
+      candidateTreeSha,
+      reviewedTreeSha,
+    };
+  }
+  if (
+    mode === "production" &&
+    (pullRequest?.merged !== true ||
+      pullRequest?.base?.ref !== "main" ||
+      pullRequest?.merge_commit_sha !== expectedSha)
+  ) {
+    return {
+      accepted: false,
+      reason: "MERGED_PR_PROVENANCE_MISMATCH",
+      author,
+      expectedSha,
+      headSha,
+      mergeCommitSha: pullRequest?.merge_commit_sha ?? "",
+    };
+  }
 
   const approvals = new Map();
+  const objections = new Map();
   for (const review of chronological(reviews)) {
     const login = normalizedLogin(review);
     if (!login || login === author || login.endsWith("[bot]")) continue;
@@ -38,13 +112,35 @@ export function evaluateIndependentReview({ pullRequest, reviews, expectedSha })
     const state = String(review?.state ?? "").toUpperCase();
     if (state === "APPROVED") {
       approvals.set(login, review);
-    } else if (state === "CHANGES_REQUESTED" || state === "DISMISSED") {
+      objections.delete(login);
+    } else if (state === "CHANGES_REQUESTED") {
       approvals.delete(login);
+      objections.set(login, review);
+    } else if (state === "DISMISSED") {
+      approvals.delete(login);
+      objections.delete(login);
     }
   }
 
+  const reviewedSha = mode === "production" ? headSha : expectedSha;
+  if (objections.size !== 0) {
+    return {
+      accepted: false,
+      reason: "ACTIVE_INDEPENDENT_CHANGE_REQUEST",
+      author,
+      expectedSha,
+      headSha,
+      reviewedSha,
+      activeObjections: [...objections.values()].map((review) => ({
+        reviewer: review.user.login,
+        commitId: review.commit_id,
+        reviewId: Number(review.id),
+        submittedAt: review.submitted_at,
+      })),
+    };
+  }
   const exactApproval = [...approvals.values()].find(
-    (review) => review?.commit_id === expectedSha,
+    (review) => review?.commit_id === reviewedSha,
   );
   if (!exactApproval) {
     return {
@@ -53,6 +149,7 @@ export function evaluateIndependentReview({ pullRequest, reviews, expectedSha })
       author,
       expectedSha,
       headSha,
+      reviewedSha,
       independentApprovals: [...approvals.values()].map((review) => ({
         reviewer: review.user.login,
         commitId: review.commit_id,
@@ -67,6 +164,9 @@ export function evaluateIndependentReview({ pullRequest, reviews, expectedSha })
     author,
     expectedSha,
     headSha,
+    reviewedSha,
+    candidateTreeSha,
+    reviewedTreeSha,
     reviewer: exactApproval.user.login,
     reviewId: Number(exactApproval.id),
     submittedAt: exactApproval.submitted_at,
@@ -110,6 +210,7 @@ async function main() {
   const repository = option("--repository") ?? process.env.GITHUB_REPOSITORY;
   const pullNumber = option("--pull-request") ?? process.env.PR_NUMBER;
   const expectedSha = option("--sha") ?? process.env.EXPECTED_SHA;
+  const mode = option("--mode") ?? "staging";
   const receiptPath = option("--receipt") ?? "independent-review-receipt.json";
   const token = process.env.GITHUB_TOKEN;
 
@@ -129,12 +230,26 @@ async function main() {
     token,
   );
   const reviews = await fetchReviews(repository, pullNumber, token);
-  const result = evaluateIndependentReview({ pullRequest, reviews, expectedSha });
+  const [candidateCommit, reviewedCommit] = await Promise.all([
+    githubJson(`/repos/${repository}/git/commits/${expectedSha}`, token),
+    githubJson(`/repos/${repository}/git/commits/${pullRequest?.head?.sha ?? "missing"}`, token),
+  ]);
+  const candidateTreeSha = candidateCommit?.tree?.sha;
+  const reviewedTreeSha = reviewedCommit?.tree?.sha;
+  const result = evaluateIndependentReview({
+    pullRequest,
+    reviews,
+    expectedSha,
+    mode,
+    candidateTreeSha,
+    reviewedTreeSha,
+  });
   const receipt = {
     schemaVersion: 1,
     verdict: result.accepted ? "INDEPENDENT_REVIEW_ACCEPTED" : "INDEPENDENT_REVIEW_BLOCKED",
     repository,
     pullRequest: Number(pullNumber),
+    mode,
     candidateSha: expectedSha,
     checkedAt: new Date().toISOString(),
     ...result,
@@ -146,7 +261,7 @@ async function main() {
   if (process.env.GITHUB_OUTPUT && result.accepted) {
     writeFileSync(
       process.env.GITHUB_OUTPUT,
-      `reviewer=${result.reviewer}\nreview_id=${result.reviewId}\nreviewed_sha=${expectedSha}\n`,
+      `reviewer=${result.reviewer}\nreview_id=${result.reviewId}\nreviewed_sha=${result.reviewedSha}\ncandidate_tree_sha=${result.candidateTreeSha}\nreviewed_tree_sha=${result.reviewedTreeSha}\n`,
       { flag: "a" },
     );
   }

@@ -28,7 +28,7 @@ type DashboardData = {
   nodeCount: number;
   trustCount: number;
   pendingProofCount: number;
-  healthyProviderCount: number;
+  configuredProviderCount: number;
   providerCount: number;
 };
 
@@ -60,9 +60,9 @@ export function DashboardRuntime() {
           nodes.status === "fulfilled" &&
           trust.status === "fulfilled" &&
           proofs.status === "fulfilled";
-        const healthyProviderCount =
+        const configuredProviderCount =
           providers.status === "fulfilled"
-            ? providers.value.providers.filter((provider) => provider.ok).length
+            ? providers.value.providers.filter((provider) => provider.configured).length
             : 0;
 
         setData({
@@ -78,7 +78,7 @@ export function DashboardRuntime() {
                   (proof) => proof.verificationStatus === "pending",
                 ).length
               : 0,
-          healthyProviderCount,
+          configuredProviderCount,
           providerCount:
             providers.status === "fulfilled" ? providers.value.total : 0,
         });
@@ -155,7 +155,7 @@ export function DashboardRuntime() {
             <article className="dashboard-stat">
               <strong>{t(language, APP_COPY.dashboard.runtime.aiProviders)}</strong>
               <p>
-                {data.healthyProviderCount}/{data.providerCount}
+                {data.configuredProviderCount}/{data.providerCount}
               </p>
             </article>
           </section>

@@ -10,6 +10,8 @@ node_modules_stale*
 !.env.example
 !.env.*.example
 .wrangler
+**/.terraform/
+services/api/wrangler.release.toml
 dist
 coverage
 .turbo
@@ -28,6 +30,10 @@ apps/docs/out/
 apps/*/out/
 apps/*/.next/
 reports/
+
+# OM-AI local file-store runtime state
+/data/live-store.json
+/om-ai.omdala.com/backend/data/live-store.json
 
 
 # Database secrets

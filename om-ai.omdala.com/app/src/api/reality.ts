@@ -40,10 +40,7 @@ export async function listScenes(): Promise<ApiCallResult<SceneRecord[]>> {
 }
 
 export async function runScene(sceneId: string): Promise<ApiCallResult<SceneRunRecord>> {
-  const result = await postJson<ApiEnvelope<SceneRunRecord>>(`/v2/reality/scenes/${sceneId}/run`, null, {
-    'x-user-id': 'app_user',
-    'x-role': 'owner',
-  });
+  const result = await postJson<ApiEnvelope<SceneRunRecord>>(`/v2/reality/scenes/${sceneId}/run`, null);
   if (result.error || !result.data?.data) return fail(result.error ?? 'request_failed');
   return { value: result.data.data, error: null };
 }
@@ -57,7 +54,6 @@ export async function listDevices(): Promise<ApiCallResult<DeviceRecord[]>> {
 export async function planTransition(rawInput: string): Promise<ApiCallResult<PlanRecord>> {
   const result = await postJson<ApiEnvelope<PlanRecord>>('/v2/reality/transitions/plan', {
     raw_input: rawInput,
-    role: 'owner',
     actionClass: 'low',
     businessMode: false,
   });
@@ -68,7 +64,6 @@ export async function planTransition(rawInput: string): Promise<ApiCallResult<Pl
 export async function requestApproval(runId: string): Promise<ApiCallResult<ApprovalRecord>> {
   const result = await postJson<ApiEnvelope<{ approval: ApprovalRecord }>>('/v2/reality/approvals/request', {
     run_id: runId,
-    requested_by: 'app_user',
   });
   if (result.error || !result.data?.data.approval) return fail(result.error ?? 'request_failed');
   return { value: result.data.data.approval, error: null };

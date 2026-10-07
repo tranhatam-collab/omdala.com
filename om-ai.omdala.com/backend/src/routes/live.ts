@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import { getAuthContext } from '../auth.js';
+import { getLiveAiAuthorityDecision } from '../aiAuthority.js';
+import { requireSensitiveAuth } from '../auth.js';
 import { fail, ok } from '../response.js';
 import { liveStore } from '../live/store.js';
 import type { CreateLiveSessionInput } from '../live/types.js';
@@ -11,14 +12,6 @@ const ALLOWED_CORRECTION_STYLE = new Set([
   'post_turn',
   'end_of_session',
 ]);
-
-function resolveUserId(
-  authUserId: string | undefined,
-  bodyUserId: string | undefined,
-  queryUserId: string | undefined,
-): string {
-  return authUserId ?? bodyUserId ?? queryUserId ?? 'user_demo_01';
-}
 
 function readIdempotencyKey(request: { headers: Record<string, unknown> }) {
   const raw = request.headers['x-idempotency-key'];
@@ -66,15 +59,16 @@ export function registerLiveRoutes(app: FastifyInstance) {
       supported_modes: ['voice_call', 'lesson_call'],
       curriculum_bindings: ['english_a1_to_c1'],
       safety_profile: persona.safe_for_children ? 'education_safe_default' : 'wellness_safe_default',
-      supported_providers: ['openai_realtime', 'voice_only_fallback'],
+      supported_providers: [],
+      ai_authority: getLiveAiAuthorityDecision(),
     });
   });
 
   app.post('/v2/live/personas/:persona_id/favorite', async (request, reply) => {
     const params = request.params as { persona_id: string };
-    const body = request.body as { user_id?: string };
-    const auth = getAuthContext(request);
-    const userId = resolveUserId(auth?.userId, body?.user_id, undefined);
+    const auth = requireSensitiveAuth(request, reply);
+    if (!auth) return;
+    const userId = auth.userId;
 
     const persona = await liveStore.getPersona(params.persona_id);
     if (!persona) {
@@ -87,15 +81,17 @@ export function registerLiveRoutes(app: FastifyInstance) {
   });
 
   app.post('/v2/live/sessions/create', async (request, reply) => {
-    const body = request.body as CreateLiveSessionInput;
+    const body = request.body as Omit<CreateLiveSessionInput, 'user_id'>;
+
+    const auth = requireSensitiveAuth(request, reply);
+    if (!auth) return;
 
     if (!isNonEmptyString(body?.persona_id, 120) || !isNonEmptyString(body?.session_type, 120)) {
       reply.code(400);
       return fail('validation_error', 'persona_id and session_type are required strings.');
     }
 
-    const auth = getAuthContext(request);
-    const userId = resolveUserId(auth?.userId, body?.user_id, undefined);
+    const userId = auth.userId;
 
     const persona = await liveStore.getPersona(body.persona_id.trim());
     if (!persona) {
@@ -119,13 +115,12 @@ export function registerLiveRoutes(app: FastifyInstance) {
       session_id: created.session.session_id,
       status: created.session.status,
       idempotent_replayed: created.idempotent_replayed,
-      realtime_transport: 'webrtc',
-      realtime_bootstrap_token: `bootstrap_${created.session.session_id}`,
-      provider_routing: created.session.provider_routing,
+      execution_ready: false,
+      ai_authority: created.session.ai_authority,
       avatar: {
         enabled: created.session.avatar_enabled,
-        provider: created.session.provider_routing.primary,
-        mode: created.session.avatar_enabled ? 'realtime_avatar' : 'voice_only',
+        provider: null,
+        mode: 'blocked',
       },
       usage: {
         free_seconds_remaining_today: created.free_seconds_remaining_today,
@@ -134,28 +129,35 @@ export function registerLiveRoutes(app: FastifyInstance) {
   });
 
   app.post('/v2/live/sessions/:id/connect', async (request, reply) => {
+    const auth = requireSensitiveAuth(request, reply);
+    if (!auth) return;
+
     const params = request.params as { id: string };
     if (!isNonEmptyString(params.id, 160)) {
       reply.code(400);
       return fail('validation_error', 'session id is required.');
     }
 
-    const connected = await liveStore.connectSession(params.id.trim());
-    if (!connected) {
+    const session = await liveStore.getSession(params.id.trim());
+    if (!session || session.user_id !== auth.userId) {
       reply.code(404);
       return fail('session_not_found');
     }
 
-    return ok({
-      session_id: connected.session_id,
-      status: connected.status,
-      connected_at: connected.connected_at,
-    });
+    reply.code(503);
+    return fail(
+      'ai_authority_unavailable',
+      'Realtime execution has no approved OMDALA API/AIAGENT authority contract.',
+      { ai_authority: getLiveAiAuthorityDecision() },
+    );
   });
 
   app.post('/v2/live/sessions/:id/end', async (request, reply) => {
     const params = request.params as { id: string };
     const body = request.body as { billable_seconds?: number };
+
+    const auth = requireSensitiveAuth(request, reply);
+    if (!auth) return;
 
     if (!isNonEmptyString(params.id, 160)) {
       reply.code(400);
@@ -165,6 +167,12 @@ export function registerLiveRoutes(app: FastifyInstance) {
     if (body?.billable_seconds !== undefined && (!Number.isFinite(body.billable_seconds) || body.billable_seconds < 0)) {
       reply.code(400);
       return fail('validation_error', 'billable_seconds must be a non-negative number.');
+    }
+
+    const ownedSession = await liveStore.getSession(params.id.trim());
+    if (!ownedSession || ownedSession.user_id !== auth.userId) {
+      reply.code(404);
+      return fail('session_not_found');
     }
 
     const ended = await liveStore.endSession(params.id.trim(), body?.billable_seconds, {
@@ -193,9 +201,12 @@ export function registerLiveRoutes(app: FastifyInstance) {
   });
 
   app.get('/v2/live/sessions/:id', async (request, reply) => {
+    const auth = requireSensitiveAuth(request, reply);
+    if (!auth) return;
+
     const params = request.params as { id: string };
     const session = await liveStore.getSession(params.id);
-    if (!session) {
+    if (!session || session.user_id !== auth.userId) {
       reply.code(404);
       return fail('session_not_found');
     }
@@ -203,12 +214,12 @@ export function registerLiveRoutes(app: FastifyInstance) {
     return ok({ session });
   });
 
-  app.get('/v2/live/sessions', async (request) => {
-    const query = request.query as { user_id?: string; status?: string };
-    const auth = getAuthContext(request);
-    const userId = resolveUserId(auth?.userId, undefined, query.user_id);
+  app.get('/v2/live/sessions', async (request, reply) => {
+    const query = request.query as { status?: string };
+    const auth = requireSensitiveAuth(request, reply);
+    if (!auth) return;
     const sessions = await liveStore.listSessions({
-      user_id: query.user_id ? userId : undefined,
+      user_id: auth.userId,
       status: query.status,
     });
 
@@ -216,62 +227,66 @@ export function registerLiveRoutes(app: FastifyInstance) {
   });
 
   app.post('/v2/live/realtime/token', async (request, reply) => {
-    const body = request.body as { session_id?: string; user_id?: string };
+    const body = request.body as { session_id?: string };
+    const auth = requireSensitiveAuth(request, reply);
+    if (!auth) return;
     if (!isNonEmptyString(body?.session_id, 160)) {
       reply.code(400);
       return fail('validation_error', 'session_id is required.');
     }
     const sessionId = body.session_id!.trim();
 
-    const auth = getAuthContext(request);
-    const userId = resolveUserId(auth?.userId, body?.user_id, undefined);
+    const userId = auth.userId;
 
-    const token = await liveStore.issueRealtimeToken(sessionId, userId);
-    if (!token) {
+    const session = await liveStore.getSession(sessionId);
+    if (!session || session.user_id !== userId) {
       reply.code(404);
       return fail('session_not_found');
     }
 
-    return ok(token);
+    reply.code(503);
+    return fail(
+      'ai_authority_unavailable',
+      'Realtime tokens cannot be issued outside the OMDALA API/AIAGENT authority contract.',
+      { ai_authority: getLiveAiAuthorityDecision() },
+    );
   });
 
   app.post('/v2/live/realtime/session/bootstrap', async (request, reply) => {
-    const body = request.body as { session_id?: string; user_id?: string };
+    const body = request.body as { session_id?: string };
+    const auth = requireSensitiveAuth(request, reply);
+    if (!auth) return;
     if (!isNonEmptyString(body?.session_id, 160)) {
       reply.code(400);
       return fail('validation_error', 'session_id is required.');
     }
     const sessionId = body.session_id!.trim();
 
-    const auth = getAuthContext(request);
-    const userId = resolveUserId(auth?.userId, body?.user_id, undefined);
+    const userId = auth.userId;
 
-    const token = await liveStore.issueRealtimeToken(sessionId, userId);
-    if (!token) {
+    const session = await liveStore.getSession(sessionId);
+    if (!session || session.user_id !== userId) {
       reply.code(404);
       return fail('session_not_found');
     }
 
-    return ok({
-      session_id: token.session_id,
-      transport: token.realtime_transport,
-      token: token.realtime_bootstrap_token,
-      expires_in_seconds: token.expires_in_seconds,
-      provider_routing: token.provider_routing,
-    });
+    reply.code(503);
+    return fail(
+      'ai_authority_unavailable',
+      'Realtime bootstrap is blocked until the OMDALA API exposes an approved AIAGENT contract.',
+      { ai_authority: getLiveAiAuthorityDecision() },
+    );
   });
 
-  app.get('/v2/live/memory/profile', async (request) => {
-    const query = request.query as { user_id?: string };
-    const auth = getAuthContext(request);
-    const userId = resolveUserId(auth?.userId, undefined, query.user_id);
-    const profile = await liveStore.getMemoryProfile(userId);
+  app.get('/v2/live/memory/profile', async (request, reply) => {
+    const auth = requireSensitiveAuth(request, reply);
+    if (!auth) return;
+    const profile = await liveStore.getMemoryProfile(auth.userId);
     return ok({ profile });
   });
 
   app.patch('/v2/live/memory/profile', async (request, reply) => {
     const body = request.body as {
-      user_id?: string;
       display_name?: string;
       timezone?: string;
       target_language?: string;
@@ -293,9 +308,9 @@ export function registerLiveRoutes(app: FastifyInstance) {
       return fail('validation_error', 'correction_style is invalid.');
     }
 
-    const auth = getAuthContext(request);
-    const userId = resolveUserId(auth?.userId, body?.user_id, undefined);
-    const profile = await liveStore.patchMemoryProfile(userId, {
+    const auth = requireSensitiveAuth(request, reply);
+    if (!auth) return;
+    const profile = await liveStore.patchMemoryProfile(auth.userId, {
       display_name: body.display_name,
       timezone: body.timezone,
       target_language: body.target_language,
@@ -304,11 +319,10 @@ export function registerLiveRoutes(app: FastifyInstance) {
     return ok({ profile });
   });
 
-  app.get('/v2/live/usage/today', async (request) => {
-    const query = request.query as { user_id?: string };
-    const auth = getAuthContext(request);
-    const userId = resolveUserId(auth?.userId, undefined, query.user_id);
-    const usage = await liveStore.getUsageToday(userId);
+  app.get('/v2/live/usage/today', async (request, reply) => {
+    const auth = requireSensitiveAuth(request, reply);
+    if (!auth) return;
+    const usage = await liveStore.getUsageToday(auth.userId);
     return ok({ usage });
   });
 
@@ -318,16 +332,16 @@ export function registerLiveRoutes(app: FastifyInstance) {
   });
 
   app.post('/v2/live/plans/upgrade', async (request, reply) => {
-    const body = request.body as { user_id?: string; plan_id?: string };
+    const body = request.body as { plan_id?: string };
+    const auth = requireSensitiveAuth(request, reply);
+    if (!auth) return;
     if (!isNonEmptyString(body?.plan_id, 40)) {
       reply.code(400);
       return fail('validation_error', 'plan_id is required.');
     }
     const planId = body.plan_id!.trim();
 
-    const auth = getAuthContext(request);
-    const userId = resolveUserId(auth?.userId, body?.user_id, undefined);
-    const subscription = await liveStore.upgradePlan(userId, planId);
+    const subscription = await liveStore.upgradePlan(auth.userId, planId);
     return ok({ subscription });
   });
 
@@ -347,23 +361,8 @@ export function registerLiveRoutes(app: FastifyInstance) {
 
   app.get('/v2/live/avatar/providers', async () =>
     ok({
-      providers: [
-        {
-          provider: 'tavus',
-          modes: ['realtime_avatar', 'voice_only_fallback'],
-          supports_bidirectional_video: true,
-        },
-        {
-          provider: 'heygen',
-          modes: ['live_avatar', 'voice_only_fallback'],
-          supports_bidirectional_video: true,
-        },
-        {
-          provider: 'voice_only',
-          modes: ['voice_only_fallback'],
-          supports_bidirectional_video: false,
-        },
-      ],
+      providers: [],
+      ai_authority: getLiveAiAuthorityDecision(),
     }),
   );
 }

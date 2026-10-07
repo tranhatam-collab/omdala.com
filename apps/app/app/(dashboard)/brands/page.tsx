@@ -1,6 +1,14 @@
 import Link from "next/link";
+import { resolvePublicOrigin } from "@omdala/core";
 
 export default function BrandDealsPage() {
+  const brandOrigin = resolvePublicOrigin(
+    "brand",
+    process.env.NEXT_PUBLIC_BRAND_ORIGIN,
+    process.env.NEXT_PUBLIC_RELEASE_ENVIRONMENT,
+  );
+  const browseBrandsUrl = new URL("/en/brands", `${brandOrigin}/`).toString();
+
   return (
     <>
       <section className="dashboard-panel">
@@ -11,7 +19,7 @@ export default function BrandDealsPage() {
           approved inquiries, proof access, transfer coordination, and escrow handoff once Team 2 services are ready.
         </p>
         <div className="entity-actions">
-          <a className="app-button app-button--primary" href="https://brand.omdala.com/en/brands">
+          <a className="app-button app-button--primary" href={browseBrandsUrl}>
             Browse public brand packages
           </a>
         </div>

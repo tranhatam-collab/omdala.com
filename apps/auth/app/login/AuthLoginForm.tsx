@@ -1,12 +1,18 @@
 "use client";
 
-import { OMDALA_API_ORIGIN, OMDALA_INBOXES, resolveLanguage } from "@omdala/core";
+import {
+  normalizePublicPath,
+  OMDALA_API_ORIGIN,
+  OMDALA_INBOXES,
+  resolveLanguage,
+  validatePublicOrigin,
+} from "@omdala/core";
 import {
   AUTH_COPY,
   getMagicLinkSentMessage,
   pickBilingualValue,
 } from "@omdala/ui";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { ApiClientError, apiJsonRequest } from "@/lib/api-client";
@@ -22,24 +28,15 @@ function getAuthApiBase() {
 
 type StatusTone = "error" | "idle" | "info" | "success";
 
-function normalizeRedirectPath(value: string | null, fallback: string) {
-  if (!value || !value.startsWith("/")) {
-    return fallback;
-  }
-
-  return value;
-}
-
 export function AuthLoginForm() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const language = resolveLanguage(searchParams.get("lang"));
   const verifiedTokenRef = useRef<string | null>(null);
   const copy = AUTH_COPY.magicLinkForm;
 
   const [email, setEmail] = useState("operator@omdala.com");
   const [redirectTo, setRedirectTo] = useState(
-    normalizeRedirectPath(searchParams.get("next"), "/dashboard"),
+    normalizePublicPath(searchParams.get("next"), "/dashboard"),
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<{ message: string; tone: StatusTone }>({
@@ -54,7 +51,7 @@ export function AuthLoginForm() {
     }
 
     verifiedTokenRef.current = token;
-    const nextPath = normalizeRedirectPath(
+    const nextPath = normalizePublicPath(
       searchParams.get("next"),
       redirectTo,
     );
@@ -82,7 +79,16 @@ export function AuthLoginForm() {
           tone: "success",
           message: pickBilingualValue(language, copy.verified),
         });
-        router.replace(`https://app.omdala.com${data.redirectTo}`);
+        const appOrigin = validatePublicOrigin(
+          "app",
+          process.env.NEXT_PUBLIC_APP_ORIGIN,
+          process.env.NEXT_PUBLIC_RELEASE_ENVIRONMENT,
+        );
+        const appRedirectUrl = new URL(
+          normalizePublicPath(data.redirectTo, "/dashboard"),
+          `${appOrigin}/`,
+        ).toString();
+        window.location.replace(appRedirectUrl);
       } catch (error) {
         setStatus({
           tone: "error",
@@ -102,7 +108,6 @@ export function AuthLoginForm() {
     copy.verifying,
     language,
     redirectTo,
-    router,
     searchParams,
   ]);
 
@@ -124,7 +129,7 @@ export function AuthLoginForm() {
           },
           body: JSON.stringify({
             email,
-            redirectTo: normalizeRedirectPath(redirectTo, "/dashboard"),
+            redirectTo: normalizePublicPath(redirectTo, "/dashboard"),
           }),
         },
         pickBilingualValue(language, copy.sendError),

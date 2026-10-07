@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "cloudflare_account_id": "f3f9e76222dcb488d5e303e29e8ba192",
+  "environments": {
+    "production": {
+      "hyperdrive_id": "b9c4907f49ca48cc9ee489013c3aa033",
+      "hyperdrive_name": "omdala-postgres-f3f9",
+      "postgres_host": "mail.iai.one",
+      "postgres_port": 5432,
+      "postgres_database": "omdala_prod",
+      "postgres_user": "omdala_api"
+    },
+    "staging": {
+      "hyperdrive_name": "omdala-postgres-staging",
+      "postgres_host": "mail.iai.one",
+      "postgres_port": 5432,
+      "postgres_database": "omdala_staging",
+      "postgres_user": "omdala_staging"
+    }
+  }
+}

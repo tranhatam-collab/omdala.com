@@ -212,7 +212,7 @@ export function WelcomeScreen({ onOpenFolder, onOpenRecent }: WelcomeScreenProps
 
       {/* Footer */}
       <div style={{ marginTop: "auto", paddingTop: 24, fontSize: 11, color: "#6b7f99" }}>
-        OMCODE v0.1 · Local-first · 7 AI providers · Monaco Editor · Git · Terminal
+        OMCODE v0.1 · Local-first workspace · Verified AIAGENT authority · Monaco Editor · Git · Terminal
       </div>
     </div>
   );

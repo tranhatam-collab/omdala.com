@@ -1,0 +1,302 @@
+name: OMDALA Staging Transaction
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact full candidate SHA to deploy and accept
+        required: true
+        type: string
+      source_pr_number:
+        description: Pull request containing the exact candidate and independent approval
+        required: true
+        type: string
+      team_ai_staging_acceptance_run_id:
+        description: Successful protected Team AI staging acceptance run ID
+        required: true
+        type: string
+      confirmation:
+        description: Type DEPLOY_OMDALA_STAGING_TRANSACTION
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: omdala-staging-transaction
+  cancel-in-progress: false
+
+jobs:
+  atomicity-hold:
+    name: Hold until one protected job owns mutation and recovery authority
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce staging transaction atomicity hold before mutation
+        shell: bash
+        run: |
+          test "$GITHUB_RUN_ATTEMPT" = "1" || {
+            echo "::error::STAGING_TRANSACTION_RERUN_BLOCKED_START_A_NEW_DISPATCH"
+            exit 1
+          }
+          echo "::error::STAGING_TRANSACTION_BLOCKED_PROTECTED_ENVIRONMENT_ATOMICITY"
+          echo "::error::GitHub environment approvals are job-scoped; the current multi-job reusable chain cannot guarantee automatic compensation after a downstream failure or cancellation."
+          exit 1
+
+  lock-control-plane:
+    name: Lock one current-main staging transaction
+    needs: atomicity-hold
+    if: inputs.confirmation == 'DEPLOY_OMDALA_STAGING_TRANSACTION'
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      candidate_sha: ${{ steps.identity.outputs.candidate_sha }}
+      control_plane_sha: ${{ steps.identity.outputs.control_plane_sha }}
+      staging_transaction_id: ${{ steps.identity.outputs.staging_transaction_id }}
+    steps:
+      - id: identity
+        name: Require exact current-main control plane and immutable inputs
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          SOURCE_PR_NUMBER: ${{ inputs.source_pr_number }}
+          TEAM_AI_STAGING_RUN_ID: ${{ inputs.team_ai_staging_acceptance_run_id }}
+          PRODUCTION_RELEASES_HARD_DISABLED: "true"
+        run: |
+          set -euo pipefail
+          [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::candidate_sha must be a full lowercase Git SHA"
+            exit 1
+          }
+          [[ "$SOURCE_PR_NUMBER" =~ ^[1-9][0-9]*$ ]] || exit 1
+          [[ "$TEAM_AI_STAGING_RUN_ID" =~ ^[1-9][0-9]*$ ]] || exit 1
+          test "$GITHUB_RUN_ATTEMPT" = "1" || {
+            echo "::error::STAGING_TRANSACTION_RERUN_BLOCKED_START_A_NEW_DISPATCH"
+            exit 1
+          }
+          test "$PRODUCTION_RELEASES_HARD_DISABLED" = "true"
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REF" = "refs/heads/main" || {
+            echo "::error::The staging transaction must be dispatched from main"
+            exit 1
+          }
+          expected_workflow_ref="${GITHUB_REPOSITORY}/.github/workflows/staging-transaction.yml@refs/heads/main"
+          test "$GITHUB_WORKFLOW_REF" = "$expected_workflow_ref" || {
+            echo "::error::Unexpected staging transaction workflow identity"
+            exit 1
+          }
+          current_main="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" | jq -er '.object.sha')"
+          test "$GITHUB_SHA" = "$current_main" || {
+            echo "::error::Workflow SHA is not the current main control-plane SHA"
+            exit 1
+          }
+          transaction_id="staging-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          {
+            echo "candidate_sha=$CANDIDATE_SHA"
+            echo "control_plane_sha=$GITHUB_SHA"
+            echo "staging_transaction_id=$transaction_id"
+          } >> "$GITHUB_OUTPUT"
+
+  deploy-api:
+    name: Transaction stage 1 - API and additive migrations
+    needs: lock-control-plane
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    with:
+      ref: ${{ needs.lock-control-plane.outputs.candidate_sha }}
+      environment: staging
+      confirmation: DEPLOY_OMDALA
+      source_pr_number: ${{ inputs.source_pr_number }}
+      orchestrated_staging: true
+      staging_transaction_id: ${{ needs.lock-control-plane.outputs.staging_transaction_id }}
+      control_plane_sha: ${{ needs.lock-control-plane.outputs.control_plane_sha }}
+    secrets: inherit
+
+  deploy-surfaces:
+    name: Transaction stage 2 - Web App Auth Brand
+    needs: [lock-control-plane, deploy-api]
+    uses: ./.github/workflows/deploy-surfaces.yml
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    with:
+      ref: ${{ needs.lock-control-plane.outputs.candidate_sha }}
+      environment: staging
+      confirmation: DEPLOY_OMDALA_SURFACES
+      source_pr_number: ${{ inputs.source_pr_number }}
+      orchestrated_staging: true
+      staging_transaction_id: ${{ needs.lock-control-plane.outputs.staging_transaction_id }}
+      control_plane_sha: ${{ needs.lock-control-plane.outputs.control_plane_sha }}
+    secrets: inherit
+
+  accept-staging:
+    name: Transaction stage 3 - Exact candidate staging acceptance
+    needs: [lock-control-plane, deploy-api, deploy-surfaces]
+    uses: ./.github/workflows/staging-go-live-e2e.yml
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    with:
+      candidate_sha: ${{ needs.lock-control-plane.outputs.candidate_sha }}
+      source_pr_number: ${{ inputs.source_pr_number }}
+      team_ai_staging_acceptance_run_id: ${{ inputs.team_ai_staging_acceptance_run_id }}
+      api_release_artifact_name: ${{ needs.deploy-api.outputs.api_release_artifact_name }}
+      backup_artifact_name: ${{ needs.deploy-api.outputs.backup_artifact_name }}
+      surface_release_artifact_name: ${{ needs.deploy-surfaces.outputs.surface_release_artifact_name }}
+      api_receipt_sha256: ${{ needs.deploy-api.outputs.api_receipt_sha256 }}
+      surface_receipt_sha256: ${{ needs.deploy-surfaces.outputs.surface_receipt_sha256 }}
+      orchestrated_staging: true
+      staging_transaction_id: ${{ needs.lock-control-plane.outputs.staging_transaction_id }}
+      control_plane_sha: ${{ needs.lock-control-plane.outputs.control_plane_sha }}
+    secrets: inherit
+
+  finalize-transaction:
+    name: Seal the same-run staging transaction receipt
+    needs: [lock-control-plane, deploy-api, deploy-surfaces, accept-staging]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout trusted transaction controls
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.lock-control-plane.outputs.control_plane_sha }}
+          persist-credentials: false
+      - name: Download same-run API receipt
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.deploy-api.outputs.api_release_artifact_name }}
+          path: transaction-chain/api
+      - name: Download same-run surface receipt
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.deploy-surfaces.outputs.surface_release_artifact_name }}
+          path: transaction-chain/surfaces
+      - name: Download same-run acceptance receipt
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.accept-staging.outputs.acceptance_artifact_name }}
+          path: transaction-chain/acceptance
+      - name: Verify and seal the immutable transaction
+        shell: bash
+        env:
+          API_RECEIPT_SHA256: ${{ needs.deploy-api.outputs.api_receipt_sha256 }}
+          SURFACE_RECEIPT_SHA256: ${{ needs.deploy-surfaces.outputs.surface_receipt_sha256 }}
+          ACCEPTANCE_RECEIPT_SHA256: ${{ needs.accept-staging.outputs.acceptance_receipt_sha256 }}
+        run: |
+          set -euo pipefail
+          api=transaction-chain/api/api-release.json
+          surfaces=transaction-chain/surfaces/surface-release.json
+          acceptance=transaction-chain/acceptance/staging-acceptance.json
+          test "$(sha256sum "$api" | awk '{print $1}')" = "$API_RECEIPT_SHA256"
+          test "$(sha256sum "$surfaces" | awk '{print $1}')" = "$SURFACE_RECEIPT_SHA256"
+          test "$(sha256sum "$acceptance" | awk '{print $1}')" = "$ACCEPTANCE_RECEIPT_SHA256"
+          jq -e \
+            --arg transaction_id "${{ needs.lock-control-plane.outputs.staging_transaction_id }}" \
+            --arg candidate_sha "${{ needs.lock-control-plane.outputs.candidate_sha }}" \
+            --arg control_plane_sha "${{ needs.lock-control-plane.outputs.control_plane_sha }}" \
+            --arg api_hash "$API_RECEIPT_SHA256" \
+            --arg surface_hash "$SURFACE_RECEIPT_SHA256" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            '.verdict == "STAGING_ACCEPTED" and
+             .staging_transaction_id == $transaction_id and
+             .candidate_sha == $candidate_sha and
+             .control_plane_sha == $control_plane_sha and
+             .api_release_control_plane_sha == $control_plane_sha and
+             .surface_release_control_plane_sha == $control_plane_sha and
+             .api_receipt_sha256 == $api_hash and
+             .surface_receipt_sha256 == $surface_hash and
+             (.api_release_run_id | tostring) == $run_id and
+             (.surface_release_run_id | tostring) == $run_id and
+             (.workflow_run_id | tostring) == $run_id and
+             (.workflow_run_attempt | tostring) == $run_attempt' \
+            "$acceptance" >/dev/null
+          mkdir -p staging-transaction-evidence
+          jq -n \
+            --arg transaction_id "${{ needs.lock-control-plane.outputs.staging_transaction_id }}" \
+            --arg candidate_sha "${{ needs.lock-control-plane.outputs.candidate_sha }}" \
+            --arg control_plane_sha "${{ needs.lock-control-plane.outputs.control_plane_sha }}" \
+            --arg api_receipt_sha256 "$API_RECEIPT_SHA256" \
+            --arg surface_receipt_sha256 "$SURFACE_RECEIPT_SHA256" \
+            --arg acceptance_receipt_sha256 "$ACCEPTANCE_RECEIPT_SHA256" \
+            --arg workflow_run_id "$GITHUB_RUN_ID" \
+            --arg workflow_run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              schema_version: 1,
+              verdict: "STAGING_TRANSACTION_ACCEPTED",
+              staging_transaction_id: $transaction_id,
+              candidate_sha: $candidate_sha,
+              control_plane_sha: $control_plane_sha,
+              api_receipt_sha256: $api_receipt_sha256,
+              surface_receipt_sha256: $surface_receipt_sha256,
+              acceptance_receipt_sha256: $acceptance_receipt_sha256,
+              workflow_run_id: ($workflow_run_id | tonumber),
+              workflow_run_attempt: ($workflow_run_attempt | tonumber),
+              repository: $repository,
+              production_release_authorized: false,
+              production_release_status: "HOLD_NO_GO",
+              created_at: $created_at
+            }' > staging-transaction-evidence/staging-transaction.json
+          cp "$api" "$surfaces" "$acceptance" staging-transaction-evidence/
+      - name: Upload immutable staging transaction receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-staging-transaction-${{ needs.lock-control-plane.outputs.candidate_sha }}-${{ needs.lock-control-plane.outputs.staging_transaction_id }}
+          path: staging-transaction-evidence/
+          if-no-files-found: error
+          retention-days: 30
+
+  recover-api-after-surface-failure:
+    name: Compensate API when surface stage fails
+    needs: [lock-control-plane, deploy-api, deploy-surfaces]
+    if: ${{ always() && needs.deploy-api.result == 'success' && needs.deploy-surfaces.result != 'success' }}
+    uses: ./.github/workflows/staging-recovery.yml
+    permissions:
+      contents: read
+      actions: read
+    with:
+      candidate_sha: ${{ needs.lock-control-plane.outputs.candidate_sha }}
+      control_plane_sha: ${{ needs.lock-control-plane.outputs.control_plane_sha }}
+      staging_transaction_id: ${{ needs.lock-control-plane.outputs.staging_transaction_id }}
+      api_release_artifact_name: ${{ needs.deploy-api.outputs.api_release_artifact_name }}
+      api_receipt_sha256: ${{ needs.deploy-api.outputs.api_receipt_sha256 }}
+      rollback_surfaces: false
+    secrets: inherit
+
+  recover-after-acceptance-failure:
+    name: Compensate surfaces and API when acceptance or sealing fails
+    needs:
+      - lock-control-plane
+      - deploy-api
+      - deploy-surfaces
+      - accept-staging
+      - finalize-transaction
+    if: ${{ always() && needs.deploy-api.result == 'success' && needs.deploy-surfaces.result == 'success' && (needs.accept-staging.result != 'success' || needs.finalize-transaction.result != 'success') }}
+    uses: ./.github/workflows/staging-recovery.yml
+    permissions:
+      contents: read
+      actions: read
+    with:
+      candidate_sha: ${{ needs.lock-control-plane.outputs.candidate_sha }}
+      control_plane_sha: ${{ needs.lock-control-plane.outputs.control_plane_sha }}
+      staging_transaction_id: ${{ needs.lock-control-plane.outputs.staging_transaction_id }}
+      api_release_artifact_name: ${{ needs.deploy-api.outputs.api_release_artifact_name }}
+      api_receipt_sha256: ${{ needs.deploy-api.outputs.api_receipt_sha256 }}
+      rollback_surfaces: true
+      surface_release_artifact_name: ${{ needs.deploy-surfaces.outputs.surface_release_artifact_name }}
+      surface_receipt_sha256: ${{ needs.deploy-surfaces.outputs.surface_receipt_sha256 }}
+    secrets: inherit
