@@ -31,9 +31,14 @@
     "jest-expo": "~57.0.5",
     "react-test-renderer": "19.2.3",
     "tsx": "^4.19.2",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "braces": "file:vendor/braces",
+    "node-forge": "file:vendor/node-forge"
   },
   "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "4.3.2"
+    },
     "xcode": {
       "uuid": "11.1.1"
     }

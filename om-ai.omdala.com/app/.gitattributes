@@ -1,0 +1,4 @@
+# Preserve exact upstream artifact bytes while excluding their inherited
+# whitespace from repository-owned patch hygiene checks.
+vendor/patches/*.patch -whitespace
+vendor/node-forge/LICENSE -whitespace

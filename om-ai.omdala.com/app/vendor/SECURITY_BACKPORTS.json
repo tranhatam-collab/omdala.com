@@ -1,0 +1,78 @@
+{
+  "schema_version": 2,
+  "tree_hash_algorithm": "sha256(sorted POSIX relative path + NUL + file bytes + NUL)",
+  "warning": "Synthetic versions identify internal Omdala forks. They are not upstream releases, and a clean npm audit result is not proof that the backports are correct.",
+  "packages": [
+    {
+      "name": "braces",
+      "upstream_version": "3.0.3",
+      "upstream_git_commit": null,
+      "internal_fork_version": "3.0.4+omdala.pr72.28d440b",
+      "upstream_tarball_sha1": "490332f40919452272d55a8480adc0c441358789",
+      "upstream_tarball_sha256": "1cd18e862c8640b4568b1425a7df4ee030ff201d45b2da8f9f222d2987494ffc",
+      "upstream_integrity": "sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==",
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "upstream_patch": "https://github.com/micromatch/braces/pull/72.patch",
+      "patch_commits": [
+        "d0d575e55e74a4e0218e5248fafb79efc3e54ebb",
+        "2569eada352a032decd189db906c3c7d87be0ad0",
+        "e072fe408812dbcb428cf85fde4cfb12ec4021f0",
+        "f7ba960d37ddb452b0ad304812635b7259abb173",
+        "3509c9ae5c58018512badc4bacadf4fa15b5a6b4",
+        "767e6a5f7f5c539b2da558675808d4a92ad42f73",
+        "a81d64e3cf70a2662af47b75908bef2fe81623c0",
+        "28d440b5dd449dbf1fe6f3506cf94ecca4d02660"
+      ],
+      "patch_file": "patches/braces-pr-72.patch",
+      "patch_sha256": "f2edaad4a0889ed1287040ed34092677075bddde3cb0d45bdbd3d06cd535fb8c",
+      "applied_paths": [
+        "lib/compile.js",
+        "lib/constants.js",
+        "lib/expand.js",
+        "lib/parse.js",
+        "lib/stringify.js"
+      ],
+      "vendored_tree": "braces",
+      "vendored_tree_files": 10,
+      "vendored_tree_bytes": 46222,
+      "vendored_tree_sha256": "fa88a384caec14874252b89f9c59c7cefbeef27323cabff22737f296b005333c"
+    },
+    {
+      "name": "node-forge",
+      "upstream_version": "1.4.0",
+      "upstream_git_commit": "fa385f92440879601240020f158bed68e444e83a",
+      "internal_fork_version": "1.4.1+omdala.pr1152.ceba344",
+      "upstream_tarball_sha1": "1c7b7d8bdc2d078739f58287d589d903a11b2fc2",
+      "upstream_tarball_sha256": "bf9d7ca0d774235354697bd4b5e642af6505e7ce2066762c3b855138cf870820",
+      "upstream_integrity": "sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ==",
+      "advisory": "GHSA-86w9-cpqp-85rv",
+      "upstream_patch": "https://github.com/digitalbazaar/forge/commit/ceba34402e329f0365134f23fe19898756527d65.patch",
+      "patch_commits": [
+        "ceba34402e329f0365134f23fe19898756527d65"
+      ],
+      "patch_file": "patches/node-forge-pr-1152.patch",
+      "patch_sha256": "46d60200ce97cd8b8e06f3d0beec6a7dc8aed290056472815d0c357520b99454",
+      "applied_paths": [
+        "lib/rsa.js"
+      ],
+      "excluded_upstream_artifacts": [
+        "dist/",
+        "flash/"
+      ],
+      "vendored_tree": "node-forge",
+      "vendored_tree_files": 52,
+      "vendored_tree_bytes": 1015320,
+      "vendored_tree_sha256": "d8dbd7b20ae60190b36be09e72b5f6eed95c02feb556ac52408bc03d9c5acd8f"
+    }
+  ],
+  "non_vendored_advisories": [
+    {
+      "name": "sprintf-js",
+      "installed_version": null,
+      "installed": false,
+      "advisory": "GHSA-hp3w-g68c-fv3c",
+      "severity": "moderate",
+      "disposition": "No internal fork or direct override. The package left the installed tree when the high-severity js-yaml 3.x path was replaced with js-yaml 4.3.2. If it returns, the high/critical gate may leave this moderate advisory visible."
+    }
+  ]
+}
