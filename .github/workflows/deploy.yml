@@ -72,6 +72,13 @@ jobs:
       api_remote_preflight_receipt_sha256: ${{ steps.api_remote_preflight.outputs.receipt_sha256 }}
       hyperdrive_remote_preflight_receipt_sha256: ${{ steps.api_remote_preflight.outputs.hyperdrive_receipt_sha256 }}
     steps:
+      - name: Disable the legacy staging mutation entry point
+        if: inputs.environment == 'staging'
+        shell: bash
+        run: |
+          echo "::error::LEGACY_STAGING_MUTATION_ENTRY_POINT_DISABLED"
+          echo "::error::Staging mutation is owned only by the single protected job in staging-transaction.yml"
+          exit 1
       - name: Require the single staging transaction caller before mutation
         shell: bash
         env:
@@ -336,6 +343,7 @@ jobs:
       - name: Render exact environment Hyperdrive binding
         shell: bash
         env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           OMDALA_HYPERDRIVE_ID: ${{ vars.OMDALA_HYPERDRIVE_ID }}
           OMDALA_GOOGLE_CLIENT_ID: ${{ vars.OMDALA_GOOGLE_CLIENT_ID }}
           RELEASE_SHA: ${{ steps.source.outputs.sha }}
@@ -639,6 +647,7 @@ jobs:
         name: Render exact environment Hyperdrive binding
         shell: bash
         env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           OMDALA_HYPERDRIVE_ID: ${{ vars.OMDALA_HYPERDRIVE_ID }}
           OMDALA_GOOGLE_CLIENT_ID: ${{ vars.OMDALA_GOOGLE_CLIENT_ID }}
           RELEASE_SHA: ${{ needs.validate.outputs.sha }}

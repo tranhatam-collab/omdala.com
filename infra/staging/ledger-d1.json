@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "database_name": "omdala-audit-staging",
+  "database_id": "1f2e0b16-7267-441b-9a48-34fe20a0026b",
+  "table": "staging_transaction_events",
+  "ledger_schema_version": 1,
+  "activation_epoch": "omdala-staging-ledger-v1",
+  "activation_receipt_schema": "infra/staging/ledger-activation-reconciliation.schema.json",
+  "activation_import_policy": "canonical-zero-unresolved",
+  "empty_unresolved_import_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+  "schema_manifest_sha256": "29331d7cf6b58091d0e2874a6f87857483fcd568cb5c08b44695622309aa5751",
+  "scan_page_size": 1,
+  "github_environment": "staging",
+  "github_secret": "OMDALA_STAGING_LEDGER_D1_TOKEN",
+  "required_cloudflare_permission": "D1:Edit",
+  "allowed_cloudflare_account_scope": "exact-account-only",
+  "forbidden_cloudflare_permissions": ["Workers Scripts:Edit", "Account Settings:Edit", "DNS:Edit"],
+  "event_types": ["PREPARED", "COMMITTED", "RECOVERED"],
+  "production_release_authorized": false
+}

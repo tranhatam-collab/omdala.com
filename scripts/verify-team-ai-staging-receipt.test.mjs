@@ -143,7 +143,48 @@ function fixtureAiCall() {
   };
 }
 
-function validateFixtures(run = fixtureRun(), receipt = fixtureReceipt(), aiCall = fixtureAiCall()) {
+function fixtureReconciliation(aiCall = fixtureAiCall(), receipt = fixtureReceipt()) {
+  return {
+    schema_version: 1,
+    verdict: "STAGING_OMDALA_AI_CALL_PROVIDER_RECONCILED",
+    candidate_sha: candidateSha,
+    consumer_version_id: consumerVersionId,
+    provider_origin: "https://staging-api.aiagent.iai.one",
+    provider_source_sha: receipt.provider_source_sha,
+    provider_version_id: receipt.provider_version_id,
+    provider_bundle_sha256: receipt.provider_bundle_sha256,
+    ledger_release_sha: receipt.ledger_release_sha,
+    ledger_version_id: receipt.ledger_version_id,
+    ledger_bundle_sha256: receipt.ledger_bundle_sha256,
+    ledger_contract_version: receipt.ledger_contract_version,
+    ledger_schema_version: receipt.ledger_schema_version,
+    ledger_migration_sha256: receipt.ledger_migration_sha256,
+    tenant_id: aiCall.tenant_id,
+    workspace_id: aiCall.workspace_id,
+    model: aiCall.model,
+    request_id: aiCall.request_id,
+    run_id: aiCall.run_id,
+    receipt_id: aiCall.receipt_id,
+    receipt_hash: "8".repeat(64),
+    ledger_entry_id: aiCall.ledger_entry_id,
+    usage: structuredClone(aiCall.usage),
+    authoritative_reconciled_cost_usd: aiCall.authoritative_reconciled_cost_usd,
+    provider_run_readback_verified: true,
+    provider_signed_receipt_verified: true,
+    ledger_reconciliation_verified: true,
+    candidate_claims_cross_bound: true,
+    contains_secret_values: false,
+    production_mutated: false,
+    verified_at: "2026-10-08T00:01:00.000Z",
+  };
+}
+
+function validateFixtures(
+  run = fixtureRun(),
+  receipt = fixtureReceipt(),
+  aiCall = fixtureAiCall(),
+  reconciliation = fixtureReconciliation(aiCall, receipt),
+) {
   const validRun = validateTeamAiRun(run, 987654);
   const validReceipt = validateTeamAiReceipt(receipt, {
     run: validRun,
@@ -154,20 +195,21 @@ function validateFixtures(run = fixtureRun(), receipt = fixtureReceipt(), aiCall
     candidateSha,
     consumerVersionId,
     teamAiReceipt: validReceipt,
+    reconciliation,
   });
-  return { validRun, validReceipt, validAiCall };
+  return { validRun, validReceipt, validAiCall, validReconciliation: reconciliation };
 }
 
 describe("protected Team AI staging receipt verifier", () => {
   it("accepts and hash-binds the exact 19-model, one-stream, lifecycle, and authenticated-call chain", () => {
-    const { validRun, validReceipt, validAiCall } = validateFixtures();
+    const { validRun, validReceipt, validAiCall, validReconciliation } = validateFixtures();
     const chain = buildStagingAiChain({
       run: validRun,
       receipt: validReceipt,
       receiptSha256: "5".repeat(64),
       runSha256: "6".repeat(64),
       aiCallEvidence: validAiCall,
-      aiCallEvidenceSha256: "7".repeat(64),
+      reconciliation: validReconciliation,
     });
     assert.equal(chain.verdict, "STAGING_AI_CHAIN_ACCEPTED");
     assert.equal(chain.matrix.model_count, 19);
@@ -175,6 +217,9 @@ describe("protected Team AI staging receipt verifier", () => {
     assert.equal(chain.provider.source_sha, providerSha);
     assert.equal(chain.consumer.source_sha, candidateSha);
     assert.equal(chain.authenticated_omdala_ai_call.workspace_id, "omdala-com-staging");
+    assert.equal(chain.authenticated_omdala_ai_call.provider_run_readback_verified, true);
+    assert.equal(chain.authenticated_omdala_ai_call.provider_signed_receipt_verified, true);
+    assert.equal(chain.authenticated_omdala_ai_call.ledger_reconciliation_verified, true);
     assert.equal(JSON.stringify(chain).includes("key-id-not-a-secret"), false);
   });
 
@@ -245,6 +290,7 @@ describe("protected Team AI staging receipt verifier", () => {
       (evidence) => { evidence.workspace_id = "omdala-com-production"; },
       (evidence) => { evidence.model = "openai/gpt-4"; },
       (evidence) => { evidence.usage.total_tokens = 99; },
+      (evidence) => { evidence.usage.accidental_secret = "leaked-test-secret"; },
       (evidence) => { evidence.cost_ledger_status = "pending"; },
       (evidence) => { evidence.authoritative_reconciled_cost_usd = 0.251; },
       (evidence) => { evidence.authoritative_reconciled_cost_usd = 0.24; },
@@ -254,6 +300,56 @@ describe("protected Team AI staging receipt verifier", () => {
       mutate(aiCall);
       assert.throws(() => validateFixtures(fixtureRun(), fixtureReceipt(), aiCall), Error);
     }
+  });
+
+  it("constructs a fresh exact usage object without candidate-owned extra fields", () => {
+    const { validRun, validReceipt, validAiCall, validReconciliation } = validateFixtures();
+    const chain = buildStagingAiChain({
+      run: validRun,
+      receipt: validReceipt,
+      receiptSha256: "5".repeat(64),
+      runSha256: "6".repeat(64),
+      aiCallEvidence: validAiCall,
+      reconciliation: validReconciliation,
+    });
+    assert.equal(chain.authenticated_omdala_ai_call.authenticated_consumer_path_verified, true);
+    assert.equal("usage" in chain.authenticated_omdala_ai_call, false);
+    assert.equal("authoritative_reconciled_cost_usd" in chain.authenticated_omdala_ai_call, false);
+  });
+
+  it("omits candidate-controlled correlation IDs instead of copying or hashing them", () => {
+    const call = fixtureAiCall();
+    call.request_id = "sentinel-request-secret";
+    call.run_id = "sentinel-run-secret";
+    call.receipt_id = "sentinel-receipt-secret";
+    call.ledger_entry_id = "sentinel-ledger-secret";
+    const { validRun, validReceipt, validAiCall, validReconciliation } = validateFixtures(fixtureRun(), fixtureReceipt(), call);
+    const chain = buildStagingAiChain({
+      run: validRun, receipt: validReceipt, receiptSha256: "5".repeat(64),
+      runSha256: "6".repeat(64), aiCallEvidence: validAiCall, reconciliation: validReconciliation,
+    });
+    assert.equal(JSON.stringify(chain).includes("sentinel-"), false);
+    for (const field of ["evidence_sha256", "request_id_sha256", "run_id_sha256", "receipt_id_sha256", "ledger_entry_id_sha256", "model", "usage", "authoritative_reconciled_cost_usd"]) {
+      assert.equal(field in chain.authenticated_omdala_ai_call, false);
+    }
+  });
+
+  it("rejects missing or forged provider and ledger reconciliation", () => {
+    const call = fixtureAiCall();
+    const receipt = fixtureReceipt();
+    for (const mutate of [
+      (value) => { value.provider_run_readback_verified = false; },
+      (value) => { value.provider_version_id = consumerVersionId; },
+      (value) => { value.ledger_version_id = providerVersionId; },
+      (value) => { value.receipt_id = "forged-receipt"; },
+      (value) => { value.authoritative_reconciled_cost_usd = 0.002; },
+      (value) => { value.contains_secret_values = true; },
+    ]) {
+      const reconciliation = fixtureReconciliation(call, receipt);
+      mutate(reconciliation);
+      assert.throws(() => validateFixtures(fixtureRun(), receipt, call, reconciliation), Error);
+    }
+    assert.throws(() => validateFixtures(fixtureRun(), receipt, call, null), Error);
   });
 
   it("rejects receipt credential material", () => {

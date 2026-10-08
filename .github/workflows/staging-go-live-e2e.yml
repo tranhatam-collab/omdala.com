@@ -63,6 +63,12 @@ jobs:
       SURFACE_RELEASE_RUN_ID: ${{ github.run_id }}
       TEAM_AI_STAGING_RUN_ID: ${{ inputs.team_ai_staging_acceptance_run_id }}
     steps:
+      - name: Disable the legacy staging acceptance entry point
+        shell: bash
+        run: |
+          echo "::error::LEGACY_STAGING_MUTATION_ENTRY_POINT_DISABLED"
+          echo "::error::Staging acceptance is owned by the single protected job in staging-transaction.yml"
+          exit 1
       - name: Require the workflow control plane from current main
         shell: bash
         env:

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://infra.omdala.com/schemas/staging-ledger-activation-reconciliation-v1.json",
+  "title": "OMDALA staging durable-ledger activation reconciliation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "verdict",
+    "activation_epoch",
+    "database_id",
+    "repository",
+    "cutoff_workflow_run_id",
+    "workflow_path",
+    "workflow_ref",
+    "control_plane_sha",
+    "retained_actions_history_inventory_sha256",
+    "provider_reconciliation_receipt_sha256",
+    "provider_readback_sha256_by_target",
+    "imported_unresolved_count",
+    "imported_unresolved_digest",
+    "operator_authority_receipt",
+    "provider_readback_verified",
+    "actions_history_reconciled",
+    "historical_unresolved_transactions_imported",
+    "reconciled_at",
+    "contains_secret_values",
+    "production_release_authorized"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "verdict": { "const": "STAGING_DURABLE_LEDGER_HISTORY_RECONCILED" },
+    "activation_epoch": { "const": "omdala-staging-ledger-v1" },
+    "database_id": { "const": "1f2e0b16-7267-441b-9a48-34fe20a0026b" },
+    "repository": { "const": "tranhatam-collab/omdala.com" },
+    "cutoff_workflow_run_id": { "type": "integer", "minimum": 1 },
+    "workflow_path": { "const": ".github/workflows/staging-transaction.yml" },
+    "workflow_ref": { "const": "refs/heads/main" },
+    "control_plane_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
+    "retained_actions_history_inventory_sha256": { "$ref": "#/$defs/sha256" },
+    "provider_reconciliation_receipt_sha256": { "$ref": "#/$defs/sha256" },
+    "provider_readback_sha256_by_target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["api", "web", "app", "auth", "brand"],
+      "properties": {
+        "api": { "$ref": "#/$defs/sha256" },
+        "web": { "$ref": "#/$defs/sha256" },
+        "app": { "$ref": "#/$defs/sha256" },
+        "auth": { "$ref": "#/$defs/sha256" },
+        "brand": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "imported_unresolved_count": { "const": 0 },
+    "imported_unresolved_digest": { "const": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570" },
+    "operator_authority_receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "environment", "approver_login", "approval_receipt_sha256"],
+      "properties": {
+        "type": { "const": "github-environment-approval" },
+        "environment": { "const": "staging" },
+        "approver_login": { "type": "string", "pattern": "^[A-Za-z0-9-]{1,39}$" },
+        "approval_receipt_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "provider_readback_verified": { "const": true },
+    "actions_history_reconciled": { "const": true },
+    "historical_unresolved_transactions_imported": { "const": true },
+    "reconciled_at": { "type": "string", "format": "date-time" },
+    "contains_secret_values": { "const": false },
+    "production_release_authorized": { "const": false }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  }
+}

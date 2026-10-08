@@ -1,4 +1,5 @@
 import { defineConfig } from "@playwright/test";
+import { resolveStagingPlaywrightOutputPolicy } from "./playwright-staging-policy";
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
@@ -43,19 +44,19 @@ if (!/^[a-f0-9]{40}$/.test(requiredEnvironment("E2E_RELEASE_SHA"))) {
 }
 requiredEnvironment("E2E_API_DEPLOYMENT_ID");
 requiredEnvironment("E2E_SURFACE_RELEASE_ID");
+const { outputDirectory: stagingOutputDirectory, jsonReport: stagingJsonReport } =
+  resolveStagingPlaywrightOutputPolicy(process.env, import.meta.url);
 
 export default defineConfig({
   testDir: "./e2e-staging",
+  outputDir: stagingOutputDirectory,
   fullyParallel: false,
   timeout: 120000,
   retries: 0,
   workers: 1,
-  reporter: process.env.E2E_STAGING_JSON_REPORT
-    ? [
-        ["line"],
-        ["json", { outputFile: process.env.E2E_STAGING_JSON_REPORT }],
-      ]
-    : [["list"]],
+  // The JSON reporter writes to a protected external file. Console reporters are
+  // forbidden because assertion diffs can echo candidate-controlled response data.
+  reporter: [["json", { outputFile: stagingJsonReport }]],
   expect: { timeout: 15000 },
   use: {
     baseURL: appBaseURL,

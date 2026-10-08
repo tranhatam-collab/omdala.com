@@ -152,57 +152,74 @@ describe("staging recovery executor", () => {
   it("attempts the API after an earlier surface rollback fails", () => {
     const directory = mkdtempSync(join(tmpdir(), "omdala-staging-recovery-"));
     try {
-      mkdirSync(join(directory, "recovery-input"), { recursive: true });
+      mkdirSync(join(directory, "services/api"), { recursive: true });
       mkdirSync(join(directory, "infra/staging/surfaces"), { recursive: true });
-      writeFileSync(join(directory, "recovery-input/api-release-wrangler.toml"), "api\n");
-      writeFileSync(join(directory, "infra/staging/surfaces/brand.wrangler.jsonc"), "{}\n");
-      const surfaceDeployed = "50000000-0000-4000-8000-000000000001";
-      const surfaceBaseline = "60000000-0000-4000-8000-000000000001";
+      writeFileSync(join(directory, "services/api/wrangler.release.toml"), "api\n");
+      const credentialPath = join(directory, "provider.json");
+      writeFileSync(credentialPath, JSON.stringify({
+        CLOUDFLARE_API_TOKEN: "test-provider-token",
+        CLOUDFLARE_ACCOUNT_ID: "d".repeat(32),
+      }), { mode: 0o600 });
+      const recoveryOrder = ["brand", "auth", "app", "web", "api"];
+      for (const name of recoveryOrder.slice(0, 4)) {
+        writeFileSync(join(directory, `infra/staging/surfaces/${name}.wrangler.jsonc`), "{}\n");
+      }
+      const versions = Object.fromEntries(recoveryOrder.map((name, index) => [name, {
+        deployed: `5${String(index + 1).padStart(7, "0")}-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+        baseline: `6${String(index + 1).padStart(7, "0")}-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+      }]));
+      versions.api = { deployed: deployedApi, baseline: baselineApi };
       const plan = {
-        schema_version: 1,
+        schema_version: 2,
         verdict: "STAGING_RECOVERY_PLAN_ACCEPTED",
         transaction_id: transactionId,
         candidate_sha: candidateSha,
         control_plane_sha: controlPlaneSha,
-        targets: [
-          {
-            name: "brand",
-            workerName: "omdala-surface-brand-staging",
-            configPath: "infra/staging/surfaces/brand.wrangler.jsonc",
-            deployedVersionId: surfaceDeployed,
-            baselineVersionId: surfaceBaseline,
-            useStagingEnvironment: false,
-          },
-          {
-            name: "api",
-            workerName: "omdala-api-staging",
-            configPath: "recovery-input/api-release-wrangler.toml",
-            deployedVersionId: deployedApi,
-            baselineVersionId: baselineApi,
-            useStagingEnvironment: true,
-          },
-        ],
+        recovery_execution: {
+          repository: "tranhatam-collab/omdala.com",
+          workflow_path: ".github/workflows/staging-transaction.yml",
+          workflow_ref: "tranhatam-collab/omdala.com/.github/workflows/staging-transaction.yml@refs/heads/main",
+          run_id: 456,
+          run_attempt: 1,
+          control_plane_sha: "c".repeat(40),
+        },
+        targets: recoveryOrder.map((name) => ({
+          name,
+          workerName: name === "api" ? "omdala-api-staging" : `omdala-surface-${name}-staging`,
+          configPath: name === "api" ? "services/api/wrangler.release.toml" : `infra/staging/surfaces/${name}.wrangler.jsonc`,
+          journalState: "deployed",
+          disposition: "rollback_required",
+          discoveredVersionId: versions[name].deployed,
+          deployedVersionId: versions[name].deployed,
+          baselineVersionId: versions[name].baseline,
+          useStagingEnvironment: name === "api",
+        })),
+        mutation_targets: recoveryOrder,
       };
       writeFileSync(join(directory, "plan.json"), `${JSON.stringify(plan)}\n`);
-      writeFileSync(join(directory, "brand.state"), `${surfaceDeployed}\n`);
-      writeFileSync(join(directory, "api.state"), `${deployedApi}\n`);
+      for (const name of recoveryOrder) {
+        writeFileSync(join(directory, `${name}.state`), `${versions[name].deployed}\n`);
+      }
       const mock = join(directory, "wrangler-mock.sh");
       writeFileSync(
         mock,
         `#!/usr/bin/env bash
 set -euo pipefail
+test "\${CLOUDFLARE_ACCOUNT_ID:-}" = "${"d".repeat(32)}"
 echo "$*" >> "${directory}/commands.log"
 config=""
 for ((i=1; i<=$#; i++)); do
   if [[ "\${!i}" == "--config" ]]; then j=$((i+1)); config="\${!j}"; fi
 done
+name="$(basename "$config")"
+if [[ "$name" == "wrangler.release.toml" ]]; then name="api"; else name="\${name%.wrangler.jsonc}"; fi
+state="${directory}/$name.state"
 if [[ "$1 $2" == "deployments list" ]]; then
-  if [[ "$config" == *brand* ]]; then state="${directory}/brand.state"; else state="${directory}/api.state"; fi
   version="$(cat "$state")"
   printf '[{"created_on":"2026-01-01T00:00:00Z","versions":[{"version_id":"%s","percentage":100}]}]\n' "$version"
 elif [[ "$1" == "rollback" ]]; then
-  if [[ "$config" == *brand* ]]; then exit 9; fi
-  printf '%s\n' "$2" > "${directory}/api.state"
+  if [[ "$name" == "brand" ]]; then exit 9; fi
+  printf '%s\n' "$2" > "$state"
   printf '{}\n'
 else
   exit 8
@@ -227,13 +244,19 @@ fi
               .join(":"),
             WRANGLER_BIN: mock,
             STAGING_RECOVERY_POLL_SECONDS: "0",
+            STAGING_PROVIDER_CREDENTIAL_FILE: credentialPath,
+            GITHUB_REPOSITORY: "tranhatam-collab/omdala.com",
+            GITHUB_WORKFLOW_REF: "tranhatam-collab/omdala.com/.github/workflows/staging-transaction.yml@refs/heads/main",
+            GITHUB_RUN_ID: "456",
+            GITHUB_RUN_ATTEMPT: "1",
+            GITHUB_SHA: "c".repeat(40),
           },
           encoding: "utf8",
         },
       );
       assert.notEqual(execution.status, 0);
       const commands = readFileSync(join(directory, "commands.log"), "utf8");
-      assert.match(commands, new RegExp(`rollback ${surfaceBaseline}`));
+      assert.match(commands, new RegExp(`rollback ${versions.brand.baseline}`));
       assert.match(commands, new RegExp(`rollback ${baselineApi}`));
       const receiptPath = join(
         directory,
@@ -252,9 +275,9 @@ fi
         receipt.recovery_plan_sha256,
         digest(readFileSync(join(directory, "plan.json"))),
       );
-      assert.equal(receipt.targets.length, 2);
+      assert.equal(receipt.targets.length, 5);
       assert.equal(receipt.targets[0].provider_readback_verified, false);
-      assert.equal(receipt.targets[1].provider_readback_verified, true);
+      assert.equal(receipt.targets.slice(1).every((target) => target.provider_readback_verified), true);
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }

@@ -41,6 +41,10 @@ function actualSources() {
       "scripts/render-api-wrangler-config.mjs",
       "utf8",
     ),
+    apiConfigPolicy: readFileSync(
+      "scripts/staging-api-wrangler-policy.mjs",
+      "utf8",
+    ),
     apiVersionVerifier: readFileSync(
       "scripts/verify-api-version-hyperdrive.mjs",
       "utf8",

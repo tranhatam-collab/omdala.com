@@ -41,6 +41,12 @@ jobs:
     timeout-minutes: 25
     environment: staging
     steps:
+      - name: Disable the legacy staging recovery entry point
+        shell: bash
+        run: |
+          echo "::error::LEGACY_STAGING_MUTATION_ENTRY_POINT_DISABLED"
+          echo "::error::Ordinary staging compensation is owned by the single protected transaction job"
+          exit 1
       - name: Require the trusted staging transaction caller
         shell: bash
         env:

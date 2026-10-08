@@ -60,6 +60,13 @@ jobs:
       SOURCE_PR_NUMBER: ${{ inputs.source_pr_number }}
       STAGING_ACCEPTANCE_RUN_ID: ${{ inputs.staging_acceptance_run_id }}
     steps:
+      - name: Disable the legacy staging mutation entry point
+        if: inputs.environment == 'staging'
+        shell: bash
+        run: |
+          echo "::error::LEGACY_STAGING_MUTATION_ENTRY_POINT_DISABLED"
+          echo "::error::Staging mutation is owned only by the single protected job in staging-transaction.yml"
+          exit 1
       - name: Require the single staging transaction caller before mutation
         shell: bash
         env:

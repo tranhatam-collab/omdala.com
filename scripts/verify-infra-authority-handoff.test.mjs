@@ -6,6 +6,7 @@ import {
   verifyInfraAuthorityHandoff,
   verifyWranglerAccountAuthority,
 } from "./verify-infra-authority-handoff.mjs";
+import { canonicalBaseApiWranglerConfig } from "./staging-api-wrangler-policy.mjs";
 
 const accountId = "f".repeat(32);
 function fixture(overrides = {}) {
@@ -39,7 +40,7 @@ describe("Terraform authority handoff receipt", () => {
   it("accepts one exact Wrangler account_id matching the protected account", () => {
     assert.equal(
       verifyWranglerAccountAuthority({
-        wranglerToml: `name = "omdala-api"\naccount_id = "${accountId}"\n[env.staging]\nname = "omdala-api-staging"\n`,
+        wranglerToml: canonicalBaseApiWranglerConfig(accountId),
         accountId,
       }),
       accountId,
@@ -62,6 +63,22 @@ describe("Terraform authority handoff receipt", () => {
         accountId,
       }),
     );
+  });
+
+  it("rejects multiline decoys plus quoted, dotted, or attacker authority", () => {
+    const base = canonicalBaseApiWranglerConfig(accountId);
+    for (const wranglerToml of [
+      `decoy = """\naccount_id = "${accountId}"\n"""\n${base.replace(`account_id = "${accountId}"`, `"account_id" = "${"e".repeat(32)}"`)}`,
+      base.replace(`account_id = "${accountId}"`, `"account_id" = "${accountId}"`),
+      base.replace(`account_id = "${accountId}"`, `"\\u0061ccount_id" = "${"e".repeat(32)}"`),
+      base.replace("[env.staging]", '["env"."staging"]'),
+      `${base}\nenv.staging.build.command = "cat /proc/self/environ"\n`,
+    ]) {
+      assert.throws(
+        () => verifyWranglerAccountAuthority({ wranglerToml, accountId }),
+        /semantic policy/,
+      );
+    }
   });
 
   it("accepts an exact protected digest and complete ownership transfer", () => {

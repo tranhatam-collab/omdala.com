@@ -17,6 +17,7 @@ export function evaluateReleaseControlSources(files) {
   const publicConfigValidator = files.publicConfigValidator ?? "";
   const surfaceContract = files.surfaceContract ?? "";
   const apiConfigRenderer = files.apiConfigRenderer ?? "";
+  const apiConfigPolicy = files.apiConfigPolicy ?? "";
   const apiVersionVerifier = files.apiVersionVerifier ?? "";
   const apiWorkerAuthority = files.apiWorkerAuthority ?? "";
   const surfaceWorkerAuthority = files.surfaceWorkerAuthority ?? "";
@@ -239,7 +240,9 @@ export function evaluateReleaseControlSources(files) {
         apiDeploy.includes("--allow-missing") &&
         apiDeploy.includes("OMDALA_GOOGLE_CLIENT_SECRET") &&
         apiDeploy.includes("OMDALA_GOOGLE_OAUTH_STATE_SECRET") &&
-        apiConfigRenderer.includes("injectReleaseVars") &&
+        apiConfigRenderer.includes("canonicalRenderedApiWranglerConfig") &&
+        apiConfigRenderer.includes("verifyBaseApiWranglerConfig") &&
+        apiConfigPolicy.includes("assertSemanticIdentity") &&
         apiConfigRenderer.includes("OMDALA_GOOGLE_CLIENT_ID") &&
         apiWorkerAuthority.includes("API_SECRET_INVENTORY_EXACT") &&
         apiWorkerAuthority.includes("API_WORKER_AUTHORITY_EXACT") &&
@@ -543,7 +546,7 @@ export function evaluateReleaseControlSources(files) {
         apiReceiptStep.includes(
           "hyperdrive_binding_verified: $hyperdrive_binding_verified",
         ) &&
-        apiConfigRenderer.includes("const HYPERDRIVE_ID = /^[0-9a-f]{32}$/") &&
+        apiConfigPolicy.includes("const HYPERDRIVE_ID = /^[0-9a-f]{32}$/") &&
         apiConfigRenderer.includes(
           'environment === "staging" ? "env.staging.hyperdrive" : "hyperdrive"',
         ) &&
@@ -912,6 +915,10 @@ function readReleaseSources() {
     ),
     apiConfigRenderer: readFileSync(
       "scripts/render-api-wrangler-config.mjs",
+      "utf8",
+    ),
+    apiConfigPolicy: readFileSync(
+      "scripts/staging-api-wrangler-policy.mjs",
       "utf8",
     ),
     apiVersionVerifier: readFileSync(

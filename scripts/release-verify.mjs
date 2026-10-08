@@ -281,6 +281,7 @@ const steps = [
       "services/api/wrangler.release.toml",
     ],
     env: {
+      CLOUDFLARE_ACCOUNT_ID: "f3f9e76222dcb488d5e303e29e8ba192",
       OMDALA_HYPERDRIVE_ID: "11111111111111111111111111111111",
       OMDALA_GOOGLE_CLIENT_ID:
         "123-release-verify.apps.googleusercontent.com",
@@ -312,6 +313,7 @@ const steps = [
       "services/api/wrangler.release.toml",
     ],
     env: {
+      CLOUDFLARE_ACCOUNT_ID: "f3f9e76222dcb488d5e303e29e8ba192",
       OMDALA_HYPERDRIVE_ID: "22222222222222222222222222222222",
       OMDALA_GOOGLE_CLIENT_ID:
         "123-release-verify.apps.googleusercontent.com",

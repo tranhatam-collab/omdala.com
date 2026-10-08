@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
+import { verifyBaseApiWranglerConfig } from "./staging-api-wrangler-policy.mjs";
 
 export const HANDOFF_ADDRESSES = Object.freeze([
   "cloudflare_worker_script.api",
@@ -10,20 +11,16 @@ export const HANDOFF_ADDRESSES = Object.freeze([
 ]);
 
 export function verifyWranglerAccountAuthority({ wranglerToml, accountId }) {
-  if (!/^[a-f0-9]{32}$/.test(accountId ?? "")) {
-    throw new Error("Protected Cloudflare account ID is invalid.");
-  }
-  const accountAssignments = String(wranglerToml ?? "")
-    .split(/\r?\n/)
-    .map((line) => line.match(/^\s*account_id\s*=\s*["']([a-f0-9]{32})["']\s*(?:#.*)?$/i))
-    .filter(Boolean)
-    .map((match) => match[1].toLowerCase());
-  if (accountAssignments.length !== 1 || accountAssignments[0] !== accountId) {
+  try {
+    return verifyBaseApiWranglerConfig({
+      source: String(wranglerToml ?? ""),
+      accountId,
+    }).accountId;
+  } catch (error) {
     throw new Error(
-      "Wrangler account_id does not match the protected Cloudflare account ID.",
+      `Wrangler account authority does not match the exact protected semantic policy: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
-  return accountAssignments[0];
 }
 
 export function verifyInfraAuthorityHandoff({ bytes, expectedSha256, accountId }) {

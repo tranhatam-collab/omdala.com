@@ -2,6 +2,13 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
+export const EXPECTED_STAGING_SCENARIOS = Object.freeze([
+  Object.freeze({ id: "api-runtime-database", title: "API health binds the deployed runtime to the candidate SHA and database" }),
+  Object.freeze({ id: "five-staging-surfaces", title: "Web, App, Auth, and Brand render from staging" }),
+  Object.freeze({ id: "mail-sink-flows", title: "contact, access request, and magic-link mail flows reach the configured transport" }),
+  Object.freeze({ id: "authenticated-platform-flow", title: "signed session, account readback, AIAGENT boundary, Brand handoff, protected App, and logout work end to end" }),
+]);
+
 function collectTests(suites, target = []) {
   for (const suite of suites ?? []) {
     for (const spec of suite.specs ?? []) {
@@ -27,9 +34,13 @@ export function evaluatePlaywrightReport(report, expectedCount = 4) {
       test.resultStatuses.every((status) => status === "passed"),
   );
   const stats = report?.stats ?? {};
+  const exactTitles = tests.map((test) => test.title);
+  const canonicalTitles = EXPECTED_STAGING_SCENARIOS.map((scenario) => scenario.title);
   const accepted =
+    expectedCount === EXPECTED_STAGING_SCENARIOS.length &&
     tests.length === expectedCount &&
     passed.length === expectedCount &&
+    JSON.stringify(exactTitles) === JSON.stringify(canonicalTitles) &&
     Number(stats.expected) === expectedCount &&
     Number(stats.unexpected) === 0 &&
     Number(stats.flaky) === 0 &&
@@ -40,9 +51,31 @@ export function evaluatePlaywrightReport(report, expectedCount = 4) {
     expectedCount,
     discoveredCount: tests.length,
     executedAndPassedCount: passed.length,
-    stats,
-    tests,
+    stats: {
+      expected: Number(stats.expected),
+      unexpected: Number(stats.unexpected),
+      flaky: Number(stats.flaky),
+      skipped: Number(stats.skipped),
+    },
+    tests: EXPECTED_STAGING_SCENARIOS.map((scenario) => ({
+      id: scenario.id,
+      title: scenario.title,
+      status: accepted ? "passed" : "not_accepted",
+    })),
   };
+}
+
+export function canonicalPlaywrightProjectionSha256(result) {
+  const projection = {
+    accepted: result.accepted,
+    reason: result.reason,
+    expectedCount: result.expectedCount,
+    discoveredCount: result.discoveredCount,
+    executedAndPassedCount: result.executedAndPassedCount,
+    stats: result.stats,
+    tests: result.tests,
+  };
+  return createHash("sha256").update(JSON.stringify(projection)).digest("hex");
 }
 
 function option(name) {
@@ -61,14 +94,14 @@ function main() {
   if (!candidateSha || !/^[0-9a-f]{40}$/.test(candidateSha)) {
     throw new Error("An exact 40-character --sha is required");
   }
-  const reportBytes = readFileSync(reportPath);
-  const report = JSON.parse(reportBytes.toString("utf8"));
+  const report = JSON.parse(readFileSync(reportPath, "utf8"));
   const result = evaluatePlaywrightReport(report, expectedCount);
   const receipt = {
     schemaVersion: 1,
     verdict: result.accepted ? "STAGING_E2E_ACCEPTED" : "STAGING_E2E_BLOCKED",
     candidateSha,
-    reportSha256: createHash("sha256").update(reportBytes).digest("hex"),
+    reportSha256: canonicalPlaywrightProjectionSha256(result),
+    reportDigestScope: "canonical_validated_projection_v1",
     checkedAt: new Date().toISOString(),
     ...result,
   };

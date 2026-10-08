@@ -33,6 +33,23 @@ const EXPECTED_MODELS = Object.freeze([
   "iai-one/echo-mini",
   "iai-one/echo-xl",
 ]);
+const AI_CALL_KEYS = [
+  "api_origin", "authoritative_reconciled_cost_usd", "billing_eligible", "candidate_sha",
+  "catalog_model_count", "catalog_selected", "consumer_version_id", "cost_ledger_status",
+  "created_at", "ledger_entry_id", "model", "provider_origin", "receipt_id", "request_id",
+  "response_body_persisted", "run_id", "schema_version", "secret_values_logged",
+  "server_run_and_receipt_reconciliation_required", "tenant_id", "usage", "verdict", "workspace_id",
+].sort().join(",");
+const AI_RECONCILIATION_KEYS = [
+  "authoritative_reconciled_cost_usd", "candidate_claims_cross_bound", "candidate_sha",
+  "consumer_version_id", "contains_secret_values", "ledger_bundle_sha256",
+  "ledger_contract_version", "ledger_entry_id", "ledger_migration_sha256",
+  "ledger_reconciliation_verified", "ledger_release_sha", "ledger_schema_version",
+  "ledger_version_id", "model", "production_mutated", "provider_bundle_sha256",
+  "provider_origin", "provider_run_readback_verified", "provider_signed_receipt_verified",
+  "provider_source_sha", "provider_version_id", "receipt_hash", "receipt_id", "request_id",
+  "run_id", "schema_version", "tenant_id", "usage", "verdict", "verified_at", "workspace_id",
+].sort().join(",");
 
 function invariant(condition, message) {
   if (!condition) throw new Error(message);
@@ -81,6 +98,7 @@ function exactModelSet(results) {
 
 function validateUsage(usage) {
   invariant(
+    usage && Object.keys(usage).sort().join(",") === "input_tokens,output_tokens,total_tokens" &&
     Number.isSafeInteger(usage?.input_tokens) && usage.input_tokens >= 0 &&
       Number.isSafeInteger(usage?.output_tokens) && usage.output_tokens >= 0 &&
       Number.isSafeInteger(usage?.total_tokens) &&
@@ -206,7 +224,80 @@ export function validateTeamAiReceipt(receipt, { run, candidateSha, consumerVers
   return receipt;
 }
 
-export function validateAiCallEvidence(evidence, { candidateSha, consumerVersionId, teamAiReceipt }) {
+export function validateAiCallReconciliation(reconciliation, {
+  candidateSha,
+  consumerVersionId,
+  teamAiReceipt,
+  aiCallEvidence,
+}) {
+  invariant(
+    reconciliation && Object.keys(reconciliation).sort().join(",") === AI_RECONCILIATION_KEYS,
+    "Trusted OMDALA AI call reconciliation keys are not exact.",
+  );
+  invariant(
+    reconciliation.schema_version === 1 &&
+      reconciliation.verdict === "STAGING_OMDALA_AI_CALL_PROVIDER_RECONCILED",
+    "Trusted OMDALA AI call reconciliation is not accepted.",
+  );
+  invariant(
+    reconciliation.candidate_sha === candidateSha &&
+      reconciliation.consumer_version_id === consumerVersionId,
+    "Trusted OMDALA AI call reconciliation consumer identity mismatch.",
+  );
+  invariant(reconciliation.provider_origin === "https://staging-api.aiagent.iai.one", "Trusted AI provider origin mismatch.");
+  invariant(
+    reconciliation.provider_source_sha === teamAiReceipt.provider_source_sha &&
+      reconciliation.provider_version_id === teamAiReceipt.provider_version_id &&
+      reconciliation.provider_bundle_sha256 === teamAiReceipt.provider_bundle_sha256,
+    "Trusted AI provider authority mismatch.",
+  );
+  invariant(
+    reconciliation.ledger_release_sha === teamAiReceipt.ledger_release_sha &&
+      reconciliation.ledger_version_id === teamAiReceipt.ledger_version_id &&
+      reconciliation.ledger_bundle_sha256 === teamAiReceipt.ledger_bundle_sha256 &&
+      reconciliation.ledger_contract_version === teamAiReceipt.ledger_contract_version &&
+      reconciliation.ledger_schema_version === teamAiReceipt.ledger_schema_version &&
+      reconciliation.ledger_migration_sha256 === teamAiReceipt.ledger_migration_sha256,
+    "Trusted AI ledger authority mismatch.",
+  );
+  invariant(
+    reconciliation.tenant_id === TENANT_ID && reconciliation.workspace_id === WORKSPACE_ID,
+    "Trusted OMDALA AI call reconciliation tenant/workspace mismatch.",
+  );
+  for (const field of ["model", "request_id", "run_id", "receipt_id", "ledger_entry_id"]) {
+    invariant(reconciliation[field] === aiCallEvidence[field], `Trusted OMDALA AI call ${field} mismatch.`);
+  }
+  invariant(
+    JSON.stringify(reconciliation.usage) === JSON.stringify(aiCallEvidence.usage),
+    "Trusted OMDALA AI call usage mismatch.",
+  );
+  validateUsage(reconciliation.usage);
+  const trustedCost = finiteCost(
+    reconciliation.authoritative_reconciled_cost_usd,
+    "Trusted authenticated AI call reconciled cost",
+  );
+  invariant(
+    trustedCost === aiCallEvidence.authoritative_reconciled_cost_usd,
+    "Trusted OMDALA AI call cost mismatch.",
+  );
+  invariant(SHA256.test(reconciliation.receipt_hash ?? ""), "Trusted provider receipt hash is invalid.");
+  invariant(
+    reconciliation.provider_run_readback_verified === true &&
+      reconciliation.provider_signed_receipt_verified === true &&
+      reconciliation.ledger_reconciliation_verified === true &&
+      reconciliation.candidate_claims_cross_bound === true,
+    "Trusted OMDALA AI call reconciliation is incomplete.",
+  );
+  invariant(
+    reconciliation.contains_secret_values === false && reconciliation.production_mutated === false,
+    "Trusted OMDALA AI call reconciliation is unsafe.",
+  );
+  invariant(Number.isFinite(Date.parse(reconciliation.verified_at ?? "")), "Trusted OMDALA AI call reconciliation timestamp is invalid.");
+  return reconciliation;
+}
+
+export function validateAiCallEvidence(evidence, { candidateSha, consumerVersionId, teamAiReceipt, reconciliation }) {
+  invariant(evidence && Object.keys(evidence).sort().join(",") === AI_CALL_KEYS, "Authenticated OMDALA AI call evidence keys are not exact.");
   invariant(evidence?.schema_version === 1 && evidence?.verdict === "STAGING_AI_CALL_ACCEPTED", "Authenticated OMDALA AI call evidence is not accepted.");
   invariant(evidence?.candidate_sha === candidateSha, "AI call evidence candidate SHA mismatch.");
   invariant(evidence?.consumer_version_id === consumerVersionId, "AI call evidence consumer version mismatch.");
@@ -229,10 +320,16 @@ export function validateAiCallEvidence(evidence, { candidateSha, consumerVersion
   invariant(evidence?.server_run_and_receipt_reconciliation_required === true, "Authenticated AI call is not bound to server run/receipt reconciliation.");
   invariant(evidence?.response_body_persisted === false && evidence?.secret_values_logged === false, "AI call evidence is not non-secret/minimal.");
   invariant(Number.isFinite(Date.parse(evidence?.created_at ?? "")), "AI call evidence timestamp is invalid.");
+  validateAiCallReconciliation(reconciliation, {
+    candidateSha,
+    consumerVersionId,
+    teamAiReceipt,
+    aiCallEvidence: evidence,
+  });
   return evidence;
 }
 
-export function buildStagingAiChain({ run, receipt, receiptSha256, runSha256, aiCallEvidence, aiCallEvidenceSha256 }) {
+export function buildStagingAiChain({ run, receipt, receiptSha256, runSha256, aiCallEvidence, reconciliation }) {
   return {
     schema_version: 1,
     verdict: "STAGING_AI_CHAIN_ACCEPTED",
@@ -286,22 +383,16 @@ export function buildStagingAiChain({ run, receipt, receiptSha256, runSha256, ai
         post_revoke_status: receipt.post_revoke_status,
       },
     },
-    total_live_acceptance_cost_usd: Number(
-      (receipt.reconciled_cost_usd + aiCallEvidence.authoritative_reconciled_cost_usd).toFixed(12),
-    ),
     authenticated_omdala_ai_call: {
-      evidence_sha256: aiCallEvidenceSha256,
       candidate_sha: aiCallEvidence.candidate_sha,
       consumer_version_id: aiCallEvidence.consumer_version_id,
-      model: aiCallEvidence.model,
-      request_id: aiCallEvidence.request_id,
-      run_id: aiCallEvidence.run_id,
-      receipt_id: aiCallEvidence.receipt_id,
-      ledger_entry_id: aiCallEvidence.ledger_entry_id,
-      usage: aiCallEvidence.usage,
-      authoritative_reconciled_cost_usd: aiCallEvidence.authoritative_reconciled_cost_usd,
       tenant_id: aiCallEvidence.tenant_id,
       workspace_id: aiCallEvidence.workspace_id,
+      provider_run_readback_verified: reconciliation.provider_run_readback_verified,
+      provider_signed_receipt_verified: reconciliation.provider_signed_receipt_verified,
+      ledger_reconciliation_verified: reconciliation.ledger_reconciliation_verified,
+      authenticated_consumer_path_verified: true,
+      candidate_runtime_values_omitted: true,
     },
     secret_values_logged: false,
     production_mutated: false,
@@ -317,23 +408,29 @@ function main() {
   const runPath = option("--run");
   const receiptPath = option("--receipt");
   const aiCallEvidencePath = option("--ai-call-evidence");
+  const aiReconciliationPath = option("--ai-reconciliation");
   const candidateSha = option("--candidate-sha");
   const consumerVersionId = option("--consumer-version-id");
   const expectedRunId = option("--run-id");
   const outputPath = option("--output") ?? "staging-ai-chain.json";
-  invariant(runPath && receiptPath && aiCallEvidencePath, "--run, --receipt, and --ai-call-evidence are required.");
+  invariant(
+    runPath && receiptPath && aiCallEvidencePath && aiReconciliationPath,
+    "--run, --receipt, --ai-call-evidence, and --ai-reconciliation are required.",
+  );
   invariant(FULL_SHA.test(candidateSha ?? ""), "--candidate-sha must be a full lowercase Git SHA.");
   invariant(UUID.test(consumerVersionId ?? ""), "--consumer-version-id must be an exact deployment UUID.");
 
   const runDocument = readJson(runPath, "Team AI workflow run metadata");
   const receiptDocument = readJson(receiptPath, "Team AI protected staging receipt");
   const aiCallDocument = readJson(aiCallEvidencePath, "Authenticated OMDALA AI call evidence");
+  const reconciliationDocument = readJson(aiReconciliationPath, "Trusted OMDALA AI call reconciliation");
   const run = validateTeamAiRun(runDocument.value, expectedRunId);
   const receipt = validateTeamAiReceipt(receiptDocument.value, { run, candidateSha, consumerVersionId });
   const aiCallEvidence = validateAiCallEvidence(aiCallDocument.value, {
     candidateSha,
     consumerVersionId,
     teamAiReceipt: receipt,
+    reconciliation: reconciliationDocument.value,
   });
   const chain = buildStagingAiChain({
     run,
@@ -341,7 +438,7 @@ function main() {
     receiptSha256: receiptDocument.sha256,
     runSha256: runDocument.sha256,
     aiCallEvidence,
-    aiCallEvidenceSha256: aiCallDocument.sha256,
+    reconciliation: reconciliationDocument.value,
   });
   const output = `${JSON.stringify(chain, null, 2)}\n`;
   writeFileSync(outputPath, output, "utf8");
@@ -353,7 +450,6 @@ function main() {
       [
         `staging_ai_chain_sha256=${chainSha256}`,
         `team_ai_receipt_sha256=${receiptDocument.sha256}`,
-        `ai_call_evidence_sha256=${aiCallDocument.sha256}`,
         `provider_source_sha=${receipt.provider_source_sha}`,
         `provider_version_id=${receipt.provider_version_id}`,
         `provider_bundle_sha256=${receipt.provider_bundle_sha256}`,
