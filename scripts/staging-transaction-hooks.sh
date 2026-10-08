@@ -225,9 +225,9 @@ case "$phase" in
         test -f "$secret_bundle"
         test ! -L "$secret_bundle"
         provider_secret_bundle="$provider_tmpdir/api-secrets.json"
+        trap 'sudo rm -f "$provider_secret_bundle"; rm -f "$secret_bundle"' EXIT
         sudo install -o "$STAGING_PROVIDER_UID" -g "$STAGING_PROVIDER_UID" -m 600 \
           "$secret_bundle" "$provider_secret_bundle"
-        trap 'sudo rm -f "$provider_secret_bundle"; rm -f "$secret_bundle"' EXIT
         provider_exec deploy --config "$api_config" --env staging --strict \
           --message "$release_id" --secrets-file "$provider_secret_bundle" \
           --outdir "$provider_outdir" < /dev/null
@@ -275,6 +275,18 @@ case "$phase" in
       exit 1
     fi
     test -r "$provider_credential_file"
+    terminate_acceptance_uid() {
+      sudo pkill -TERM -U "$e2e_uid" 2>/dev/null || true
+      for _ in 1 2 3 4 5; do
+        if ! sudo pgrep -U "$e2e_uid" >/dev/null 2>&1; then
+          return 0
+        fi
+        sleep 1
+      done
+      sudo pkill -KILL -U "$e2e_uid" 2>/dev/null || true
+      ! sudo pgrep -U "$e2e_uid" >/dev/null 2>&1
+    }
+    trap 'terminate_acceptance_uid || true' EXIT
     (
       cd "$control_plane_root"
       sudo --non-interactive --user="#$e2e_uid" -- env -i \
@@ -297,10 +309,20 @@ case "$phase" in
         "$control_plane_root/apps/app/node_modules/.bin/playwright" test \
           --config "$control_plane_root/apps/app/playwright.staging.config.ts"
     )
-    sudo chown -R "$(id -u):$(id -g)" "$e2e_output_dir"
+    terminate_acceptance_uid
+    trap - EXIT
+    e2e_files=()
     for e2e_file in staging-e2e-results.json staging-ai-call-evidence.json staging-mail-sink-evidence.json; do
-      test -f "$e2e_output_dir/$e2e_file"
+      e2e_file="$e2e_output_dir/$e2e_file"
+      sudo test ! -L "$e2e_file"
+      test "$(sudo stat -c '%F' -- "$e2e_file")" = "regular file"
+      test "$(sudo stat -c '%u' -- "$e2e_file")" = "$e2e_uid"
+      e2e_files+=("$e2e_file")
     done
+    sudo rm -rf -- "$e2e_output_dir/playwright"
+    sudo chown "$(id -u):$(id -g)" -- "$e2e_output_dir" "${e2e_files[@]}"
+    sudo chmod 700 "$e2e_output_dir"
+    sudo chmod 600 "${e2e_files[@]}"
     node "$control_plane_root/scripts/playwright-staging-receipt.mjs" \
       --report "$e2e_output_dir/staging-e2e-results.json" \
       --receipt "$evidence_dir/staging-e2e-receipt.json" \
@@ -415,6 +437,7 @@ case "$phase" in
     ;;
   cleanup)
     rm -f "$secret_bundle" "$database_credential_file" "$e2e_credential_file"
+    [[ -z "${STAGING_PROVIDER_TMPDIR:-}" ]] || sudo rm -f "$STAGING_PROVIDER_TMPDIR/api-secrets.json"
     [[ -z "$ai_reconciliation_credential_file" ]] || rm -f "$ai_reconciliation_credential_file"
     [[ -z "$team_ai_credential_file" ]] || rm -f "$team_ai_credential_file"
     ;;

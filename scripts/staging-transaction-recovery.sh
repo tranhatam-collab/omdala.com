@@ -40,16 +40,23 @@ worker_for_target() {
 }
 
 verify_provider_absence() {
-  local name="$1" phase="$2" token account_id worker raw receipt http_status
+  local name="$1" phase="$2" token account_id worker raw receipt http_status authorization_header_file curl_status
   token="$(jq -er '.CLOUDFLARE_API_TOKEN | select(type == "string" and length > 0)' "$provider_credential_file")" || return 1
+  [[ "$token" != *$'\n'* && "$token" != *$'\r'* ]] || return 1
   account_id="$(jq -er '.CLOUDFLARE_ACCOUNT_ID | select(type == "string" and test("^[a-f0-9]{32}$"))' "$provider_credential_file")" || return 1
   worker="$(worker_for_target "$name")" || return 1
   raw="$output_dir/provider/${name}-${phase}-scripts-inventory.json"
   receipt="$output_dir/provider/${name}-${phase}-absence-authority.json"
+  authorization_header_file="$(mktemp "${raw}.authorization.XXXXXX")" || return 1
+  chmod 600 "$authorization_header_file"
+  printf 'Authorization: Bearer %s\nAccept: application/json\n' "$token" > "$authorization_header_file"
+  curl_status=0
   http_status="$(curl --retry 3 --retry-all-errors --silent --show-error \
     --output "${raw}.tmp" --write-out '%{http_code}' \
-    --header "Authorization: Bearer $token" --header 'Accept: application/json' \
-    "https://api.cloudflare.com/client/v4/accounts/$account_id/workers/scripts?page=1&per_page=1000")" || return 1
+    --header "@$authorization_header_file" \
+    "https://api.cloudflare.com/client/v4/accounts/$account_id/workers/scripts?page=1&per_page=1000")" || curl_status=$?
+  rm -f "$authorization_header_file"
+  [[ "$curl_status" == "0" ]] || return "$curl_status"
   [[ "$http_status" == "200" ]] || return 1
   mv "${raw}.tmp" "$raw"
   node "$script_root/verify-cloudflare-worker-absence.mjs" --inventory "$raw" \

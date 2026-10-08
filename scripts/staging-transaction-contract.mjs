@@ -260,7 +260,10 @@ export function evaluateStagingTransactionSources({
       pass:
         [orchestrator, executor, recoveryScript].every((source) =>
           source.includes("verify-cloudflare-worker-absence.mjs") &&
-          source.includes("workers/scripts?page=1&per_page=1000")) &&
+          source.includes("workers/scripts?page=1&per_page=1000") &&
+          source.includes('--header "@$authorization_header_file"') &&
+          !source.includes('--header "Authorization: Bearer $provider_token"') &&
+          !source.includes('--header "Authorization: Bearer $token"')) &&
         [orchestrator, executor, recoveryScript, hooks].every((source) =>
           !source.includes('grep -Eqi "does not exist|could not find|10007"')) &&
         hooks.includes("STAGING_WORKER_ABSENCE_EXACT") &&
@@ -305,7 +308,13 @@ export function evaluateStagingTransactionSources({
         hooks.includes('provider_secret_bundle="$provider_tmpdir/api-secrets.json"') &&
         hooks.includes('-o "$STAGING_PROVIDER_UID" -g "$STAGING_PROVIDER_UID" -m 600') &&
         hooks.includes("trap 'sudo rm -f \"$provider_secret_bundle\"; rm -f \"$secret_bundle\"' EXIT") &&
+        ordered(hooks, [
+          "trap 'sudo rm -f \"$provider_secret_bundle\"; rm -f \"$secret_bundle\"' EXIT",
+          'sudo install -o "$STAGING_PROVIDER_UID" -g "$STAGING_PROVIDER_UID" -m 600',
+          "provider_exec deploy",
+        ]) &&
         hooks.includes('sudo rm -f "$provider_secret_bundle"') &&
+        hooks.includes('sudo rm -f "$STAGING_PROVIDER_TMPDIR/api-secrets.json"') &&
         hooks.includes('rm -f "$e2e_credential_file"') &&
         hooks.includes('rm -f "$team_ai_credential_file"') &&
         hooks.includes('rm -f "$ai_reconciliation_credential_file"') &&
@@ -313,6 +322,11 @@ export function evaluateStagingTransactionSources({
         hooks.includes('test ! -e "$secret_bundle"') &&
         hooks.includes('sudo --non-interactive --user="#$e2e_uid" -- test -r "$provider_credential_file"') &&
         hooks.includes('sudo --non-interactive --user="#$e2e_uid" -- env -i') &&
+        hooks.includes("terminate_acceptance_uid") &&
+        hooks.includes('sudo pkill -KILL -U "$e2e_uid"') &&
+        hooks.includes("test \"$(sudo stat -c '%F' -- \"$e2e_file\")\" = \"regular file\"") &&
+        hooks.includes('sudo chown "$(id -u):$(id -g)" -- "$e2e_output_dir" "${e2e_files[@]}"') &&
+        !hooks.includes('sudo chown -R "$(id -u):$(id -g)" "$e2e_output_dir"') &&
         hooks.includes('E2E_STAGING_JSON_REPORT="$e2e_output_dir/staging-e2e-results.json"') &&
         hooks.includes('test -r "$provider_credential_file"'),
     },

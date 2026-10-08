@@ -203,6 +203,13 @@ describe("unified staging transaction source contract", () => {
       "inventory.result_info.total_pages >= 1",
     );
     assert.equal(check(evaluateStagingTransactionSources(incomplete), "PROVIDER_ABSENCE_USES_EXACT_ACCOUNT_INVENTORY"), false);
+
+    const tokenInArgv = sources();
+    tokenInArgv.executor = tokenInArgv.executor.replace(
+      '--header "@$authorization_header_file"',
+      '--header "Authorization: Bearer $token"',
+    );
+    assert.equal(check(evaluateStagingTransactionSources(tokenInArgv), "PROVIDER_ABSENCE_USES_EXACT_ACCOUNT_INVENTORY"), false);
   });
 
   it("rejects secrets in the executor step environment", () => {
@@ -232,6 +239,26 @@ describe("unified staging transaction source contract", () => {
     );
     assert.equal(
       check(evaluateStagingTransactionSources(retainedDatabase), "CANDIDATE_E2E_OS_IDENTITY_ISOLATED"),
+      false,
+    );
+
+    const liveAcceptanceProcesses = sources();
+    liveAcceptanceProcesses.hooks = liveAcceptanceProcesses.hooks.replace(
+      'sudo pkill -KILL -U "$e2e_uid"',
+      ': # acceptance processes left running',
+    );
+    assert.equal(
+      check(evaluateStagingTransactionSources(liveAcceptanceProcesses), "CANDIDATE_E2E_OS_IDENTITY_ISOLATED"),
+      false,
+    );
+
+    const recursiveOwnership = sources();
+    recursiveOwnership.hooks = recursiveOwnership.hooks.replace(
+      'sudo chown "$(id -u):$(id -g)" -- "$e2e_output_dir" "${e2e_files[@]}"',
+      'sudo chown -R "$(id -u):$(id -g)" "$e2e_output_dir"',
+    );
+    assert.equal(
+      check(evaluateStagingTransactionSources(recursiveOwnership), "CANDIDATE_E2E_OS_IDENTITY_ISOLATED"),
       false,
     );
   });
