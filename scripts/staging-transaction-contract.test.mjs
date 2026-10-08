@@ -206,7 +206,7 @@ describe("unified staging transaction source contract", () => {
 
     const tokenInArgv = sources();
     tokenInArgv.executor = tokenInArgv.executor.replace(
-      '--header "@$authorization_header_file"',
+      "curl --config -",
       '--header "Authorization: Bearer $token"',
     );
     assert.equal(check(evaluateStagingTransactionSources(tokenInArgv), "PROVIDER_ABSENCE_USES_EXACT_ACCOUNT_INVENTORY"), false);
@@ -259,6 +259,16 @@ describe("unified staging transaction source contract", () => {
     );
     assert.equal(
       check(evaluateStagingTransactionSources(recursiveOwnership), "CANDIDATE_E2E_OS_IDENTITY_ISOLATED"),
+      false,
+    );
+
+    const replacedOutputDirectory = sources();
+    replacedOutputDirectory.hooks = replacedOutputDirectory.hooks.replace(
+      'test "$(sudo stat -c \'%d:%i\' -- "$e2e_output_dir")" = "$e2e_output_dir_identity"',
+      ': # output directory identity not rebound after untrusted execution',
+    );
+    assert.equal(
+      check(evaluateStagingTransactionSources(replacedOutputDirectory), "CANDIDATE_E2E_OS_IDENTITY_ISOLATED"),
       false,
     );
   });

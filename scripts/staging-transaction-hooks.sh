@@ -265,6 +265,7 @@ case "$phase" in
     e2e_home="${STAGING_E2E_HOME:?STAGING_E2E_HOME is required}"
     e2e_tmpdir="${STAGING_E2E_TMPDIR:?STAGING_E2E_TMPDIR is required}"
     e2e_output_dir="${STAGING_E2E_OUTPUT_DIR:?STAGING_E2E_OUTPUT_DIR is required}"
+    e2e_output_dir_identity="${STAGING_E2E_OUTPUT_DIR_IDENTITY:?STAGING_E2E_OUTPUT_DIR_IDENTITY is required}"
     [[ "$e2e_uid" =~ ^[1-9][0-9]*$ ]]
     test "$e2e_uid" != "$(id -u)"
     test "$(stat -c '%u' "$e2e_home")" = "$e2e_uid"
@@ -311,6 +312,10 @@ case "$phase" in
     )
     terminate_acceptance_uid
     trap - EXIT
+    sudo test ! -L "$e2e_output_dir"
+    test "$(sudo stat -c '%F' -- "$e2e_output_dir")" = "directory"
+    test "$(sudo stat -c '%u' -- "$e2e_output_dir")" = "$e2e_uid"
+    test "$(sudo stat -c '%d:%i' -- "$e2e_output_dir")" = "$e2e_output_dir_identity"
     e2e_files=()
     for e2e_file in staging-e2e-results.json staging-ai-call-evidence.json staging-mail-sink-evidence.json; do
       e2e_file="$e2e_output_dir/$e2e_file"

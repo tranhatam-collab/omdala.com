@@ -626,6 +626,7 @@ jobs:
             echo "STAGING_E2E_HOME=$acceptance_home"
             echo "STAGING_E2E_TMPDIR=$acceptance_tmp"
             echo "STAGING_E2E_OUTPUT_DIR=$acceptance_output"
+            echo "STAGING_E2E_OUTPUT_DIR_IDENTITY=$(sudo stat -c '%d:%i' -- "$acceptance_output")"
             echo "PLAYWRIGHT_BROWSERS_PATH=$acceptance_browsers"
           } >> "$GITHUB_ENV"
 
@@ -690,21 +691,17 @@ jobs:
         run: |
           set -euo pipefail
           provider_token="$(jq -er '.CLOUDFLARE_API_TOKEN' "$STAGING_PROVIDER_CREDENTIAL_FILE")"
-          [[ "$provider_token" != *$'\n'* && "$provider_token" != *$'\r'* ]]
+          [[ "$provider_token" =~ ^[A-Za-z0-9._~-]+$ ]]
           account_id="$(jq -er '.CLOUDFLARE_ACCOUNT_ID' "$STAGING_PROVIDER_CREDENTIAL_FILE")"
           node "$CONTROL_PLANE_ROOT/scripts/verify-infra-authority-handoff.mjs" --wrangler-config services/api/wrangler.toml --account-id "$account_id"
           mkdir -p "$STAGING_TRANSACTION_EVIDENCE_DIR/provider-pre" "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule"
           provider_scripts_inventory() {
-            local inventory="$1" authorization_header_file http_status curl_status
-            authorization_header_file="$(mktemp "${inventory}.authorization.XXXXXX")" || return 1
-            chmod 600 "$authorization_header_file"
-            printf 'Authorization: Bearer %s\nAccept: application/json\n' "$provider_token" > "$authorization_header_file"
+            local inventory="$1" http_status curl_status
             curl_status=0
-            http_status="$(curl --retry 3 --retry-all-errors --silent --show-error \
-              --output "$inventory.tmp" --write-out '%{http_code}' \
-              --header "@$authorization_header_file" \
-              "https://api.cloudflare.com/client/v4/accounts/$account_id/workers/scripts?page=1&per_page=1000")" || curl_status=$?
-            rm -f "$authorization_header_file"
+            http_status="$(printf 'header = "Authorization: Bearer %s"\nheader = "Accept: application/json"\n' "$provider_token" | \
+              curl --config - --retry 3 --retry-all-errors --silent --show-error \
+                --output "$inventory.tmp" --write-out '%{http_code}' \
+                "https://api.cloudflare.com/client/v4/accounts/$account_id/workers/scripts?page=1&per_page=1000")" || curl_status=$?
             [[ "$curl_status" == "0" ]] || return "$curl_status"
             printf '%s\n' "$http_status"
           }

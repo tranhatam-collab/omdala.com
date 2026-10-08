@@ -261,7 +261,9 @@ export function evaluateStagingTransactionSources({
         [orchestrator, executor, recoveryScript].every((source) =>
           source.includes("verify-cloudflare-worker-absence.mjs") &&
           source.includes("workers/scripts?page=1&per_page=1000") &&
-          source.includes('--header "@$authorization_header_file"') &&
+          source.includes("curl --config -") &&
+          source.includes('header = "Authorization: Bearer %s"') &&
+          !source.includes("authorization_header_file") &&
           !source.includes('--header "Authorization: Bearer $provider_token"') &&
           !source.includes('--header "Authorization: Bearer $token"')) &&
         [orchestrator, executor, recoveryScript, hooks].every((source) =>
@@ -303,6 +305,7 @@ export function evaluateStagingTransactionSources({
         orchestrator.includes('candidate_build_state_reused_for_acceptance:false') &&
         orchestrator.includes('acceptance_identity_fresh_and_distinct:') &&
         orchestrator.includes('provider_credential_readable_by_candidate:false') &&
+        orchestrator.includes('STAGING_E2E_OUTPUT_DIR_IDENTITY=$(sudo stat -c \'%d:%i\' -- "$acceptance_output")') &&
         orchestrator.includes('sudo --non-interactive --user="#$e2e_uid" -- test -r "$protected_file"') &&
         hooks.includes('rm -f "$database_credential_file"') &&
         hooks.includes('provider_secret_bundle="$provider_tmpdir/api-secrets.json"') &&
@@ -324,6 +327,9 @@ export function evaluateStagingTransactionSources({
         hooks.includes('sudo --non-interactive --user="#$e2e_uid" -- env -i') &&
         hooks.includes("terminate_acceptance_uid") &&
         hooks.includes('sudo pkill -KILL -U "$e2e_uid"') &&
+        hooks.includes('sudo test ! -L "$e2e_output_dir"') &&
+        hooks.includes("test \"$(sudo stat -c '%F' -- \"$e2e_output_dir\")\" = \"directory\"") &&
+        hooks.includes("test \"$(sudo stat -c '%d:%i' -- \"$e2e_output_dir\")\" = \"$e2e_output_dir_identity\"") &&
         hooks.includes("test \"$(sudo stat -c '%F' -- \"$e2e_file\")\" = \"regular file\"") &&
         hooks.includes('sudo chown "$(id -u):$(id -g)" -- "$e2e_output_dir" "${e2e_files[@]}"') &&
         !hooks.includes('sudo chown -R "$(id -u):$(id -g)" "$e2e_output_dir"') &&
