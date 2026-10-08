@@ -1,0 +1,23 @@
+# Node and package managers
+node_modules/
+npm-debug.log*
+
+# Build artifacts
+dist/
+coverage/
+
+# Env files
+.env
+*.env.local
+backend/.env
+web/.env
+gateway/.env
+
+# Runtime data
+backend/data/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log

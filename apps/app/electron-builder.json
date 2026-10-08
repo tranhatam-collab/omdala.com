@@ -1,0 +1,24 @@
+{
+  "appId": "com.omdala.omcode",
+  "productName": "OMCODE",
+  "directories": {
+    "output": "dist-electron"
+  },
+  "files": [
+    "electron.js",
+    "preload.js",
+    "out/**/*",
+    "public/**/*"
+  ],
+  "mac": {
+    "category": "public.app-category.developer-tools",
+    "icon": "public/icon.png"
+  },
+  "win": {
+    "icon": "public/icon.png"
+  },
+  "linux": {
+    "icon": "public/icon.png",
+    "category": "Development"
+  }
+}

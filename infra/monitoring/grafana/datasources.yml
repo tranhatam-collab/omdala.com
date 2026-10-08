@@ -1,0 +1,21 @@
+apiVersion: 1
+
+datasources:
+  - name: PostgreSQL
+    type: postgres
+    url: postgres:5432
+    database: omdala_prod
+    user: omdala_readonly
+    secureJsonData:
+      password: '${POSTGRES_READONLY_PASSWORD}'
+    jsonData:
+      sslmode: disable
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+
+  - name: Prometheus
+    type: prometheus
+    url: http://prometheus:9090
+    access: proxy
+    isDefault: true

@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "evidence_type": "READ_ONLY_REMOTE_PROBE",
+  "generated_at": "2026-08-14T11:09:47.670Z",
+  "command_mode": "source-and-read-only-remote",
+  "guardrails": [
+    "no deploy",
+    "no secret mutation",
+    "no migration apply",
+    "secret values never requested"
+  ],
+  "repository": {
+    "remote": "git@github.com:tranhatam-collab/omdala.com.git",
+    "branch": "OMCODE/infra-completion-cross-team-20260814",
+    "base_head": "1c338b835e05f631c7b2bb9e5d8f3fec2028de75"
+  },
+  "toolchain": {
+    "node": "22.22.3",
+    "pnpm": "9.15.0"
+  },
+  "remote_checks": {
+    "workers": [
+      {
+        "id": "omdala-api-production",
+        "state": "BLOCKED",
+        "reason": "authentication_required",
+        "exit_code": 1
+      },
+      {
+        "id": "omdala-api-staging",
+        "state": "BLOCKED",
+        "reason": "authentication_required",
+        "exit_code": 1
+      }
+    ],
+    "d1": [
+      {
+        "id": "omdala-global-staging",
+        "state": "BLOCKED",
+        "table_count": null,
+        "reason": "authentication_required"
+      },
+      {
+        "id": "omdala-auth-staging",
+        "state": "BLOCKED",
+        "table_count": null,
+        "reason": "authentication_required"
+      },
+      {
+        "id": "omdala-audit-staging",
+        "state": "BLOCKED",
+        "table_count": null,
+        "reason": "authentication_required"
+      }
+    ],
+    "health": [
+      {
+        "id": "omdala-api-production",
+        "state": "CONTRADICTED",
+        "http_status": 522,
+        "content_type": "application/json; charset=utf-8",
+        "release_sha": null,
+        "deployment_id": null,
+        "application_ok": null,
+        "application_status": 522
+      },
+      {
+        "id": "aiagent-provider-gateway",
+        "state": "VERIFIED_CURRENT",
+        "http_status": 200,
+        "content_type": "application/json",
+        "release_sha": null,
+        "deployment_id": null,
+        "application_ok": null,
+        "application_status": "ok",
+        "provenance": "reported target; independently probed by this script"
+      },
+      {
+        "id": "nguyenai-owner-os",
+        "state": "VERIFIED_CURRENT",
+        "http_status": 200,
+        "content_type": "application/json",
+        "release_sha": null,
+        "deployment_id": null,
+        "application_ok": true,
+        "application_status": "ready",
+        "provenance": "reported target; independently probed by this script"
+      }
+    ]
+  }
+}

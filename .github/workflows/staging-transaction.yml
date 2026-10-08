@@ -1,0 +1,1290 @@
+name: OMDALA Staging Transaction
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Deploy a new candidate or recover one explicit unresolved capsule
+        required: true
+        default: deploy
+        type: choice
+        options:
+          - deploy
+          - recovery-only
+      candidate_sha:
+        description: Exact full candidate SHA (deploy mode only)
+        required: false
+        type: string
+      source_pr_number:
+        description: Pull request with independent approval (deploy mode only)
+        required: false
+        type: string
+      team_ai_staging_acceptance_run_id:
+        description: Protected Team AI baseline run whose provider and ledger identities seed a fresh post-deploy acceptance (deploy mode only)
+        required: false
+        type: string
+      recovery_run_id:
+        description: Original unresolved workflow run ID (recovery-only mode only)
+        required: false
+        type: string
+      confirmation:
+        description: DEPLOY_OMDALA_STAGING_TRANSACTION or RECOVER_OMDALA_STAGING_TRANSACTION
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: omdala-staging-transaction
+  cancel-in-progress: false
+
+jobs:
+  transaction:
+    name: Protected deploy or recovery-only staging transaction
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    environment: staging
+    services:
+      restore_postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: restore
+          POSTGRES_PASSWORD: restore-only-ci-password
+          POSTGRES_DB: omdala_restore
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U restore -d omdala_restore"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      TRANSACTION_MODE: ${{ inputs.mode }}
+      DISPATCH_CONFIRMATION: ${{ inputs.confirmation }}
+      DISPATCH_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      DISPATCH_RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+      CONTROL_PLANE_SHA: ${{ github.sha }}
+      SOURCE_PR_NUMBER: ${{ inputs.source_pr_number }}
+      TEAM_AI_BASELINE_RUN_ID: ${{ inputs.team_ai_staging_acceptance_run_id }}
+      STAGING_AI_COST_CEILING_USD: "0.25"
+      CANDIDATE_ROOT: ${{ github.workspace }}/candidate
+      CONTROL_PLANE_ROOT: ${{ github.workspace }}/control-plane
+      STAGING_TRANSACTION_EVIDENCE_DIR: ${{ github.workspace }}/transaction-evidence
+      STAGING_TRANSACTION_JOURNAL: ${{ github.workspace }}/transaction-evidence/capsule/transaction-journal.json
+      API_WRANGLER_CONFIG: ${{ github.workspace }}/candidate/services/api/wrangler.release.toml
+      STAGING_PROVIDER_CREDENTIAL_FILE: ${{ github.workspace }}/.runtime/provider.json
+      STAGING_DATABASE_CREDENTIAL_FILE: ${{ github.workspace }}/.runtime/database.json
+      STAGING_E2E_CREDENTIAL_FILE: ${{ github.workspace }}/.runtime/e2e.json
+      STAGING_API_SECRET_BUNDLE: ${{ github.workspace }}/.runtime/api-secrets.json
+      STAGING_AI_RECONCILIATION_CREDENTIAL_FILE: ${{ github.workspace }}/.runtime/ai-reconciliation.json
+      STAGING_LEDGER_CREDENTIAL_FILE: ${{ github.workspace }}/.runtime/d1-ledger.json
+      STAGING_TEAM_AI_CREDENTIAL_FILE: ${{ github.workspace }}/.runtime/team-ai.json
+      STAGING_ARTIFACT_SCAN_NEEDLES_FILE: ${{ github.workspace }}/.runtime/artifact-scan-needles.json
+      STAGING_LEDGER_SCHEMA_RECEIPT: ${{ github.workspace }}/control-plane-evidence/durable-ledger/schema-verification-receipt.json
+      PRODUCTION_RELEASES_HARD_DISABLED: "true"
+    steps:
+      - id: authority
+        name: Lock current-main controls and dispatch authority
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_RUN_ATTEMPT" = "1" || {
+            echo "::error::STAGING_TRANSACTION_RERUN_BLOCKED_START_A_NEW_DISPATCH"
+            exit 1
+          }
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REF" = "refs/heads/main" || {
+            echo "::error::The staging transaction must be dispatched from main"
+            exit 1
+          }
+          expected_workflow_ref="$GITHUB_REPOSITORY/.github/workflows/staging-transaction.yml@refs/heads/main"
+          test "$GITHUB_WORKFLOW_REF" = "$expected_workflow_ref"
+          current_main="$(curl --fail --silent --show-error --header "Authorization: Bearer $GITHUB_TOKEN" --header "Accept: application/vnd.github+json" --header "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/$GITHUB_REPOSITORY/git/ref/heads/main" | jq -er '.object.sha')"
+          test "$GITHUB_SHA" = "$current_main"
+          test "$CONTROL_PLANE_SHA" = "$current_main"
+          test "$PRODUCTION_RELEASES_HARD_DISABLED" = "true"
+          case "$TRANSACTION_MODE" in
+            deploy)
+              test "$DISPATCH_CONFIRMATION" = "DEPLOY_OMDALA_STAGING_TRANSACTION"
+              [[ "$DISPATCH_CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]
+              [[ "$SOURCE_PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
+              [[ "$TEAM_AI_BASELINE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+              test -z "$DISPATCH_RECOVERY_RUN_ID"
+              ;;
+            recovery-only)
+              test "$DISPATCH_CONFIRMATION" = "RECOVER_OMDALA_STAGING_TRANSACTION"
+              [[ "$DISPATCH_RECOVERY_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+              ;;
+            *)
+              echo "::error::Mode must be deploy or recovery-only"
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout trusted transaction controls from current main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: control-plane
+          persist-credentials: false
+
+      - name: Create a fresh runner-owned transaction evidence boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e "$STAGING_TRANSACTION_EVIDENCE_DIR"
+          install -d -m 700 "$STAGING_TRANSACTION_EVIDENCE_DIR"
+          test "$(stat -c '%u:%a' "$STAGING_TRANSACTION_EVIDENCE_DIR")" = "$(id -u):700"
+
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+
+      - name: Prepare the dedicated D1-only durable-ledger credential
+        shell: bash
+        env:
+          D1_LEDGER_TOKEN_VALUE: ${{ secrets.OMDALA_STAGING_LEDGER_D1_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID_VALUE: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_ID_VALUE: ${{ vars.OMDALA_STAGING_LEDGER_D1_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "$STAGING_LEDGER_CREDENTIAL_FILE")"
+          chmod 700 "$(dirname "$STAGING_LEDGER_CREDENTIAL_FILE")"
+          jq -e --arg id "$D1_DATABASE_ID_VALUE" '
+            .schema_version == 1 and .database_name == "omdala-audit-staging" and
+            .database_id == $id and .table == "staging_transaction_events" and
+            .ledger_schema_version == 1 and .activation_epoch == "omdala-staging-ledger-v1" and
+            .activation_receipt_schema == "infra/staging/ledger-activation-reconciliation.schema.json" and
+            .activation_import_policy == "canonical-zero-unresolved" and
+            .empty_unresolved_import_sha256 == "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570" and
+            (.schema_manifest_sha256 | test("^[a-f0-9]{64}$")) and .scan_page_size == 1 and
+            .github_environment == "staging" and .github_secret == "OMDALA_STAGING_LEDGER_D1_TOKEN" and
+            .required_cloudflare_permission == "D1:Edit" and
+            .allowed_cloudflare_account_scope == "exact-account-only"
+          ' control-plane/infra/staging/ledger-d1.json >/dev/null
+          jq -n --arg token "$D1_LEDGER_TOKEN_VALUE" --arg account "$CLOUDFLARE_ACCOUNT_ID_VALUE" --arg database "$D1_DATABASE_ID_VALUE" '{CLOUDFLARE_D1_TOKEN:$token,CLOUDFLARE_ACCOUNT_ID:$account,D1_DATABASE_ID:$database}' > "$STAGING_LEDGER_CREDENTIAL_FILE"
+          chmod 600 "$STAGING_LEDGER_CREDENTIAL_FILE"
+          jq -e '(.CLOUDFLARE_D1_TOKEN | type == "string" and length >= 32) and (.CLOUDFLARE_ACCOUNT_ID | test("^[a-f0-9]{32}$")) and (.D1_DATABASE_ID | test("^[a-f0-9-]{36}$"))' "$STAGING_LEDGER_CREDENTIAL_FILE" >/dev/null
+
+      - name: Fail closed unless the durable D1 ledger schema and every event verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p control-plane-evidence/durable-ledger
+          bash control-plane/scripts/staging-durable-ledger.sh verify-and-list \
+            control-plane-evidence/durable-ledger/events.json \
+            control-plane-evidence/durable-ledger/provider
+          node control-plane/scripts/staging-transaction-ledger.mjs scan-events \
+            --input control-plane-evidence/durable-ledger/events.json \
+            --records-dir staging-durable-ledger-records \
+            --output staging-ledger-records.json
+
+      - name: Install trusted control-plane dependencies
+        working-directory: control-plane
+        env:
+          CI: "true"
+        run: |
+          set -euo pipefail
+          pnpm --filter @omdala/api... --filter @omdala/app... install --frozen-lockfile --ignore-scripts
+          test -x apps/app/node_modules/.bin/playwright
+
+      - id: unresolved
+        name: Discover every durable unresolved staging capsule from D1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p control-plane-evidence
+          # The immutable ACTIVATED receipt reconciles every pre-cutover Actions run.
+          # After activation, D1 PREPARED/terminal rows are the sole state authority;
+          # expiring Actions artifacts are supplemental and cannot resolve or block state.
+          printf '[]\n' > control-plane-evidence/supplemental-actions-artifacts.json
+          node "$CONTROL_PLANE_ROOT/scripts/staging-unresolved-capsules.mjs" \
+            --input control-plane-evidence/supplemental-actions-artifacts.json \
+            --ledger "$GITHUB_WORKSPACE/staging-ledger-records.json" \
+            --current-run-id "$GITHUB_RUN_ID" \
+            --mode "$TRANSACTION_MODE" \
+            --recovery-run-id "$DISPATCH_RECOVERY_RUN_ID" \
+            --output control-plane-evidence/unresolved-capsules.json
+          if [[ "$TRANSACTION_MODE" == "recovery-only" ]]; then
+            {
+              echo "selected_run_id=$(jq -er '.selected.run_id' control-plane-evidence/unresolved-capsules.json)"
+              echo "ledger_record_path=$(jq -er '.selected.capsule_ledger_record_path' control-plane-evidence/unresolved-capsules.json)"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Materialize the explicit prior durable capsule from verified D1 bytes
+        if: inputs.mode == 'recovery-only'
+        shell: bash
+        env:
+          LEDGER_RECORD_PATH: ${{ steps.unresolved.outputs.ledger_record_path }}
+        run: |
+          set -euo pipefail
+          [[ "$LEDGER_RECORD_PATH" =~ ^staging-durable-ledger-records/staging-[1-9][0-9]*-1/capsule\.json$ ]]
+          ledger_record="$GITHUB_WORKSPACE/$LEDGER_RECORD_PATH"
+          test -f "$ledger_record"
+          node "$CONTROL_PLANE_ROOT/scripts/staging-transaction-ledger.mjs" materialize --record "$ledger_record" --output-dir recovery-input
+          cp "$ledger_record" recovery-input/capsule-ledger-record.json
+
+      - id: identity
+        name: Bind exact candidate, transaction, and release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$TRANSACTION_MODE" == "deploy" ]]; then
+            candidate_sha="$DISPATCH_CANDIDATE_SHA"
+            transaction_id="staging-$GITHUB_RUN_ID-1"
+            release_id="gh-$GITHUB_RUN_ID-1-${candidate_sha:0:12}"
+          else
+            capsule="recovery-input/recovery-capsule.json"
+            journal="recovery-input/transaction-journal.json"
+            test -f "$capsule"
+            test -f "$journal"
+            jq -e --arg run "$DISPATCH_RECOVERY_RUN_ID" '
+              .schema_version == 1 and
+              .verdict == "STAGING_RECOVERY_CAPSULE_SEALED" and
+              (.workflow_run_id | tostring) == $run and
+              .workflow_run_attempt == 1 and
+              .runner_loss_recovery_authority == "MANUAL_REDISPATCH_REQUIRED"
+            ' "$capsule" >/dev/null
+            candidate_sha="$(jq -er '.candidate_sha' "$capsule")"
+            transaction_id="$(jq -er '.transaction_id' "$capsule")"
+            release_id="$(jq -er '.release_id' "$capsule")"
+          fi
+          [[ "$candidate_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$transaction_id" =~ ^staging-[1-9][0-9]*-1$ ]]
+          [[ "$release_id" =~ ^gh-[1-9][0-9]*-1-[0-9a-f]{12}$ ]]
+          {
+            echo "candidate_sha=$candidate_sha"
+            echo "transaction_id=$transaction_id"
+            echo "release_id=$release_id"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "CANDIDATE_SHA=$candidate_sha"
+            echo "STAGING_TRANSACTION_ID=$transaction_id"
+            echo "RELEASE_ID=$release_id"
+          } >> "$GITHUB_ENV"
+
+      - name: Checkout exact candidate separately from trusted controls
+        if: inputs.mode == 'deploy'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.identity.outputs.candidate_sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Create candidate-free recovery workspace from durable bytes
+        if: inputs.mode == 'recovery-only'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e "$CANDIDATE_ROOT"
+          mkdir -p \
+            "$CANDIDATE_ROOT/services/api" \
+            "$CANDIDATE_ROOT/infra/staging/surfaces"
+          chmod -R 700 "$CANDIDATE_ROOT"
+          test ! -e "$CANDIDATE_ROOT/.git"
+
+      - name: Restore the downloaded immutable recovery inputs
+        if: inputs.mode == 'recovery-only'
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash "$CONTROL_PLANE_ROOT/scripts/staging-restore-recovery-workspace.sh" \
+            "$GITHUB_WORKSPACE/recovery-input" \
+            "$CANDIDATE_ROOT" \
+            "$STAGING_TRANSACTION_EVIDENCE_DIR" \
+            "$API_WRANGLER_CONFIG"
+
+      - name: Verify exact candidate and independent deploy approval
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git -C "$CONTROL_PLANE_ROOT" rev-parse HEAD)" = "$CONTROL_PLANE_SHA"
+          if [[ "$TRANSACTION_MODE" == "deploy" ]]; then
+            test "$(git -C "$CANDIDATE_ROOT" rev-parse HEAD)" = "$CANDIDATE_SHA"
+            test ! -e "$CANDIDATE_ROOT/transaction-evidence"
+            test ! -e "$API_WRANGLER_CONFIG"
+            mkdir -p "$STAGING_TRANSACTION_EVIDENCE_DIR/preflight"
+            node "$CONTROL_PLANE_ROOT/scripts/release-review-policy.mjs" --repository "$GITHUB_REPOSITORY" --pull-request "$SOURCE_PR_NUMBER" --sha "$CANDIDATE_SHA" --mode staging --receipt "$STAGING_TRANSACTION_EVIDENCE_DIR/preflight/independent-review-receipt.json"
+          else
+            test ! -e "$CANDIDATE_ROOT/.git"
+            test -f "$API_WRANGLER_CONFIG"
+            for surface in web app auth brand; do
+              test -f "$CANDIDATE_ROOT/infra/staging/surfaces/$surface.wrangler.jsonc"
+            done
+          fi
+
+      - name: Provision an unprivileged build identity for every candidate-owned command
+        if: inputs.mode == 'deploy'
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_user="omdala-staging-candidate"
+          if ! id "$candidate_user" >/dev/null 2>&1; then
+            sudo useradd --system --no-create-home --shell /usr/sbin/nologin "$candidate_user"
+          fi
+          candidate_uid="$(id -u "$candidate_user")"
+          test "$candidate_uid" != "$(id -u)"
+          candidate_sandbox_root="$RUNNER_TEMP/omdala-staging-candidate-$GITHUB_RUN_ID"
+          candidate_home="$candidate_sandbox_root/home"
+          candidate_tmp="$candidate_sandbox_root/tmp"
+          sudo install -d -o "$candidate_uid" -g "$candidate_uid" -m 700 \
+            "$candidate_sandbox_root" "$candidate_home" "$candidate_tmp"
+          {
+            echo "STAGING_CANDIDATE_UID=$candidate_uid"
+            echo "STAGING_CANDIDATE_SANDBOX_ROOT=$candidate_sandbox_root"
+            echo "STAGING_CANDIDATE_HOME=$candidate_home"
+            echo "STAGING_CANDIDATE_TMPDIR=$candidate_tmp"
+          } >> "$GITHUB_ENV"
+
+      - name: Install exact candidate dependencies without lifecycle execution
+        if: inputs.mode == 'deploy'
+        working-directory: candidate
+        env:
+          CI: "true"
+        run: |
+          set -euo pipefail
+          test -z "$(git ls-files -s | awk '$1 == 120000 {print $4}')"
+          test ! -e .pnpmfile.cjs
+          test ! -e pnpmfile.cjs
+          test ! -e .npmrc
+          chmod -R go-w "$CANDIDATE_ROOT" "$CONTROL_PLANE_ROOT"
+          pnpm install --frozen-lockfile --ignore-scripts
+          for generated in \
+            .turbo coverage services/api/dist \
+            apps/web/.next apps/web/out \
+            apps/app/.next apps/app/out \
+            apps/auth/.next apps/auth/out \
+            apps/brand-marketplace/.next apps/brand-marketplace/out; do
+            sudo install -d -o "$STAGING_CANDIDATE_UID" -g "$STAGING_CANDIDATE_UID" -m 700 "$generated"
+          done
+          for build_info in apps/web/tsconfig.tsbuildinfo apps/app/tsconfig.tsbuildinfo apps/auth/tsconfig.tsbuildinfo apps/brand-marketplace/tsconfig.tsbuildinfo; do
+            sudo install -o "$STAGING_CANDIDATE_UID" -g "$STAGING_CANDIDATE_UID" -m 600 /dev/null "$build_info"
+          done
+
+      - name: Run candidate tests as the unprivileged build identity
+        if: inputs.mode == 'deploy'
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo --non-interactive --user="#$STAGING_CANDIDATE_UID" -- env -i \
+            HOME="$STAGING_CANDIDATE_HOME" PATH="$PATH" TMPDIR="$STAGING_CANDIDATE_TMPDIR" CI=true \
+            bash -euo pipefail -c '
+              pnpm security:audit
+              pnpm --filter @omdala/api test
+              pnpm --filter @omdala/api run check
+              npm run test:release-governance
+            '
+
+      - name: Render exact staging API identity from trusted controls
+        if: inputs.mode == 'deploy'
+        working-directory: candidate
+        shell: bash
+        env:
+          OMDALA_HYPERDRIVE_ID: ${{ vars.OMDALA_HYPERDRIVE_ID }}
+          OMDALA_GOOGLE_CLIENT_ID: ${{ vars.OMDALA_GOOGLE_CLIENT_ID }}
+          RELEASE_SHA: ${{ steps.identity.outputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$STAGING_TRANSACTION_EVIDENCE_DIR/preflight"
+          test ! -e "$API_WRANGLER_CONFIG"
+          account_id="$(jq -er '.CLOUDFLARE_ACCOUNT_ID' "$STAGING_LEDGER_CREDENTIAL_FILE")"
+          node "$CONTROL_PLANE_ROOT/scripts/render-api-wrangler-config.mjs" --environment staging --account-id "$account_id" --input services/api/wrangler.toml --output services/api/wrangler.release.toml --receipt "$STAGING_TRANSACTION_EVIDENCE_DIR/preflight/api-hyperdrive-config.json"
+
+      - name: Reject candidate-controlled Wrangler build hooks
+        working-directory: candidate
+        shell: bash
+        env:
+          EXPECTED_HYPERDRIVE_ID: ${{ vars.OMDALA_HYPERDRIVE_ID }}
+          EXPECTED_GOOGLE_CLIENT_ID: ${{ vars.OMDALA_GOOGLE_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$STAGING_TRANSACTION_EVIDENCE_DIR/preflight"
+          account_id="$(jq -er '.CLOUDFLARE_ACCOUNT_ID' "$STAGING_LEDGER_CREDENTIAL_FILE")"
+          args=(--api-config services/api/wrangler.release.toml --surface-directory infra/staging/surfaces --account-id "$account_id" --release-sha "$CANDIDATE_SHA" --receipt "$STAGING_TRANSACTION_EVIDENCE_DIR/preflight/wrangler-execution-safety.json")
+          if [[ "$TRANSACTION_MODE" == "deploy" ]]; then
+            args+=(--hyperdrive-id "$EXPECTED_HYPERDRIVE_ID" --google-client-id "$EXPECTED_GOOGLE_CLIENT_ID")
+          fi
+          node "$CONTROL_PLANE_ROOT/scripts/verify-staging-wrangler-execution-safety.mjs" "${args[@]}"
+
+      - name: Build exact static surfaces as the isolated candidate identity
+        if: inputs.mode == 'deploy'
+        working-directory: candidate
+        env:
+          NEXT_PUBLIC_API_URL: ${{ vars.OMDALA_API_URL }}
+          NEXT_PUBLIC_AUTH_API_BASE: ${{ vars.OMDALA_API_URL }}
+          NEXT_PUBLIC_OMDALA_API_BASE_URL: ${{ vars.OMDALA_API_URL }}
+          NEXT_PUBLIC_WEB_ORIGIN: ${{ vars.OMDALA_WEB_URL }}
+          NEXT_PUBLIC_APP_ORIGIN: ${{ vars.OMDALA_APP_URL }}
+          NEXT_PUBLIC_AUTH_ORIGIN: ${{ vars.OMDALA_AUTH_URL }}
+          NEXT_PUBLIC_BRAND_ORIGIN: ${{ vars.OMDALA_BRAND_URL }}
+          NEXT_PUBLIC_RELEASE_ENVIRONMENT: staging
+          OMDALA_NOINDEX: "true"
+        run: |
+          set -euo pipefail
+          sudo --non-interactive --user="#$STAGING_CANDIDATE_UID" -- env -i \
+            HOME="$STAGING_CANDIDATE_HOME" PATH="$PATH" TMPDIR="$STAGING_CANDIDATE_TMPDIR" CI=true \
+            NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" \
+            NEXT_PUBLIC_AUTH_API_BASE="$NEXT_PUBLIC_AUTH_API_BASE" \
+            NEXT_PUBLIC_OMDALA_API_BASE_URL="$NEXT_PUBLIC_OMDALA_API_BASE_URL" \
+            NEXT_PUBLIC_WEB_ORIGIN="$NEXT_PUBLIC_WEB_ORIGIN" \
+            NEXT_PUBLIC_APP_ORIGIN="$NEXT_PUBLIC_APP_ORIGIN" \
+            NEXT_PUBLIC_AUTH_ORIGIN="$NEXT_PUBLIC_AUTH_ORIGIN" \
+            NEXT_PUBLIC_BRAND_ORIGIN="$NEXT_PUBLIC_BRAND_ORIGIN" \
+            NEXT_PUBLIC_RELEASE_ENVIRONMENT=staging OMDALA_NOINDEX=true \
+            CANDIDATE_SHA="$CANDIDATE_SHA" RELEASE_ID="$RELEASE_ID" \
+            bash -euo pipefail -c '
+              node scripts/validate-surface-public-config.mjs
+              pnpm --filter @omdala/web run build
+              pnpm --filter @omdala/app run build
+              pnpm --filter @omdala/auth run build
+              pnpm --filter @omdala/brand-marketplace run build
+              node scripts/write-surface-release.mjs apps/web/out web staging "$CANDIDATE_SHA" "$RELEASE_ID"
+              node scripts/write-surface-release.mjs apps/app/out app staging "$CANDIDATE_SHA" "$RELEASE_ID"
+              node scripts/write-surface-release.mjs apps/auth/out auth staging "$CANDIDATE_SHA" "$RELEASE_ID"
+              node scripts/write-surface-release.mjs apps/brand-marketplace/out brand staging "$CANDIDATE_SHA" "$RELEASE_ID"
+            '
+          sudo pkill -KILL -u "$STAGING_CANDIDATE_UID" 2>/dev/null || true
+          for generated in \
+            .turbo coverage services/api/dist \
+            apps/web/.next apps/web/out \
+            apps/app/.next apps/app/out \
+            apps/auth/.next apps/auth/out \
+            apps/brand-marketplace/.next apps/brand-marketplace/out; do
+            test -z "$(find "$generated" -type l -print -quit)"
+          done
+          sudo chown -R "$(id -u):$(id -g)" \
+            .turbo coverage services/api/dist \
+            apps/web/.next apps/web/out \
+            apps/app/.next apps/app/out \
+            apps/auth/.next apps/auth/out \
+            apps/brand-marketplace/.next apps/brand-marketplace/out \
+            apps/web/tsconfig.tsbuildinfo apps/app/tsconfig.tsbuildinfo \
+            apps/auth/tsconfig.tsbuildinfo apps/brand-marketplace/tsconfig.tsbuildinfo
+          chmod -R go-w "$CANDIDATE_ROOT" "$CONTROL_PLANE_ROOT"
+          node "$CONTROL_PLANE_ROOT/scripts/verify-surface-artifacts.mjs" staging
+
+      - name: Provision a fresh provider-only identity after every candidate command
+        shell: bash
+        run: |
+          set -euo pipefail
+          provider_user="omdala-staging-provider"
+          if ! id "$provider_user" >/dev/null 2>&1; then
+            sudo useradd --system --no-create-home --shell /usr/sbin/nologin "$provider_user"
+          fi
+          provider_uid="$(id -u "$provider_user")"
+          test "$provider_uid" != "$(id -u)"
+          if [[ "$TRANSACTION_MODE" == "deploy" ]]; then
+            test "$provider_uid" != "$STAGING_CANDIDATE_UID"
+          fi
+          provider_root="$RUNNER_TEMP/omdala-staging-provider-$GITHUB_RUN_ID"
+          provider_home="$provider_root/home"
+          provider_tmp="$provider_root/tmp"
+          test ! -e "$provider_root"
+          sudo install -d -o "$provider_uid" -g "$provider_uid" -m 700 \
+            "$provider_root" "$provider_home" "$provider_tmp"
+          test -z "$(sudo find "$provider_home" -mindepth 1 -print -quit)"
+          if [[ "$TRANSACTION_MODE" == "deploy" ]]; then
+            sudo --non-interactive --user="#$STAGING_CANDIDATE_UID" -- test ! -r "$provider_home"
+            sudo --non-interactive --user="#$STAGING_CANDIDATE_UID" -- test ! -w "$provider_home"
+            sudo --non-interactive --user="#$STAGING_CANDIDATE_UID" -- test ! -r "$provider_tmp"
+            sudo --non-interactive --user="#$STAGING_CANDIDATE_UID" -- test ! -w "$provider_tmp"
+            chmod -R go-rwx "$CANDIDATE_ROOT"
+            chmod a+X \
+              "$CANDIDATE_ROOT" \
+              "$CANDIDATE_ROOT/services" "$CANDIDATE_ROOT/services/api" \
+              "$CANDIDATE_ROOT/packages" "$CANDIDATE_ROOT/packages/core" "$CANDIDATE_ROOT/packages/types" \
+              "$CANDIDATE_ROOT/infra" "$CANDIDATE_ROOT/infra/staging" \
+              "$CANDIDATE_ROOT/apps" "$CANDIDATE_ROOT/apps/web" "$CANDIDATE_ROOT/apps/app" \
+              "$CANDIDATE_ROOT/apps/auth" "$CANDIDATE_ROOT/apps/brand-marketplace"
+            chmod a+r \
+              "$API_WRANGLER_CONFIG" \
+              "$CANDIDATE_ROOT/package.json" "$CANDIDATE_ROOT/pnpm-lock.yaml" \
+              "$CANDIDATE_ROOT/pnpm-workspace.yaml" "$CANDIDATE_ROOT/tsconfig.base.json" \
+              "$CANDIDATE_ROOT/services/api/package.json" "$CANDIDATE_ROOT/services/api/tsconfig.json"
+            chmod -R a-w,a+rX \
+              "$CANDIDATE_ROOT/services/api/src" \
+              "$CANDIDATE_ROOT/packages/core/src" "$CANDIDATE_ROOT/packages/types/src" \
+              "$CANDIDATE_ROOT/node_modules" "$CANDIDATE_ROOT/services/api/node_modules" \
+              "$CANDIDATE_ROOT/infra/staging/surfaces" \
+              "$CANDIDATE_ROOT/apps/web/out" "$CANDIDATE_ROOT/apps/app/out" \
+              "$CANDIDATE_ROOT/apps/auth/out" "$CANDIDATE_ROOT/apps/brand-marketplace/out"
+            sudo --non-interactive --user="#$provider_uid" -- test ! -r "$CANDIDATE_ROOT/.git/HEAD"
+          else
+            chmod -R a-w,a+rX "$CANDIDATE_ROOT"
+          fi
+          {
+            echo "STAGING_PROVIDER_UID=$provider_uid"
+            echo "STAGING_PROVIDER_HOME=$provider_home"
+            echo "STAGING_PROVIDER_TMPDIR=$provider_tmp"
+          } >> "$GITHUB_ENV"
+
+      - name: Dry-run the API bundle as the fresh provider-only identity
+        if: inputs.mode == 'deploy'
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo --non-interactive --user="#$STAGING_PROVIDER_UID" -- test -r "$API_WRANGLER_CONFIG"
+          sudo --non-interactive --user="#$STAGING_PROVIDER_UID" -- test ! -w "$API_WRANGLER_CONFIG"
+          sudo --non-interactive --user="#$STAGING_PROVIDER_UID" -- test -r "$CANDIDATE_ROOT/services/api/src/index.ts"
+          test -z "$(find services/api/dist -type l -print -quit)"
+          sudo --non-interactive --user="#$STAGING_PROVIDER_UID" -- env -i \
+            HOME="$STAGING_PROVIDER_HOME" PATH="$PATH" TMPDIR="$STAGING_PROVIDER_TMPDIR" CI=true \
+            CLOUDFLARE_API_BASE_URL="https://api.cloudflare.com/client/v4" \
+            WRANGLER_API_ENVIRONMENT="production" CLOUDFLARE_COMPLIANCE_REGION="public" \
+            CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV="false" CLOUDFLARE_INCLUDE_PROCESS_ENV="false" \
+            "$CONTROL_PLANE_ROOT/services/api/node_modules/.bin/wrangler" deploy \
+            --config services/api/wrangler.release.toml --env staging --dry-run --strict \
+            --outdir "$STAGING_PROVIDER_TMPDIR/wrangler-dry-run-api" --env-file /dev/null
+
+      - name: Re-verify immutable candidate and trusted controls before credentials
+        if: inputs.mode == 'deploy'
+        working-directory: candidate
+        shell: bash
+        env:
+          EXPECTED_HYPERDRIVE_ID: ${{ vars.OMDALA_HYPERDRIVE_ID }}
+          EXPECTED_GOOGLE_CLIENT_ID: ${{ vars.OMDALA_GOOGLE_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          git diff --exit-code HEAD -- .
+          git diff --cached --exit-code
+          test -z "$(git status --porcelain --untracked-files=all)"
+          test -z "$(git ls-files -s | awk '$1 == 120000 {print $4}')"
+          for output in services/api/dist apps/web/out apps/app/out apps/auth/out apps/brand-marketplace/out; do
+            test -z "$(find "$output" -type l -print -quit)"
+          done
+          account_id="$(jq -er '.CLOUDFLARE_ACCOUNT_ID' "$STAGING_LEDGER_CREDENTIAL_FILE")"
+          node "$CONTROL_PLANE_ROOT/scripts/verify-staging-wrangler-execution-safety.mjs" \
+            --api-config services/api/wrangler.release.toml \
+            --surface-directory infra/staging/surfaces \
+            --account-id "$account_id" \
+            --hyperdrive-id "$EXPECTED_HYPERDRIVE_ID" \
+            --release-sha "$CANDIDATE_SHA" \
+            --google-client-id "$EXPECTED_GOOGLE_CLIENT_ID" \
+            --receipt "$STAGING_TRANSACTION_EVIDENCE_DIR/preflight/wrangler-execution-safety-postbuild.json"
+          test "$(git -C "$CONTROL_PLANE_ROOT" rev-parse HEAD)" = "$CONTROL_PLANE_SHA"
+          git -C "$CONTROL_PLANE_ROOT" diff --exit-code HEAD -- .
+          git -C "$CONTROL_PLANE_ROOT" diff --cached --exit-code
+          test -z "$(git -C "$CONTROL_PLANE_ROOT" status --porcelain --untracked-files=all)"
+          test -z "$(find "$CONTROL_PLANE_ROOT" -path '*/node_modules' -prune -o -not -user "$(id -u)" -print -quit)"
+
+      - name: Provision a fresh acceptance-only identity and trusted browser after candidate execution
+        if: inputs.mode == 'deploy'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo pkill -KILL -u "$STAGING_CANDIDATE_UID" 2>/dev/null || true
+          acceptance_user="omdala-staging-acceptance"
+          if ! id "$acceptance_user" >/dev/null 2>&1; then
+            sudo useradd --system --no-create-home --shell /usr/sbin/nologin "$acceptance_user"
+          fi
+          acceptance_uid="$(id -u "$acceptance_user")"
+          test "$acceptance_uid" != "$(id -u)"
+          test "$acceptance_uid" != "$STAGING_CANDIDATE_UID"
+          test "$acceptance_uid" != "$STAGING_PROVIDER_UID"
+          acceptance_root="$RUNNER_TEMP/omdala-staging-acceptance-$GITHUB_RUN_ID"
+          acceptance_home="$acceptance_root/home"
+          acceptance_tmp="$acceptance_root/tmp"
+          acceptance_output="$acceptance_root/output"
+          acceptance_browsers="$RUNNER_TEMP/omdala-playwright-acceptance-$GITHUB_RUN_ID"
+          test ! -e "$acceptance_root"
+          test ! -e "$acceptance_browsers"
+          sudo install -d -o "$acceptance_uid" -g "$acceptance_uid" -m 700 \
+            "$acceptance_root" "$acceptance_home" "$acceptance_tmp" "$acceptance_output" \
+            "$acceptance_output/playwright"
+          sudo install -d -o "$acceptance_uid" -g "$acceptance_uid" -m 700 "$acceptance_browsers"
+          sudo --non-interactive --user="#$acceptance_uid" -- env -i \
+            HOME="$acceptance_home" PATH="$PATH" TMPDIR="$acceptance_tmp" CI=true \
+            PLAYWRIGHT_BROWSERS_PATH="$acceptance_browsers" \
+            "$CONTROL_PLANE_ROOT/apps/app/node_modules/.bin/playwright" install chromium
+          test -z "$(find "$acceptance_browsers" -type l -print -quit)"
+          sudo chown -R "$(id -u):$(id -g)" "$acceptance_browsers"
+          chmod -R a-w,a+rX "$acceptance_browsers"
+          test -z "$(find "$acceptance_browsers" -perm /022 -print -quit)"
+          for protected_path in "$acceptance_root" "$acceptance_browsers"; do
+            sudo --non-interactive --user="#$STAGING_CANDIDATE_UID" -- test ! -w "$protected_path"
+          done
+          {
+            echo "STAGING_E2E_UID=$acceptance_uid"
+            echo "STAGING_E2E_SANDBOX_ROOT=$acceptance_root"
+            echo "STAGING_E2E_HOME=$acceptance_home"
+            echo "STAGING_E2E_TMPDIR=$acceptance_tmp"
+            echo "STAGING_E2E_OUTPUT_DIR=$acceptance_output"
+            echo "STAGING_E2E_OUTPUT_DIR_IDENTITY=$(sudo stat -c '%d:%i' -- "$acceptance_output")"
+            echo "PLAYWRIGHT_BROWSERS_PATH=$acceptance_browsers"
+          } >> "$GITHUB_ENV"
+
+      - name: Create verified encrypted pre-migration backup before any mutation
+        if: inputs.mode == 'deploy'
+        working-directory: candidate
+        shell: bash
+        env:
+          SOURCE_DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+          RESTORE_DATABASE_URL: postgresql://restore:restore-only-ci-password@127.0.0.1:${{ job.services.restore_postgres.ports['5432'] }}/omdala_restore
+          EXPECTED_SOURCE_DATABASE_HOST: ${{ vars.OMDALA_DATABASE_EXPECTED_HOST }}
+          EXPECTED_SOURCE_DATABASE_NAME: ${{ vars.OMDALA_DATABASE_EXPECTED_NAME }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.OMDALA_BACKUP_ENCRYPTION_KEY }}
+          RELEASE_ENVIRONMENT: staging
+          BACKUP_OUTPUT_DIR: ${{ github.workspace }}/transaction-evidence/pre-migration-backup
+        run: |
+          set -euo pipefail
+          mkdir -p "$BACKUP_OUTPUT_DIR"
+          ledger_exists="$(psql "$SOURCE_DATABASE_URL" --tuples-only --no-align --set ON_ERROR_STOP=1 --command "SELECT CASE WHEN to_regclass('omdala.schema_migrations') IS NULL THEN 0 ELSE 1 END;")"
+          if [[ "$ledger_exists" == "1" ]]; then
+            psql "$SOURCE_DATABASE_URL" --tuples-only --no-align --set ON_ERROR_STOP=1 --command "SELECT COALESCE(json_agg(version ORDER BY version), '[]'::json)::text FROM omdala.schema_migrations;" > "$BACKUP_OUTPUT_DIR/applied-migrations-before.json"
+          else
+            test "$ledger_exists" = "0"
+            printf '[]\n' > "$BACKUP_OUTPUT_DIR/applied-migrations-before.json"
+          fi
+          cp infra/postgres/migrations/compatibility.json "$BACKUP_OUTPUT_DIR/migration-compatibility-manifest.json"
+          node "$CONTROL_PLANE_ROOT/scripts/verify-migration-compatibility.mjs" --environment staging --candidate-sha "$CANDIDATE_SHA" --applied-json "$BACKUP_OUTPUT_DIR/applied-migrations-before.json" --receipt "$BACKUP_OUTPUT_DIR/migration-compatibility-before.json"
+          (cd "$CONTROL_PLANE_ROOT" && bash scripts/postgres-pre-migration-gate.sh)
+
+      - name: Upload durable encrypted database recovery evidence before mutation
+        if: inputs.mode == 'deploy'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-pre-migration-backup-${{ steps.identity.outputs.candidate_sha }}-${{ steps.identity.outputs.transaction_id }}
+          path: ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/pre-migration-backup/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Prepare phase-scoped protected credentials outside artifacts
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN_VALUE: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID_VALUE: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          OMDALA_GOOGLE_CLIENT_ID_VALUE: ${{ vars.OMDALA_GOOGLE_CLIENT_ID }}
+          OMDALA_HYPERDRIVE_ID_VALUE: ${{ vars.OMDALA_HYPERDRIVE_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "$STAGING_PROVIDER_CREDENTIAL_FILE")"
+          chmod 700 "$(dirname "$STAGING_PROVIDER_CREDENTIAL_FILE")"
+          jq -n --arg token "$CLOUDFLARE_API_TOKEN_VALUE" --arg account "$CLOUDFLARE_ACCOUNT_ID_VALUE" --arg google "$OMDALA_GOOGLE_CLIENT_ID_VALUE" --arg hyperdrive "$OMDALA_HYPERDRIVE_ID_VALUE" '{CLOUDFLARE_API_TOKEN:$token,CLOUDFLARE_ACCOUNT_ID:$account,OMDALA_GOOGLE_CLIENT_ID:$google,OMDALA_HYPERDRIVE_ID:$hyperdrive}' > "$STAGING_PROVIDER_CREDENTIAL_FILE"
+          chmod 600 "$STAGING_PROVIDER_CREDENTIAL_FILE"
+          jq -e '(.CLOUDFLARE_API_TOKEN | length > 0) and (.CLOUDFLARE_ACCOUNT_ID | test("^[a-f0-9]{32}$"))' "$STAGING_PROVIDER_CREDENTIAL_FILE" >/dev/null
+          test "$(jq -er '.CLOUDFLARE_API_TOKEN' "$STAGING_PROVIDER_CREDENTIAL_FILE")" != "$(jq -er '.CLOUDFLARE_D1_TOKEN' "$STAGING_LEDGER_CREDENTIAL_FILE")"
+          if [[ "$TRANSACTION_MODE" == "deploy" ]]; then
+            jq -e '(.OMDALA_GOOGLE_CLIENT_ID | length > 0) and (.OMDALA_HYPERDRIVE_ID | length > 0)' "$STAGING_PROVIDER_CREDENTIAL_FILE" >/dev/null
+          fi
+
+      - name: Verify infra authority and snapshot five provider baselines
+        if: inputs.mode == 'deploy'
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          provider_token="$(jq -er '.CLOUDFLARE_API_TOKEN' "$STAGING_PROVIDER_CREDENTIAL_FILE")"
+          [[ "$provider_token" =~ ^[A-Za-z0-9._~-]+$ ]]
+          account_id="$(jq -er '.CLOUDFLARE_ACCOUNT_ID' "$STAGING_PROVIDER_CREDENTIAL_FILE")"
+          node "$CONTROL_PLANE_ROOT/scripts/verify-infra-authority-handoff.mjs" --wrangler-config services/api/wrangler.toml --account-id "$account_id"
+          mkdir -p "$STAGING_TRANSACTION_EVIDENCE_DIR/provider-pre" "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule"
+          provider_scripts_inventory() {
+            local inventory="$1" http_status curl_status
+            curl_status=0
+            http_status="$(printf 'header = "Authorization: Bearer %s"\nheader = "Accept: application/json"\n' "$provider_token" | \
+              curl --config - --retry 3 --retry-all-errors --silent --show-error \
+                --output "$inventory.tmp" --write-out '%{http_code}' \
+                "https://api.cloudflare.com/client/v4/accounts/$account_id/workers/scripts?page=1&per_page=1000")" || curl_status=$?
+            [[ "$curl_status" == "0" ]] || return "$curl_status"
+            printf '%s\n' "$http_status"
+          }
+          snapshot() {
+            local name="$1" config="$2" use_staging="$3"
+            local output="$STAGING_TRANSACTION_EVIDENCE_DIR/provider-pre/$name.json"
+            local worker inventory absence http_status
+            local -a args=(deployments list --config "$config")
+            if [[ "$name" == "api" ]]; then
+              worker="omdala-api-staging"
+            else
+              worker="omdala-surface-$name-staging"
+            fi
+            [[ "$use_staging" != "true" ]] || args+=(--env staging)
+            args+=(--json)
+            # The runner intentionally owns these evidence files; sudo only scopes the provider process.
+            # shellcheck disable=SC2024
+            if sudo --non-interactive --user="#$STAGING_PROVIDER_UID" -- env -i \
+              HOME="$STAGING_PROVIDER_HOME" PATH="$PATH" TMPDIR="$STAGING_PROVIDER_TMPDIR" CI=true \
+              CLOUDFLARE_API_TOKEN="$provider_token" \
+              CLOUDFLARE_ACCOUNT_ID="$account_id" \
+              CLOUDFLARE_API_BASE_URL="https://api.cloudflare.com/client/v4" \
+              WRANGLER_API_ENVIRONMENT="production" CLOUDFLARE_COMPLIANCE_REGION="public" \
+              CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV="false" CLOUDFLARE_INCLUDE_PROCESS_ENV="false" \
+              "$CONTROL_PLANE_ROOT/services/api/node_modules/.bin/wrangler" "${args[@]}" --env-file /dev/null > "$output.tmp" 2> "$output.stderr"; then
+              mv "$output.tmp" "$output"
+              if jq -e 'length == 0' "$output" >/dev/null; then
+                inventory="$STAGING_TRANSACTION_EVIDENCE_DIR/provider-pre/$name-scripts-inventory.json"
+                absence="$STAGING_TRANSACTION_EVIDENCE_DIR/provider-pre/$name-absence-authority.json"
+                http_status="$(provider_scripts_inventory "$inventory")" || return 1
+                test "$http_status" = "200"
+                mv "$inventory.tmp" "$inventory"
+                node "$CONTROL_PLANE_ROOT/scripts/verify-cloudflare-worker-absence.mjs" \
+                  --inventory "$inventory" --worker-name "$worker" --account-id "$account_id" --output "$absence"
+              fi
+            else
+              inventory="$STAGING_TRANSACTION_EVIDENCE_DIR/provider-pre/$name-scripts-inventory.json"
+              absence="$STAGING_TRANSACTION_EVIDENCE_DIR/provider-pre/$name-absence-authority.json"
+              http_status="$(provider_scripts_inventory "$inventory")" || return 1
+              test "$http_status" = "200"
+              mv "$inventory.tmp" "$inventory"
+              node "$CONTROL_PLANE_ROOT/scripts/verify-cloudflare-worker-absence.mjs" \
+                --inventory "$inventory" --worker-name "$worker" --account-id "$account_id" --output "$absence"
+              printf '[]\n' > "$output"
+              rm -f "$output.tmp"
+            fi
+          }
+          snapshot api services/api/wrangler.release.toml true
+          for surface in web app auth brand; do
+            snapshot "$surface" "infra/staging/surfaces/$surface.wrangler.jsonc" false
+          done
+          jq -n '[
+            {kind:"api",name:"api",workerName:"omdala-api-staging",configPath:"services/api/wrangler.release.toml",deploymentsPath:"provider-pre/api.json",useStagingEnvironment:true},
+            {kind:"surface",name:"web",workerName:"omdala-surface-web-staging",configPath:"infra/staging/surfaces/web.wrangler.jsonc",deploymentsPath:"provider-pre/web.json",useStagingEnvironment:false},
+            {kind:"surface",name:"app",workerName:"omdala-surface-app-staging",configPath:"infra/staging/surfaces/app.wrangler.jsonc",deploymentsPath:"provider-pre/app.json",useStagingEnvironment:false},
+            {kind:"surface",name:"auth",workerName:"omdala-surface-auth-staging",configPath:"infra/staging/surfaces/auth.wrangler.jsonc",deploymentsPath:"provider-pre/auth.json",useStagingEnvironment:false},
+            {kind:"surface",name:"brand",workerName:"omdala-surface-brand-staging",configPath:"infra/staging/surfaces/brand.wrangler.jsonc",deploymentsPath:"provider-pre/brand.json",useStagingEnvironment:false}
+          ]' > "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/target-specs.json"
+          node "$CONTROL_PLANE_ROOT/scripts/staging-recovery-capsule.mjs" --candidate-sha "$CANDIDATE_SHA" --control-plane-sha "$CONTROL_PLANE_SHA" --transaction-id "$STAGING_TRANSACTION_ID" --release-id "$RELEASE_ID" --workflow-run-id "$GITHUB_RUN_ID" --workflow-run-attempt "$GITHUB_RUN_ATTEMPT" --cloudflare-account-id "$account_id" --repository "$GITHUB_REPOSITORY" --target-specs "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/target-specs.json" --evidence-root "$STAGING_TRANSACTION_EVIDENCE_DIR" --output-dir "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule"
+          cp services/api/wrangler.release.toml "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/api.wrangler.release.toml"
+          test "$(sha256sum "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/api.wrangler.release.toml" | awk '{print $1}')" = "$(jq -er '.targets[] | select(.name == "api") | .configSha256' "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/recovery-capsule.json")"
+          mkdir -p "$STAGING_TRANSACTION_EVIDENCE_DIR/ledger"
+          node "$CONTROL_PLANE_ROOT/scripts/staging-transaction-ledger.mjs" create-capsule \
+            --capsule "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/recovery-capsule.json" \
+            --journal "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/transaction-journal.json" \
+            --seal "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/capsule-seal.json" \
+            --api-config "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/api.wrangler.release.toml" \
+            --surface-directory infra/staging/surfaces \
+            --output "$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/capsule-record.json"
+
+      - name: Upload pre-mutation durable recovery capsule and atomic journal
+        if: inputs.mode == 'deploy'
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-staging-recovery-capsule-${{ steps.identity.outputs.candidate_sha }}-${{ steps.identity.outputs.transaction_id }}
+          path: |
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/capsule/recovery-capsule.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/capsule/transaction-journal.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/capsule/capsule-seal.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/capsule/api.wrangler.release.toml
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/ledger/capsule-record.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - id: ledger_prepared
+        name: Append and read back the non-expiring D1 PREPARED event
+        if: inputs.mode == 'deploy'
+        continue-on-error: true
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash "$CONTROL_PLANE_ROOT/scripts/staging-durable-ledger.sh" append PREPARED \
+            "$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/capsule-record.json" \
+            "$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/prepared-append-receipt.json"
+
+      - id: ledger_prepared_state
+        name: Classify the durable PREPARED readback without guessing
+        if: always() && inputs.mode == 'deploy'
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          classification="missing"
+          receipt="$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/prepared-append-receipt.json"
+          if [[ -f "$receipt" ]]; then
+            classification="$(jq -er '.classification | select(. == "verified" or . == "confirmed_absent" or . == "conflict" or . == "ambiguous")' "$receipt" 2>/dev/null || printf 'ambiguous')"
+          fi
+          echo "classification=$classification" >> "$GITHUB_OUTPUT"
+
+      - name: Require an exact durable PREPARED readback before mutation
+        if: always() && inputs.mode == 'deploy'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.ledger_prepared_state.outputs.classification }}" = "verified"
+
+      - id: team_ai_baseline_run
+        name: Record exact Team AI baseline authority provenance
+        if: inputs.mode == 'deploy'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.AIAGENT_CROSS_REPO_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$STAGING_TRANSACTION_EVIDENCE_DIR/team-ai/baseline/run"
+          gh api "/repos/tranhatam-collab/AI.OMDALA.COM/actions/runs/$TEAM_AI_BASELINE_RUN_ID" > "$STAGING_TRANSACTION_EVIDENCE_DIR/team-ai/baseline/run/workflow-run.json"
+          jq -e --arg run_id "$TEAM_AI_BASELINE_RUN_ID" '
+            .name == "OMDALA protected staging AI acceptance" and
+            (.path == ".github/workflows/omdala-staging-acceptance.yml" or
+             .path == ".github/workflows/omdala-staging-acceptance.yml@refs/heads/main") and
+            (.id | tostring) == $run_id and .event == "workflow_dispatch" and
+            .head_branch == "main" and .status == "completed" and .conclusion == "success" and
+            .repository.full_name == "tranhatam-collab/AI.OMDALA.COM"
+          ' "$STAGING_TRANSACTION_EVIDENCE_DIR/team-ai/baseline/run/workflow-run.json" >/dev/null
+          head_sha="$(jq -er '.head_sha | select(test("^[0-9a-f]{40}$"))' "$STAGING_TRANSACTION_EVIDENCE_DIR/team-ai/baseline/run/workflow-run.json")"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Download exact protected Team AI baseline authority evidence
+        if: inputs.mode == 'deploy'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          repository: tranhatam-collab/AI.OMDALA.COM
+          run-id: ${{ inputs.team_ai_staging_acceptance_run_id }}
+          name: omdala-staging-ai-receipt-${{ steps.team_ai_baseline_run.outputs.head_sha }}
+          path: ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/team-ai/baseline/receipt
+          github-token: ${{ secrets.AIAGENT_CROSS_REPO_DISPATCH_TOKEN }}
+
+      - name: Prepare deploy-only database and E2E credential files
+        if: inputs.mode == 'deploy'
+        shell: bash
+        env:
+          DATABASE_URL_VALUE: ${{ secrets.OMDALA_DATABASE_URL }}
+          E2E_STAGING_APP_URL_VALUE: ${{ vars.OMDALA_APP_URL }}
+          E2E_STAGING_AUTH_URL_VALUE: ${{ vars.OMDALA_AUTH_URL }}
+          E2E_STAGING_API_URL_VALUE: ${{ vars.OMDALA_API_URL }}
+          E2E_STAGING_BRAND_URL_VALUE: ${{ vars.OMDALA_BRAND_URL }}
+          E2E_STAGING_WEB_URL_VALUE: ${{ vars.OMDALA_WEB_URL }}
+          E2E_TEST_SECRET_VALUE: ${{ secrets.OMDALA_STAGING_E2E_TEST_SECRET }}
+          E2E_MAIL_SINK_VALUE: ${{ secrets.OMDALA_MAIL_STAGING_SINK_ADDRESS }}
+          TEAM_AI_TOKEN_VALUE: ${{ secrets.AIAGENT_CROSS_REPO_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          jq -n --arg value "$DATABASE_URL_VALUE" '{OMDALA_DATABASE_URL:$value}' > "$STAGING_DATABASE_CREDENTIAL_FILE"
+          jq -n --arg app "$E2E_STAGING_APP_URL_VALUE" --arg auth "$E2E_STAGING_AUTH_URL_VALUE" --arg api "$E2E_STAGING_API_URL_VALUE" --arg brand "$E2E_STAGING_BRAND_URL_VALUE" --arg web "$E2E_STAGING_WEB_URL_VALUE" --arg secret "$E2E_TEST_SECRET_VALUE" --arg sink "$E2E_MAIL_SINK_VALUE" '{E2E_STAGING_APP_URL:$app,E2E_STAGING_AUTH_URL:$auth,E2E_STAGING_API_URL:$api,E2E_STAGING_BRAND_URL:$brand,E2E_STAGING_WEB_URL:$web,E2E_TEST_SECRET:$secret,E2E_STAGING_MAIL_SINK_ADDRESS:$sink}' > "$STAGING_E2E_CREDENTIAL_FILE"
+          jq -n --arg token "$TEAM_AI_TOKEN_VALUE" '{GITHUB_TOKEN:$token}' > "$STAGING_TEAM_AI_CREDENTIAL_FILE"
+          jq -n --arg secret "$E2E_TEST_SECRET_VALUE" --arg sink "$E2E_MAIL_SINK_VALUE" --arg normalized_sink "$(printf '%s' "$E2E_MAIL_SINK_VALUE" | tr '[:upper:]' '[:lower:]')" '{schema_version:1,protected_values:[$secret,$sink,$normalized_sink]}' > "$STAGING_ARTIFACT_SCAN_NEEDLES_FILE"
+          chmod 600 "$STAGING_DATABASE_CREDENTIAL_FILE" "$STAGING_E2E_CREDENTIAL_FILE" "$STAGING_TEAM_AI_CREDENTIAL_FILE" "$STAGING_ARTIFACT_SCAN_NEEDLES_FILE"
+          jq -e '.OMDALA_DATABASE_URL | length > 0' "$STAGING_DATABASE_CREDENTIAL_FILE" >/dev/null
+          jq -e 'all(.[]; type == "string" and length > 0)' "$STAGING_E2E_CREDENTIAL_FILE" >/dev/null
+          jq -e '.GITHUB_TOKEN | type == "string" and length >= 40' "$STAGING_TEAM_AI_CREDENTIAL_FILE" >/dev/null
+
+      - name: Prepare protected API secret bundle outside every artifact
+        if: inputs.mode == 'deploy'
+        shell: bash
+        env:
+          OMDALA_MAGIC_LINK_SECRET: ${{ secrets.OMDALA_MAGIC_LINK_SECRET }}
+          OMDALA_MAIL_API_KEY: ${{ secrets.OMDALA_MAIL_API_KEY }}
+          OMDALA_MAIL_STAGING_SINK_ADDRESS: ${{ secrets.OMDALA_MAIL_STAGING_SINK_ADDRESS }}
+          OMDALA_API_KEY_SECRET: ${{ secrets.OMDALA_API_KEY_SECRET }}
+          OMDALA_WEBHOOK_SECRET: ${{ secrets.OMDALA_WEBHOOK_SECRET }}
+          OMDALA_SERVICE_TOKEN_SECRET: ${{ secrets.OMDALA_SERVICE_TOKEN_SECRET }}
+          OMDALA_CSRF_SECRET: ${{ secrets.OMDALA_CSRF_SECRET }}
+          OMDALA_AIAGENT_API_KEY: ${{ secrets.OMDALA_AIAGENT_API_KEY }}
+          OMDALA_GOOGLE_CLIENT_SECRET: ${{ secrets.OMDALA_GOOGLE_CLIENT_SECRET }}
+          OMDALA_GOOGLE_OAUTH_STATE_SECRET: ${{ secrets.OMDALA_GOOGLE_OAUTH_STATE_SECRET }}
+          OMDALA_E2E_TEST_SECRET: ${{ secrets.OMDALA_STAGING_E2E_TEST_SECRET }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { chmodSync, readFileSync, writeFileSync } from "node:fs";
+          const required = {
+            MAGIC_LINK_SECRET: process.env.OMDALA_MAGIC_LINK_SECRET,
+            MAIL_API_KEY: process.env.OMDALA_MAIL_API_KEY,
+            MAIL_STAGING_SINK_ADDRESS: process.env.OMDALA_MAIL_STAGING_SINK_ADDRESS,
+            API_KEY_SECRET: process.env.OMDALA_API_KEY_SECRET,
+            WEBHOOK_SECRET: process.env.OMDALA_WEBHOOK_SECRET,
+            SERVICE_TOKEN_SECRET: process.env.OMDALA_SERVICE_TOKEN_SECRET,
+            CSRF_SECRET: process.env.OMDALA_CSRF_SECRET,
+            AIAGENT_API_KEY: process.env.OMDALA_AIAGENT_API_KEY,
+            GOOGLE_CLIENT_SECRET: process.env.OMDALA_GOOGLE_CLIENT_SECRET,
+            GOOGLE_OAUTH_STATE_SECRET: process.env.OMDALA_GOOGLE_OAUTH_STATE_SECRET,
+            E2E_TEST_SECRET: process.env.OMDALA_E2E_TEST_SECRET,
+          };
+          for (const [name, value] of Object.entries(required)) {
+            const minimum = ["MAIL_API_KEY", "MAIL_STAGING_SINK_ADDRESS"].includes(name) ? 1 : 32;
+            if (!value || value.trim().length < minimum) throw new Error(`Protected secret ${name} is missing or too short`);
+          }
+          if (!/^sk-aiagent-[a-f0-9]{48}$/.test(required.AIAGENT_API_KEY)) {
+            throw new Error("AIAGENT_API_KEY does not match the scoped credential contract");
+          }
+          writeFileSync(process.env.STAGING_API_SECRET_BUNDLE, `${JSON.stringify(required)}\n`, { mode: 0o600 });
+          chmodSync(process.env.STAGING_API_SECRET_BUNDLE, 0o600);
+          writeFileSync(
+            process.env.STAGING_AI_RECONCILIATION_CREDENTIAL_FILE,
+            `${JSON.stringify({ AIAGENT_API_KEY: required.AIAGENT_API_KEY })}\n`,
+            { mode: 0o600 },
+          );
+          chmodSync(process.env.STAGING_AI_RECONCILIATION_CREDENTIAL_FILE, 0o600);
+          const readCredential = (path) => JSON.parse(readFileSync(path, "utf8"));
+          const protectedValues = [...new Set([
+            ...Object.values(required),
+            ...Object.values(readCredential(process.env.STAGING_PROVIDER_CREDENTIAL_FILE)),
+            ...Object.values(readCredential(process.env.STAGING_DATABASE_CREDENTIAL_FILE)),
+            ...Object.values(readCredential(process.env.STAGING_E2E_CREDENTIAL_FILE)),
+            ...Object.values(readCredential(process.env.STAGING_LEDGER_CREDENTIAL_FILE)),
+            ...Object.values(readCredential(process.env.STAGING_TEAM_AI_CREDENTIAL_FILE)),
+          ].filter((value) => typeof value === "string" && value.length > 0))];
+          writeFileSync(
+            process.env.STAGING_ARTIFACT_SCAN_NEEDLES_FILE,
+            `${JSON.stringify({ schema_version: 1, protected_values: protectedValues })}\n`,
+            { mode: 0o600 },
+          );
+          chmodSync(process.env.STAGING_ARTIFACT_SCAN_NEEDLES_FILE, 0o600);
+          NODE
+
+      - name: Prove candidate E2E runs under an isolated unprivileged identity
+        if: inputs.mode == 'deploy'
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          runtime_dir="$(dirname "$STAGING_PROVIDER_CREDENTIAL_FILE")"
+          test "$(stat -c '%a' "$runtime_dir")" = "700"
+          e2e_uid="${STAGING_E2E_UID:?STAGING_E2E_UID is required}"
+          test "$e2e_uid" != "$(id -u)"
+          test "$e2e_uid" != "$STAGING_CANDIDATE_UID"
+          test "$e2e_uid" != "$STAGING_PROVIDER_UID"
+          test "$(stat -c '%u' "$STAGING_E2E_HOME")" = "$e2e_uid"
+          test "$(stat -c '%u' "$STAGING_E2E_TMPDIR")" = "$e2e_uid"
+          test "$(stat -c '%u' "$STAGING_E2E_OUTPUT_DIR")" = "$e2e_uid"
+          test "$(stat -c '%u' "$STAGING_E2E_OUTPUT_DIR/playwright")" = "$e2e_uid"
+          test "$(stat -c '%u' "$PLAYWRIGHT_BROWSERS_PATH")" = "$(id -u)"
+          test -z "$(find "$PLAYWRIGHT_BROWSERS_PATH" -type l -print -quit)"
+          test -z "$(find "$PLAYWRIGHT_BROWSERS_PATH" -perm /022 -print -quit)"
+          sudo --non-interactive --user="#$STAGING_CANDIDATE_UID" -- test ! -w "$STAGING_E2E_HOME"
+          sudo --non-interactive --user="#$STAGING_CANDIDATE_UID" -- test ! -w "$STAGING_E2E_TMPDIR"
+          sudo --non-interactive --user="#$STAGING_CANDIDATE_UID" -- test ! -w "$STAGING_E2E_OUTPUT_DIR"
+          sudo --non-interactive --user="#$STAGING_CANDIDATE_UID" -- test ! -w "$PLAYWRIGHT_BROWSERS_PATH"
+          sudo --non-interactive --user="#$e2e_uid" -- test ! -r "$STAGING_PROVIDER_HOME"
+          sudo --non-interactive --user="#$e2e_uid" -- test ! -w "$STAGING_PROVIDER_HOME"
+          sudo --non-interactive --user="#$e2e_uid" -- test ! -r "$STAGING_PROVIDER_TMPDIR"
+          sudo --non-interactive --user="#$e2e_uid" -- test ! -w "$STAGING_PROVIDER_TMPDIR"
+          test -r "$STAGING_PROVIDER_CREDENTIAL_FILE"
+          jq -e '.CLOUDFLARE_API_TOKEN | length > 0' "$STAGING_PROVIDER_CREDENTIAL_FILE" >/dev/null
+          for protected_file in "$STAGING_PROVIDER_CREDENTIAL_FILE" "$STAGING_DATABASE_CREDENTIAL_FILE" "$STAGING_API_SECRET_BUNDLE" "$STAGING_AI_RECONCILIATION_CREDENTIAL_FILE" "$STAGING_LEDGER_CREDENTIAL_FILE" "$STAGING_TEAM_AI_CREDENTIAL_FILE"; do
+            test -f "$protected_file"
+            if sudo --non-interactive --user="#$e2e_uid" -- test -r "$protected_file"; then
+              echo "::error::The isolated candidate identity can read a protected runtime credential"
+              exit 1
+            fi
+            if sudo --non-interactive --user="#$STAGING_PROVIDER_UID" -- test -r "$protected_file"; then
+              echo "::error::The provider-only identity can read a protected runtime credential file"
+              exit 1
+            fi
+          done
+          mkdir -p "$STAGING_TRANSACTION_EVIDENCE_DIR/preflight"
+          jq -n --argjson runner_uid "$(id -u)" --argjson candidate_build_uid "$STAGING_CANDIDATE_UID" --argjson acceptance_uid "$e2e_uid" --argjson provider_uid "$STAGING_PROVIDER_UID" --arg runtime_mode "$(stat -c '%a' "$runtime_dir")" --arg verified_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{schema_version:1,verdict:"STAGING_CANDIDATE_E2E_OS_IDENTITY_ISOLATED",runner_uid:$runner_uid,candidate_build_uid:$candidate_build_uid,acceptance_uid:$acceptance_uid,provider_uid:$provider_uid,acceptance_identity_fresh_and_distinct:($acceptance_uid != $candidate_build_uid and $acceptance_uid != $provider_uid and $acceptance_uid != $runner_uid),provider_identity_distinct:($provider_uid != $candidate_build_uid and $provider_uid != $acceptance_uid and $provider_uid != $runner_uid),trusted_browser_runner_owned_read_only:true,candidate_build_state_reused_for_acceptance:false,runtime_directory_mode:$runtime_mode,provider_credential_readable_by_runner:true,provider_credential_readable_by_candidate:false,provider_credential_file_readable_by_provider_identity:false,database_credential_readable_by_candidate:false,api_secret_bundle_readable_by_candidate:false,ai_reconciliation_credential_readable_by_candidate:false,durable_ledger_credential_readable_by_candidate:false,team_ai_credential_readable_by_candidate:false,provider_scratch_readable_by_candidate:false,verified_at:$verified_at}' > "$STAGING_TRANSACTION_EVIDENCE_DIR/preflight/candidate-e2e-isolation.json"
+
+      - id: execute
+        name: Execute protected deploy or recovery-only transaction
+        continue-on-error: true
+        working-directory: candidate
+        shell: bash
+        env:
+          STAGING_TRANSACTION_HOOK_SCRIPT: ${{ github.workspace }}/control-plane/scripts/staging-transaction-hooks.sh
+          STAGING_RECOVERY_SCRIPT: ${{ github.workspace }}/control-plane/scripts/staging-transaction-recovery.sh
+          WRANGLER_BIN: ${{ github.workspace }}/control-plane/services/api/node_modules/.bin/wrangler
+        run: |
+          set -euo pipefail
+          bash "$CONTROL_PLANE_ROOT/scripts/staging-unified-transaction.sh" "$TRANSACTION_MODE" "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/recovery-capsule.json" "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/transaction-journal.json" "$STAGING_TRANSACTION_EVIDENCE_DIR"
+
+      - name: Write a fail-closed receipt if execution aborted before its receipt
+        if: always()
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          receipt="$STAGING_TRANSACTION_EVIDENCE_DIR/transaction-executor-receipt.json"
+          if [[ ! -f "$receipt" ]] && [[ -f "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/recovery-capsule.json" ]] && [[ -f "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/transaction-journal.json" ]]; then
+            jq -n --arg mode "$TRANSACTION_MODE" --arg transaction_id "$STAGING_TRANSACTION_ID" --arg candidate_sha "$CANDIDATE_SHA" --arg control_plane_sha "$CONTROL_PLANE_SHA" --arg capsule_sha256 "$(sha256sum "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/recovery-capsule.json" | awk '{print $1}')" --arg journal_sha256 "$(sha256sum "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/transaction-journal.json" | awk '{print $1}')" --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{schema_version:2,verdict:"STAGING_TRANSACTION_EXECUTOR_ABORTED_BEFORE_RECEIPT",mode:$mode,transaction_id:$transaction_id,candidate_sha:$candidate_sha,control_plane_sha:$control_plane_sha,recovery_capsule_sha256:$capsule_sha256,transaction_journal_sha256:$journal_sha256,recovery_receipt_sha256:null,acceptance_receipt_sha256:null,provider_evidence_manifest_sha256:null,original_exit_status:null,recovery_exit_status:null,signal:null,database_schema_reverted:false,contains_secret_values:false,created_at:$created_at}' > "$receipt"
+          fi
+
+      - id: artifact_secret_scan
+        name: Reject protected E2E literals from the exact prepared artifact set
+        if: always() && inputs.mode == 'deploy' && steps.execute.outcome != 'skipped'
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$STAGING_ARTIFACT_SCAN_NEEDLES_FILE"
+          mkdir -p "$STAGING_TRANSACTION_EVIDENCE_DIR/preflight"
+          shopt -s nullglob
+          scan_args=()
+          artifact_paths=(
+            "$STAGING_TRANSACTION_EVIDENCE_DIR"/capsule/*.json
+            "$STAGING_TRANSACTION_EVIDENCE_DIR"/preflight/*.json
+            "$STAGING_TRANSACTION_EVIDENCE_DIR"/ledger/*.json
+            "$STAGING_TRANSACTION_EVIDENCE_DIR"/provider/*.json
+            "$STAGING_TRANSACTION_EVIDENCE_DIR"/authority/*.json
+            "$STAGING_TRANSACTION_EVIDENCE_DIR"/provider-evidence-manifest.json
+            "$STAGING_TRANSACTION_EVIDENCE_DIR"/transaction-executor-receipt.json
+            "$STAGING_TRANSACTION_EVIDENCE_DIR"/staging-acceptance.json
+            "$STAGING_TRANSACTION_EVIDENCE_DIR"/staging-e2e-receipt.json
+            "$STAGING_TRANSACTION_EVIDENCE_DIR"/staging-ai-chain.json
+            "$STAGING_TRANSACTION_EVIDENCE_DIR"/staging-mail-sink-evidence.json
+          )
+          for artifact in "${artifact_paths[@]}"; do
+            test -f "$artifact"
+            test ! -L "$artifact"
+            scan_args+=(--path "$artifact")
+          done
+          test "${#scan_args[@]}" -gt 0
+          node "$CONTROL_PLANE_ROOT/scripts/scan-staging-artifacts-for-secrets.mjs" \
+            --needles "$STAGING_ARTIFACT_SCAN_NEEDLES_FILE" \
+            --receipt "$STAGING_TRANSACTION_EVIDENCE_DIR/preflight/artifact-secret-scan.json" \
+            "${scan_args[@]}"
+
+      - id: commit_intent
+        name: Create durable commit intent from exact local acceptance evidence
+        if: inputs.mode == 'deploy' && steps.execute.outcome == 'success' && steps.artifact_secret_scan.outcome == 'success'
+        continue-on-error: true
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          executor="$STAGING_TRANSACTION_EVIDENCE_DIR/transaction-executor-receipt.json"
+          acceptance="$STAGING_TRANSACTION_EVIDENCE_DIR/staging-acceptance.json"
+          provider_manifest="$STAGING_TRANSACTION_EVIDENCE_DIR/provider-evidence-manifest.json"
+          jq -e '.verdict == "STAGING_TRANSACTION_PREPARED_FOR_COMMIT" and .original_exit_status == 0 and .recovery_exit_status == 0' "$executor" >/dev/null
+          jq -e '.verdict == "STAGING_ACCEPTANCE_PREPARED_UNIFIED_TRANSACTION" and .immutable_artifact_published == false' "$acceptance" >/dev/null
+          jq -e '.verdict == "STAGING_PROVIDER_EVIDENCE_EXACT" and (.targets | map(.name)) == ["api","web","app","auth","brand"]' "$provider_manifest" >/dev/null
+          jq -n --arg candidate_sha "$CANDIDATE_SHA" --arg control_plane_sha "$CONTROL_PLANE_SHA" --arg transaction_id "$STAGING_TRANSACTION_ID" --arg release_id "$RELEASE_ID" --arg recovery_capsule_sha256 "$(jq -er '.recovery_capsule_sha256' "$executor")" --arg executor_sha256 "$(sha256sum "$executor" | awk '{print $1}')" --arg acceptance_sha256 "$(sha256sum "$acceptance" | awk '{print $1}')" --arg provider_manifest_sha256 "$(sha256sum "$provider_manifest" | awk '{print $1}')" --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{schema_version:1,verdict:"STAGING_TRANSACTION_COMMIT_INTENT",
+              candidate_sha:$candidate_sha,control_plane_sha:$control_plane_sha,
+              transaction_id:$transaction_id,release_id:$release_id,
+              recovery_capsule_sha256:$recovery_capsule_sha256,
+              executor_receipt_sha256:$executor_sha256,
+              acceptance_receipt_sha256:$acceptance_sha256,
+              provider_evidence_manifest_sha256:$provider_manifest_sha256,
+              durable_ledger_is_authority:true,artifacts_are_supplemental:true,
+              production_release_authorized:false,production_release_status:"HOLD_NO_GO",
+              contains_secret_values:false,created_at:$created_at}' > "$STAGING_TRANSACTION_EVIDENCE_DIR/transaction-commit.json"
+
+      - id: ledger_commit
+        name: Append and read back the D1 COMMITTED terminal event
+        if: inputs.mode == 'deploy' && steps.execute.outcome == 'success' && steps.artifact_secret_scan.outcome == 'success' && steps.commit_intent.outcome == 'success'
+        continue-on-error: true
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node "$CONTROL_PLANE_ROOT/scripts/staging-transaction-ledger.mjs" create-commit \
+            --capsule-record "$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/capsule-record.json" \
+            --receipt "$STAGING_TRANSACTION_EVIDENCE_DIR/transaction-commit.json" \
+            --executor "$STAGING_TRANSACTION_EVIDENCE_DIR/transaction-executor-receipt.json" \
+            --acceptance "$STAGING_TRANSACTION_EVIDENCE_DIR/staging-acceptance.json" \
+            --provider-manifest "$STAGING_TRANSACTION_EVIDENCE_DIR/provider-evidence-manifest.json" \
+            --output "$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/commit-record.json"
+          bash "$CONTROL_PLANE_ROOT/scripts/staging-durable-ledger.sh" append COMMITTED \
+            "$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/commit-record.json" \
+            "$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/commit-append-receipt.json"
+
+      - id: ledger_commit_state
+        name: Classify the durable COMMITTED readback without guessing
+        if: always() && inputs.mode == 'deploy' && steps.execute.outcome == 'success' && steps.artifact_secret_scan.outcome == 'success' && steps.commit_intent.outcome == 'success'
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          classification="missing"
+          receipt="$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/commit-append-receipt.json"
+          if [[ -f "$receipt" ]]; then
+            classification="$(jq -er '.classification | select(. == "verified" or . == "confirmed_absent" or . == "conflict" or . == "ambiguous")' "$receipt" 2>/dev/null || printf 'ambiguous')"
+          fi
+          echo "classification=$classification" >> "$GITHUB_OUTPUT"
+
+      - id: compensate_uncommitted
+        name: Compensate only when D1 definitively confirms COMMITTED is absent
+        if: >-
+          always() && inputs.mode == 'deploy' &&
+          steps.execute.outcome == 'success' &&
+          (steps.artifact_secret_scan.outcome == 'failure' ||
+           steps.commit_intent.outcome == 'failure' ||
+           steps.ledger_commit_state.outputs.classification == 'confirmed_absent')
+        continue-on-error: true
+        working-directory: candidate
+        shell: bash
+        env:
+          STAGING_RECOVERY_SCRIPT: ${{ github.workspace }}/control-plane/scripts/staging-transaction-recovery.sh
+          WRANGLER_BIN: ${{ github.workspace }}/control-plane/services/api/node_modules/.bin/wrangler
+        run: |
+          set -euo pipefail
+          bash "$CONTROL_PLANE_ROOT/scripts/staging-unified-transaction.sh" recovery-only "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/recovery-capsule.json" "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/transaction-journal.json" "$STAGING_TRANSACTION_EVIDENCE_DIR"
+
+      - id: resolution
+        name: Verify a recovery resolution is eligible for the durable ledger
+        if: always()
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=false
+          receipt="$STAGING_TRANSACTION_EVIDENCE_DIR/transaction-executor-receipt.json"
+          if [[ -f "$receipt" ]] && jq -e '
+            .verdict == "STAGING_RECOVERY_ONLY_VERIFIED" or
+            .verdict == "STAGING_TRANSACTION_FAILED_RECOVERY_VERIFIED"
+          ' "$receipt" >/dev/null; then
+            ready=true
+          fi
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
+
+      - id: ledger_recovery
+        name: Append and read back the D1 RECOVERED terminal event
+        if: always() && steps.resolution.outputs.ready == 'true'
+        continue-on-error: true
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node "$CONTROL_PLANE_ROOT/scripts/staging-transaction-ledger.mjs" create-recovery \
+            --capsule-record "$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/capsule-record.json" \
+            --executor "$STAGING_TRANSACTION_EVIDENCE_DIR/transaction-executor-receipt.json" \
+            --recovery "$STAGING_TRANSACTION_EVIDENCE_DIR/recovery/staging-recovery-receipt.json" \
+            --plan "$STAGING_TRANSACTION_EVIDENCE_DIR/recovery-plan.json" \
+            --journal "$STAGING_TRANSACTION_EVIDENCE_DIR/capsule/transaction-journal.json" \
+            --output "$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/recovery-record.json"
+          bash "$CONTROL_PLANE_ROOT/scripts/staging-durable-ledger.sh" append RECOVERED \
+            "$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/recovery-record.json" \
+            "$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/recovery-append-receipt.json"
+
+      - id: ledger_recovery_state
+        name: Classify the durable RECOVERED readback without guessing
+        if: always() && steps.resolution.outputs.ready == 'true'
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          classification="missing"
+          receipt="$STAGING_TRANSACTION_EVIDENCE_DIR/ledger/recovery-append-receipt.json"
+          if [[ -f "$receipt" ]]; then
+            classification="$(jq -er '.classification | select(. == "verified" or . == "confirmed_absent" or . == "conflict" or . == "ambiguous")' "$receipt" 2>/dev/null || printf 'ambiguous')"
+          fi
+          echo "classification=$classification" >> "$GITHUB_OUTPUT"
+
+      - name: Remove every protected credential file before supplemental artifact publication
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$STAGING_PROVIDER_CREDENTIAL_FILE" "$STAGING_DATABASE_CREDENTIAL_FILE" "$STAGING_E2E_CREDENTIAL_FILE" "$STAGING_API_SECRET_BUNDLE" "$STAGING_AI_RECONCILIATION_CREDENTIAL_FILE" "$STAGING_LEDGER_CREDENTIAL_FILE" "$STAGING_TEAM_AI_CREDENTIAL_FILE" "$STAGING_ARTIFACT_SCAN_NEEDLES_FILE"
+          if [[ -n "${STAGING_PROVIDER_UID:-}" ]]; then
+            sudo pkill -KILL -u "$STAGING_PROVIDER_UID" 2>/dev/null || true
+          fi
+
+      - id: prepared_upload
+        name: Publish supplemental prepared acceptance evidence
+        if: always() && inputs.mode == 'deploy' && steps.execute.outcome == 'success' && steps.artifact_secret_scan.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-staging-transaction-prepared-${{ steps.identity.outputs.candidate_sha }}-${{ steps.identity.outputs.transaction_id }}
+          path: |
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/capsule/*.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/preflight/*.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/ledger/*.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/provider/*.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/authority/*.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/provider-evidence-manifest.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/transaction-executor-receipt.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/staging-acceptance.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/staging-e2e-receipt.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/staging-ai-chain.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/staging-mail-sink-evidence.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - id: commit_upload
+        name: Publish supplemental staging transaction commit
+        if: always() && inputs.mode == 'deploy' && steps.ledger_commit_state.outputs.classification == 'verified'
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-staging-transaction-commit-${{ steps.identity.outputs.candidate_sha }}-${{ steps.identity.outputs.transaction_id }}
+          path: |
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/transaction-commit.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/ledger/commit-record.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/ledger/commit-append-receipt.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - id: recovery_upload
+        name: Publish supplemental recovery resolution
+        if: always() && steps.resolution.outputs.ready == 'true'
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-staging-recovery-resolved-${{ steps.identity.outputs.candidate_sha }}-${{ steps.identity.outputs.transaction_id }}
+          path: |
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/capsule/*.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/recovery-plan.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/recovery/*.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/transaction-executor-receipt.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/ledger/recovery-record.json
+            ${{ env.STAGING_TRANSACTION_EVIDENCE_DIR }}/ledger/recovery-append-receipt.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce durable terminal state
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$TRANSACTION_MODE" == "deploy" ]] && [[ "${{ steps.execute.outcome }}" == "success" ]] && [[ "${{ steps.ledger_commit_state.outputs.classification }}" == "verified" ]]; then
+            exit 0
+          fi
+          if [[ "$TRANSACTION_MODE" == "recovery-only" ]] && [[ "${{ steps.execute.outcome }}" == "success" ]] && [[ "${{ steps.ledger_recovery_state.outputs.classification }}" == "verified" ]]; then
+            exit 0
+          fi
+          if [[ "$TRANSACTION_MODE" == "deploy" ]] && [[ "${{ steps.execute.outcome }}" == "success" ]] && [[ "${{ steps.commit_intent.outcome }}" == "success" ]]; then
+            case "${{ steps.ledger_commit_state.outputs.classification }}" in
+              verified)
+                exit 0
+                ;;
+              confirmed_absent)
+                # The compensation step is authoritative only for this exact classification.
+                ;;
+              *)
+                echo "::error::MANUAL_LEDGER_RECONCILIATION_REQUIRED"
+                echo "::error::The COMMITTED terminal is not definitively absent. Do not compensate until an exact D1 readback resolves it."
+                exit 1
+                ;;
+            esac
+          fi
+          if [[ "$TRANSACTION_MODE" == "deploy" ]] && [[ "${{ steps.ledger_prepared.outcome }}" == "skipped" ]]; then
+            echo "::error::STAGING_PREPARED_NOT_ATTEMPTED_START_FRESH_DEPLOY"
+            echo "::error::The PREPARED append never ran and no provider mutation was allowed. Start a fresh deploy dispatch."
+            exit 1
+          fi
+          if [[ "$TRANSACTION_MODE" == "deploy" ]] && [[ "${{ steps.ledger_prepared_state.outputs.classification }}" == "confirmed_absent" ]]; then
+            echo "::error::STAGING_PREPARED_NOT_CREATED_START_FRESH_DEPLOY"
+            echo "::error::D1 definitively confirms no PREPARED event exists and no provider mutation was allowed. Start a fresh deploy dispatch."
+            exit 1
+          fi
+          if [[ "$TRANSACTION_MODE" == "deploy" ]] && [[ "${{ steps.ledger_prepared_state.outputs.classification }}" =~ ^(ambiguous|conflict|missing)$ ]]; then
+            echo "::error::MANUAL_LEDGER_RECONCILIATION_REQUIRED"
+            echo "::error::The PREPARED append is not definitively absent. Reconcile the D1 ledger before any forward mutation."
+            exit 1
+          fi
+          if [[ "${{ steps.resolution.outputs.ready }}" == "true" ]] && [[ "${{ steps.ledger_recovery_state.outputs.classification }}" == "confirmed_absent" ]]; then
+            echo "::error::MANUAL_REDISPATCH_REQUIRED"
+            echo "::error::Provider recovery is verified and D1 definitively confirms RECOVERED is absent. Dispatch recovery-only again to append the no-op closure."
+            exit 1
+          fi
+          if [[ "${{ steps.resolution.outputs.ready }}" == "true" ]] && [[ "${{ steps.ledger_recovery_state.outputs.classification }}" =~ ^(ambiguous|conflict|missing)$ ]]; then
+            echo "::error::MANUAL_LEDGER_RECONCILIATION_REQUIRED"
+            echo "::error::Provider recovery is verified, but the RECOVERED D1 terminal is not. Do not perform another forward mutation."
+            exit 1
+          fi
+          if [[ "$TRANSACTION_MODE" == "deploy" ]] && [[ "${{ steps.resolution.outputs.ready }}" == "true" ]] && [[ "${{ steps.ledger_recovery_state.outputs.classification }}" == "verified" ]]; then
+            echo "::error::STAGING_TRANSACTION_FAILED_RECOVERY_VERIFIED"
+            echo "::error::The forward transaction failed, and reverse recovery is complete with an exact RECOVERED D1 terminal. No recovery-only redispatch is required."
+            exit 1
+          fi
+          echo "::error::MANUAL_REDISPATCH_REQUIRED"
+          echo "::error::Force-cancel or runner loss cannot be recovered by the stopped runner; dispatch recovery-only with the unresolved prior run ID."
+          exit 1

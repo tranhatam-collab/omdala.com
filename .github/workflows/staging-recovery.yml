@@ -1,0 +1,144 @@
+name: OMDALA Staging Compensating Recovery
+
+on:
+  workflow_call:
+    inputs:
+      candidate_sha:
+        required: true
+        type: string
+      control_plane_sha:
+        required: true
+        type: string
+      staging_transaction_id:
+        required: true
+        type: string
+      api_release_artifact_name:
+        required: true
+        type: string
+      api_receipt_sha256:
+        required: true
+        type: string
+      rollback_surfaces:
+        required: true
+        type: boolean
+      surface_release_artifact_name:
+        required: false
+        type: string
+        default: ""
+      surface_receipt_sha256:
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  recover:
+    name: Restore exact staging provider baselines
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: staging
+    steps:
+      - name: Disable the legacy staging recovery entry point
+        shell: bash
+        run: |
+          echo "::error::LEGACY_STAGING_MUTATION_ENTRY_POINT_DISABLED"
+          echo "::error::Ordinary staging compensation is owned by the single protected transaction job"
+          exit 1
+      - name: Require the trusted staging transaction caller
+        shell: bash
+        env:
+          CONTROL_PLANE_SHA: ${{ inputs.control_plane_sha }}
+          STAGING_TRANSACTION_ID: ${{ inputs.staging_transaction_id }}
+        run: |
+          set -euo pipefail
+          expected_transaction_id="staging-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          expected_workflow_ref="${GITHUB_REPOSITORY}/.github/workflows/staging-transaction.yml@refs/heads/main"
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_RUN_ATTEMPT" = "1" || {
+            echo "::error::STAGING_TRANSACTION_RERUN_BLOCKED_START_A_NEW_DISPATCH"
+            exit 1
+          }
+          test "$GITHUB_WORKFLOW" = "OMDALA Staging Transaction"
+          test "$GITHUB_WORKFLOW_REF" = "$expected_workflow_ref"
+          test "$GITHUB_WORKFLOW_SHA" = "$CONTROL_PLANE_SHA"
+          test "$CONTROL_PLANE_SHA" = "$GITHUB_SHA"
+          test "$STAGING_TRANSACTION_ID" = "$expected_transaction_id"
+      - name: Checkout trusted recovery controls
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.control_plane_sha }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Download hash-bound API release evidence from this run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ inputs.api_release_artifact_name }}
+          path: release-chain/api
+      - name: Download hash-bound surface release evidence from this run
+        if: inputs.rollback_surfaces
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ inputs.surface_release_artifact_name }}
+          path: release-chain/surfaces
+      - name: Build an exact hash-bound recovery plan
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ROLLBACK_SURFACES: ${{ inputs.rollback_surfaces }}
+          API_RECEIPT_SHA256: ${{ inputs.api_receipt_sha256 }}
+          SURFACE_RECEIPT_SHA256: ${{ inputs.surface_receipt_sha256 }}
+        run: |
+          set -euo pipefail
+          mkdir -p recovery-input staging-recovery-evidence
+          cp release-chain/api/api-release-wrangler.toml \
+            recovery-input/api-release-wrangler.toml
+          args=(
+            --api-receipt release-chain/api/api-release.json
+            --api-config recovery-input/api-release-wrangler.toml
+            --api-receipt-sha256 "$API_RECEIPT_SHA256"
+            --rollback-surfaces "$ROLLBACK_SURFACES"
+            --candidate-sha "${{ inputs.candidate_sha }}"
+            --control-plane-sha "${{ inputs.control_plane_sha }}"
+            --transaction-id "${{ inputs.staging_transaction_id }}"
+            --workflow-run-id "$GITHUB_RUN_ID"
+            --workflow-run-attempt "$GITHUB_RUN_ATTEMPT"
+            --cloudflare-account-id "$CLOUDFLARE_ACCOUNT_ID"
+            --repository "$GITHUB_REPOSITORY"
+            --output staging-recovery-evidence/recovery-plan.json
+          )
+          if [[ "$ROLLBACK_SURFACES" == "true" ]]; then
+            args+=(
+              --surface-receipt release-chain/surfaces/surface-release.json
+              --surface-receipt-sha256 "$SURFACE_RECEIPT_SHA256"
+            )
+          else
+            args+=(--surface-receipt-sha256 "")
+          fi
+          node scripts/staging-recovery-plan.mjs "${args[@]}" >/dev/null
+      - name: Restore surfaces in reverse order, then API, and verify provider readback
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: >-
+          bash scripts/staging-transaction-recovery.sh
+          staging-recovery-evidence/recovery-plan.json
+          staging-recovery-evidence
+      - name: Upload immutable staging recovery evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-staging-recovery-${{ inputs.staging_transaction_id }}-${{ inputs.rollback_surfaces && 'all' || 'api' }}
+          path: staging-recovery-evidence/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "verdict": "VERIFIED_WORKTREE_ONLY",
+  "generated_at_utc": "2026-10-07T21:14:18Z",
+  "base_head": "355693bfd5798ea222f0eaf7f466c05167205f5a",
+  "node_version": "v22.22.3",
+  "scope": [
+    "migration compatibility manifest and verifier",
+    "read-only API provider preflight before database migration",
+    "pre-deploy API provider recheck for TOCTOU",
+    "release-control source contract"
+  ],
+  "source_sha256": {
+    ".github/workflows/deploy.yml": "886d2d61743fdc76fd7707f66dc341f1bbe3b397df32f627306a5eae8141d2f4",
+    "infra/postgres/migrations/compatibility.json": "43889ed91c8e92bc05c0cab64c954d87dbaf2d531969b996a26052d64be7b165",
+    "scripts/verify-migration-compatibility.mjs": "f7957a8fb158292dc62caac1215d5ff857649a8e012cf97dfe8ebf1a6cb68743",
+    "scripts/verify-migration-compatibility.test.mjs": "6765bcbc6e45753d5750ab76c5c264d3edc870eb5f39cbf8f3f06ffac7596a09",
+    "scripts/verify-api-worker-authority.mjs": "5c30d33247cd2a2ddab4ae4c0f4d6ae4d488cd6c682a8187de5026ba58d182c5",
+    "scripts/verify-api-worker-authority.test.mjs": "5be4e588086f915650191b99869b62d0038959f90b185c64231ecebf6a8881c1",
+    "scripts/release-control-contract.mjs": "70e81176520e6c854b46b04018f360cc1544590bdbfe118529760a4a27c67d33",
+    "package.json": "7a4b82fd4420ca3a942664e37961116420bcac0a4c150dd43467f028cccbe93b"
+  },
+  "checks": {
+    "focused_node_tests": {
+      "tests": 70,
+      "passed": 70,
+      "failed": 0,
+      "exit_code": 0
+    },
+    "release_governance_node_tests": {
+      "tests": 232,
+      "passed": 232,
+      "failed": 0,
+      "exit_code": 0
+    },
+    "actionlint_deploy_workflow": {
+      "exit_code": 0
+    },
+    "git_diff_check_scoped": {
+      "exit_code": 0
+    }
+  },
+  "production_preflight": {
+    "existing_worker_required": true,
+    "current_worker_exactly_one_version_at_100_percent_required": true,
+    "exact_secret_inventory_required": true,
+    "exact_rendered_hyperdrive_binding_required": true,
+    "hyperdrive_provider_target_authority_required": true,
+    "runs_before_database_migration": true,
+    "rechecked_before_worker_deploy": true
+  },
+  "staging_preflight": {
+    "missing_worker_allowed_for_bootstrap": true,
+    "missing_hyperdrive_provider_target_allowed": false
+  },
+  "rollback_boundary": {
+    "code_and_worker_rollback_supported": true,
+    "database_schema_rollback_supported": false,
+    "statement": "Worker rollback does not restore or reverse PostgreSQL schema migrations."
+  },
+  "runtime_executed": false,
+  "commit_created": false,
+  "push_performed": false,
+  "deployment_performed": false
+}

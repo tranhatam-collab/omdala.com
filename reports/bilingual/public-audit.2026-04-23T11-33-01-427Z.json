@@ -1,0 +1,1183 @@
+{
+  "generatedAt": "2026-04-23T11:33:01.427Z",
+  "mode": "static",
+  "sourceRoot": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out",
+  "summary": {
+    "totalUrls": 20,
+    "passedUrls": 0,
+    "failedUrls": 20,
+    "blockingIssueCount": 81,
+    "warningCount": 3,
+    "metadataStandardizedUrls": 10,
+    "altStandardizedUrls": 1,
+    "blockedUrls": [
+      "/",
+      "/vi/",
+      "/what-is-omdala/",
+      "/vi/what-is-omdala/",
+      "/how-it-works/",
+      "/vi/how-it-works/",
+      "/for-experts/",
+      "/vi/for-experts/",
+      "/for-hosts/",
+      "/vi/for-hosts/",
+      "/for-communities/",
+      "/vi/for-communities/",
+      "/trust/",
+      "/vi/trust/",
+      "/vision/",
+      "/vi/vision/",
+      "/faq/",
+      "/vi/faq/",
+      "/contact/",
+      "/vi/contact/"
+    ],
+    "blockingIssueCounts": {
+      "logo_alt_language_mismatch": 38,
+      "canonical_mismatch": 9,
+      "hreflang_mismatch": 27,
+      "missing_title": 1,
+      "missing_meta_description": 1,
+      "missing_canonical": 1,
+      "missing_hreflang": 1,
+      "missing_og_title": 1,
+      "missing_og_description": 1,
+      "language_switcher_toggle_missing": 1
+    },
+    "warningIssueCounts": {
+      "h1_count_not_one": 1,
+      "schema_name_missing": 1,
+      "schema_description_missing": 1
+    },
+    "languageBreakdown": {
+      "en": {
+        "total": 10,
+        "passed": 0
+      },
+      "vi": {
+        "total": 10,
+        "passed": 0
+      }
+    },
+    "languageSwitcherContract": {
+      "sourcePath": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/app/components/LanguageSwitcher.tsx",
+      "valid": true,
+      "details": "language switcher source contract present"
+    }
+  },
+  "routes": [
+    {
+      "pageKey": "home",
+      "language": "en",
+      "localizedPath": "/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA — Independent Platform for Real-World Coordination",
+        "description": "OMDALA is an independent platform for real-world coordination, trust, and verified execution.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/",
+        "hreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/",
+          "x-default": "https://omdala.com/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi",
+          "x-default": "https://omdala.com/"
+        },
+        "ogTitle": "OMDALA — Independent Platform for Real-World Coordination",
+        "ogDescription": "OMDALA is an independent platform for real-world coordination, trust, and verified execution."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "home",
+      "language": "vi",
+      "localizedPath": "/vi/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Lớp vận hành cho giá trị đời thực — OMDALA",
+        "description": "OMDALA là nền tảng độc lập cho điều phối có kiểm chứng. Nền tảng này đưa con người, địa điểm, tài nguyên và thực thi vào một hệ thống nơi giá trị được kích hoạt, kết quả được chứng minh và niềm tin tích lũy theo thời gian.",
+        "canonical": "https://omdala.com/vi/",
+        "expectedCanonical": "https://omdala.com/vi",
+        "hreflang": {
+          "x-default": "https://omdala.com/",
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi",
+          "x-default": "https://omdala.com/"
+        },
+        "ogTitle": "Lớp vận hành cho giá trị đời thực — OMDALA",
+        "ogDescription": "OMDALA là nền tảng độc lập cho điều phối có kiểm chứng. Nền tảng này đưa con người, địa điểm, tài nguyên và thực thi vào một hệ thống nơi giá trị được kích hoạt, kết quả được chứng minh và niềm tin tích lũy theo thời gian."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "whatIsOmdala",
+      "language": "en",
+      "localizedPath": "/what-is-omdala/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/what-is-omdala/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA — Independent Platform for Real-World Coordination",
+        "description": "OMDALA is an independent platform for real-world coordination, trust, and verified execution.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/what-is-omdala",
+        "hreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/",
+          "x-default": "https://omdala.com/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/what-is-omdala",
+          "vi": "https://omdala.com/vi/what-is-omdala",
+          "x-default": "https://omdala.com/what-is-omdala"
+        },
+        "ogTitle": "OMDALA — Independent Platform for Real-World Coordination",
+        "ogDescription": "OMDALA is an independent platform for real-world coordination, trust, and verified execution."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "canonical_mismatch",
+          "details": "Expected canonical https://omdala.com/what-is-omdala but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang en => https://omdala.com/what-is-omdala but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang vi => https://omdala.com/vi/what-is-omdala but found https://omdala.com/vi/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang x-default => https://omdala.com/what-is-omdala but found https://omdala.com/"
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "whatIsOmdala",
+      "language": "vi",
+      "localizedPath": "/vi/what-is-omdala/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/what-is-omdala/index.html",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "expectedCanonical": "https://omdala.com/vi/what-is-omdala",
+        "hreflang": {},
+        "expectedHreflang": {
+          "en": "https://omdala.com/what-is-omdala",
+          "vi": "https://omdala.com/vi/what-is-omdala",
+          "x-default": "https://omdala.com/what-is-omdala"
+        },
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "count": 0,
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "missing_title",
+          "details": "Missing <title>"
+        },
+        {
+          "code": "missing_meta_description",
+          "details": "Missing meta description"
+        },
+        {
+          "code": "missing_canonical",
+          "details": "Missing canonical link"
+        },
+        {
+          "code": "missing_hreflang",
+          "details": "Missing hreflang entries: en,vi,x-default"
+        },
+        {
+          "code": "missing_og_title",
+          "details": "Missing og:title"
+        },
+        {
+          "code": "missing_og_description",
+          "details": "Missing og:description"
+        },
+        {
+          "code": "language_switcher_toggle_missing",
+          "details": "Missing language switcher toggle in rendered markup"
+        }
+      ],
+      "warningIssues": [
+        {
+          "code": "h1_count_not_one",
+          "details": "Expected exactly one h1 but found 0"
+        },
+        {
+          "code": "schema_name_missing",
+          "details": "No JSON-LD object with a non-empty name field"
+        },
+        {
+          "code": "schema_description_missing",
+          "details": "No JSON-LD object with a non-empty description field"
+        }
+      ]
+    },
+    {
+      "pageKey": "howItWorks",
+      "language": "en",
+      "localizedPath": "/how-it-works/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/how-it-works/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA — Independent Platform for Real-World Coordination",
+        "description": "OMDALA is an independent platform for real-world coordination, trust, and verified execution.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/how-it-works",
+        "hreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/",
+          "x-default": "https://omdala.com/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/how-it-works",
+          "vi": "https://omdala.com/vi/how-it-works",
+          "x-default": "https://omdala.com/how-it-works"
+        },
+        "ogTitle": "OMDALA — Independent Platform for Real-World Coordination",
+        "ogDescription": "OMDALA is an independent platform for real-world coordination, trust, and verified execution."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "canonical_mismatch",
+          "details": "Expected canonical https://omdala.com/how-it-works but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang en => https://omdala.com/how-it-works but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang vi => https://omdala.com/vi/how-it-works but found https://omdala.com/vi/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang x-default => https://omdala.com/how-it-works but found https://omdala.com/"
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "howItWorks",
+      "language": "vi",
+      "localizedPath": "/vi/how-it-works/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/how-it-works/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Cách OMDALA vận hành — OMDALA",
+        "description": "Nền tảng xoay quanh một vòng lặp tích lũy: thấy rõ hiện trạng, ghép đúng đối tượng, chuyển sang hành động, lưu bằng chứng và cải thiện kết quả tương lai.",
+        "canonical": "https://omdala.com/vi/how-it-works/",
+        "expectedCanonical": "https://omdala.com/vi/how-it-works",
+        "hreflang": {
+          "x-default": "https://omdala.com/how-it-works/",
+          "en": "https://omdala.com/how-it-works/",
+          "vi": "https://omdala.com/vi/how-it-works/",
+          "zh": "https://omdala.com/zh/how-it-works/",
+          "es": "https://omdala.com/es/how-it-works/",
+          "ja": "https://omdala.com/ja/how-it-works/",
+          "ko": "https://omdala.com/ko/how-it-works/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/how-it-works",
+          "vi": "https://omdala.com/vi/how-it-works",
+          "x-default": "https://omdala.com/how-it-works"
+        },
+        "ogTitle": "Cách OMDALA vận hành — OMDALA",
+        "ogDescription": "Nền tảng xoay quanh một vòng lặp tích lũy: thấy rõ hiện trạng, ghép đúng đối tượng, chuyển sang hành động, lưu bằng chứng và cải thiện kết quả tương lai."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forExperts",
+      "language": "en",
+      "localizedPath": "/for-experts/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/for-experts/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA — Independent Platform for Real-World Coordination",
+        "description": "OMDALA is an independent platform for real-world coordination, trust, and verified execution.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/for-experts",
+        "hreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/",
+          "x-default": "https://omdala.com/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-experts",
+          "vi": "https://omdala.com/vi/for-experts",
+          "x-default": "https://omdala.com/for-experts"
+        },
+        "ogTitle": "OMDALA — Independent Platform for Real-World Coordination",
+        "ogDescription": "OMDALA is an independent platform for real-world coordination, trust, and verified execution."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "canonical_mismatch",
+          "details": "Expected canonical https://omdala.com/for-experts but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang en => https://omdala.com/for-experts but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang vi => https://omdala.com/vi/for-experts but found https://omdala.com/vi/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang x-default => https://omdala.com/for-experts but found https://omdala.com/"
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forExperts",
+      "language": "vi",
+      "localizedPath": "/vi/for-experts/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/for-experts/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Dành cho chuyên gia — OMDALA",
+        "description": "OMDALA giúp chuyên gia, cố vấn, nhà sáng tạo và người vận hành đóng gói thời gian, tri thức và uy tín thành đề nghị, nhu cầu và luồng công việc lặp lại dựa trên niềm tin.",
+        "canonical": "https://omdala.com/vi/for-experts/",
+        "expectedCanonical": "https://omdala.com/vi/for-experts",
+        "hreflang": {
+          "x-default": "https://omdala.com/for-experts/",
+          "en": "https://omdala.com/for-experts/",
+          "vi": "https://omdala.com/vi/for-experts/",
+          "zh": "https://omdala.com/zh/for-experts/",
+          "es": "https://omdala.com/es/for-experts/",
+          "ja": "https://omdala.com/ja/for-experts/",
+          "ko": "https://omdala.com/ko/for-experts/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-experts",
+          "vi": "https://omdala.com/vi/for-experts",
+          "x-default": "https://omdala.com/for-experts"
+        },
+        "ogTitle": "Dành cho chuyên gia — OMDALA",
+        "ogDescription": "OMDALA giúp chuyên gia, cố vấn, nhà sáng tạo và người vận hành đóng gói thời gian, tri thức và uy tín thành đề nghị, nhu cầu và luồng công việc lặp lại dựa trên niềm tin."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forHosts",
+      "language": "en",
+      "localizedPath": "/for-hosts/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/for-hosts/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA — Independent Platform for Real-World Coordination",
+        "description": "OMDALA is an independent platform for real-world coordination, trust, and verified execution.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/for-hosts",
+        "hreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/",
+          "x-default": "https://omdala.com/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-hosts",
+          "vi": "https://omdala.com/vi/for-hosts",
+          "x-default": "https://omdala.com/for-hosts"
+        },
+        "ogTitle": "OMDALA — Independent Platform for Real-World Coordination",
+        "ogDescription": "OMDALA is an independent platform for real-world coordination, trust, and verified execution."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "canonical_mismatch",
+          "details": "Expected canonical https://omdala.com/for-hosts but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang en => https://omdala.com/for-hosts but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang vi => https://omdala.com/vi/for-hosts but found https://omdala.com/vi/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang x-default => https://omdala.com/for-hosts but found https://omdala.com/"
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forHosts",
+      "language": "vi",
+      "localizedPath": "/vi/for-hosts/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/for-hosts/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Dành cho host — OMDALA",
+        "description": "Điểm đón cần nhiều hơn danh sách hiển thị. Họ cần mức phù hợp, thời điểm, niềm tin và theo đuổi vận hành. OMDALA được thiết kế để cấu trúc toàn bộ vòng lặp đó.",
+        "canonical": "https://omdala.com/vi/for-hosts/",
+        "expectedCanonical": "https://omdala.com/vi/for-hosts",
+        "hreflang": {
+          "x-default": "https://omdala.com/for-hosts/",
+          "en": "https://omdala.com/for-hosts/",
+          "vi": "https://omdala.com/vi/for-hosts/",
+          "zh": "https://omdala.com/zh/for-hosts/",
+          "es": "https://omdala.com/es/for-hosts/",
+          "ja": "https://omdala.com/ja/for-hosts/",
+          "ko": "https://omdala.com/ko/for-hosts/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-hosts",
+          "vi": "https://omdala.com/vi/for-hosts",
+          "x-default": "https://omdala.com/for-hosts"
+        },
+        "ogTitle": "Dành cho host — OMDALA",
+        "ogDescription": "Điểm đón cần nhiều hơn danh sách hiển thị. Họ cần mức phù hợp, thời điểm, niềm tin và theo đuổi vận hành. OMDALA được thiết kế để cấu trúc toàn bộ vòng lặp đó."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forCommunities",
+      "language": "en",
+      "localizedPath": "/for-communities/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/for-communities/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA — Independent Platform for Real-World Coordination",
+        "description": "OMDALA is an independent platform for real-world coordination, trust, and verified execution.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/for-communities",
+        "hreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/",
+          "x-default": "https://omdala.com/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-communities",
+          "vi": "https://omdala.com/vi/for-communities",
+          "x-default": "https://omdala.com/for-communities"
+        },
+        "ogTitle": "OMDALA — Independent Platform for Real-World Coordination",
+        "ogDescription": "OMDALA is an independent platform for real-world coordination, trust, and verified execution."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "canonical_mismatch",
+          "details": "Expected canonical https://omdala.com/for-communities but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang en => https://omdala.com/for-communities but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang vi => https://omdala.com/vi/for-communities but found https://omdala.com/vi/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang x-default => https://omdala.com/for-communities but found https://omdala.com/"
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forCommunities",
+      "language": "vi",
+      "localizedPath": "/vi/for-communities/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/for-communities/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Dành cho cộng đồng — OMDALA",
+        "description": "Cộng đồng mạnh hơn khi tài nguyên chung, vai trò, bằng chứng và điều phối nằm trong một hệ thống thống nhất thay vì các luồng rời rạc và xử lý thủ công.",
+        "canonical": "https://omdala.com/vi/for-communities/",
+        "expectedCanonical": "https://omdala.com/vi/for-communities",
+        "hreflang": {
+          "x-default": "https://omdala.com/for-communities/",
+          "en": "https://omdala.com/for-communities/",
+          "vi": "https://omdala.com/vi/for-communities/",
+          "zh": "https://omdala.com/zh/for-communities/",
+          "es": "https://omdala.com/es/for-communities/",
+          "ja": "https://omdala.com/ja/for-communities/",
+          "ko": "https://omdala.com/ko/for-communities/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-communities",
+          "vi": "https://omdala.com/vi/for-communities",
+          "x-default": "https://omdala.com/for-communities"
+        },
+        "ogTitle": "Dành cho cộng đồng — OMDALA",
+        "ogDescription": "Cộng đồng mạnh hơn khi tài nguyên chung, vai trò, bằng chứng và điều phối nằm trong một hệ thống thống nhất thay vì các luồng rời rạc và xử lý thủ công."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "trust",
+      "language": "en",
+      "localizedPath": "/trust/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/trust/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA — Independent Platform for Real-World Coordination",
+        "description": "OMDALA is an independent platform for real-world coordination, trust, and verified execution.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/trust",
+        "hreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/",
+          "x-default": "https://omdala.com/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/trust",
+          "vi": "https://omdala.com/vi/trust",
+          "x-default": "https://omdala.com/trust"
+        },
+        "ogTitle": "OMDALA — Independent Platform for Real-World Coordination",
+        "ogDescription": "OMDALA is an independent platform for real-world coordination, trust, and verified execution."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "canonical_mismatch",
+          "details": "Expected canonical https://omdala.com/trust but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang en => https://omdala.com/trust but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang vi => https://omdala.com/vi/trust but found https://omdala.com/vi/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang x-default => https://omdala.com/trust but found https://omdala.com/"
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "trust",
+      "language": "vi",
+      "localizedPath": "/vi/trust/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/trust/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Kiến trúc niềm tin — OMDALA",
+        "description": "OMDALA không rút gọn niềm tin thành sao đánh giá cảm tính. Hệ thống xem niềm tin là cấu trúc được xây từ bằng chứng, hành vi, mức hoàn thành, quản trị và quy tắc hiển thị có thể giải thích.",
+        "canonical": "https://omdala.com/vi/trust/",
+        "expectedCanonical": "https://omdala.com/vi/trust",
+        "hreflang": {
+          "x-default": "https://omdala.com/trust/",
+          "en": "https://omdala.com/trust/",
+          "vi": "https://omdala.com/vi/trust/",
+          "zh": "https://omdala.com/zh/trust/",
+          "es": "https://omdala.com/es/trust/",
+          "ja": "https://omdala.com/ja/trust/",
+          "ko": "https://omdala.com/ko/trust/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/trust",
+          "vi": "https://omdala.com/vi/trust",
+          "x-default": "https://omdala.com/trust"
+        },
+        "ogTitle": "Kiến trúc niềm tin — OMDALA",
+        "ogDescription": "OMDALA không rút gọn niềm tin thành sao đánh giá cảm tính. Hệ thống xem niềm tin là cấu trúc được xây từ bằng chứng, hành vi, mức hoàn thành, quản trị và quy tắc hiển thị có thể giải thích."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "vision",
+      "language": "en",
+      "localizedPath": "/vision/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vision/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA — Independent Platform for Real-World Coordination",
+        "description": "OMDALA is an independent platform for real-world coordination, trust, and verified execution.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/vision",
+        "hreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/",
+          "x-default": "https://omdala.com/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/vision",
+          "vi": "https://omdala.com/vi/vision",
+          "x-default": "https://omdala.com/vision"
+        },
+        "ogTitle": "OMDALA — Independent Platform for Real-World Coordination",
+        "ogDescription": "OMDALA is an independent platform for real-world coordination, trust, and verified execution."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "canonical_mismatch",
+          "details": "Expected canonical https://omdala.com/vision but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang en => https://omdala.com/vision but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang vi => https://omdala.com/vi/vision but found https://omdala.com/vi/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang x-default => https://omdala.com/vision but found https://omdala.com/"
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "vision",
+      "language": "vi",
+      "localizedPath": "/vi/vision/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/vision/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Tầm nhìn — OMDALA",
+        "description": "OMDALA nên bắt đầu bằng tính hữu dụng vận hành sắc nét, nhưng kiến trúc phải đủ khả năng phát triển thành lớp điều phối con người bền vững dựa trên niềm tin qua nhiều lĩnh vực.",
+        "canonical": "https://omdala.com/vi/vision/",
+        "expectedCanonical": "https://omdala.com/vi/vision",
+        "hreflang": {
+          "x-default": "https://omdala.com/vision/",
+          "en": "https://omdala.com/vision/",
+          "vi": "https://omdala.com/vi/vision/",
+          "zh": "https://omdala.com/zh/vision/",
+          "es": "https://omdala.com/es/vision/",
+          "ja": "https://omdala.com/ja/vision/",
+          "ko": "https://omdala.com/ko/vision/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/vision",
+          "vi": "https://omdala.com/vi/vision",
+          "x-default": "https://omdala.com/vision"
+        },
+        "ogTitle": "Tầm nhìn — OMDALA",
+        "ogDescription": "OMDALA nên bắt đầu bằng tính hữu dụng vận hành sắc nét, nhưng kiến trúc phải đủ khả năng phát triển thành lớp điều phối con người bền vững dựa trên niềm tin qua nhiều lĩnh vực."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "faq",
+      "language": "en",
+      "localizedPath": "/faq/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/faq/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA — Independent Platform for Real-World Coordination",
+        "description": "OMDALA is an independent platform for real-world coordination, trust, and verified execution.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/faq",
+        "hreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/",
+          "x-default": "https://omdala.com/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/faq",
+          "vi": "https://omdala.com/vi/faq",
+          "x-default": "https://omdala.com/faq"
+        },
+        "ogTitle": "OMDALA — Independent Platform for Real-World Coordination",
+        "ogDescription": "OMDALA is an independent platform for real-world coordination, trust, and verified execution."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "canonical_mismatch",
+          "details": "Expected canonical https://omdala.com/faq but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang en => https://omdala.com/faq but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang vi => https://omdala.com/vi/faq but found https://omdala.com/vi/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang x-default => https://omdala.com/faq but found https://omdala.com/"
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "faq",
+      "language": "vi",
+      "localizedPath": "/vi/faq/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/faq/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Câu hỏi thường gặp — OMDALA",
+        "description": "Cách nhanh nhất để giữ nền tảng đi đúng hướng là trả lời các câu hỏi về danh mục và hệ thống từ sớm, nhất quán.",
+        "canonical": "https://omdala.com/vi/faq/",
+        "expectedCanonical": "https://omdala.com/vi/faq",
+        "hreflang": {
+          "x-default": "https://omdala.com/faq/",
+          "en": "https://omdala.com/faq/",
+          "vi": "https://omdala.com/vi/faq/",
+          "zh": "https://omdala.com/zh/faq/",
+          "es": "https://omdala.com/es/faq/",
+          "ja": "https://omdala.com/ja/faq/",
+          "ko": "https://omdala.com/ko/faq/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/faq",
+          "vi": "https://omdala.com/vi/faq",
+          "x-default": "https://omdala.com/faq"
+        },
+        "ogTitle": "Câu hỏi thường gặp — OMDALA",
+        "ogDescription": "Cách nhanh nhất để giữ nền tảng đi đúng hướng là trả lời các câu hỏi về danh mục và hệ thống từ sớm, nhất quán."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "contact",
+      "language": "en",
+      "localizedPath": "/contact/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/contact/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA — Independent Platform for Real-World Coordination",
+        "description": "OMDALA is an independent platform for real-world coordination, trust, and verified execution.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/contact",
+        "hreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/",
+          "zh": "https://omdala.com/zh/",
+          "es": "https://omdala.com/es/",
+          "ja": "https://omdala.com/ja/",
+          "ko": "https://omdala.com/ko/",
+          "x-default": "https://omdala.com/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/contact",
+          "vi": "https://omdala.com/vi/contact",
+          "x-default": "https://omdala.com/contact"
+        },
+        "ogTitle": "OMDALA — Independent Platform for Real-World Coordination",
+        "ogDescription": "OMDALA is an independent platform for real-world coordination, trust, and verified execution."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "canonical_mismatch",
+          "details": "Expected canonical https://omdala.com/contact but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang en => https://omdala.com/contact but found https://omdala.com/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang vi => https://omdala.com/vi/contact but found https://omdala.com/vi/"
+        },
+        {
+          "code": "hreflang_mismatch",
+          "details": "Expected hreflang x-default => https://omdala.com/contact but found https://omdala.com/"
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"OMDALA logo\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "contact",
+      "language": "vi",
+      "localizedPath": "/vi/contact/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/contact/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Liên hệ — OMDALA",
+        "description": "Liên hệ công khai hiện đi qua cùng hệ thống mail mà nền tảng dùng cho hỗ trợ, onboarding ứng dụng và phản hồi vận hành.",
+        "canonical": "https://omdala.com/vi/contact/",
+        "expectedCanonical": "https://omdala.com/vi/contact",
+        "hreflang": {
+          "x-default": "https://omdala.com/contact/",
+          "en": "https://omdala.com/contact/",
+          "vi": "https://omdala.com/vi/contact/",
+          "zh": "https://omdala.com/zh/contact/",
+          "es": "https://omdala.com/es/contact/",
+          "ja": "https://omdala.com/ja/contact/",
+          "ko": "https://omdala.com/ko/contact/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/contact",
+          "vi": "https://omdala.com/vi/contact",
+          "x-default": "https://omdala.com/contact"
+        },
+        "ogTitle": "Liên hệ — OMDALA",
+        "ogDescription": "Liên hệ công khai hiện đi qua cùng hệ thống mail mà nền tảng dùng cho hỗ trợ, onboarding ứng dụng và phản hồi vận hành."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        },
+        {
+          "code": "logo_alt_language_mismatch",
+          "details": "Expected logo alt \"Biểu trưng OMDALA\" but got \"OMDALA\""
+        }
+      ],
+      "warningIssues": []
+    }
+  ],
+  "gate": {
+    "status": "fail",
+    "blockingReason": "metadata/alt/language-switch blocking issue detected"
+  }
+}

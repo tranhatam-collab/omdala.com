@@ -1,0 +1,92 @@
+name: OMDALA Independent Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: omdala-independent-review-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
+jobs:
+  exact-sha-independent-review:
+    name: Independent Exact-SHA Review
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    env:
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+      SOURCE_PR_NUMBER: ${{ github.event.pull_request.number }}
+      BOOTSTRAP_POLICY_SHA: 415927e5f1580d539013b55765dfba834de655e7
+      BOOTSTRAP_POLICY_SHA256: 771f34e87c7007f24c7c58931ab72ad91028d4a725efa1096653195b6a15e8d5
+    steps:
+      - name: Checkout trusted base release controls
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - name: Checkout the immutable bootstrap review policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 415927e5f1580d539013b55765dfba834de655e7
+          path: .trusted-bootstrap
+          persist-credentials: false
+      - name: Preserve trusted independent-review policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          policy=scripts/release-review-policy.mjs
+          if [[ ! -f "$policy" ]]; then
+            test "$(git -C .trusted-bootstrap rev-parse HEAD)" = "$BOOTSTRAP_POLICY_SHA"
+            policy=.trusted-bootstrap/scripts/release-review-policy.mjs
+            test "$(sha256sum "$policy" | awk '{print $1}')" = "$BOOTSTRAP_POLICY_SHA256"
+          fi
+          cp "$policy" "$RUNNER_TEMP/omdala-release-review-policy.mjs"
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+      - id: review
+        name: Evaluate approval from another trusted collaborator on this SHA
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          node "$RUNNER_TEMP/omdala-release-review-policy.mjs" \
+            --repository "$GITHUB_REPOSITORY" \
+            --pull-request "$SOURCE_PR_NUMBER" \
+            --sha "$CANDIDATE_SHA" \
+            --receipt independent-review-receipt.json
+          status=$?
+          set -e
+          echo "evaluation_status=$status" >> "$GITHUB_OUTPUT"
+      - name: Upload independent-review receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-independent-review-${{ github.event.pull_request.head.sha }}
+          path: independent-review-receipt.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Require accepted independent exact-SHA review
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.review.outputs.evaluation_status }}" = "0"
+          jq -e \
+            --arg sha "$CANDIDATE_SHA" \
+            '.verdict == "INDEPENDENT_REVIEW_ACCEPTED" and
+             .candidateSha == $sha and
+             (.reviewer | length) > 0 and
+             (.reviewId | tonumber) > 0' \
+            independent-review-receipt.json >/dev/null

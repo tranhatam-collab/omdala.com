@@ -1,0 +1,57 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to production VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            cd /opt/omdala-infra
+            git fetch origin main
+            git checkout origin/main
+
+            # Verify no .env secrets in git
+            if grep -q 'Password\|SECRET\|TOKEN' .env 2>/dev/null; then
+              echo "ERROR: Potential secrets found in .env"
+              exit 1
+            fi
+
+            # Load secrets from Cloudflare Secrets Store or SOPS
+            # (Production .env is created on the server, not in git)
+            docker compose pull
+            docker compose up -d --build
+
+            # Health check
+            ./scripts/health-check.sh || exit 1
+
+            # Verify backup exists
+            ./scripts/backup-now.sh || echo "WARNING: Backup failed, but deploy succeeded"
+          EOF
+
+      - name: Notify Success
+        if: success()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+            -H 'Content-type: application/json' \
+            -d '{"text":"✅ Production deploy succeeded: ${{ github.sha }}"}'
+
+      - name: Notify Failure
+        if: failure()
+        run: |
+          curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+            -H 'Content-type: application/json' \
+            -d '{"text":"🚨 Production deploy FAILED: ${{ github.sha }} — check logs immediately"}'

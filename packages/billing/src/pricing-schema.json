@@ -1,0 +1,85 @@
+{
+  "version": "2026-06-06",
+  "markets": {
+    "en": { "language": "en", "currency": "USD", "entity": "us_entity", "locale": "en-US", "stripeAccount": "acct_us" },
+    "vi": { "language": "vi", "currency": "VND", "entity": "viet_can_new", "locale": "vi-VN", "stripeAccount": null }
+  },
+  "packages": [
+    {
+      "id": "infra-explore",
+      "name": { "en": "Infra Explore", "vi": "Khám phá Hạ tầng" },
+      "tier": "entry",
+      "billingModes": ["monthly", "annual", "biennial", "triennial"],
+      "prices": {
+        "en": { "monthly": 99, "annual": 950.40, "biennial": 1663.20, "triennial": 1782.00 },
+        "vi": { "monthly": 2400000, "annual": 23040000, "biennial": 40320000, "triennial": 43200000 }
+      },
+      "trialDays": 30,
+      "promo": { "enabled": true, "discountRate": 0.90, "durationMonths": 3 },
+      "features": ["sandbox", "light-staging", "basic-observability"]
+    },
+    {
+      "id": "infra-pilot",
+      "name": { "en": "Infra Pilot", "vi": "Pilot Hạ tầng" },
+      "tier": "core",
+      "billingModes": ["monthly", "annual", "biennial", "triennial"],
+      "setupPrice": { "en": { "min": 2500, "max": 4000 }, "vi": { "min": 35000000, "max": 70000000 } },
+      "prices": {
+        "en": { "monthly": 1500, "annual": 14400, "biennial": 25200, "triennial": 27000 },
+        "vi": { "monthly": 18500000, "annual": 177600000, "biennial": 310800000, "triennial": 333000000 }
+      },
+      "trialDays": 30,
+      "promo": { "enabled": true, "discountRate": 0.90, "durationMonths": 3 },
+      "features": ["1-prod", "1-staging", "migration-plan", "backup-baseline"]
+    },
+    {
+      "id": "infra-growth",
+      "name": { "en": "Infra Growth", "vi": "Tăng trưởng Hạ tầng" },
+      "tier": "growth",
+      "billingModes": ["monthly", "annual", "biennial", "triennial"],
+      "prices": {
+        "en": { "monthly": 3500, "annual": 33600, "biennial": 58800, "triennial": 63000 },
+        "vi": { "monthly": 43500000, "annual": 417600000, "biennial": 730800000, "triennial": 783000000 }
+      },
+      "trialDays": 30,
+      "promo": { "enabled": true, "discountRate": 0.90, "durationMonths": 3 },
+      "features": ["multi-project", "auth-bridge", "priority-support"]
+    },
+    {
+      "id": "infra-enterprise",
+      "name": { "en": "Infra Enterprise", "vi": "Hạ tầng Doanh nghiệp" },
+      "tier": "enterprise",
+      "billingModes": ["monthly", "annual"],
+      "prices": {
+        "en": { "monthly": 7500, "annual": 72000 },
+        "vi": { "monthly": 95000000, "annual": 912000000 }
+      },
+      "trialDays": 30,
+      "promo": { "enabled": true, "discountRate": 0.90, "durationMonths": 3 },
+      "features": ["isolated", "custom-sso", "custom-approval", "dedicated-support"],
+      "negotiable": true
+    },
+    {
+      "id": "ai-agent-ops",
+      "name": { "en": "AI Agent Ops Add-On", "vi": "Bổ sung AI Agent Ops" },
+      "tier": "addon",
+      "billingModes": ["monthly", "annual"],
+      "prices": {
+        "en": { "monthly": 1550, "annual": 14880 },
+        "vi": { "monthly": 20000000, "annual": 192000000 }
+      },
+      "trialDays": 0,
+      "promo": { "enabled": false },
+      "features": ["agent-orchestration", "approval-automation", "audit-logs"]
+    }
+  ],
+  "discounts": {
+    "trial": { "days": 30, "scope": ["infra-explore", "infra-pilot", "infra-growth", "infra-enterprise"] },
+    "promo": { "rate": 0.90, "durationMonths": 3, "scope": ["infra-explore", "infra-pilot", "infra-growth", "infra-enterprise"] },
+    "prepay": {
+      "annual": { "rate": 0.20, "label": "20% off" },
+      "biennial": { "rate": 0.30, "label": "30% off" },
+      "triennial": { "rate": 0.50, "label": "50% off" }
+    }
+  }
+}

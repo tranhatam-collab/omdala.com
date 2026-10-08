@@ -1,0 +1,718 @@
+{
+  "generatedAt": "2026-04-28T10:04:58.733Z",
+  "mode": "static",
+  "sourceRoot": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out",
+  "summary": {
+    "totalUrls": 20,
+    "passedUrls": 20,
+    "failedUrls": 0,
+    "blockingIssueCount": 0,
+    "warningCount": 0,
+    "metadataStandardizedUrls": 20,
+    "altStandardizedUrls": 20,
+    "blockedUrls": [],
+    "blockingIssueCounts": {},
+    "warningIssueCounts": {},
+    "languageBreakdown": {
+      "en": {
+        "total": 10,
+        "passed": 10
+      },
+      "vi": {
+        "total": 10,
+        "passed": 10
+      }
+    },
+    "languageSwitcherContract": {
+      "sourcePath": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/app/components/LanguageSwitcher.tsx",
+      "valid": true,
+      "details": "language switcher source contract present"
+    }
+  },
+  "routes": [
+    {
+      "pageKey": "home",
+      "language": "en",
+      "localizedPath": "/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA Project Blueprint: Bilingual Real-World Coordination Platform",
+        "description": "Explore the official OMDALA execution roadmap, bilingual language standards, SEO architecture, and real-world implementation plan.",
+        "canonical": "https://omdala.com/",
+        "expectedCanonical": "https://omdala.com/",
+        "hreflang": {
+          "x-default": "https://omdala.com/",
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi",
+          "x-default": "https://omdala.com/"
+        },
+        "ogTitle": "OMDALA Project Blueprint: Bilingual Real-World Coordination Platform — OMDALA",
+        "ogDescription": "Explore the official OMDALA execution roadmap, bilingual language standards, SEO architecture, and real-world implementation plan."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "home",
+      "language": "vi",
+      "localizedPath": "/vi/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Lộ trình dự án OMDALA: nền tảng điều phối đời thực song ngữ — OMDALA",
+        "description": "Xem lộ trình triển khai chính thức của OMDALA, chuẩn ngôn ngữ song ngữ, kiến trúc SEO và kế hoạch ứng dụng vào vận hành thực tế.",
+        "canonical": "https://omdala.com/vi/",
+        "expectedCanonical": "https://omdala.com/vi",
+        "hreflang": {
+          "x-default": "https://omdala.com/",
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/",
+          "vi": "https://omdala.com/vi",
+          "x-default": "https://omdala.com/"
+        },
+        "ogTitle": "Lộ trình dự án OMDALA: nền tảng điều phối đời thực song ngữ — OMDALA",
+        "ogDescription": "Xem lộ trình triển khai chính thức của OMDALA, chuẩn ngôn ngữ song ngữ, kiến trúc SEO và kế hoạch ứng dụng vào vận hành thực tế."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "whatIsOmdala",
+      "language": "en",
+      "localizedPath": "/what-is-omdala/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/what-is-omdala/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "What OMDALA Is — OMDALA",
+        "description": "OMDALA is the operating layer for identity, resources, trust, matching, and real-world coordination.",
+        "canonical": "https://omdala.com/what-is-omdala/",
+        "expectedCanonical": "https://omdala.com/what-is-omdala",
+        "hreflang": {
+          "x-default": "https://omdala.com/what-is-omdala/",
+          "en": "https://omdala.com/what-is-omdala/",
+          "vi": "https://omdala.com/vi/what-is-omdala/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/what-is-omdala",
+          "vi": "https://omdala.com/vi/what-is-omdala",
+          "x-default": "https://omdala.com/what-is-omdala"
+        },
+        "ogTitle": "What OMDALA Is — OMDALA",
+        "ogDescription": "OMDALA is the operating layer for identity, resources, trust, matching, and real-world coordination."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "whatIsOmdala",
+      "language": "vi",
+      "localizedPath": "/vi/what-is-omdala/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/what-is-omdala/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "OMDALA là gì — OMDALA",
+        "description": "OMDALA là lớp vận hành cho định danh, tài nguyên, niềm tin, kết nối phù hợp và điều phối đời thực.",
+        "canonical": "https://omdala.com/vi/what-is-omdala/",
+        "expectedCanonical": "https://omdala.com/vi/what-is-omdala",
+        "hreflang": {
+          "x-default": "https://omdala.com/what-is-omdala/",
+          "en": "https://omdala.com/what-is-omdala/",
+          "vi": "https://omdala.com/vi/what-is-omdala/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/what-is-omdala",
+          "vi": "https://omdala.com/vi/what-is-omdala",
+          "x-default": "https://omdala.com/what-is-omdala"
+        },
+        "ogTitle": "OMDALA là gì — OMDALA",
+        "ogDescription": "OMDALA là lớp vận hành cho định danh, tài nguyên, niềm tin, kết nối phù hợp và điều phối đời thực."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "howItWorks",
+      "language": "en",
+      "localizedPath": "/how-it-works/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/how-it-works/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "How OMDALA Works — OMDALA",
+        "description": "Understand the OMDALA operating loop: visibility, structuring, matching, action, proof, and compounding trust.",
+        "canonical": "https://omdala.com/how-it-works/",
+        "expectedCanonical": "https://omdala.com/how-it-works",
+        "hreflang": {
+          "x-default": "https://omdala.com/how-it-works/",
+          "en": "https://omdala.com/how-it-works/",
+          "vi": "https://omdala.com/vi/how-it-works/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/how-it-works",
+          "vi": "https://omdala.com/vi/how-it-works",
+          "x-default": "https://omdala.com/how-it-works"
+        },
+        "ogTitle": "How OMDALA Works — OMDALA",
+        "ogDescription": "Understand the OMDALA operating loop: visibility, structuring, matching, action, proof, and compounding trust."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "howItWorks",
+      "language": "vi",
+      "localizedPath": "/vi/how-it-works/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/how-it-works/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Cách OMDALA vận hành — OMDALA",
+        "description": "Tìm hiểu vòng vận hành của OMDALA: quan sát giá trị, chuẩn hóa, ghép nối, hành động, bằng chứng và tích lũy niềm tin.",
+        "canonical": "https://omdala.com/vi/how-it-works/",
+        "expectedCanonical": "https://omdala.com/vi/how-it-works",
+        "hreflang": {
+          "x-default": "https://omdala.com/how-it-works/",
+          "en": "https://omdala.com/how-it-works/",
+          "vi": "https://omdala.com/vi/how-it-works/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/how-it-works",
+          "vi": "https://omdala.com/vi/how-it-works",
+          "x-default": "https://omdala.com/how-it-works"
+        },
+        "ogTitle": "Cách OMDALA vận hành — OMDALA",
+        "ogDescription": "Tìm hiểu vòng vận hành của OMDALA: quan sát giá trị, chuẩn hóa, ghép nối, hành động, bằng chứng và tích lũy niềm tin."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forExperts",
+      "language": "en",
+      "localizedPath": "/for-experts/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/for-experts/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "For Experts — OMDALA",
+        "description": "OMDALA helps experts turn skill, trust, availability, and relationships into structured opportunities.",
+        "canonical": "https://omdala.com/for-experts/",
+        "expectedCanonical": "https://omdala.com/for-experts",
+        "hreflang": {
+          "x-default": "https://omdala.com/for-experts/",
+          "en": "https://omdala.com/for-experts/",
+          "vi": "https://omdala.com/vi/for-experts/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-experts",
+          "vi": "https://omdala.com/vi/for-experts",
+          "x-default": "https://omdala.com/for-experts"
+        },
+        "ogTitle": "For Experts — OMDALA",
+        "ogDescription": "OMDALA helps experts turn skill, trust, availability, and relationships into structured opportunities."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forExperts",
+      "language": "vi",
+      "localizedPath": "/vi/for-experts/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/for-experts/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Dành cho chuyên gia — OMDALA",
+        "description": "OMDALA giúp chuyên gia chuyển năng lực, uy tín, lịch trống và quan hệ thành cơ hội có cấu trúc.",
+        "canonical": "https://omdala.com/vi/for-experts/",
+        "expectedCanonical": "https://omdala.com/vi/for-experts",
+        "hreflang": {
+          "x-default": "https://omdala.com/for-experts/",
+          "en": "https://omdala.com/for-experts/",
+          "vi": "https://omdala.com/vi/for-experts/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-experts",
+          "vi": "https://omdala.com/vi/for-experts",
+          "x-default": "https://omdala.com/for-experts"
+        },
+        "ogTitle": "Dành cho chuyên gia — OMDALA",
+        "ogDescription": "OMDALA giúp chuyên gia chuyển năng lực, uy tín, lịch trống và quan hệ thành cơ hội có cấu trúc."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forHosts",
+      "language": "en",
+      "localizedPath": "/for-hosts/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/for-hosts/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "For Hosts — OMDALA",
+        "description": "OMDALA helps hosts activate space, availability, trust, and local operating capacity with stronger structure.",
+        "canonical": "https://omdala.com/for-hosts/",
+        "expectedCanonical": "https://omdala.com/for-hosts",
+        "hreflang": {
+          "x-default": "https://omdala.com/for-hosts/",
+          "en": "https://omdala.com/for-hosts/",
+          "vi": "https://omdala.com/vi/for-hosts/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-hosts",
+          "vi": "https://omdala.com/vi/for-hosts",
+          "x-default": "https://omdala.com/for-hosts"
+        },
+        "ogTitle": "For Hosts — OMDALA",
+        "ogDescription": "OMDALA helps hosts activate space, availability, trust, and local operating capacity with stronger structure."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forHosts",
+      "language": "vi",
+      "localizedPath": "/vi/for-hosts/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/for-hosts/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Dành cho đơn vị đón tiếp — OMDALA",
+        "description": "OMDALA giúp đơn vị đón tiếp kích hoạt không gian, lịch trống, niềm tin và năng lực vận hành địa phương theo cách có cấu trúc hơn.",
+        "canonical": "https://omdala.com/vi/for-hosts/",
+        "expectedCanonical": "https://omdala.com/vi/for-hosts",
+        "hreflang": {
+          "x-default": "https://omdala.com/for-hosts/",
+          "en": "https://omdala.com/for-hosts/",
+          "vi": "https://omdala.com/vi/for-hosts/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-hosts",
+          "vi": "https://omdala.com/vi/for-hosts",
+          "x-default": "https://omdala.com/for-hosts"
+        },
+        "ogTitle": "Dành cho đơn vị đón tiếp — OMDALA",
+        "ogDescription": "OMDALA giúp đơn vị đón tiếp kích hoạt không gian, lịch trống, niềm tin và năng lực vận hành địa phương theo cách có cấu trúc hơn."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forCommunities",
+      "language": "en",
+      "localizedPath": "/for-communities/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/for-communities/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "For Communities — OMDALA",
+        "description": "OMDALA helps communities coordinate members, assets, trust, and shared action without operational chaos.",
+        "canonical": "https://omdala.com/for-communities/",
+        "expectedCanonical": "https://omdala.com/for-communities",
+        "hreflang": {
+          "x-default": "https://omdala.com/for-communities/",
+          "en": "https://omdala.com/for-communities/",
+          "vi": "https://omdala.com/vi/for-communities/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-communities",
+          "vi": "https://omdala.com/vi/for-communities",
+          "x-default": "https://omdala.com/for-communities"
+        },
+        "ogTitle": "For Communities — OMDALA",
+        "ogDescription": "OMDALA helps communities coordinate members, assets, trust, and shared action without operational chaos."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forCommunities",
+      "language": "vi",
+      "localizedPath": "/vi/for-communities/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/for-communities/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Dành cho cộng đồng — OMDALA",
+        "description": "OMDALA giúp cộng đồng điều phối thành viên, tài sản, niềm tin và hành động chung mà không rơi vào hỗn loạn vận hành.",
+        "canonical": "https://omdala.com/vi/for-communities/",
+        "expectedCanonical": "https://omdala.com/vi/for-communities",
+        "hreflang": {
+          "x-default": "https://omdala.com/for-communities/",
+          "en": "https://omdala.com/for-communities/",
+          "vi": "https://omdala.com/vi/for-communities/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/for-communities",
+          "vi": "https://omdala.com/vi/for-communities",
+          "x-default": "https://omdala.com/for-communities"
+        },
+        "ogTitle": "Dành cho cộng đồng — OMDALA",
+        "ogDescription": "OMDALA giúp cộng đồng điều phối thành viên, tài sản, niềm tin và hành động chung mà không rơi vào hỗn loạn vận hành."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "trust",
+      "language": "en",
+      "localizedPath": "/trust/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/trust/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Trust Architecture — OMDALA",
+        "description": "Trust in OMDALA is built from verification, proof, behavior, governance, and explainable system rules.",
+        "canonical": "https://omdala.com/trust/",
+        "expectedCanonical": "https://omdala.com/trust",
+        "hreflang": {
+          "x-default": "https://omdala.com/trust/",
+          "en": "https://omdala.com/trust/",
+          "vi": "https://omdala.com/vi/trust/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/trust",
+          "vi": "https://omdala.com/vi/trust",
+          "x-default": "https://omdala.com/trust"
+        },
+        "ogTitle": "Trust Architecture — OMDALA",
+        "ogDescription": "Trust in OMDALA is built from verification, proof, behavior, governance, and explainable system rules."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "trust",
+      "language": "vi",
+      "localizedPath": "/vi/trust/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/trust/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Kiến trúc niềm tin — OMDALA",
+        "description": "Niềm tin trong OMDALA được xây từ xác thực, bằng chứng, hành vi, quản trị và các quy tắc hệ thống có thể giải thích.",
+        "canonical": "https://omdala.com/vi/trust/",
+        "expectedCanonical": "https://omdala.com/vi/trust",
+        "hreflang": {
+          "x-default": "https://omdala.com/trust/",
+          "en": "https://omdala.com/trust/",
+          "vi": "https://omdala.com/vi/trust/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/trust",
+          "vi": "https://omdala.com/vi/trust",
+          "x-default": "https://omdala.com/trust"
+        },
+        "ogTitle": "Kiến trúc niềm tin — OMDALA",
+        "ogDescription": "Niềm tin trong OMDALA được xây từ xác thực, bằng chứng, hành vi, quản trị và các quy tắc hệ thống có thể giải thích."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "vision",
+      "language": "en",
+      "localizedPath": "/vision/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vision/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Vision — OMDALA",
+        "description": "The long-term OMDALA vision is a durable coordination layer for human value, trust, and action.",
+        "canonical": "https://omdala.com/vision/",
+        "expectedCanonical": "https://omdala.com/vision",
+        "hreflang": {
+          "x-default": "https://omdala.com/vision/",
+          "en": "https://omdala.com/vision/",
+          "vi": "https://omdala.com/vi/vision/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/vision",
+          "vi": "https://omdala.com/vi/vision",
+          "x-default": "https://omdala.com/vision"
+        },
+        "ogTitle": "Vision — OMDALA",
+        "ogDescription": "The long-term OMDALA vision is a durable coordination layer for human value, trust, and action."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "vision",
+      "language": "vi",
+      "localizedPath": "/vi/vision/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/vision/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Tầm nhìn — OMDALA",
+        "description": "Tầm nhìn dài hạn của OMDALA là trở thành lớp điều phối bền vững cho giá trị con người, niềm tin và hành động.",
+        "canonical": "https://omdala.com/vi/vision/",
+        "expectedCanonical": "https://omdala.com/vi/vision",
+        "hreflang": {
+          "x-default": "https://omdala.com/vision/",
+          "en": "https://omdala.com/vision/",
+          "vi": "https://omdala.com/vi/vision/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/vision",
+          "vi": "https://omdala.com/vi/vision",
+          "x-default": "https://omdala.com/vision"
+        },
+        "ogTitle": "Tầm nhìn — OMDALA",
+        "ogDescription": "Tầm nhìn dài hạn của OMDALA là trở thành lớp điều phối bền vững cho giá trị con người, niềm tin và hành động."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "faq",
+      "language": "en",
+      "localizedPath": "/faq/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/faq/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Frequently Asked Questions — OMDALA",
+        "description": "Common questions about what OMDALA is, who it serves, and how trust and coordination work across the platform.",
+        "canonical": "https://omdala.com/faq/",
+        "expectedCanonical": "https://omdala.com/faq",
+        "hreflang": {
+          "x-default": "https://omdala.com/faq/",
+          "en": "https://omdala.com/faq/",
+          "vi": "https://omdala.com/vi/faq/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/faq",
+          "vi": "https://omdala.com/vi/faq",
+          "x-default": "https://omdala.com/faq"
+        },
+        "ogTitle": "Frequently Asked Questions — OMDALA",
+        "ogDescription": "Common questions about what OMDALA is, who it serves, and how trust and coordination work across the platform."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "faq",
+      "language": "vi",
+      "localizedPath": "/vi/faq/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/faq/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Câu hỏi thường gặp — OMDALA",
+        "description": "Các câu hỏi phổ biến về OMDALA, đối tượng phù hợp và cách nền tảng vận hành niềm tin cùng điều phối.",
+        "canonical": "https://omdala.com/vi/faq/",
+        "expectedCanonical": "https://omdala.com/vi/faq",
+        "hreflang": {
+          "x-default": "https://omdala.com/faq/",
+          "en": "https://omdala.com/faq/",
+          "vi": "https://omdala.com/vi/faq/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/faq",
+          "vi": "https://omdala.com/vi/faq",
+          "x-default": "https://omdala.com/faq"
+        },
+        "ogTitle": "Câu hỏi thường gặp — OMDALA",
+        "ogDescription": "Các câu hỏi phổ biến về OMDALA, đối tượng phù hợp và cách nền tảng vận hành niềm tin cùng điều phối."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "contact",
+      "language": "en",
+      "localizedPath": "/contact/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/contact/index.html",
+      "htmlLang": "en",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Contact — OMDALA",
+        "description": "Official OMDALA contact channels for support, partnerships, trust questions, and operator routing.",
+        "canonical": "https://omdala.com/contact/",
+        "expectedCanonical": "https://omdala.com/contact",
+        "hreflang": {
+          "x-default": "https://omdala.com/contact/",
+          "en": "https://omdala.com/contact/",
+          "vi": "https://omdala.com/vi/contact/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/contact",
+          "vi": "https://omdala.com/vi/contact",
+          "x-default": "https://omdala.com/contact"
+        },
+        "ogTitle": "Contact — OMDALA",
+        "ogDescription": "Official OMDALA contact channels for support, partnerships, trust questions, and operator routing."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "contact",
+      "language": "vi",
+      "localizedPath": "/vi/contact/",
+      "source": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out/vi/contact/index.html",
+      "htmlLang": "vi",
+      "h1Count": 1,
+      "metadata": {
+        "title": "Liên hệ — OMDALA",
+        "description": "Các kênh liên hệ chính thức của OMDALA cho hỗ trợ, hợp tác, câu hỏi về niềm tin và điều phối vận hành.",
+        "canonical": "https://omdala.com/vi/contact/",
+        "expectedCanonical": "https://omdala.com/vi/contact",
+        "hreflang": {
+          "x-default": "https://omdala.com/contact/",
+          "en": "https://omdala.com/contact/",
+          "vi": "https://omdala.com/vi/contact/"
+        },
+        "expectedHreflang": {
+          "en": "https://omdala.com/contact",
+          "vi": "https://omdala.com/vi/contact",
+          "x-default": "https://omdala.com/contact"
+        },
+        "ogTitle": "Liên hệ — OMDALA",
+        "ogDescription": "Các kênh liên hệ chính thức của OMDALA cho hỗ trợ, hợp tác, câu hỏi về niềm tin và điều phối vận hành."
+      },
+      "schema": {
+        "count": 2,
+        "hasName": true,
+        "hasDescription": true
+      },
+      "imageCount": 2,
+      "blockingIssues": [],
+      "warningIssues": []
+    }
+  ],
+  "gate": {
+    "status": "pass",
+    "blockingReason": "none"
+  }
+}

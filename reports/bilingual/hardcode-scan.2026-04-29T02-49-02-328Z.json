@@ -1,0 +1,1838 @@
+{
+  "generatedAt": "2026-04-29T02:49:02.328Z",
+  "scope": [
+    "apps/web",
+    "apps/app",
+    "apps/auth",
+    "apps/admin",
+    "packages/ui"
+  ],
+  "ignoredDirectories": [
+    ".git",
+    ".next",
+    "out",
+    "node_modules",
+    "test-results",
+    "coverage",
+    "dist",
+    "build",
+    ".turbo"
+  ],
+  "summary": {
+    "filesScanned": 139,
+    "totalFindings": 40,
+    "findingsByOwner": {
+      "Team 1": 8,
+      "Team 2": 32
+    },
+    "findingsByRisk": {
+      "P1": 22,
+      "P2": 18
+    },
+    "findingsByCode": {
+      "string_literal": 26,
+      "jsx_text_literal": 13,
+      "jsx_attribute_literal": 1
+    },
+    "team2Inventory": {
+      "exists": true,
+      "path": "docs/TEAM_2_BILINGUAL_TEXT_INVENTORY_2026-04-23.md",
+      "trackedFiles": 58
+    },
+    "team2P0Count": 0,
+    "team2UnresolvedP0Count": 0,
+    "topUnresolvedTeam2P0": []
+  },
+  "findings": [
+    {
+      "file": "apps/web/app/components/LanguageSwitcher.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:label",
+      "text": "English",
+      "line": 16,
+      "column": 16
+    },
+    {
+      "file": "apps/web/app/components/LanguageSwitcher.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:label",
+      "text": "Tiếng Việt",
+      "line": 17,
+      "column": 16
+    },
+    {
+      "file": "apps/web/app/lib/runtime-seed.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:label",
+      "text": "Các nút đang hoạt động trong đồ thị vận hành",
+      "line": 20,
+      "column": 57
+    },
+    {
+      "file": "apps/web/app/lib/runtime-seed.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:label",
+      "text": "Tài nguyên đã sẵn sàng để kích hoạt",
+      "line": 21,
+      "column": 65
+    },
+    {
+      "file": "apps/web/app/lib/runtime-seed.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:label",
+      "text": "Đề nghị có cấu trúc đang ở trong luồng",
+      "line": 22,
+      "column": 59
+    },
+    {
+      "file": "apps/web/app/lib/runtime-seed.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:label",
+      "text": "Nhu cầu có cấu trúc đang ở trong luồng",
+      "line": 23,
+      "column": 63
+    },
+    {
+      "file": "apps/web/app/lib/runtime-seed.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:label",
+      "text": "Tín hiệu bằng chứng đã gắn vào thực thể",
+      "line": 24,
+      "column": 59
+    },
+    {
+      "file": "apps/web/app/lib/runtime-seed.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:label",
+      "text": "Ca rà duyệt đang mở",
+      "line": 28,
+      "column": 16
+    },
+    {
+      "file": "apps/app/app/(dashboard)/layout.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "OMDALA App",
+      "line": 42,
+      "column": 17
+    },
+    {
+      "file": "apps/app/app/layout.tsx",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "string_literal",
+      "context": "object_property:description",
+      "text": "Authenticated product surface for nodes, trust, and coordinated action.",
+      "line": 11,
+      "column": 16
+    },
+    {
+      "file": "apps/app/app/page.tsx",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "OMDALA App",
+      "line": 73,
+      "column": 13
+    },
+    {
+      "file": "apps/app/components/app-frame.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "OMDALA / APP",
+      "line": 10,
+      "column": 11
+    },
+    {
+      "file": "apps/app/components/app-frame.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "Product shell for nodes, requests, trust, and operator workflows.",
+      "line": 13,
+      "column": 11
+    },
+    {
+      "file": "apps/app/components/app-frame.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "Overview",
+      "line": 28,
+      "column": 15
+    },
+    {
+      "file": "apps/app/components/app-frame.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "Auth flow",
+      "line": 31,
+      "column": 15
+    },
+    {
+      "file": "apps/app/components/app-nav.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_attribute_literal",
+      "context": "jsx_attr:aria-label",
+      "text": "Workspace",
+      "line": 11,
+      "column": 41
+    },
+    {
+      "file": "apps/app/components/live-api-panel.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "Runtime link",
+      "line": 70,
+      "column": 38
+    },
+    {
+      "file": "apps/app/components/live-api-panel.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "Service",
+      "line": 81,
+      "column": 17
+    },
+    {
+      "file": "apps/app/components/live-api-panel.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "Status",
+      "line": 85,
+      "column": 17
+    },
+    {
+      "file": "apps/app/components/live-api-panel.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "Session",
+      "line": 89,
+      "column": 17
+    },
+    {
+      "file": "apps/app/components/live-api-panel.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "Run",
+      "line": 97,
+      "column": 11
+    },
+    {
+      "file": "apps/app/components/live-api-panel.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "npm run dev:api",
+      "line": 97,
+      "column": 21
+    },
+    {
+      "file": "apps/app/components/live-api-panel.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "jsx_text_literal",
+      "context": "jsx_text",
+      "text": "from the repo root to light up live health and session status.",
+      "line": 97,
+      "column": 44
+    },
+    {
+      "file": "apps/app/lib/navigation.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "string_literal",
+      "context": "object_property:label",
+      "text": "Dashboard",
+      "line": 4,
+      "column": 12
+    },
+    {
+      "file": "apps/app/lib/navigation.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "string_literal",
+      "context": "object_property:label",
+      "text": "Nodes",
+      "line": 9,
+      "column": 12
+    },
+    {
+      "file": "apps/app/lib/navigation.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "string_literal",
+      "context": "object_property:label",
+      "text": "Requests",
+      "line": 14,
+      "column": 12
+    },
+    {
+      "file": "apps/app/lib/navigation.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "code": "string_literal",
+      "context": "object_property:label",
+      "text": "Trust",
+      "line": 19,
+      "column": 12
+    },
+    {
+      "file": "apps/admin/app/layout.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:description",
+      "text": "Restricted moderation and operations surface for OMDALA.",
+      "line": 26,
+      "column": 16
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:title",
+      "text": "Provider routing health",
+      "line": 40,
+      "column": 12
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:providerHealth",
+      "text": "Provider health",
+      "line": 46,
+      "column": 21
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:errorRate",
+      "text": "Error rate",
+      "line": 48,
+      "column": 16
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:healthy",
+      "text": "Healthy",
+      "line": 55,
+      "column": 16
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:title",
+      "text": "Sức khỏe định tuyến provider",
+      "line": 62,
+      "column": 12
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:providerHealth",
+      "text": "Sức khỏe provider",
+      "line": 68,
+      "column": 21
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:errorRate",
+      "text": "Tỷ lệ lỗi",
+      "line": 70,
+      "column": 16
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:healthy",
+      "text": "Ổn định",
+      "line": 77,
+      "column": 16
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:title",
+      "text": "Salud del enrutamiento de proveedores",
+      "line": 106,
+      "column": 12
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:providerHealth",
+      "text": "Salud del proveedor",
+      "line": 112,
+      "column": 21
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:errorRate",
+      "text": "Tasa de error",
+      "line": 114,
+      "column": 16
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "code": "string_literal",
+      "context": "object_property:healthy",
+      "text": "Saludables",
+      "line": 121,
+      "column": 16
+    }
+  ],
+  "files": [
+    {
+      "file": "apps/web/app/HomePageView.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/WebChrome.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/WebPageShell.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/[lang]/contact/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/[lang]/faq/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/[lang]/for-communities/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/[lang]/for-experts/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/[lang]/for-hosts/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/[lang]/how-it-works/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/[lang]/not-found.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/[lang]/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/[lang]/trust/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/[lang]/vision/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/[lang]/what-is-omdala/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/components/LanguageSwitcher.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [
+        {
+          "file": "apps/web/app/components/LanguageSwitcher.tsx",
+          "owner": "Team 1",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:label",
+          "text": "English",
+          "line": 16,
+          "column": 16
+        },
+        {
+          "file": "apps/web/app/components/LanguageSwitcher.tsx",
+          "owner": "Team 1",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:label",
+          "text": "Tiếng Việt",
+          "line": 17,
+          "column": 16
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/components/LocaleLink.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/components/NotFoundView.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/contact/ContactForm.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/contact/ContactPageView.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/contact/head.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/contact/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/faq/FaqPageView.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/faq/head.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/faq/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/for-communities/ForCommunitiesPageView.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/for-communities/head.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/for-communities/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/for-experts/ForExpertsPageView.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/for-experts/head.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/for-experts/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/for-hosts/ForHostsPageView.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/for-hosts/head.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/for-hosts/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/head.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/how-it-works/HowItWorksPageView.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/how-it-works/head.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/how-it-works/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/layout.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/lib/content.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/lib/localized-metadata.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/lib/runtime-seed.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [
+        {
+          "file": "apps/web/app/lib/runtime-seed.ts",
+          "owner": "Team 1",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:label",
+          "text": "Các nút đang hoạt động trong đồ thị vận hành",
+          "line": 20,
+          "column": 57
+        },
+        {
+          "file": "apps/web/app/lib/runtime-seed.ts",
+          "owner": "Team 1",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:label",
+          "text": "Tài nguyên đã sẵn sàng để kích hoạt",
+          "line": 21,
+          "column": 65
+        },
+        {
+          "file": "apps/web/app/lib/runtime-seed.ts",
+          "owner": "Team 1",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:label",
+          "text": "Đề nghị có cấu trúc đang ở trong luồng",
+          "line": 22,
+          "column": 59
+        },
+        {
+          "file": "apps/web/app/lib/runtime-seed.ts",
+          "owner": "Team 1",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:label",
+          "text": "Nhu cầu có cấu trúc đang ở trong luồng",
+          "line": 23,
+          "column": 63
+        },
+        {
+          "file": "apps/web/app/lib/runtime-seed.ts",
+          "owner": "Team 1",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:label",
+          "text": "Tín hiệu bằng chứng đã gắn vào thực thể",
+          "line": 24,
+          "column": 59
+        },
+        {
+          "file": "apps/web/app/lib/runtime-seed.ts",
+          "owner": "Team 1",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:label",
+          "text": "Ca rà duyệt đang mở",
+          "line": 28,
+          "column": 16
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/lib/useWebLocale.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/not-found.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/robots.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/seo-head.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/sitemap.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/trust/TrustPageView.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/trust/head.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/trust/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/vision/VisionPageView.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/vision/head.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/vision/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/what-is-omdala/WhatIsOmdalaPageView.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/what-is-omdala/head.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/app/what-is-omdala/page.tsx",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/next-env.d.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/next.config.mjs",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/playwright.config.ts",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/web/scripts/postprocess-locale-html.mjs",
+      "owner": "Team 1",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(auth)/layout.tsx",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(auth)/login/MagicLinkLoginForm.tsx",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(auth)/login/page.tsx",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(auth)/signup/AccessRequestForm.tsx",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(auth)/signup/page.tsx",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/DashboardAuthGate.tsx",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/dashboard/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/layout.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [
+        {
+          "file": "apps/app/app/(dashboard)/layout.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "OMDALA App",
+          "line": 42,
+          "column": 17
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/nodes/[nodeId]/edit/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/nodes/[nodeId]/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/nodes/new/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/nodes/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/offers/[offerId]/edit/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/offers/[offerId]/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/offers/new/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/offers/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/profile/ProfileUpdateFlow.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/profile/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/requests/[requestId]/edit/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/requests/[requestId]/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/requests/new/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/requests/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/resources/[resourceId]/edit/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/resources/[resourceId]/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/resources/new/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/resources/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/settings/PreferencesUpdateFlow.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/settings/ProviderRoutingStatus.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/settings/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/(dashboard)/trust/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/components/LanguageSwitcher.tsx",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/components/LocaleLink.tsx",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/layout.tsx",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [
+        {
+          "file": "apps/app/app/layout.tsx",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "string_literal",
+          "context": "object_property:description",
+          "text": "Authenticated product surface for nodes, trust, and coordinated action.",
+          "line": 11,
+          "column": 16
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/page.tsx",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [
+        {
+          "file": "apps/app/app/page.tsx",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "OMDALA App",
+          "line": 73,
+          "column": 13
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/app/robots.ts",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/components/app-frame.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [
+        {
+          "file": "apps/app/components/app-frame.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "OMDALA / APP",
+          "line": 10,
+          "column": 11
+        },
+        {
+          "file": "apps/app/components/app-frame.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "Product shell for nodes, requests, trust, and operator workflows.",
+          "line": 13,
+          "column": 11
+        },
+        {
+          "file": "apps/app/components/app-frame.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "Overview",
+          "line": 28,
+          "column": 15
+        },
+        {
+          "file": "apps/app/components/app-frame.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "Auth flow",
+          "line": 31,
+          "column": 15
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/components/app-nav.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [
+        {
+          "file": "apps/app/components/app-nav.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_attribute_literal",
+          "context": "jsx_attr:aria-label",
+          "text": "Workspace",
+          "line": 11,
+          "column": 41
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/components/live-api-panel.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [
+        {
+          "file": "apps/app/components/live-api-panel.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "Runtime link",
+          "line": 70,
+          "column": 38
+        },
+        {
+          "file": "apps/app/components/live-api-panel.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "Service",
+          "line": 81,
+          "column": 17
+        },
+        {
+          "file": "apps/app/components/live-api-panel.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "Status",
+          "line": 85,
+          "column": 17
+        },
+        {
+          "file": "apps/app/components/live-api-panel.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "Session",
+          "line": 89,
+          "column": 17
+        },
+        {
+          "file": "apps/app/components/live-api-panel.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "Run",
+          "line": 97,
+          "column": 11
+        },
+        {
+          "file": "apps/app/components/live-api-panel.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "npm run dev:api",
+          "line": 97,
+          "column": 21
+        },
+        {
+          "file": "apps/app/components/live-api-panel.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "jsx_text_literal",
+          "context": "jsx_text",
+          "text": "from the repo root to light up live health and session status.",
+          "line": 97,
+          "column": 44
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/components/magic-link-form.js",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/lib/account-billing-client.ts",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/lib/api-client.ts",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/lib/api.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/lib/mock-data.ts",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/lib/navigation.js",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [
+        {
+          "file": "apps/app/lib/navigation.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "string_literal",
+          "context": "object_property:label",
+          "text": "Dashboard",
+          "line": 4,
+          "column": 12
+        },
+        {
+          "file": "apps/app/lib/navigation.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "string_literal",
+          "context": "object_property:label",
+          "text": "Nodes",
+          "line": 9,
+          "column": 12
+        },
+        {
+          "file": "apps/app/lib/navigation.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "string_literal",
+          "context": "object_property:label",
+          "text": "Requests",
+          "line": 14,
+          "column": 12
+        },
+        {
+          "file": "apps/app/lib/navigation.js",
+          "owner": "Team 2",
+          "risk": "P2",
+          "code": "string_literal",
+          "context": "object_property:label",
+          "text": "Trust",
+          "line": 19,
+          "column": 12
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/lib/runtime-data.ts",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/lib/session-client.ts",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/lib/static-params.ts",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/next-env.d.ts",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/next.config.ts",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/app/playwright.config.ts",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/auth/app/layout.tsx",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/auth/app/login/AuthLoginForm.tsx",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/auth/app/login/page.tsx",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/auth/app/page.tsx",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/auth/lib/api-client.ts",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/auth/next-env.d.ts",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/auth/next.config.ts",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/components/LanguageSwitcher.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/components/LocaleLink.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/layout.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [
+        {
+          "file": "apps/admin/app/layout.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:description",
+          "text": "Restricted moderation and operations surface for OMDALA.",
+          "line": 26,
+          "column": 16
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/lib/admin-copy.ts",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/nodes/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/offers/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/proofs/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [
+        {
+          "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:title",
+          "text": "Provider routing health",
+          "line": 40,
+          "column": 12
+        },
+        {
+          "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:providerHealth",
+          "text": "Provider health",
+          "line": 46,
+          "column": 21
+        },
+        {
+          "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:errorRate",
+          "text": "Error rate",
+          "line": 48,
+          "column": 16
+        },
+        {
+          "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:healthy",
+          "text": "Healthy",
+          "line": 55,
+          "column": 16
+        },
+        {
+          "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:title",
+          "text": "Sức khỏe định tuyến provider",
+          "line": 62,
+          "column": 12
+        },
+        {
+          "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:providerHealth",
+          "text": "Sức khỏe provider",
+          "line": 68,
+          "column": 21
+        },
+        {
+          "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:errorRate",
+          "text": "Tỷ lệ lỗi",
+          "line": 70,
+          "column": 16
+        },
+        {
+          "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:healthy",
+          "text": "Ổn định",
+          "line": 77,
+          "column": 16
+        },
+        {
+          "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:title",
+          "text": "Salud del enrutamiento de proveedores",
+          "line": 106,
+          "column": 12
+        },
+        {
+          "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:providerHealth",
+          "text": "Salud del proveedor",
+          "line": 112,
+          "column": 21
+        },
+        {
+          "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:errorRate",
+          "text": "Tasa de error",
+          "line": 114,
+          "column": 16
+        },
+        {
+          "file": "apps/admin/app/providers/ProviderObservabilityDashboard.tsx",
+          "owner": "Team 2",
+          "risk": "P1",
+          "code": "string_literal",
+          "context": "object_property:healthy",
+          "text": "Saludables",
+          "line": 121,
+          "column": 16
+        }
+      ],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/providers/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/requests/page.tsx",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/robots.ts",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/app/verifications/page.tsx",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/next-env.d.ts",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "apps/admin/next.config.ts",
+      "owner": "Team 2",
+      "risk": "P1",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "packages/ui/src/components/DocumentLanguageSync.tsx",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "packages/ui/src/components/LinkSEO.tsx",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "packages/ui/src/components/SchemaScript.tsx",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "packages/ui/src/copy/auth-copy.ts",
+      "owner": "Team 2",
+      "risk": "P0",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "packages/ui/src/copy/bilingual.ts",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "packages/ui/src/copy/shared-ui-copy.ts",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    },
+    {
+      "file": "packages/ui/src/index.ts",
+      "owner": "Team 2",
+      "risk": "P2",
+      "findings": [],
+      "truncated": false
+    }
+  ],
+  "gate": {
+    "status": "pass",
+    "reasons": []
+  }
+}

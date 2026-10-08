@@ -1,6 +1,51 @@
 name = "omdala-api"
-main = "src/index.js"
+main = "src/index.ts"
 compatibility_date = "2026-03-17"
+account_id = "f3f9e76222dcb488d5e303e29e8ba192"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+preview_urls = false
+routes = [
+  { pattern = "api.omdala.com", custom_domain = true }
+]
+
+[version_metadata]
+binding = "VERSION_METADATA"
+
+[vars]
+ENVIRONMENT = "production"
+APP_BASE_URL = "https://app.omdala.com"
+WEB_BASE_URL = "https://omdala.com"
+AUTH_BASE_URL = "https://auth.omdala.com"
+AIAGENT_API_URL = "https://api.aiagent.iai.one"
+AIAGENT_WORKSPACE_ID = "omdala-com-production"
+MAIL_API_URL = "https://mail.iai.one/_mail"
+MAIL_API_WORKSPACE_ID = "omdala.com"
+MAIL_DELIVERY_MODE = "direct"
+GOOGLE_REDIRECT_URI = "https://api.omdala.com/v1/auth/google/callback"
 
 [dev]
 port = 8789
+
+[env.staging]
+name = "omdala-api-staging"
+workers_dev = false
+preview_urls = false
+routes = [
+  { pattern = "api-staging.omdala.com", custom_domain = true }
+]
+
+[env.staging.version_metadata]
+binding = "VERSION_METADATA"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+APP_BASE_URL = "https://app-staging.omdala.com"
+WEB_BASE_URL = "https://staging.omdala.com"
+AUTH_BASE_URL = "https://auth-staging.omdala.com"
+AIAGENT_API_URL = "https://staging-api.aiagent.iai.one"
+AIAGENT_WORKSPACE_ID = "omdala-com-staging"
+MAIL_API_URL = "https://mail.iai.one/_mail"
+MAIL_API_WORKSPACE_ID = "omdala.com-staging"
+MAIL_DELIVERY_MODE = "sink"
+GOOGLE_REDIRECT_URI = "https://api-staging.omdala.com/v1/auth/google/callback"

@@ -1,0 +1,47 @@
+# OMDALA Filesystem Snapshot Summary
+# Generated: 2026-07-19T15:14:00Z
+# Root: /Users/tranhatam/Documents/Devnewproject/omdala.com
+
+## Status: PARTIAL — Full checksums deferred to G0.3
+
+## Counts
+- Files listed (maxdepth 4, excl heavy dirs): 954
+- Secret-bearing files inventoried (names only): 4
+- Anomalous truncated filenames: 6
+
+## Why partial checksums
+- Filesystem has iCloud-backed files that are not hydrated (stub files)
+- Reading un-hydrated files causes timeouts (>120s)
+- Full SHA256 checksums require G0.3 hydration first
+- File listing with sizes is complete and fast (stat doesn't read content)
+
+## Anomalies detected (P2 — FS-001)
+- Truncated filename artifacts at root: O, Om, Omone, Omone.om, Omone.omd, Omone.omdala
+- All 4581 bytes, dated Jul 6 14:01 — likely partial write/corruption
+- These are NOT valid project files
+- Recommendation: preserve as evidence, do not delete until G0.6 review
+
+## Secret files detected (P0 — SEC-001)
+- .env.db.local (186 bytes) — at root
+- infra/.env.local (5794 bytes) — infra config
+- Omone.omdala.com/.env (3072 bytes) — Omone config
+- Omone.omdala.com/.env.example (3189 bytes) — template (likely safe)
+- Values NOT read or recorded
+- Recommendation: G3.4 rotate all secrets, add to .gitignore
+
+## Output Files
+- FILE_LISTING.tsv — 954 files with size, mtime, path
+- SECRET_NAME_INVENTORY.txt — 4 secret file names + sizes (NO values)
+- ANOMALOUS_FILES.txt — 6 truncated/corrupted filename artifacts
+- SNAPSHOT_SUMMARY.txt — This summary
+
+## Safety
+- No secret values were read or recorded
+- Only file paths and sizes of secret-bearing files are inventoried
+- No files were modified, staged, or committed
+
+## Next Steps
+- G0.3: Hydrate iCloud files (brctl download / Time Machine), then complete checksums
+- G0.4: Fetch/clone into clean isolated worktree
+- G0.5: Founder selects canonical repo/branch/commit
+- G0.6: Diff this manifest against canonical commit

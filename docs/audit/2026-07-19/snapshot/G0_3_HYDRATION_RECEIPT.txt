@@ -1,0 +1,39 @@
+# G0.3 — Hydration Receipt
+
+## Action
+- Command: `brctl download /Users/tranhatam/Documents/Devnewproject/omdala.com`
+- Timestamp: 2026-07-19T15:15:00Z
+- Result: Triggered successfully
+
+## FileProvider status
+- Directory has `com.apple.fileprovider.dir#N` attribute (macOS FileProvider managed)
+- Some files may be cloud-only (stubs) requiring download before reading
+- `brctl download` forces download of all files in directory
+
+## Readability test (maxdepth 2)
+- All files at maxdepth 2 are readable (no unreadable files found)
+- Deeper files (maxdepth 5+) caused timeouts during checksum
+- Root cause: iCloud stub files need hydration before content can be read
+
+## Hydration progress
+- `brctl download` triggered — downloads in background
+- Full hydration may take minutes to hours depending on file count and size
+- After hydration, re-run checksum manifest generation
+
+## Files confirmed readable (maxdepth 2)
+- 342 files at maxdepth 2 — all readable
+
+## Files pending hydration (maxdepth 3+)
+- 660 files at maxdepth 3
+- 954 files at maxdepth 4
+- Deeper files: unknown count (find timed out)
+
+## Failures recorded
+- No specific file read failures at maxdepth 2
+- Timeouts at maxdepth 5+ during find+checksum
+- Root cause: iCloud FileProvider stub files
+
+## Next step
+- Wait for `brctl download` to complete
+- Re-run checksum manifest generation
+- Proceed to G0.4 (clone into clean worktree) in parallel

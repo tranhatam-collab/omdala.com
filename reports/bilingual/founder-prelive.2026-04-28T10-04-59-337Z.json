@@ -1,0 +1,50 @@
+{
+  "generatedAt": "2026-04-28T10:04:59.337Z",
+  "decision": "GO",
+  "blockers": [],
+  "metrics": {
+    "totalUrlsReviewed": 20,
+    "totalPagesFixed": 20,
+    "vietnameseIssuesFixed": 10,
+    "englishIssuesFixed": 10,
+    "metadataStandardized": 20,
+    "altTextStandardized": 20,
+    "ctaFormMenuFooterStandardized": "47/58"
+  },
+  "confirmation": {
+    "vietnameseQuality": "pass",
+    "englishQuality": "pass",
+    "seoQuality": "pass",
+    "liveReadiness": "pass"
+  },
+  "signoff": {
+    "team1": {
+      "ready": true,
+      "path": "docs/TEAM_1_BILINGUAL_PUBLIC_WEB_EVIDENCE_2026-04-23.md",
+      "reason": "ready"
+    },
+    "team2": {
+      "ready": true,
+      "paths": [
+        "docs/TEAM_2_BILINGUAL_TEXT_INVENTORY_2026-04-23.md",
+        "docs/TEAM_2_BILINGUAL_SOURCE_STRATEGY_2026-04-23.md",
+        "docs/TEAM_2_BILINGUAL_PRODUCT_COPY_REGISTRY_2026-04-23.md"
+      ],
+      "reason": "ready",
+      "missing": [],
+      "inventoryProgress": {
+        "implementedOrVerifiedRows": 47,
+        "totalRows": 58
+      }
+    },
+    "team3SourceGate": {
+      "passed": true,
+      "output": "bilingual-source-check passed\nchecked pages: 10"
+    }
+  },
+  "evidence": {
+    "publicAuditReport": "reports/bilingual/public-audit.latest.json",
+    "hardcodeScanReport": "reports/bilingual/hardcode-scan.latest.json",
+    "founderReportDoc": "docs/OMDALA_BILINGUAL_PRELIVE_REPORT_2026-04-23.md"
+  }
+}

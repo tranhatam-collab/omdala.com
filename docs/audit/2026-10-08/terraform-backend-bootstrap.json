@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "verdict": "BUCKET_VERIFIED_BACKEND_MIGRATION_BLOCKED",
+  "repository": "tranhatam-collab/omdala.com",
+  "source_branch": "OMCODE/infra-staging-final-20261007",
+  "source_base_sha": "355693bfd5798ea222f0eaf7f466c05167205f5a",
+  "cloudflare_account_id": "f3f9e76222dcb488d5e303e29e8ba192",
+  "bucket": {
+    "name": "omdala-terraform-state",
+    "creation_date": "2026-10-07T17:45:27.024Z",
+    "readback_command": "CLOUDFLARE_ACCOUNT_ID=<protected-account-id> wrangler r2 bucket list",
+    "readback_verified_at": "2026-10-07T17:51:20Z"
+  },
+  "backend_contract": {
+    "key": "omdala/production/terraform.tfstate",
+    "lockfile_enabled": true,
+    "credentials_in_source": false
+  },
+  "completed": [
+    "R2 bucket exists in the locked Cloudflare account",
+    "Terraform declares a partial S3-compatible R2 backend",
+    "Backend credentials are excluded from repository source"
+  ],
+  "blocked": [
+    "No bucket-scoped R2 API access key is available",
+    "Existing Terraform state has not been identified or migrated",
+    "Remote state lock contention has not been verified",
+    "No accepted zero-destroy authority-handoff receipt exists"
+  ],
+  "production_hyperdrive_readback": {
+    "id": "b9c4907f49ca48cc9ee489013c3aa033",
+    "name": "omdala-postgres-f3f9",
+    "host": "mail.iai.one",
+    "database": "omdala_prod",
+    "user": "omdala_api",
+    "scheme": "postgresql",
+    "caching_disabled": true,
+    "origin_connection_limit": 20,
+    "verified_at": "2026-10-07T18:01:27Z"
+  },
+  "staging_hyperdrive_readback": null,
+  "production_authority": false
+}

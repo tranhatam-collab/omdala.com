@@ -1,0 +1,235 @@
+=== Next.js Build Evidence ===
+
+--- apps/web ---
+   ▲ Next.js 15.5.18
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 18.0s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/25) ...
+   Generating static pages (6/25) 
+   Generating static pages (12/25) 
+   Generating static pages (18/25) 
+ ✓ Generating static pages (25/25)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    1.18 kB         113 kB
+├ ○ /_not-found                            129 B         102 kB
+├ ● /[lang]                              1.18 kB         113 kB
+├   └ /vi
+├ ● /[lang]/contact                        132 B         116 kB
+├   └ /vi/contact
+├ ● /[lang]/faq                          1.18 kB         113 kB
+├   └ /vi/faq
+├ ● /[lang]/for-communities              1.18 kB         113 kB
+├   └ /vi/for-communities
+├ ● /[lang]/for-experts                  1.18 kB         113 kB
+├   └ /vi/for-experts
+├ ● /[lang]/for-hosts                    1.18 kB         113 kB
+├   └ /vi/for-hosts
+├ ● /[lang]/how-it-works                 1.18 kB         113 kB
+├   └ /vi/how-it-works
+├ ● /[lang]/trust                        1.18 kB         113 kB
+├   └ /vi/trust
+├ ● /[lang]/vision                       1.18 kB         113 kB
+├   └ /vi/vision
+├ ● /[lang]/what-is-omdala               1.18 kB         113 kB
+├   └ /vi/what-is-omdala
+├ ○ /contact                               132 B         116 kB
+├ ○ /faq                                 1.18 kB         113 kB
+├ ○ /for-communities                     1.18 kB         113 kB
+├ ○ /for-experts                         1.18 kB         113 kB
+├ ○ /for-hosts                           1.18 kB         113 kB
+├ ○ /how-it-works                        1.18 kB         113 kB
+├ ○ /robots.txt                            129 B         102 kB
+├ ○ /sitemap.xml                           129 B         102 kB
+├ ○ /trust                               1.18 kB         113 kB
+├ ○ /vision                              1.18 kB         113 kB
+└ ○ /what-is-omdala                      1.18 kB         113 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/285-23ca605e7b41a1a2.js       45.8 kB
+  ├ chunks/b77809e5-06f33680b6682a4f.js  54.2 kB
+  └ other shared chunks (total)          1.92 kB
+
+
+○  (Static)  prerendered as static content
+●  (SSG)     prerendered as static HTML (uses generateStaticParams)
+
+
+--- apps/app ---
+⚠ `eslint` configuration in next.config.mjs is no longer supported. See more info here: https://nextjs.org/docs/app/api-reference/cli/next#next-lint-options
+⚠ Invalid next.config.mjs options detected: 
+⚠     Unrecognized key(s) in object: 'eslint'
+⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
+▲ Next.js 16.2.1 (Turbopack)
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.2s
+  Running TypeScript ...
+  Finished TypeScript in 2.2s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/39) ...
+  Generating static pages using 7 workers (9/39) 
+  Generating static pages using 7 workers (19/39) 
+  Generating static pages using 7 workers (29/39) 
+✓ Generating static pages using 7 workers (39/39) in 282ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ○ /dashboard
+├ ○ /login
+├ ○ /nodes
+├ ● /nodes/[nodeId]
+│ ├ /nodes/node-operator
+│ └ /nodes/node-protocol-studio
+├ ● /nodes/[nodeId]/edit
+│ ├ /nodes/node-operator/edit
+│ └ /nodes/node-protocol-studio/edit
+├ ○ /nodes/new
+├ ○ /offers
+├ ● /offers/[offerId]
+│ ├ /offers/offer-strategy-sprint
+│ └ /offers/offer-studio-workshop
+├ ● /offers/[offerId]/edit
+│ ├ /offers/offer-strategy-sprint/edit
+│ └ /offers/offer-studio-workshop/edit
+├ ○ /offers/new
+├ ○ /profile
+├ ○ /requests
+├ ● /requests/[requestId]
+│ ├ /requests/request-design-partner
+│ └ /requests/request-community-host
+├ ● /requests/[requestId]/edit
+│ ├ /requests/request-design-partner/edit
+│ └ /requests/request-community-host/edit
+├ ○ /requests/new
+├ ○ /resources
+├ ● /resources/[resourceId]
+│ ├ /resources/resource-strategy-hours
+│ ├ /resources/resource-trust-framework
+│ ├ /resources/resource-studio-space
+│ └ /resources/resource-systems-advisory
+├ ● /resources/[resourceId]/edit
+│ ├ /resources/resource-strategy-hours/edit
+│ ├ /resources/resource-trust-framework/edit
+│ ├ /resources/resource-studio-space/edit
+│ └ /resources/resource-systems-advisory/edit
+├ ○ /resources/new
+├ ○ /robots.txt
+├ ○ /settings
+├ ○ /sign-in
+├ ○ /signup
+└ ○ /trust
+
+
+○  (Static)  prerendered as static content
+●  (SSG)     prerendered as static HTML (uses generateStaticParams)
+
+
+--- apps/admin ---
+   ▲ Next.js 15.5.18
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 8.8s
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/11) ...
+   Generating static pages (2/11) 
+   Generating static pages (5/11) 
+   Generating static pages (8/11) 
+ ✓ Generating static pages (11/11)
+   Finalizing page optimization ...
+   Collecting build traces ...
+   Exporting (0/2) ...
+ ✓ Exporting (2/2)
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                      440 B         106 kB
+├ ○ /_not-found                            991 B         103 kB
+├ ○ /nodes                                 438 B         103 kB
+├ ○ /offers                                438 B         103 kB
+├ ○ /proofs                                438 B         103 kB
+├ ○ /providers                           2.89 kB         106 kB
+├ ○ /requests                              438 B         103 kB
+├ ○ /robots.txt                            121 B         102 kB
+└ ○ /verifications                         438 B         103 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/285-9589b392b46de0ad.js       45.9 kB
+  ├ chunks/b77809e5-06f33680b6682a4f.js  54.2 kB
+  └ other shared chunks (total)          1.92 kB
+
+
+○  (Static)  prerendered as static content
+
+
+--- apps/docs ---
+   ▲ Next.js 15.5.18
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 22.8s
+   Linting and checking validity of types ...
+ ⨯ ESLint must be installed in order to run during builds: pnpm install --save-dev eslint
+   Collecting page data ...
+   Generating static pages (0/8) ...
+   Generating static pages (2/8) 
+   Generating static pages (4/8) 
+   Generating static pages (6/8) 
+ ✓ Generating static pages (8/8)
+   Finalizing page optimization ...
+   Collecting build traces ...
+   Exporting (0/2) ...
+ ✓ Exporting (2/2)
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    1.16 kB         107 kB
+├ ○ /_not-found                            991 B         103 kB
+├ ○ /api                                 1.29 kB         104 kB
+├ ○ /platform                            1.27 kB         104 kB
+├ ○ /robots.txt                            121 B         102 kB
+└ ○ /trust                               1.41 kB         104 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/285-9589b392b46de0ad.js       45.9 kB
+  ├ chunks/b77809e5-06f33680b6682a4f.js  54.2 kB
+  └ other shared chunks (total)          1.92 kB
+
+
+○  (Static)  prerendered as static content
+
+
+--- apps/auth ---
+   ▲ Next.js 15.5.18
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 17.7s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/5) ...
+   Generating static pages (1/5) 
+   Generating static pages (2/5) 
+   Generating static pages (3/5) 
+ ✓ Generating static pages (5/5)
+   Finalizing page optimization ...
+   Collecting build traces ...
+   Exporting (0/2) ...
+ ✓ Exporting (2/2)
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                      121 B         102 kB
+├ ○ /_not-found                            991 B         103 kB
+└ ○ /login                               3.73 kB         106 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/285-9589b392b46de0ad.js       45.9 kB
+  ├ chunks/b77809e5-06f33680b6682a4f.js  54.2 kB
+  └ other shared chunks (total)           1.9 kB
+
+
+○  (Static)  prerendered as static content
+
+

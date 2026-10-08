@@ -1,14 +1,30 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-const configDir = path.dirname(fileURLToPath(import.meta.url));
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const monorepoRoot = path.join(__dirname, '..', '..')
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {
-  poweredByHeader: false,
+const config = {
+  reactStrictMode: true,
+  output: 'export',
   turbopack: {
-    root: configDir
-  }
-};
+    root: monorepoRoot,
+  },
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
+  transpilePackages: [
+    '@omdala/ui',
+    '@omdala/types',
+    '@omdala/core',
+    '@omdala/ai-service',
+    '@omdala/auth-service',
+    '@omdala/notifications-service',
+    '@omdala/trust-service',
+    '@omdala/matching-service',
+  ],
+}
 
-export default nextConfig;
+export default config

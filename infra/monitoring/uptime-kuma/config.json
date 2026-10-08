@@ -1,0 +1,69 @@
+{
+  "version": "1.23.0",
+  "monitors": [
+    {
+      "name": "API Gateway Health",
+      "type": "http",
+      "url": "https://api.infra.omdala.com/health",
+      "interval": 60,
+      "retryInterval": 30,
+      "maxretries": 3,
+      "timeout": 5000,
+      "accepted_statuscodes": ["200-299"],
+      "notificationIDList": [1]
+    },
+    {
+      "name": "Auth Service Health",
+      "type": "http",
+      "url": "https://auth.infra.omdala.com/health/ready",
+      "interval": 60,
+      "retryInterval": 30,
+      "maxretries": 3,
+      "timeout": 5000,
+      "accepted_statuscodes": ["200-299"],
+      "notificationIDList": [1]
+    },
+    {
+      "name": "PostgreSQL Internal",
+      "type": "port",
+      "hostname": "postgres",
+      "port": 5432,
+      "interval": 60,
+      "retryInterval": 30,
+      "maxretries": 3,
+      "timeout": 5000,
+      "notificationIDList": [1]
+    },
+    {
+      "name": "Valkey Internal",
+      "type": "port",
+      "hostname": "valkey",
+      "port": 6379,
+      "interval": 60,
+      "retryInterval": 30,
+      "maxretries": 3,
+      "timeout": 5000,
+      "notificationIDList": [1]
+    },
+    {
+      "name": "Worker Health",
+      "type": "http",
+      "url": "http://worker:3001/health",
+      "interval": 60,
+      "retryInterval": 30,
+      "maxretries": 3,
+      "timeout": 5000,
+      "accepted_statuscodes": ["200-299"],
+      "notificationIDList": [1]
+    }
+  ],
+  "notifications": [
+    {
+      "id": 1,
+      "name": "Telegram Alert",
+      "type": "telegram",
+      "telegramBotToken": "${TELEGRAM_BOT_TOKEN}",
+      "telegramChatID": "${TELEGRAM_CHAT_ID}"
+    }
+  ]
+}

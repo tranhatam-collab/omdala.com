@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-10-08T15:23:41Z",
+  "working_directory": "om-ai.omdala.com/app",
+  "command": "npm audit --omit=dev --json",
+  "exit_code": 0,
+  "node_version": "v24.18.0",
+  "npm_version": "10.9.8",
+  "package_lock_sha256": "581ee23096e760cb0ce043fc1fdf06129caead889357698389554c794e8b7358",
+  "raw_receipt": "docs/audit/2026-10-08/receipts/mobile-npm-prod-audit.json",
+  "raw_receipt_sha256": "0add83df956eeb69a456c6e53d4271ca295a32236e45f7a66538b435476c790a",
+  "result": {
+    "total": 0,
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "info": 0
+  },
+  "scope_limit": "This receipt covers the npm production dependency graph for om-ai.omdala.com/app at the named package-lock bytes. It does not prove a native build, signed artifact, device behavior, staging runtime, or production readiness.",
+  "node_22_rerun": "INCONCLUSIVE_REGISTRY_NO_RESPONSE_AND_OPERATOR_CANCELLED"
+}

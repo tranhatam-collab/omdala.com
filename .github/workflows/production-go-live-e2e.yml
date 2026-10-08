@@ -1,0 +1,380 @@
+name: OMDALA Production Go-Live E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      merged_main_sha:
+        description: Exact current main SHA deployed to production
+        required: true
+        type: string
+      staging_candidate_sha:
+        description: Exact independently reviewed PR-head SHA accepted in staging
+        required: true
+        type: string
+      staging_transaction_run_id:
+        description: Successful OMDALA Staging Transaction run ID
+        required: true
+        type: string
+      staging_transaction_id:
+        description: Exact staging transaction identity from the accepted run
+        required: true
+        type: string
+      api_release_run_id:
+        description: Successful OMDALA Release production run ID
+        required: true
+        type: string
+      surface_release_run_id:
+        description: Successful OMDALA Surface Release production run ID
+        required: true
+        type: string
+      confirmation:
+        description: Type ACCEPT_OMDALA_PRODUCTION to run the post-deploy gate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: omdala-production-go-live-${{ inputs.merged_main_sha }}
+  cancel-in-progress: false
+
+jobs:
+  production-atomicity-hold:
+    name: Hold until one protected production job owns deployment and recovery
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce production transaction hold before protected access or mutation
+        shell: bash
+        run: |
+          echo "::error::PRODUCTION_HOLD_UNIFIED_TRANSACTION_REQUIRED"
+          echo "::error::Production deployment, acceptance, and rollback must run under one protected transaction."
+          exit 1
+
+  production-acceptance:
+    name: Merged-Main Production Acceptance
+    needs: production-atomicity-hold
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production
+    env:
+      MAIN_SHA: ${{ inputs.merged_main_sha }}
+      STAGING_CANDIDATE_SHA: ${{ inputs.staging_candidate_sha }}
+      STAGING_TRANSACTION_RUN_ID: ${{ inputs.staging_transaction_run_id }}
+      STAGING_TRANSACTION_ID: ${{ inputs.staging_transaction_id }}
+      API_RELEASE_RUN_ID: ${{ inputs.api_release_run_id }}
+      SURFACE_RELEASE_RUN_ID: ${{ inputs.surface_release_run_id }}
+    steps:
+      - name: Require current-main control plane and exact input identities
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test "$CONFIRMATION" = "ACCEPT_OMDALA_PRODUCTION" || {
+            echo "::error::confirmation must equal ACCEPT_OMDALA_PRODUCTION"
+            exit 1
+          }
+          [[ "$MAIN_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::merged_main_sha must be a full lowercase Git SHA"
+            exit 1
+          }
+          [[ "$STAGING_CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "::error::staging_candidate_sha must be a full lowercase Git SHA"
+            exit 1
+          }
+          for run_id in "$STAGING_TRANSACTION_RUN_ID" "$API_RELEASE_RUN_ID" "$SURFACE_RELEASE_RUN_ID"; do
+            [[ "$run_id" =~ ^[1-9][0-9]*$ ]] || {
+              echo "::error::all workflow run IDs must be positive integers"
+              exit 1
+            }
+          done
+          test "$STAGING_TRANSACTION_ID" = "staging-${STAGING_TRANSACTION_RUN_ID}-1" || {
+            echo "::error::staging_transaction_id must bind the exact attempt-1 staging transaction run"
+            exit 1
+          }
+          test "$GITHUB_REF" = "refs/heads/main" || {
+            echo "::error::Production acceptance must be dispatched from main"
+            exit 1
+          }
+          current_main="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" | jq -er '.object.sha')"
+          test "$GITHUB_SHA" = "$current_main" || {
+            echo "::error::Workflow SHA is not the current main control-plane SHA"
+            exit 1
+          }
+          test "$MAIN_SHA" = "$current_main" || {
+            echo "::error::merged_main_sha is not the current main SHA"
+            exit 1
+          }
+      - name: Checkout trusted production acceptance controls
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.merged_main_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - id: main_identity
+        name: Verify merged-main commit and tree identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$MAIN_SHA"
+          main_tree_sha="$(git rev-parse 'HEAD^{tree}')"
+          [[ "$main_tree_sha" =~ ^[0-9a-f]{40}$ ]]
+          echo "tree_sha=$main_tree_sha" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+      - name: Require protected Cloudflare and Terraform authority
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TERRAFORM_HANDOFF_SHA256: ${{ vars.OMDALA_TERRAFORM_HANDOFF_SHA256 }}
+        run: >-
+          node scripts/verify-infra-authority-handoff.mjs
+          --wrangler-config services/api/wrangler.toml
+          --receipt infra/tf/terraform-authority-handoff.json
+          --sha256 "$TERRAFORM_HANDOFF_SHA256"
+          --account-id "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Fetch exact workflow run identities
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-chain/runs
+          fetch_run() {
+            local run_id="$1"
+            local output="$2"
+            curl --fail --silent --show-error \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" \
+              > "$output"
+          }
+          fetch_run "$STAGING_TRANSACTION_RUN_ID" release-chain/runs/staging-transaction.json
+          fetch_run "$API_RELEASE_RUN_ID" release-chain/runs/api.json
+          fetch_run "$SURFACE_RELEASE_RUN_ID" release-chain/runs/surfaces.json
+      - name: Download immutable staging transaction receipt
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: omdala-staging-transaction-${{ inputs.staging_candidate_sha }}-${{ inputs.staging_transaction_id }}
+          path: release-chain/staging/transaction
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.staging_transaction_run_id }}
+      - name: Download immutable staging acceptance chain
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: omdala-staging-acceptance-${{ inputs.staging_candidate_sha }}-${{ inputs.staging_transaction_id }}
+          path: release-chain/staging/acceptance
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.staging_transaction_run_id }}
+      - name: Download immutable production API release receipt
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: omdala-api-release-${{ inputs.merged_main_sha }}-production
+          path: release-chain/api
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.api_release_run_id }}
+      - name: Download immutable production backup and restore receipt
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: omdala-pre-migration-backup-${{ inputs.merged_main_sha }}-production
+          path: release-chain/backup
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.api_release_run_id }}
+      - name: Download immutable production surface release receipt
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: omdala-surface-release-${{ inputs.merged_main_sha }}-production
+          path: release-chain/surfaces
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.surface_release_run_id }}
+      - id: backup_artifact
+        name: Require exactly one encrypted production backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t backups < <(find release-chain/backup -maxdepth 1 -type f -name '*.dump.enc' -print)
+          test "${#backups[@]}" -eq 1 || {
+            echo "::error::Expected exactly one encrypted production backup artifact"
+            exit 1
+          }
+          echo "path=${backups[0]}" >> "$GITHUB_OUTPUT"
+      - id: release_chain
+        name: Verify staging-to-production receipt and rollback chain
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: >-
+          node scripts/production-acceptance-receipt.mjs
+          --phase chain
+          --main-sha "$MAIN_SHA"
+          --main-tree-sha "${{ steps.main_identity.outputs.tree_sha }}"
+          --control-plane-sha "$GITHUB_SHA"
+          --staging-candidate-sha "$STAGING_CANDIDATE_SHA"
+          --account-id "$CLOUDFLARE_ACCOUNT_ID"
+          --repository "$GITHUB_REPOSITORY"
+          --staging-transaction-id "$STAGING_TRANSACTION_ID"
+          --staging-transaction-run-id "$STAGING_TRANSACTION_RUN_ID"
+          --api-run-id "$API_RELEASE_RUN_ID"
+          --surface-run-id "$SURFACE_RELEASE_RUN_ID"
+          --staging-run release-chain/runs/staging-transaction.json
+          --api-run release-chain/runs/api.json
+          --surface-run release-chain/runs/surfaces.json
+          --staging-transaction-receipt release-chain/staging/transaction/staging-transaction.json
+          --staging-transaction-acceptance-receipt release-chain/staging/transaction/staging-acceptance.json
+          --staging-transaction-api-receipt release-chain/staging/transaction/api-release.json
+          --staging-transaction-surface-receipt release-chain/staging/transaction/surface-release.json
+          --staging-receipt release-chain/staging/acceptance/staging-acceptance.json
+          --staging-api-receipt release-chain/staging/acceptance/release-chain/api/api-release.json
+          --staging-backup-receipt release-chain/staging/acceptance/release-chain/backup/pre-migration-receipt.json
+          --staging-surface-receipt release-chain/staging/acceptance/release-chain/surfaces/surface-release.json
+          --staging-e2e-report release-chain/staging/acceptance/staging-e2e-results.json
+          --api-receipt release-chain/api/api-release.json
+          --backup-receipt release-chain/backup/pre-migration-receipt.json
+          --encrypted-backup "${{ steps.backup_artifact.outputs.path }}"
+          --surface-receipt release-chain/surfaces/surface-release.json
+          --output production-release-chain.json
+      - name: Upload verified cross-workflow rollback gate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-production-rollback-gate-${{ inputs.merged_main_sha }}-${{ github.run_id }}
+          path: |
+            production-release-chain.json
+            release-chain/api/api-release.json
+            release-chain/surfaces/surface-release.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify transitive production no-spend contract
+        run: node scripts/production-no-spend-contract.mjs production-no-spend-source.json
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @omdala/app exec playwright install --with-deps chromium
+      - name: Run fail-closed production smoke without model calls
+        timeout-minutes: 15
+        run: >-
+          pnpm --filter @omdala/app exec playwright test
+          --config playwright.production.config.ts
+        env:
+          E2E_PRODUCTION_WEB_URL: ${{ steps.release_chain.outputs.web_url }}
+          E2E_PRODUCTION_APP_URL: ${{ steps.release_chain.outputs.app_url }}
+          E2E_PRODUCTION_AUTH_URL: ${{ steps.release_chain.outputs.auth_url }}
+          E2E_PRODUCTION_API_URL: ${{ steps.release_chain.outputs.api_url }}
+          E2E_PRODUCTION_BRAND_URL: ${{ steps.release_chain.outputs.brand_url }}
+          E2E_RELEASE_SHA: ${{ inputs.merged_main_sha }}
+          E2E_API_VERSION_ID: ${{ steps.release_chain.outputs.api_version_id }}
+          E2E_API_DEPLOYMENT_ID: ${{ steps.release_chain.outputs.api_deployment_id }}
+          E2E_SURFACE_RELEASE_ID: ${{ steps.release_chain.outputs.surface_release_id }}
+          E2E_PRODUCTION_SMOKE_MAGIC_LINK_TOKEN: ${{ secrets.OMDALA_PRODUCTION_SMOKE_MAGIC_LINK_TOKEN }}
+          E2E_PRODUCTION_JSON_REPORT: production-e2e-results.json
+          E2E_PRODUCTION_NO_SPEND_RECEIPT: production-no-spend-runtime.json
+      - name: Ensure the protected magic-link token is absent from the report
+        shell: bash
+        env:
+          MAGIC_LINK_TOKEN: ${{ secrets.OMDALA_PRODUCTION_SMOKE_MAGIC_LINK_TOKEN }}
+        run: |
+          set -euo pipefail
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            const report = readFileSync("production-e2e-results.json", "utf8");
+            const token = process.env.MAGIC_LINK_TOKEN ?? "";
+            if (!token || report.includes(token)) process.exit(1);
+          '
+      - name: Write final production acceptance receipt
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: >-
+          node scripts/production-acceptance-receipt.mjs
+          --phase final
+          --main-sha "$MAIN_SHA"
+          --main-tree-sha "${{ steps.main_identity.outputs.tree_sha }}"
+          --control-plane-sha "$GITHUB_SHA"
+          --staging-candidate-sha "$STAGING_CANDIDATE_SHA"
+          --account-id "$CLOUDFLARE_ACCOUNT_ID"
+          --repository "$GITHUB_REPOSITORY"
+          --staging-transaction-id "$STAGING_TRANSACTION_ID"
+          --staging-transaction-run-id "$STAGING_TRANSACTION_RUN_ID"
+          --api-run-id "$API_RELEASE_RUN_ID"
+          --surface-run-id "$SURFACE_RELEASE_RUN_ID"
+          --staging-run release-chain/runs/staging-transaction.json
+          --api-run release-chain/runs/api.json
+          --surface-run release-chain/runs/surfaces.json
+          --staging-transaction-receipt release-chain/staging/transaction/staging-transaction.json
+          --staging-transaction-acceptance-receipt release-chain/staging/transaction/staging-acceptance.json
+          --staging-transaction-api-receipt release-chain/staging/transaction/api-release.json
+          --staging-transaction-surface-receipt release-chain/staging/transaction/surface-release.json
+          --staging-receipt release-chain/staging/acceptance/staging-acceptance.json
+          --staging-api-receipt release-chain/staging/acceptance/release-chain/api/api-release.json
+          --staging-backup-receipt release-chain/staging/acceptance/release-chain/backup/pre-migration-receipt.json
+          --staging-surface-receipt release-chain/staging/acceptance/release-chain/surfaces/surface-release.json
+          --staging-e2e-report release-chain/staging/acceptance/staging-e2e-results.json
+          --api-receipt release-chain/api/api-release.json
+          --backup-receipt release-chain/backup/pre-migration-receipt.json
+          --encrypted-backup "${{ steps.backup_artifact.outputs.path }}"
+          --surface-receipt release-chain/surfaces/surface-release.json
+          --report production-e2e-results.json
+          --no-spend-source-receipt production-no-spend-source.json
+          --no-spend-runtime-receipt production-no-spend-runtime.json
+          --workflow-run-id "$GITHUB_RUN_ID"
+          --workflow-run-attempt "$GITHUB_RUN_ATTEMPT"
+          --output production-acceptance.json
+      - name: Upload immutable production acceptance receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-production-acceptance-${{ inputs.merged_main_sha }}
+          path: |
+            production-acceptance.json
+            production-release-chain.json
+            production-e2e-results.json
+            production-no-spend-source.json
+            production-no-spend-runtime.json
+            release-chain/runs/*.json
+            release-chain/staging/transaction/staging-transaction.json
+            release-chain/staging/transaction/staging-acceptance.json
+            release-chain/staging/transaction/api-release.json
+            release-chain/staging/transaction/surface-release.json
+            release-chain/staging/acceptance/staging-acceptance.json
+            release-chain/staging/acceptance/release-chain/api/api-release.json
+            release-chain/staging/acceptance/release-chain/backup/pre-migration-receipt.json
+            release-chain/staging/acceptance/release-chain/surfaces/surface-release.json
+            release-chain/api/api-release.json
+            release-chain/backup/pre-migration-receipt.json
+            release-chain/surfaces/surface-release.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Roll API and all four surfaces back after rejected acceptance
+        if: ${{ failure() && hashFiles('production-release-chain.json') != '' }}
+        timeout-minutes: 15
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          EXPECTED_MAIN_SHA: ${{ inputs.merged_main_sha }}
+        run: >-
+          bash scripts/production-cross-workflow-rollback.sh
+          production-release-chain.json
+          release-chain/api/api-release.json
+          release-chain/surfaces/surface-release.json
+          services/api/wrangler.toml
+      - name: Upload cross-workflow rollback evidence
+        if: ${{ always() && hashFiles('production-rollback-evidence/rollback-receipt.json') != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-production-rollback-${{ inputs.merged_main_sha }}-${{ github.run_id }}
+          path: production-rollback-evidence
+          if-no-files-found: error
+          retention-days: 90

@@ -1,0 +1,18 @@
+{
+  "$schema": "../../../services/api/node_modules/wrangler/config-schema.json",
+  "name": "omdala-surface-web-staging",
+  "main": "./static-worker.mjs",
+  "compatibility_date": "2026-10-07",
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "../../../apps/web/out",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  },
+  "routes": [
+    { "pattern": "staging.omdala.com", "custom_domain": true }
+  ]
+}

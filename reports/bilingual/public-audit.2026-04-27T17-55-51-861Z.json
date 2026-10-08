@@ -1,0 +1,621 @@
+{
+  "generatedAt": "2026-04-27T17:55:51.861Z",
+  "mode": "static",
+  "sourceRoot": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/out",
+  "summary": {
+    "totalUrls": 20,
+    "passedUrls": 0,
+    "failedUrls": 20,
+    "blockingIssueCount": 20,
+    "warningCount": 0,
+    "metadataStandardizedUrls": 20,
+    "altStandardizedUrls": 20,
+    "blockedUrls": [
+      "/",
+      "/vi/",
+      "/what-is-omdala/",
+      "/vi/what-is-omdala/",
+      "/how-it-works/",
+      "/vi/how-it-works/",
+      "/for-experts/",
+      "/vi/for-experts/",
+      "/for-hosts/",
+      "/vi/for-hosts/",
+      "/for-communities/",
+      "/vi/for-communities/",
+      "/trust/",
+      "/vi/trust/",
+      "/vision/",
+      "/vi/vision/",
+      "/faq/",
+      "/vi/faq/",
+      "/contact/",
+      "/vi/contact/"
+    ],
+    "blockingIssueCounts": {
+      "page_html_missing": 20
+    },
+    "warningIssueCounts": {},
+    "languageBreakdown": {
+      "en": {
+        "total": 10,
+        "passed": 0
+      },
+      "vi": {
+        "total": 10,
+        "passed": 0
+      }
+    },
+    "languageSwitcherContract": {
+      "sourcePath": "/Users/tranhatam/Documents/Devnewproject/omdala.com/apps/web/app/components/LanguageSwitcher.tsx",
+      "valid": true,
+      "details": "language switcher source contract present"
+    }
+  },
+  "routes": [
+    {
+      "pageKey": "home",
+      "language": "en",
+      "localizedPath": "/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "home",
+      "language": "vi",
+      "localizedPath": "/vi/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "whatIsOmdala",
+      "language": "en",
+      "localizedPath": "/what-is-omdala/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "whatIsOmdala",
+      "language": "vi",
+      "localizedPath": "/vi/what-is-omdala/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "howItWorks",
+      "language": "en",
+      "localizedPath": "/how-it-works/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "howItWorks",
+      "language": "vi",
+      "localizedPath": "/vi/how-it-works/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forExperts",
+      "language": "en",
+      "localizedPath": "/for-experts/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forExperts",
+      "language": "vi",
+      "localizedPath": "/vi/for-experts/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forHosts",
+      "language": "en",
+      "localizedPath": "/for-hosts/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forHosts",
+      "language": "vi",
+      "localizedPath": "/vi/for-hosts/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forCommunities",
+      "language": "en",
+      "localizedPath": "/for-communities/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "forCommunities",
+      "language": "vi",
+      "localizedPath": "/vi/for-communities/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "trust",
+      "language": "en",
+      "localizedPath": "/trust/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "trust",
+      "language": "vi",
+      "localizedPath": "/vi/trust/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "vision",
+      "language": "en",
+      "localizedPath": "/vision/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "vision",
+      "language": "vi",
+      "localizedPath": "/vi/vision/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "faq",
+      "language": "en",
+      "localizedPath": "/faq/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "faq",
+      "language": "vi",
+      "localizedPath": "/vi/faq/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "contact",
+      "language": "en",
+      "localizedPath": "/contact/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    },
+    {
+      "pageKey": "contact",
+      "language": "vi",
+      "localizedPath": "/vi/contact/",
+      "source": "",
+      "htmlLang": "",
+      "h1Count": 0,
+      "metadata": {
+        "title": "",
+        "description": "",
+        "canonical": "",
+        "hreflang": {},
+        "ogTitle": "",
+        "ogDescription": ""
+      },
+      "schema": {
+        "hasName": false,
+        "hasDescription": false
+      },
+      "imageCount": 0,
+      "blockingIssues": [
+        {
+          "code": "page_html_missing",
+          "details": "spawnSync cat ETIMEDOUT"
+        }
+      ],
+      "warningIssues": []
+    }
+  ],
+  "gate": {
+    "status": "fail",
+    "blockingReason": "metadata/alt/language-switch blocking issue detected"
+  }
+}

@@ -1,0 +1,21 @@
+# OMDALA Infra — Staging Overrides
+# Usage: docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d
+
+services:
+  caddy:
+    environment:
+      - INFRA_DOMAIN=staging.infra.omdala.com
+
+  api-gateway:
+    environment:
+      - NODE_ENV=staging
+      - PORT=3000
+      - DATABASE_URL=postgresql://omdala_app:${POSTGRES_APP_PASSWORD}@postgres:5432/omdala_staging
+      - RATE_LIMIT=200
+      - RATE_LIMIT_WINDOW_MS=60000
+
+  worker:
+    environment:
+      - NODE_ENV=staging
+      - DATABASE_URL=postgresql://omdala_app:${POSTGRES_APP_PASSWORD}@postgres:5432/omdala_staging
+      - WORKER_CONCURRENCY=3

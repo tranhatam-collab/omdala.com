@@ -1,0 +1,81 @@
+{
+  "name": "Agent Orchestrator",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "agent-task-created"
+    },
+    {
+      "parameters": {
+        "jsCode": "const task = $input.first().json;\n\n// Route to appropriate agent based on task_type\nconst agentRouter = {\n  'planner': 'PlannerAgent',\n  'context': 'ContextAgent',\n  'code': 'CodeAgent',\n  'db_query': 'DBAgent',\n  'deploy': 'DeployAgent',\n  'verify': 'VerifierAgent',\n  'report': 'ReporterAgent'\n};\n\nconst targetAgent = agentRouter[task.task_type] || 'GeneralAgent';\nreturn [{\n  json: {\n    ...task,\n    targetAgent,\n    routedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "name": "Route Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://worker:3001/jobs/ai-task",
+        "body": {
+          "taskId": "={{ $json.id }}",
+          "model": "={{ $json.config.model || 'gpt-4o' }}",
+          "prompt": "={{ $json.input_payload.prompt }}",
+          "maxTokens": "={{ $json.config.max_tokens || 2000 }}"
+        }
+      },
+      "name": "Dispatch to Worker",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\n\n// Check if approval is required\nconst requiresApproval = ['deploy', 'delete_database', 'restore_production'].includes(result.task_type);\n\nif (requiresApproval && result.status !== 'approved') {\n  return [{\n    json: {\n      ...result,\n      status: 'waiting_approval',\n      approvalRequired: true\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...result,\n    status: 'queued',\n    approvalRequired: false\n  }\n}];"
+      },
+      "name": "Approval Gate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api-gateway:3000/evidence-log",
+        "body": {
+          "entity_type": "agent_task",
+          "entity_id": "={{ $json.id }}",
+          "action": "task_orchestrated",
+          "payload": "={{ JSON.stringify($json) }}"
+        }
+      },
+      "name": "Log Evidence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{"node": "Route Agent", "type": "main", "index": 0}]]
+    },
+    "Route Agent": {
+      "main": [[{"node": "Dispatch to Worker", "type": "main", "index": 0}]]
+    },
+    "Dispatch to Worker": {
+      "main": [[{"node": "Approval Gate", "type": "main", "index": 0}]]
+    },
+    "Approval Gate": {
+      "main": [[{"node": "Log Evidence", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

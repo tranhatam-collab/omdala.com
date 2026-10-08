@@ -33,7 +33,8 @@ Read:
 
 1. `docs/MASTER_BUILD_SYSTEM_OMDALA_OMDALAT.md`
 2. `docs/BRAND_ARCHITECTURE_OMDALA.md`
-3. `docs/README_DEV_HANDOFF_OMDALA.md`
+3. `docs/OMDALA_BRANDPRO_LOCK_2026-05-12.md`
+4. `docs/README_DEV_HANDOFF_OMDALA.md`
 
 ## Repo structure
 
@@ -74,7 +75,10 @@ If that port is already in use, Next.js uses the next available port.
 ## Web build
 
 ```bash
+npm run brand:lint
+npm run brand:lint:static
 npm run build
+npm run build:static
 ```
 
 ## Application shell

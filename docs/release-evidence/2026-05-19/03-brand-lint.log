@@ -1,0 +1,55 @@
+
+> omdala.com@0.1.0 brand:lint
+> bash scripts/brand-lint-omdala.sh apps/web/app
+
+🔍 OMDALA brand-lint scanning: apps/web/app
+
+─── Word filter check (forbidden category language) ───
+✅ No forbidden category language
+
+─── Palette token check ───
+✅ Space-950 (#040816) substrate present
+✅ Cyan-500 (#3de7ff) signal present
+✅ Gold-500 (#D4AF37) verification present (v2.0)
+✅ v2.0 substrate animations present
+
+─── Accessibility hints ───
+✅ prefers-reduced-motion handler found
+✅ color-scheme: dark declared
+
+─── Brand role consistency ───
+✅ Brand capitalization consistent
+
+═══════════════════════════════════════
+✅ OMDALA brand-lint PASSED.
+   Source: docs/OMDALA_V2_SIGNAL_SUBSTRATE.md
+
+> omdala.com@0.1.0 brand:lint:static
+> bash scripts/brand-lint-omdala.sh .
+
+🔍 OMDALA brand-lint scanning: .
+
+─── Word filter check (forbidden category language) ───
+✅ No forbidden category language
+
+─── Palette token check ───
+✅ Space-950 (#040816) substrate present
+✅ Cyan-500 (#3de7ff) signal present
+✅ Gold-500 (#D4AF37) verification present (v2.0)
+✅ v2.0 substrate animations present
+
+─── Accessibility hints ───
+✅ prefers-reduced-motion handler found
+✅ color-scheme: dark declared
+
+─── Brand role consistency ───
+✅ Brand capitalization consistent
+
+═══════════════════════════════════════
+✅ OMDALA brand-lint PASSED.
+   Source: docs/OMDALA_V2_SIGNAL_SUBSTRATE.md
+
+> omdala.com@0.1.0 build:static
+> node scripts/build-static.mjs
+
+Built static output to /Users/tranhatam/Documents/Devnewproject/omdala.com/dist

@@ -1,0 +1,19 @@
+# SOPS Configuration
+# Encrypts secrets files for safe storage in git.
+# Usage: sops -e -i secrets/production.enc.yaml
+
+creation_rules:
+  # Production secrets
+  - path_regex: secrets/production\.enc\.(yaml|json|env)$
+    age: >-
+      <FILL_WITH_AGE_PUBLIC_KEY>
+
+  # Staging secrets
+  - path_regex: secrets/staging\.enc\.(yaml|json|env)$
+    age: >-
+      <FILL_WITH_AGE_PUBLIC_KEY>
+
+  # Any .enc file
+  - path_regex: .*\.enc\.(yaml|json|env)$
+    age: >-
+      <FILL_WITH_AGE_PUBLIC_KEY>

@@ -1,0 +1,28 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "services/*"
+
+overrides:
+  app-builder-lib: 26.15.3
+  "@xmldom/xmldom": 0.8.15
+  "brace-expansion@<1.1.21": 1.1.21
+  "brace-expansion@>=2.0.0 <2.1.7": 2.1.7
+  "brace-expansion@>=4.0.0 <5.0.12": 5.0.12
+  builder-util-runtime: 9.7.0
+  dmg-builder: 26.15.3
+  dompurify: 3.4.16
+  electron-builder-squirrel-windows: 26.15.3
+  fast-uri: 3.1.8
+  hono: 4.13.7
+  http-cache-semantics: 4.3.0
+  js-yaml: 4.3.2
+  nanoid: 3.3.18
+  postcss: 8.5.29
+  sharp: 0.35.5
+  source-map-js: 1.2.2
+  tar: 7.5.21
+  undici: 7.29.1
+  vite: 8.0.16
+  vitest: 4.1.11
+  ws: 8.21.0

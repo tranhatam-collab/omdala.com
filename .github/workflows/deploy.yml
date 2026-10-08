@@ -1,0 +1,1316 @@
+name: OMDALA Release
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+      confirmation:
+        required: true
+        type: string
+      source_pr_number:
+        required: true
+        type: string
+      staging_acceptance_run_id:
+        required: false
+        type: string
+        default: ""
+      orchestrated_staging:
+        required: false
+        type: boolean
+        default: false
+      staging_transaction_id:
+        required: false
+        type: string
+        default: ""
+      control_plane_sha:
+        required: false
+        type: string
+        default: ""
+    outputs:
+      candidate_sha:
+        value: ${{ jobs.validate.outputs.sha }}
+      api_release_artifact_name:
+        value: ${{ jobs.deploy-api.outputs.release_artifact_name }}
+      backup_artifact_name:
+        value: ${{ jobs.deploy-api.outputs.backup_artifact_name }}
+      api_receipt_sha256:
+        value: ${{ jobs.deploy-api.outputs.receipt_sha256 }}
+      api_version_id:
+        value: ${{ jobs.deploy-api.outputs.version_id }}
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  validate:
+    name: Validate release candidate
+    if: inputs.confirmation == 'DEPLOY_OMDALA'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+      SOURCE_PR_NUMBER: ${{ inputs.source_pr_number }}
+      STAGING_ACCEPTANCE_RUN_ID: ${{ inputs.staging_acceptance_run_id }}
+      API_WRANGLER_CONFIG: services/api/wrangler.release.toml
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+      candidate_tree_sha: ${{ steps.source.outputs.tree_sha }}
+      reviewed_sha: ${{ steps.independent_review.outputs.reviewed_sha }}
+      reviewed_tree_sha: ${{ steps.independent_review.outputs.reviewed_tree_sha }}
+      control_plane_sha: ${{ github.sha }}
+      release_id: ${{ steps.source.outputs.release_id }}
+      source_pr_number: ${{ inputs.source_pr_number }}
+      independent_reviewer: ${{ steps.independent_review.outputs.reviewer }}
+      independent_review_id: ${{ steps.independent_review.outputs.review_id }}
+      api_remote_preflight_receipt_sha256: ${{ steps.api_remote_preflight.outputs.receipt_sha256 }}
+      hyperdrive_remote_preflight_receipt_sha256: ${{ steps.api_remote_preflight.outputs.hyperdrive_receipt_sha256 }}
+    steps:
+      - name: Disable the legacy staging mutation entry point
+        if: inputs.environment == 'staging'
+        shell: bash
+        run: |
+          echo "::error::LEGACY_STAGING_MUTATION_ENTRY_POINT_DISABLED"
+          echo "::error::Staging mutation is owned only by the single protected job in staging-transaction.yml"
+          exit 1
+      - name: Require the single staging transaction caller before mutation
+        shell: bash
+        env:
+          ORCHESTRATED_STAGING: ${{ inputs.orchestrated_staging }}
+          STAGING_TRANSACTION_ID: ${{ inputs.staging_transaction_id }}
+          CONTROL_PLANE_SHA: ${{ inputs.control_plane_sha }}
+        run: |
+          set -euo pipefail
+          case "$RELEASE_ENVIRONMENT" in
+            staging) ;;
+            production)
+              echo "::error::PRODUCTION_HOLD_UNIFIED_TRANSACTION_REQUIRED"
+              exit 1
+              ;;
+            *)
+              echo "::error::INVALID_RELEASE_ENVIRONMENT"
+              exit 1
+              ;;
+          esac
+          test "$GITHUB_RUN_ATTEMPT" = "1" || {
+            echo "::error::STAGING_TRANSACTION_RERUN_BLOCKED_START_A_NEW_DISPATCH"
+            exit 1
+          }
+          expected_transaction_id="staging-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          expected_workflow_ref="${GITHUB_REPOSITORY}/.github/workflows/staging-transaction.yml@refs/heads/main"
+          test "$ORCHESTRATED_STAGING" = "true" || {
+            echo "::error::DIRECT_STAGING_CHILD_DISPATCH_BLOCKED"
+            exit 1
+          }
+          test "$GITHUB_WORKFLOW" = "OMDALA Staging Transaction" || {
+            echo "::error::UNTRUSTED_STAGING_TRANSACTION_CALLER"
+            exit 1
+          }
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$GITHUB_WORKFLOW_REF" = "$expected_workflow_ref"
+          test "$GITHUB_WORKFLOW_SHA" = "$CONTROL_PLANE_SHA"
+          test "$STAGING_TRANSACTION_ID" = "$expected_transaction_id" || {
+            echo "::error::STAGING_TRANSACTION_ID_MISMATCH"
+            exit 1
+          }
+          test "$CONTROL_PLANE_SHA" = "$GITHUB_SHA" || {
+            echo "::error::STAGING_CONTROL_PLANE_MISMATCH"
+            exit 1
+          }
+      - name: Hold split-lane production releases until one transaction owns rollback
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          echo "::error::PRODUCTION_HOLD_UNIFIED_TRANSACTION_REQUIRED"
+          echo "::error::API, surfaces, acceptance, and rollback must run under one production transaction."
+          exit 1
+      - name: Require the workflow control plane from current main
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main" || {
+            echo "::error::Release workflows must be dispatched from main"
+            exit 1
+          }
+          current_main="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/ref/heads/main" | jq -er '.object.sha')"
+          test "$GITHUB_SHA" = "$current_main" || {
+            echo "::error::Workflow SHA is not the current main control-plane SHA"
+            exit 1
+          }
+      - name: Checkout trusted release controls
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Preserve trusted independent-review policy
+        shell: bash
+        run: cp scripts/release-review-policy.mjs "$RUNNER_TEMP/omdala-release-review-policy.mjs"
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+      - id: source
+        name: Lock release identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_PR_NUMBER" =~ ^[1-9][0-9]*$ ]] || {
+            echo "::error::source_pr_number must be a positive integer"
+            exit 1
+          }
+          sha="$(git rev-parse HEAD)"
+          tree_sha="$(git rev-parse 'HEAD^{tree}')"
+          release_id="gh-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${sha:0:12}"
+          {
+            echo "sha=$sha"
+            echo "tree_sha=$tree_sha"
+            echo "release_id=$release_id"
+          } >> "$GITHUB_OUTPUT"
+      - id: independent_review
+        name: Require independent exact-SHA approval
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node "$RUNNER_TEMP/omdala-release-review-policy.mjs"
+          --repository "$GITHUB_REPOSITORY"
+          --pull-request "$SOURCE_PR_NUMBER"
+          --sha "${{ steps.source.outputs.sha }}"
+          --mode "$RELEASE_ENVIRONMENT"
+          --receipt independent-review-receipt.json
+      - name: Require protected Cloudflare account authority
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: >-
+          node scripts/verify-infra-authority-handoff.mjs
+          --wrangler-config services/api/wrangler.toml
+          --account-id "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Require immutable Terraform authority handoff for production
+        if: inputs.environment == 'production'
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TERRAFORM_HANDOFF_SHA256: ${{ vars.OMDALA_TERRAFORM_HANDOFF_SHA256 }}
+        run: >-
+          node scripts/verify-infra-authority-handoff.mjs
+          --wrangler-config services/api/wrangler.toml
+          --receipt infra/tf/terraform-authority-handoff.json
+          --sha256 "$TERRAFORM_HANDOFF_SHA256"
+          --account-id "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Require staging acceptance run for production
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$STAGING_ACCEPTANCE_RUN_ID" =~ ^[0-9]+$ ]] || {
+            echo "::error::A numeric staging_acceptance_run_id is required for production"
+            exit 1
+          }
+      - id: staging_acceptance_run
+        name: Verify staging acceptance control-plane workflow identity
+        if: inputs.environment == 'production'
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ACCEPTANCE_RUN_ID: ${{ inputs.staging_acceptance_run_id }}
+        run: |
+          set -euo pipefail
+          run_json="$(curl --fail --silent --show-error \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs/${ACCEPTANCE_RUN_ID}")"
+          jq -e \
+            --arg path ".github/workflows/staging-go-live-e2e.yml" \
+            '.name == "OMDALA Staging Go-Live E2E" and
+             (.path == $path or .path == ($path + "@refs/heads/main")) and
+             .event == "workflow_dispatch" and
+             .head_branch == "main" and
+             (.head_sha | test("^[0-9a-f]{40}$")) and
+             .status == "completed" and
+             .conclusion == "success"' \
+            <<<"$run_json" >/dev/null || {
+              echo "::error::Staging acceptance run is not a successful trusted-main workflow run"
+              exit 1
+            }
+          echo "control_plane_sha=$(jq -er '.head_sha' <<<"$run_json")" >> "$GITHUB_OUTPUT"
+      - name: Download immutable staging acceptance receipt
+        if: inputs.environment == 'production'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: omdala-staging-acceptance-${{ steps.independent_review.outputs.reviewed_sha }}
+          path: staging-acceptance
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.staging_acceptance_run_id }}
+      - name: Verify staging acceptance receipt
+        if: inputs.environment == 'production'
+        shell: bash
+        env:
+          STAGED_SHA: ${{ steps.independent_review.outputs.reviewed_sha }}
+          STAGED_TREE_SHA: ${{ steps.independent_review.outputs.reviewed_tree_sha }}
+          PRODUCTION_TREE_SHA: ${{ steps.source.outputs.tree_sha }}
+          ACCEPTANCE_CONTROL_PLANE_SHA: ${{ steps.staging_acceptance_run.outputs.control_plane_sha }}
+          ACCEPTANCE_RUN_ID: ${{ inputs.staging_acceptance_run_id }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          jq -e \
+            --arg staged_sha "$STAGED_SHA" \
+            --arg staged_tree_sha "$STAGED_TREE_SHA" \
+            --arg production_tree_sha "$PRODUCTION_TREE_SHA" \
+            --arg control_plane_sha "$ACCEPTANCE_CONTROL_PLANE_SHA" \
+            --arg cloudflare_account_id "$CLOUDFLARE_ACCOUNT_ID" \
+            --arg run_id "$ACCEPTANCE_RUN_ID" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg source_pr_number "$SOURCE_PR_NUMBER" \
+            --arg reviewer "${{ steps.independent_review.outputs.reviewer }}" \
+            --arg review_id "${{ steps.independent_review.outputs.review_id }}" \
+            '.schema_version == 2 and
+             .verdict == "STAGING_ACCEPTED" and
+             .candidate_sha == $staged_sha and
+             .reviewed_sha == $staged_sha and
+             .candidate_tree_sha == $staged_tree_sha and
+             .reviewed_tree_sha == $staged_tree_sha and
+             .candidate_tree_sha == $production_tree_sha and
+             .control_plane_sha == $control_plane_sha and
+             .cloudflare_account_id == $cloudflare_account_id and
+             .workflow_run_id == ($run_id | tonumber) and
+             .repository == $repository and
+             (.source_pr_number | tostring) == $source_pr_number and
+             .independent_reviewer == $reviewer and
+             (.independent_review_id | tostring) == $review_id and
+             (.database_backup_receipt_sha256 | length) == 64 and
+             (.api_release_run_id | tonumber) > 0 and
+             (.surface_release_run_id | tonumber) > 0 and
+             (.api_deployment_id | length) > 0 and
+             .api_deployment_id == .consumer_version_id and
+             (.api_hyperdrive_id | test("^[0-9a-f]{32}$")) and
+             .api_hyperdrive_binding == "HYPERDRIVE" and
+             .api_hyperdrive_binding_verified == true and
+             .api_secret_inventory_verified == true and
+             .api_worker_authority_verified == true and
+             (.api_worker_authority_evidence_sha256 | test("^[0-9a-f]{64}$")) and
+             .api_hyperdrive_target_verified == true and
+             .api_hyperdrive_isolated_from_production == true and
+             (.api_hyperdrive_origin_fingerprint_sha256 | test("^[0-9a-f]{64}$")) and
+             (.api_hyperdrive_authority_sha256 | test("^[0-9a-f]{64}$")) and
+             (.api_wrangler_config_sha256 | test("^[0-9a-f]{64}$")) and
+             (.surface_release_id | length) > 0' \
+            staging-acceptance/staging-acceptance.json >/dev/null || {
+              echo "::error::Staging acceptance artifact does not bind the reviewed PR-head tree to this production tree"
+              exit 1
+            }
+      - name: Guard production release SHA on main
+        if: inputs.environment == 'production'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          test "${{ steps.source.outputs.sha }}" = "$(git rev-parse origin/main)" || {
+            echo "::error::Production release SHA must equal current origin/main"
+            exit 1
+          }
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm security:audit
+      - run: pnpm --filter @omdala/api test
+      - run: pnpm --filter @omdala/api run check
+      - name: Render exact environment Hyperdrive binding
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          OMDALA_HYPERDRIVE_ID: ${{ vars.OMDALA_HYPERDRIVE_ID }}
+          OMDALA_GOOGLE_CLIENT_ID: ${{ vars.OMDALA_GOOGLE_CLIENT_ID }}
+          RELEASE_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          set -euo pipefail
+          node scripts/render-api-wrangler-config.mjs \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --input services/api/wrangler.toml \
+            --output "$API_WRANGLER_CONFIG" \
+            --receipt api-hyperdrive-config.json
+      - name: Dry-run exact environment and identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(deploy --config "$API_WRANGLER_CONFIG" --dry-run --strict)
+          if [[ "$RELEASE_ENVIRONMENT" == "staging" ]]; then
+            args+=(--env staging)
+          fi
+          services/api/node_modules/.bin/wrangler "${args[@]}"
+      - id: api_remote_preflight
+        name: Read-only API provider preflight before database migration
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          OMDALA_HYPERDRIVE_ID: ${{ vars.OMDALA_HYPERDRIVE_ID }}
+          OMDALA_GOOGLE_CLIENT_ID: ${{ vars.OMDALA_GOOGLE_CLIENT_ID }}
+          OMDALA_DATABASE_EXPECTED_HOST: ${{ vars.OMDALA_DATABASE_EXPECTED_HOST }}
+          OMDALA_DATABASE_EXPECTED_NAME: ${{ vars.OMDALA_DATABASE_EXPECTED_NAME }}
+        run: |
+          set -euo pipefail
+          environment_args=()
+          if [[ "$RELEASE_ENVIRONMENT" == "staging" ]]; then
+            environment_args+=(--env staging)
+          fi
+
+          if services/api/node_modules/.bin/wrangler deployments list \
+            --config "$API_WRANGLER_CONFIG" \
+            "${environment_args[@]}" \
+            --json > api-readonly-deployments.tmp.json 2> api-readonly-deployments.stderr; then
+            mv api-readonly-deployments.tmp.json api-readonly-deployments.json
+          elif grep -Eqi "does not exist|could not find" api-readonly-deployments.stderr; then
+            printf '[]\n' > api-readonly-deployments.json
+          else
+            cat api-readonly-deployments.stderr >&2
+            exit 1
+          fi
+
+          worker_exists="$(jq -er 'if length > 0 then "true" else "false" end' \
+            api-readonly-deployments.json)"
+          if [[ "$worker_exists" == "true" ]]; then
+            current_version_id="$(jq -er \
+              'sort_by(.created_on) | last | .versions[0].version_id | select(type == "string")' \
+              api-readonly-deployments.json)"
+            services/api/node_modules/.bin/wrangler versions view "$current_version_id" \
+              --config "$API_WRANGLER_CONFIG" \
+              "${environment_args[@]}" \
+              --json > api-readonly-version.json
+            services/api/node_modules/.bin/wrangler secret list \
+              --config "$API_WRANGLER_CONFIG" \
+              "${environment_args[@]}" \
+              --json > api-readonly-secrets.json
+          else
+            printf 'null\n' > api-readonly-version.json
+            printf '[]\n' > api-readonly-secrets.json
+          fi
+
+          services/api/node_modules/.bin/wrangler hyperdrive get "$OMDALA_HYPERDRIVE_ID" \
+            --config "$API_WRANGLER_CONFIG" > api-readonly-hyperdrive.raw
+          sed -n '/^{/,$p' api-readonly-hyperdrive.raw > api-readonly-hyperdrive.json
+          node scripts/hyperdrive-target-guard.mjs \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --account-id "$CLOUDFLARE_ACCOUNT_ID" \
+            --hyperdrive-id "$OMDALA_HYPERDRIVE_ID" \
+            --expected-host "$OMDALA_DATABASE_EXPECTED_HOST" \
+            --expected-database "$OMDALA_DATABASE_EXPECTED_NAME" \
+            --provider-json api-readonly-hyperdrive.json \
+            --production-authority config/production-data-authority.json \
+            --receipt api-readonly-hyperdrive-receipt.json >/dev/null
+
+          preflight_args=(
+            --deployments-json api-readonly-deployments.json
+            --secret-json api-readonly-secrets.json
+            --version-json api-readonly-version.json
+            --environment "$RELEASE_ENVIRONMENT"
+            --google-client-id "$OMDALA_GOOGLE_CLIENT_ID"
+            --hyperdrive-id "$OMDALA_HYPERDRIVE_ID"
+            --receipt api-readonly-remote-preflight.json
+          )
+          if [[ "$RELEASE_ENVIRONMENT" == "staging" ]] && [[ "$worker_exists" == "false" ]]; then
+            preflight_args+=(--allow-missing-resource)
+          fi
+          node scripts/verify-api-worker-authority.mjs "${preflight_args[@]}" >/dev/null
+          {
+            echo "receipt_sha256=$(sha256sum api-readonly-remote-preflight.json | awk '{print $1}')"
+            echo "hyperdrive_receipt_sha256=$(sha256sum api-readonly-hyperdrive-receipt.json | awk '{print $1}')"
+          } >> "$GITHUB_OUTPUT"
+      - name: Upload immutable read-only API preflight evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-api-readonly-preflight-${{ steps.source.outputs.sha }}-${{ inputs.environment }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            api-hyperdrive-config.json
+            api-readonly-deployments.json
+            api-readonly-version.json
+            api-readonly-secrets.json
+            api-readonly-hyperdrive.json
+            api-readonly-hyperdrive-receipt.json
+            api-readonly-remote-preflight.json
+          if-no-files-found: error
+          retention-days: 30
+
+  migrate-database:
+    name: Apply idempotent API schema migrations
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+    outputs:
+      backup_receipt_sha256: ${{ steps.backup_restore.outputs.receipt_sha256 }}
+      encrypted_backup_sha256: ${{ steps.backup_restore.outputs.encrypted_backup_sha256 }}
+      migration_compatibility_receipt_sha256: ${{ steps.migration_compatibility.outputs.receipt_sha256 }}
+      migration_manifest_sha256: ${{ steps.migration_compatibility.outputs.manifest_sha256 }}
+      migration_ledger_receipt_sha256: ${{ steps.migration_ledger_after.outputs.receipt_sha256 }}
+    services:
+      restore_postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: restore
+          POSTGRES_PASSWORD: restore-only-ci-password
+          POSTGRES_DB: omdala_restore
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U restore -d omdala_restore"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          persist-credentials: false
+      - name: Require protected origin database credential
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "${DATABASE_URL:-}" || {
+            echo "::error::Protected secret OMDALA_DATABASE_URL is required"
+            exit 1
+          }
+          psql --version
+      - id: migration_compatibility
+        name: Verify migration compatibility and code rollback boundary
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+          CANDIDATE_SHA: ${{ needs.validate.outputs.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p pre-migration-backup
+          ledger_exists="$(psql "$DATABASE_URL" --tuples-only --no-align --set ON_ERROR_STOP=1 --command \
+            "SELECT CASE WHEN to_regclass('omdala.schema_migrations') IS NULL THEN 0 ELSE 1 END;")"
+          if [[ "$ledger_exists" == "1" ]]; then
+            psql "$DATABASE_URL" --tuples-only --no-align --set ON_ERROR_STOP=1 --command \
+              "SELECT COALESCE(json_agg(version ORDER BY version), '[]'::json)::text FROM omdala.schema_migrations;" \
+              > pre-migration-backup/applied-migrations-before.json
+          elif [[ "$ledger_exists" == "0" ]]; then
+            printf '[]\n' > pre-migration-backup/applied-migrations-before.json
+          else
+            echo "::error::Could not determine the source migration ledger state"
+            exit 1
+          fi
+          cp infra/postgres/migrations/compatibility.json \
+            pre-migration-backup/migration-compatibility-manifest.json
+          node scripts/verify-migration-compatibility.mjs \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --candidate-sha "$CANDIDATE_SHA" \
+            --applied-json pre-migration-backup/applied-migrations-before.json \
+            --receipt pre-migration-backup/migration-compatibility-before.json \
+            >/dev/null
+      - id: backup_restore
+        name: Backup, restore, and verify before migration
+        shell: bash
+        env:
+          SOURCE_DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+          RESTORE_DATABASE_URL: postgresql://restore:restore-only-ci-password@127.0.0.1:${{ job.services.restore_postgres.ports['5432'] }}/omdala_restore
+          EXPECTED_SOURCE_DATABASE_HOST: ${{ vars.OMDALA_DATABASE_EXPECTED_HOST }}
+          EXPECTED_SOURCE_DATABASE_NAME: ${{ vars.OMDALA_DATABASE_EXPECTED_NAME }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.OMDALA_BACKUP_ENCRYPTION_KEY }}
+          CANDIDATE_SHA: ${{ needs.validate.outputs.sha }}
+          RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+          BACKUP_OUTPUT_DIR: pre-migration-backup
+        run: bash scripts/postgres-pre-migration-gate.sh
+      - name: Upload encrypted pre-migration backup and restore receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ inputs.environment == 'staging' && format('omdala-pre-migration-backup-{0}-staging-{1}', needs.validate.outputs.sha, inputs.staging_transaction_id) || format('omdala-pre-migration-backup-{0}-production', needs.validate.outputs.sha) }}
+          path: pre-migration-backup/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Apply migrations in lexical order from compatibility receipt
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r migration_file; do
+            [[ "$migration_file" =~ ^[0-9]{4}_[a-z0-9_]+\.sql$ ]] || {
+              echo "::error::Compatibility receipt contains an invalid migration filename"
+              exit 1
+            }
+            migration="infra/postgres/migrations/${migration_file}"
+            test -f "$migration" || {
+              echo "::error::Verified pending migration is missing: ${migration}"
+              exit 1
+            }
+            echo "Applying ${migration}"
+            psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file "$migration"
+          done < <(jq -r '.pendingMigrations[].file' \
+            pre-migration-backup/migration-compatibility-before.json)
+      - id: migration_ledger_after
+        name: Verify exact migration ledger after apply
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+          CANDIDATE_SHA: ${{ needs.validate.outputs.sha }}
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" --tuples-only --no-align --set ON_ERROR_STOP=1 --command \
+            "SELECT COALESCE(json_agg(version ORDER BY version), '[]'::json)::text FROM omdala.schema_migrations;" \
+            > pre-migration-backup/applied-migrations-after.json
+          node scripts/verify-migration-compatibility.mjs \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --candidate-sha "$CANDIDATE_SHA" \
+            --applied-json pre-migration-backup/applied-migrations-after.json \
+            --require-all-applied \
+            --receipt pre-migration-backup/migration-compatibility-after.json \
+            >/dev/null
+      - name: Upload immutable migration compatibility evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-migration-compatibility-${{ needs.validate.outputs.sha }}-${{ inputs.environment }}
+          path: |
+            pre-migration-backup/migration-compatibility-manifest.json
+            pre-migration-backup/applied-migrations-before.json
+            pre-migration-backup/applied-migrations-after.json
+            pre-migration-backup/migration-compatibility-before.json
+            pre-migration-backup/migration-compatibility-after.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify required runtime schema
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.OMDALA_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          result="$(psql "$DATABASE_URL" --tuples-only --no-align --command \
+            "SELECT CASE WHEN
+               (SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'omdala' AND table_name IN ('nodes', 'proofs', 'account_profiles', 'account_preferences', 'billing_subscriptions', 'workspaces', 'shared_notifications', 'analytics_events', 'auth_magic_links', 'auth_sessions')) = 10
+               AND
+               (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'omdala' AND table_name IN ('nodes', 'proofs') AND column_name = 'owner_email' AND is_nullable = 'NO') = 2
+               AND EXISTS (SELECT 1 FROM omdala.schema_migrations WHERE version = '0001_omdala_api_runtime')
+               AND EXISTS (SELECT 1 FROM omdala.schema_migrations WHERE version = '0002_auth_session_state')
+               AND EXISTS (SELECT 1 FROM omdala.schema_migrations WHERE version = '0003_protected_runtime_state')
+             THEN 1 ELSE 0 END;")"
+          test "$result" = "1" || {
+            echo "::error::Required OMDALA API tables or ownership locks are missing"
+            exit 1
+          }
+
+  deploy-api:
+    name: Deploy omdala-api
+    needs: [validate, migrate-database]
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    outputs:
+      release_artifact_name: ${{ steps.api_release_receipt.outputs.release_artifact_name }}
+      backup_artifact_name: ${{ steps.api_release_receipt.outputs.backup_artifact_name }}
+      receipt_sha256: ${{ steps.api_release_receipt.outputs.receipt_sha256 }}
+      version_id: ${{ steps.runtime_identity.outputs.version_id }}
+    env:
+      RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+      API_WRANGLER_CONFIG: services/api/wrangler.release.toml
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.3
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: hyperdrive_config
+        name: Render exact environment Hyperdrive binding
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          OMDALA_HYPERDRIVE_ID: ${{ vars.OMDALA_HYPERDRIVE_ID }}
+          OMDALA_GOOGLE_CLIENT_ID: ${{ vars.OMDALA_GOOGLE_CLIENT_ID }}
+          RELEASE_SHA: ${{ needs.validate.outputs.sha }}
+        run: |
+          set -euo pipefail
+          node scripts/render-api-wrangler-config.mjs \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --input services/api/wrangler.toml \
+            --output "$API_WRANGLER_CONFIG" \
+            --receipt api-hyperdrive-config.json
+          {
+            echo "hyperdrive_id=$(jq -er '.hyperdrive_id' api-hyperdrive-config.json)"
+            echo "rendered_sha256=$(jq -er '.rendered_sha256' api-hyperdrive-config.json)"
+          } >> "$GITHUB_OUTPUT"
+      - id: hyperdrive_target_before
+        name: Verify Hyperdrive provider target before deployment
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          OMDALA_HYPERDRIVE_ID: ${{ vars.OMDALA_HYPERDRIVE_ID }}
+          OMDALA_DATABASE_EXPECTED_HOST: ${{ vars.OMDALA_DATABASE_EXPECTED_HOST }}
+          OMDALA_DATABASE_EXPECTED_NAME: ${{ vars.OMDALA_DATABASE_EXPECTED_NAME }}
+        run: |
+          set -euo pipefail
+          services/api/node_modules/.bin/wrangler hyperdrive get "$OMDALA_HYPERDRIVE_ID" \
+            --config "$API_WRANGLER_CONFIG" > api-hyperdrive-target-before.raw
+          sed -n '/^{/,$p' api-hyperdrive-target-before.raw > api-hyperdrive-target-before.json
+          node scripts/hyperdrive-target-guard.mjs \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --account-id "$CLOUDFLARE_ACCOUNT_ID" \
+            --hyperdrive-id "$OMDALA_HYPERDRIVE_ID" \
+            --expected-host "$OMDALA_DATABASE_EXPECTED_HOST" \
+            --expected-database "$OMDALA_DATABASE_EXPECTED_NAME" \
+            --provider-json api-hyperdrive-target-before.json \
+            --production-authority config/production-data-authority.json \
+            --receipt api-hyperdrive-target-before-receipt.json >/dev/null
+          echo "origin_fingerprint_sha256=$(jq -er '.originFingerprintSha256' api-hyperdrive-target-before-receipt.json)" >> "$GITHUB_OUTPUT"
+      - name: Snapshot exact API rollback state
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          environment_args=()
+          if [[ "$RELEASE_ENVIRONMENT" == "staging" ]]; then
+            environment_args+=(--env staging)
+          fi
+          if services/api/node_modules/.bin/wrangler deployments list \
+            --config "$API_WRANGLER_CONFIG" \
+            "${environment_args[@]}" \
+            --json > api-pre-deployments.tmp.json 2> api-pre-deployments.stderr; then
+            mv api-pre-deployments.tmp.json api-pre-deployments.json
+            jq -e '
+              type == "array" and
+              (length == 0 or
+                ((sort_by(.created_on) | last | .versions | length) == 1 and
+                 (sort_by(.created_on) | last | .versions[0].percentage) == 100))
+            ' api-pre-deployments.json >/dev/null
+          elif grep -q "does not exist" api-pre-deployments.stderr; then
+            printf '[]\n' > api-pre-deployments.json
+          else
+            cat api-pre-deployments.stderr >&2
+            exit 1
+          fi
+          if [[ "$RELEASE_ENVIRONMENT" == "production" ]] && [[ "$(jq 'length' api-pre-deployments.json)" == "0" ]]; then
+            echo "::error::Production API release requires an existing exact 100% rollback baseline"
+            exit 1
+          fi
+          if [[ "$(jq 'length' api-pre-deployments.json)" != "0" ]]; then
+            previous_version_id="$(jq -er \
+              'sort_by(.created_on) | last | .versions[0].version_id | select(type == "string")' \
+              api-pre-deployments.json)"
+            services/api/node_modules/.bin/wrangler versions view "$previous_version_id" \
+              --config "$API_WRANGLER_CONFIG" \
+              "${environment_args[@]}" \
+              --json > api-pre-version.json
+          else
+            printf 'null\n' > api-pre-version.json
+          fi
+      - name: Reject unknown remote API secrets before deployment and recheck exact preconditions
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          OMDALA_HYPERDRIVE_ID: ${{ vars.OMDALA_HYPERDRIVE_ID }}
+          OMDALA_GOOGLE_CLIENT_ID: ${{ vars.OMDALA_GOOGLE_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          environment_args=()
+          if [[ "$RELEASE_ENVIRONMENT" == "staging" ]]; then
+            environment_args+=(--env staging)
+          fi
+          if services/api/node_modules/.bin/wrangler secret list \
+            --config "$API_WRANGLER_CONFIG" \
+            "${environment_args[@]}" \
+            --json > api-secret-names-before.tmp.json 2> api-secret-names-before.stderr; then
+            mv api-secret-names-before.tmp.json api-secret-names-before.json
+          elif grep -Eqi "does not exist|could not find" api-secret-names-before.stderr; then
+            printf '[]\n' > api-secret-names-before.json
+          else
+            cat api-secret-names-before.stderr >&2
+            exit 1
+          fi
+          missing_args=()
+          if [[ "$RELEASE_ENVIRONMENT" == "staging" ]] && [[ "$(jq 'length' api-pre-deployments.json)" == "0" ]]; then
+            missing_args+=(--allow-missing)
+          fi
+          node scripts/verify-api-worker-authority.mjs \
+            --secret-json api-secret-names-before.json \
+            "${missing_args[@]}" \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --receipt api-secret-inventory-before.json >/dev/null
+          remote_missing_args=()
+          if [[ "$RELEASE_ENVIRONMENT" == "staging" ]] && [[ "$(jq 'length' api-pre-deployments.json)" == "0" ]]; then
+            remote_missing_args+=(--allow-missing-resource)
+          fi
+          node scripts/verify-api-worker-authority.mjs \
+            --deployments-json api-pre-deployments.json \
+            --secret-json api-secret-names-before.json \
+            --version-json api-pre-version.json \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --google-client-id "$OMDALA_GOOGLE_CLIENT_ID" \
+            --hyperdrive-id "$OMDALA_HYPERDRIVE_ID" \
+            "${remote_missing_args[@]}" \
+            --receipt api-remote-preflight-before-deploy.json >/dev/null
+      - name: Prepare protected API secret bundle
+        shell: bash
+        env:
+          OMDALA_MAGIC_LINK_SECRET: ${{ secrets.OMDALA_MAGIC_LINK_SECRET }}
+          OMDALA_MAIL_API_KEY: ${{ secrets.OMDALA_MAIL_API_KEY }}
+          OMDALA_MAIL_STAGING_SINK_ADDRESS: ${{ inputs.environment == 'staging' && secrets.OMDALA_MAIL_STAGING_SINK_ADDRESS || '' }}
+          OMDALA_API_KEY_SECRET: ${{ secrets.OMDALA_API_KEY_SECRET }}
+          OMDALA_WEBHOOK_SECRET: ${{ secrets.OMDALA_WEBHOOK_SECRET }}
+          OMDALA_SERVICE_TOKEN_SECRET: ${{ secrets.OMDALA_SERVICE_TOKEN_SECRET }}
+          OMDALA_CSRF_SECRET: ${{ secrets.OMDALA_CSRF_SECRET }}
+          OMDALA_AIAGENT_API_KEY: ${{ secrets.OMDALA_AIAGENT_API_KEY }}
+          OMDALA_GOOGLE_CLIENT_SECRET: ${{ secrets.OMDALA_GOOGLE_CLIENT_SECRET }}
+          OMDALA_GOOGLE_OAUTH_STATE_SECRET: ${{ secrets.OMDALA_GOOGLE_OAUTH_STATE_SECRET }}
+          OMDALA_E2E_TEST_SECRET: ${{ inputs.environment == 'staging' && secrets.OMDALA_STAGING_E2E_TEST_SECRET || '' }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { chmodSync, writeFileSync } from "node:fs";
+          import { join } from "node:path";
+
+          const required = {
+            MAGIC_LINK_SECRET: process.env.OMDALA_MAGIC_LINK_SECRET,
+            MAIL_API_KEY: process.env.OMDALA_MAIL_API_KEY,
+            API_KEY_SECRET: process.env.OMDALA_API_KEY_SECRET,
+            WEBHOOK_SECRET: process.env.OMDALA_WEBHOOK_SECRET,
+            SERVICE_TOKEN_SECRET: process.env.OMDALA_SERVICE_TOKEN_SECRET,
+            CSRF_SECRET: process.env.OMDALA_CSRF_SECRET,
+            AIAGENT_API_KEY: process.env.OMDALA_AIAGENT_API_KEY,
+            GOOGLE_CLIENT_SECRET: process.env.OMDALA_GOOGLE_CLIENT_SECRET,
+            GOOGLE_OAUTH_STATE_SECRET: process.env.OMDALA_GOOGLE_OAUTH_STATE_SECRET,
+          };
+          if (process.env.RELEASE_ENVIRONMENT === "staging") {
+            required.E2E_TEST_SECRET = process.env.OMDALA_E2E_TEST_SECRET;
+            required.MAIL_STAGING_SINK_ADDRESS = process.env.OMDALA_MAIL_STAGING_SINK_ADDRESS;
+          }
+          for (const [name, value] of Object.entries(required)) {
+            const minimumLength =
+              name === "MAIL_API_KEY" || name === "MAIL_STAGING_SINK_ADDRESS"
+                ? 1
+                : 32;
+            if (!value || value.trim().length < minimumLength) {
+              throw new Error(`Protected secret ${name} is missing or too short`);
+            }
+          }
+          if (!/^sk-aiagent-[a-f0-9]{48}$/.test(required.AIAGENT_API_KEY)) {
+            throw new Error("Protected secret AIAGENT_API_KEY does not match the scoped credential contract");
+          }
+          if (
+            process.env.RELEASE_ENVIRONMENT === "staging" &&
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(required.MAIL_STAGING_SINK_ADDRESS)
+          ) {
+            throw new Error("Protected secret MAIL_STAGING_SINK_ADDRESS must be a valid sink email");
+          }
+          const output = join(process.env.RUNNER_TEMP, "omdala-api-secrets.json");
+          writeFileSync(output, `${JSON.stringify(required)}\n`, { mode: 0o600 });
+          chmodSync(output, 0o600);
+          NODE
+      - name: Deploy exact environment and source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(deploy --config "$API_WRANGLER_CONFIG" --strict)
+          if [[ "$RELEASE_ENVIRONMENT" == "staging" ]]; then
+            args+=(--env staging)
+          fi
+          args+=(
+            --message "${{ needs.validate.outputs.release_id }}"
+            --secrets-file "$RUNNER_TEMP/omdala-api-secrets.json"
+          )
+          : > api-deployment-attempted
+          services/api/node_modules/.bin/wrangler "${args[@]}"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Remove local API secret bundle
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/omdala-api-secrets.json"
+      - id: runtime_identity
+        name: Capture Cloudflare deployment and runtime version identity
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          OMDALA_GOOGLE_CLIENT_ID: ${{ vars.OMDALA_GOOGLE_CLIENT_ID }}
+        run: |
+          set -euo pipefail
+          environment_args=()
+          if [[ "$RELEASE_ENVIRONMENT" == "staging" ]]; then
+            environment_args+=(--env staging)
+          fi
+          services/api/node_modules/.bin/wrangler deployments list \
+            --config "$API_WRANGLER_CONFIG" \
+            "${environment_args[@]}" \
+            --json > api-deployments.json
+          cloudflare_deployment_id="$(jq -er 'sort_by(.created_on) | last | select(.versions | length == 1) | select(.versions[0].percentage == 100) | .id' api-deployments.json)"
+          version_id="$(jq -er 'sort_by(.created_on) | last | .versions[0].version_id' api-deployments.json)"
+          services/api/node_modules/.bin/wrangler versions view "$version_id" \
+            --config "$API_WRANGLER_CONFIG" \
+            "${environment_args[@]}" \
+            --json > api-version.json
+          services/api/node_modules/.bin/wrangler secret list \
+            --config "$API_WRANGLER_CONFIG" \
+            "${environment_args[@]}" \
+            --json > api-secret-names.json
+          node scripts/verify-api-worker-authority.mjs \
+            --secret-json api-secret-names.json \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --receipt api-secret-inventory-after.json >/dev/null
+          node scripts/verify-api-version-hyperdrive.mjs \
+            --version-json api-version.json \
+            --version-id "$version_id" \
+            --release-id "${{ needs.validate.outputs.release_id }}" \
+            --hyperdrive-id "${{ steps.hyperdrive_config.outputs.hyperdrive_id }}" \
+            --receipt api-hyperdrive-provider.json
+          node scripts/verify-api-worker-authority.mjs \
+            --version-json api-version.json \
+            --version-id "$version_id" \
+            --release-id "${{ needs.validate.outputs.release_id }}" \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --release-sha "${{ needs.validate.outputs.sha }}" \
+            --google-client-id "$OMDALA_GOOGLE_CLIENT_ID" \
+            --hyperdrive-id "${{ steps.hyperdrive_config.outputs.hyperdrive_id }}" \
+            --receipt api-worker-authority.json >/dev/null
+          {
+            echo "cloudflare_deployment_id=$cloudflare_deployment_id"
+            echo "version_id=$version_id"
+            echo "version_etag=$(jq -r '.resources.script.etag // ""' api-version.json)"
+            echo "hyperdrive_binding_verified=$(jq -er '.binding_verified' api-hyperdrive-provider.json)"
+            echo "aiagent_secret_binding_verified=true"
+            echo "aiagent_secret_binding_name=AIAGENT_API_KEY"
+            echo "secret_inventory_verified=true"
+            echo "worker_authority_verified=true"
+            echo "worker_authority_evidence_sha256=$(jq -er '.provider_evidence_sha256' api-worker-authority.json)"
+            echo "previous_deployment_id=$(jq -r 'if length == 0 then "" else (sort_by(.created_on) | last | .id) end' api-pre-deployments.json)"
+            echo "previous_version_id=$(jq -r 'if length == 0 then "" else (sort_by(.created_on) | last | .versions[0].version_id) end' api-pre-deployments.json)"
+          } >> "$GITHUB_OUTPUT"
+      - id: hyperdrive_target_after
+        name: Verify Hyperdrive provider target after deployment
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          OMDALA_HYPERDRIVE_ID: ${{ vars.OMDALA_HYPERDRIVE_ID }}
+          OMDALA_DATABASE_EXPECTED_HOST: ${{ vars.OMDALA_DATABASE_EXPECTED_HOST }}
+          OMDALA_DATABASE_EXPECTED_NAME: ${{ vars.OMDALA_DATABASE_EXPECTED_NAME }}
+        run: |
+          set -euo pipefail
+          services/api/node_modules/.bin/wrangler hyperdrive get "$OMDALA_HYPERDRIVE_ID" \
+            --config "$API_WRANGLER_CONFIG" > api-hyperdrive-target-after.raw
+          sed -n '/^{/,$p' api-hyperdrive-target-after.raw > api-hyperdrive-target-after.json
+          node scripts/hyperdrive-target-guard.mjs \
+            --environment "$RELEASE_ENVIRONMENT" \
+            --account-id "$CLOUDFLARE_ACCOUNT_ID" \
+            --hyperdrive-id "$OMDALA_HYPERDRIVE_ID" \
+            --expected-host "$OMDALA_DATABASE_EXPECTED_HOST" \
+            --expected-database "$OMDALA_DATABASE_EXPECTED_NAME" \
+            --provider-json api-hyperdrive-target-after.json \
+            --production-authority config/production-data-authority.json \
+            --receipt api-hyperdrive-target-after-receipt.json >/dev/null
+          before_fingerprint="${{ steps.hyperdrive_target_before.outputs.origin_fingerprint_sha256 }}"
+          after_fingerprint="$(jq -er '.originFingerprintSha256' api-hyperdrive-target-after-receipt.json)"
+          test "$before_fingerprint" = "$after_fingerprint" || {
+            echo "::error::Hyperdrive origin changed during the release transaction"
+            exit 1
+          }
+          {
+            echo "target_verified=$(jq -er '.accepted' api-hyperdrive-target-after-receipt.json)"
+            echo "name=$(jq -er '.selected.name' api-hyperdrive-target-after-receipt.json)"
+            echo "origin_host=$(jq -er '.selected.host' api-hyperdrive-target-after-receipt.json)"
+            echo "origin_port=$(jq -er '.selected.port' api-hyperdrive-target-after-receipt.json)"
+            echo "origin_database=$(jq -er '.selected.database' api-hyperdrive-target-after-receipt.json)"
+            echo "origin_user=$(jq -er '.selected.user' api-hyperdrive-target-after-receipt.json)"
+            echo "origin_scheme=$(jq -er '.selected.scheme' api-hyperdrive-target-after-receipt.json)"
+            echo "origin_fingerprint_sha256=$after_fingerprint"
+            echo "authority_sha256=$(jq -er '.authoritySha256' api-hyperdrive-target-after-receipt.json)"
+            echo "isolated_from_production=$(jq -r '.isolatedFromProduction // false' api-hyperdrive-target-after-receipt.json)"
+          } >> "$GITHUB_OUTPUT"
+      - name: Verify deep-health identity and dependencies
+        shell: bash
+        env:
+          HEALTHCHECK_URL: ${{ vars.OMDALA_API_HEALTHCHECK_URL }}
+          RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+          EXPECTED_SHA: ${{ needs.validate.outputs.sha }}
+          EXPECTED_VERSION_ID: ${{ steps.runtime_identity.outputs.version_id }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${HEALTHCHECK_URL:-}" ]]; then
+            echo "::error::Protected environment variable OMDALA_API_HEALTHCHECK_URL is required"
+            exit 1
+          fi
+          HEALTHCHECK_URL="$(node --input-type=module -e 'import { validatePublicOrigin } from "./packages/core/src/public-origins.mjs"; process.stdout.write(validatePublicOrigin("api", process.env.HEALTHCHECK_URL, process.env.RELEASE_ENVIRONMENT))')"
+          receipt="$(curl --fail --silent --show-error "${HEALTHCHECK_URL%/}/health/deep")"
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            --arg version_id "$EXPECTED_VERSION_ID" \
+            '.ok == true and .status == "ok" and .release_sha == $sha and .version_id == $version_id and .deployment_id == $version_id and .checks.identity == "ok" and .checks.database == "ok"' \
+            <<<"$receipt" >/dev/null
+          {
+            echo "### OMDALA API deployment receipt"
+            echo "- Environment: $RELEASE_ENVIRONMENT"
+            echo "- Release SHA: $EXPECTED_SHA"
+            echo "- Cloudflare version ID: $EXPECTED_VERSION_ID"
+            echo "- Deep health: PASS"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - id: api_release_receipt
+        name: Write immutable API release receipt
+        shell: bash
+        env:
+          HEALTHCHECK_URL: ${{ vars.OMDALA_API_HEALTHCHECK_URL }}
+          RELEASE_ENVIRONMENT: ${{ inputs.environment }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          api_url="$(node --input-type=module -e 'import { validatePublicOrigin } from "./packages/core/src/public-origins.mjs"; process.stdout.write(validatePublicOrigin("api", process.env.HEALTHCHECK_URL, process.env.RELEASE_ENVIRONMENT))')"
+          jq -n \
+            --arg environment "$RELEASE_ENVIRONMENT" \
+            --arg candidate_sha "${{ needs.validate.outputs.sha }}" \
+            --arg candidate_tree_sha "${{ needs.validate.outputs.candidate_tree_sha }}" \
+            --arg reviewed_sha "${{ needs.validate.outputs.reviewed_sha }}" \
+            --arg reviewed_tree_sha "${{ needs.validate.outputs.reviewed_tree_sha }}" \
+            --arg control_plane_sha "${{ needs.validate.outputs.control_plane_sha }}" \
+            --arg staging_transaction_id "${{ inputs.staging_transaction_id }}" \
+            --arg cloudflare_account_id "$CLOUDFLARE_ACCOUNT_ID" \
+            --arg release_id "${{ needs.validate.outputs.release_id }}" \
+            --arg deployment_id "${{ steps.runtime_identity.outputs.version_id }}" \
+            --arg version_id "${{ steps.runtime_identity.outputs.version_id }}" \
+            --arg cloudflare_deployment_id "${{ steps.runtime_identity.outputs.cloudflare_deployment_id }}" \
+            --arg version_etag "${{ steps.runtime_identity.outputs.version_etag }}" \
+            --arg hyperdrive_id "${{ steps.hyperdrive_config.outputs.hyperdrive_id }}" \
+            --arg hyperdrive_name "${{ steps.hyperdrive_target_after.outputs.name }}" \
+            --arg hyperdrive_origin_host "${{ steps.hyperdrive_target_after.outputs.origin_host }}" \
+            --arg hyperdrive_origin_port "${{ steps.hyperdrive_target_after.outputs.origin_port }}" \
+            --arg hyperdrive_origin_database "${{ steps.hyperdrive_target_after.outputs.origin_database }}" \
+            --arg hyperdrive_origin_user "${{ steps.hyperdrive_target_after.outputs.origin_user }}" \
+            --arg hyperdrive_origin_scheme "${{ steps.hyperdrive_target_after.outputs.origin_scheme }}" \
+            --arg hyperdrive_origin_fingerprint_sha256 "${{ steps.hyperdrive_target_after.outputs.origin_fingerprint_sha256 }}" \
+            --arg hyperdrive_authority_sha256 "${{ steps.hyperdrive_target_after.outputs.authority_sha256 }}" \
+            --argjson hyperdrive_target_verified "${{ steps.hyperdrive_target_after.outputs.target_verified }}" \
+            --argjson hyperdrive_isolated_from_production "${{ steps.hyperdrive_target_after.outputs.isolated_from_production }}" \
+            --arg wrangler_config_sha256 "${{ steps.hyperdrive_config.outputs.rendered_sha256 }}" \
+            --argjson hyperdrive_binding_verified "${{ steps.runtime_identity.outputs.hyperdrive_binding_verified }}" \
+            --argjson aiagent_secret_binding_verified "${{ steps.runtime_identity.outputs.aiagent_secret_binding_verified }}" \
+            --arg aiagent_secret_binding_name "${{ steps.runtime_identity.outputs.aiagent_secret_binding_name }}" \
+            --argjson secret_inventory_verified "${{ steps.runtime_identity.outputs.secret_inventory_verified }}" \
+            --argjson worker_authority_verified "${{ steps.runtime_identity.outputs.worker_authority_verified }}" \
+            --arg worker_authority_evidence_sha256 "${{ steps.runtime_identity.outputs.worker_authority_evidence_sha256 }}" \
+            --arg previous_deployment_id "${{ steps.runtime_identity.outputs.previous_deployment_id }}" \
+            --arg previous_version_id "${{ steps.runtime_identity.outputs.previous_version_id }}" \
+            --arg api_url "$api_url" \
+            --arg source_pr_number "${{ needs.validate.outputs.source_pr_number }}" \
+            --arg independent_reviewer "${{ needs.validate.outputs.independent_reviewer }}" \
+            --arg independent_review_id "${{ needs.validate.outputs.independent_review_id }}" \
+            --arg database_backup_receipt_sha256 "${{ needs.migrate-database.outputs.backup_receipt_sha256 }}" \
+            --arg encrypted_backup_sha256 "${{ needs.migrate-database.outputs.encrypted_backup_sha256 }}" \
+            --arg migration_compatibility_receipt_sha256 "${{ needs.migrate-database.outputs.migration_compatibility_receipt_sha256 }}" \
+            --arg migration_manifest_sha256 "${{ needs.migrate-database.outputs.migration_manifest_sha256 }}" \
+            --arg migration_ledger_receipt_sha256 "${{ needs.migrate-database.outputs.migration_ledger_receipt_sha256 }}" \
+            --arg api_remote_preflight_receipt_sha256 "${{ needs.validate.outputs.api_remote_preflight_receipt_sha256 }}" \
+            --arg hyperdrive_remote_preflight_receipt_sha256 "${{ needs.validate.outputs.hyperdrive_remote_preflight_receipt_sha256 }}" \
+            --arg workflow_run_id "$GITHUB_RUN_ID" \
+            --arg workflow_run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg reusable_workflow_ref "${GITHUB_REPOSITORY}/.github/workflows/deploy.yml@${{ needs.validate.outputs.control_plane_sha }}" \
+            --arg reusable_workflow_sha "${{ needs.validate.outputs.control_plane_sha }}" \
+            --arg reusable_workflow_path ".github/workflows/deploy.yml" \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              schema_version: 2,
+              verdict: "API_RELEASE_ACCEPTED",
+              environment: $environment,
+              candidate_sha: $candidate_sha,
+              candidate_tree_sha: $candidate_tree_sha,
+              reviewed_sha: $reviewed_sha,
+              reviewed_tree_sha: $reviewed_tree_sha,
+              control_plane_sha: $control_plane_sha,
+              staging_transaction_id: (if $environment == "staging" then $staging_transaction_id else null end),
+              cloudflare_account_id: $cloudflare_account_id,
+              release_id: $release_id,
+              deployment_id: $deployment_id,
+              version_id: $version_id,
+              cloudflare_deployment_id: $cloudflare_deployment_id,
+              version_etag: $version_etag,
+              hyperdrive_id: $hyperdrive_id,
+              hyperdrive_binding: "HYPERDRIVE",
+              hyperdrive_binding_verified: $hyperdrive_binding_verified,
+              aiagent_secret_binding_verified: $aiagent_secret_binding_verified,
+              aiagent_secret_binding_name: $aiagent_secret_binding_name,
+              secret_inventory_verified: $secret_inventory_verified,
+              worker_authority_verified: $worker_authority_verified,
+              worker_authority_evidence_sha256: $worker_authority_evidence_sha256,
+              hyperdrive_name: $hyperdrive_name,
+              hyperdrive_origin_host: $hyperdrive_origin_host,
+              hyperdrive_origin_port: ($hyperdrive_origin_port | tonumber),
+              hyperdrive_origin_database: $hyperdrive_origin_database,
+              hyperdrive_origin_user: $hyperdrive_origin_user,
+              hyperdrive_origin_scheme: $hyperdrive_origin_scheme,
+              hyperdrive_origin_fingerprint_sha256: $hyperdrive_origin_fingerprint_sha256,
+              hyperdrive_authority_sha256: $hyperdrive_authority_sha256,
+              hyperdrive_target_verified: $hyperdrive_target_verified,
+              hyperdrive_isolated_from_production: $hyperdrive_isolated_from_production,
+              wrangler_config_sha256: $wrangler_config_sha256,
+              previous_deployment_id: (if $previous_deployment_id == "" then null else $previous_deployment_id end),
+              previous_version_id: (if $previous_version_id == "" then null else $previous_version_id end),
+              api_url: $api_url,
+              source_pr_number: ($source_pr_number | tonumber),
+              independent_reviewer: $independent_reviewer,
+              independent_review_id: ($independent_review_id | tonumber),
+              database_backup_receipt_sha256: $database_backup_receipt_sha256,
+              encrypted_backup_sha256: $encrypted_backup_sha256,
+              migration_compatibility_verified: true,
+              migration_compatibility_receipt_sha256: $migration_compatibility_receipt_sha256,
+              migration_manifest_sha256: $migration_manifest_sha256,
+              migration_ledger_receipt_sha256: $migration_ledger_receipt_sha256,
+              rollback_scope: "code_and_worker_only_database_schema_is_not_reverted",
+              database_schema_reverted_by_code_rollback: false,
+              pre_migration_remote_preflight_verified: true,
+              api_remote_preflight_receipt_sha256: $api_remote_preflight_receipt_sha256,
+              hyperdrive_remote_preflight_receipt_sha256: $hyperdrive_remote_preflight_receipt_sha256,
+              workflow_run_id: ($workflow_run_id | tonumber),
+              workflow_run_attempt: ($workflow_run_attempt | tonumber),
+              reusable_workflow_ref: $reusable_workflow_ref,
+              reusable_workflow_sha: $reusable_workflow_sha,
+              reusable_workflow_path: $reusable_workflow_path,
+              repository: $repository,
+              created_at: $created_at
+            }' > api-release.json
+          jq -e \
+            --arg sha "${{ needs.validate.outputs.sha }}" \
+            --arg tree_sha "${{ needs.validate.outputs.candidate_tree_sha }}" \
+            --arg reviewed_sha "${{ needs.validate.outputs.reviewed_sha }}" \
+            --arg reviewed_tree_sha "${{ needs.validate.outputs.reviewed_tree_sha }}" \
+            --arg control_plane_sha "${{ needs.validate.outputs.control_plane_sha }}" \
+            --arg staging_transaction_id "${{ inputs.staging_transaction_id }}" \
+            --arg cloudflare_account_id "$CLOUDFLARE_ACCOUNT_ID" \
+            --arg version_id "${{ steps.runtime_identity.outputs.version_id }}" \
+            --arg hyperdrive_id "${{ steps.hyperdrive_config.outputs.hyperdrive_id }}" \
+            --arg wrangler_config_sha256 "${{ steps.hyperdrive_config.outputs.rendered_sha256 }}" \
+            --arg reusable_workflow_ref "${GITHUB_REPOSITORY}/.github/workflows/deploy.yml@${{ needs.validate.outputs.control_plane_sha }}" \
+            --arg reusable_workflow_sha "${{ needs.validate.outputs.control_plane_sha }}" \
+            '.schema_version == 2 and
+             .verdict == "API_RELEASE_ACCEPTED" and
+             .candidate_sha == $sha and
+             .candidate_tree_sha == $tree_sha and
+             .reviewed_sha == $reviewed_sha and
+             .reviewed_tree_sha == $reviewed_tree_sha and
+             .candidate_tree_sha == .reviewed_tree_sha and
+             .control_plane_sha == $control_plane_sha and
+             (if .environment == "staging" then
+                .staging_transaction_id == $staging_transaction_id and
+                (.staging_transaction_id | test("^staging-[1-9][0-9]*-[1-9][0-9]*$"))
+              else
+                .staging_transaction_id == null
+              end) and
+             .cloudflare_account_id == $cloudflare_account_id and
+             .deployment_id == $version_id and
+             .version_id == $version_id and
+             .hyperdrive_id == $hyperdrive_id and
+             .hyperdrive_binding == "HYPERDRIVE" and
+             .hyperdrive_binding_verified == true and
+             .aiagent_secret_binding_verified == true and
+             .aiagent_secret_binding_name == "AIAGENT_API_KEY" and
+             .secret_inventory_verified == true and
+             .worker_authority_verified == true and
+             (.worker_authority_evidence_sha256 | test("^[0-9a-f]{64}$")) and
+             .hyperdrive_target_verified == true and
+             (.hyperdrive_name | length) > 0 and
+             (.hyperdrive_origin_host | length) > 0 and
+             .hyperdrive_origin_port > 0 and
+             (.hyperdrive_origin_database | length) > 0 and
+             (.hyperdrive_origin_user | length) > 0 and
+             .hyperdrive_origin_scheme == "postgresql" and
+             (.hyperdrive_origin_fingerprint_sha256 | test("^[0-9a-f]{64}$")) and
+             (.hyperdrive_authority_sha256 | test("^[0-9a-f]{64}$")) and
+             (if .environment == "staging" then .hyperdrive_isolated_from_production == true else .hyperdrive_isolated_from_production == false end) and
+             .wrangler_config_sha256 == $wrangler_config_sha256 and
+             .reusable_workflow_ref == $reusable_workflow_ref and
+             .reusable_workflow_sha == $reusable_workflow_sha and
+             .reusable_workflow_path == ".github/workflows/deploy.yml" and
+             (.cloudflare_deployment_id | length) == 36 and
+             (.api_url | startswith("https://")) and
+             (.database_backup_receipt_sha256 | length) == 64 and
+             (.encrypted_backup_sha256 | length) == 64 and
+             .migration_compatibility_verified == true and
+             (.migration_compatibility_receipt_sha256 | test("^[0-9a-f]{64}$")) and
+             (.migration_manifest_sha256 | test("^[0-9a-f]{64}$")) and
+             (.migration_ledger_receipt_sha256 | test("^[0-9a-f]{64}$")) and
+             .rollback_scope == "code_and_worker_only_database_schema_is_not_reverted" and
+             .database_schema_reverted_by_code_rollback == false and
+             .pre_migration_remote_preflight_verified == true and
+             (.api_remote_preflight_receipt_sha256 | test("^[0-9a-f]{64}$")) and
+             (.hyperdrive_remote_preflight_receipt_sha256 | test("^[0-9a-f]{64}$"))' \
+            api-release.json >/dev/null
+          {
+            if [[ "$RELEASE_ENVIRONMENT" == "staging" ]]; then
+              echo "release_artifact_name=omdala-api-release-${{ needs.validate.outputs.sha }}-staging-${{ inputs.staging_transaction_id }}"
+              echo "backup_artifact_name=omdala-pre-migration-backup-${{ needs.validate.outputs.sha }}-staging-${{ inputs.staging_transaction_id }}"
+            else
+              echo "release_artifact_name=omdala-api-release-${{ needs.validate.outputs.sha }}-production"
+              echo "backup_artifact_name=omdala-pre-migration-backup-${{ needs.validate.outputs.sha }}-production"
+            fi
+            echo "receipt_sha256=$(sha256sum api-release.json | awk '{print $1}')"
+          } >> "$GITHUB_OUTPUT"
+          cp "$API_WRANGLER_CONFIG" api-release-wrangler.toml
+          test "$(sha256sum api-release-wrangler.toml | awk '{print $1}')" = \
+            "${{ steps.hyperdrive_config.outputs.rendered_sha256 }}"
+      - name: Upload raw API provider evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-api-provider-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            api-pre-deployments.json
+            api-pre-deployments.stderr
+            api-pre-version.json
+            api-remote-preflight-before-deploy.json
+            api-deployments.json
+            api-version.json
+            api-secret-names-before.json
+            api-secret-names.json
+            api-secret-inventory-before.json
+            api-secret-inventory-after.json
+            api-worker-authority.json
+            api-hyperdrive-config.json
+            api-hyperdrive-provider.json
+            api-hyperdrive-target-before.raw
+            api-hyperdrive-target-before.json
+            api-hyperdrive-target-before-receipt.json
+            api-hyperdrive-target-after.raw
+            api-hyperdrive-target-after.json
+            api-hyperdrive-target-after-receipt.json
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Upload immutable API release receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ inputs.environment == 'staging' && format('omdala-api-release-{0}-staging-{1}', needs.validate.outputs.sha, inputs.staging_transaction_id) || format('omdala-api-release-{0}-production', needs.validate.outputs.sha) }}
+          path: |
+            api-release.json
+            api-release-wrangler.toml
+            api-deployments.json
+            api-version.json
+            api-pre-deployments.json
+            api-pre-version.json
+            api-secret-inventory-before.json
+            api-remote-preflight-before-deploy.json
+            api-secret-inventory-after.json
+            api-worker-authority.json
+            api-hyperdrive-config.json
+            api-hyperdrive-provider.json
+            api-hyperdrive-target-before.json
+            api-hyperdrive-target-before-receipt.json
+            api-hyperdrive-target-after.json
+            api-hyperdrive-target-after-receipt.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Roll back API after a failed deploy identity or deep-health probe
+        if: failure() || cancelled()
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -o nounset
+          if [[ ! -f api-deployment-attempted ]]; then
+            echo "API deployment was not attempted; rollback is unnecessary."
+            exit 0
+          fi
+          environment_args=()
+          worker_name="omdala-api"
+          if [[ "$RELEASE_ENVIRONMENT" == "staging" ]]; then
+            environment_args+=(--env staging)
+            worker_name="omdala-api-staging"
+          fi
+          previous="$(jq -r 'if length == 0 then "" else (sort_by(.created_on) | last | .versions[0].version_id) end' api-pre-deployments.json)"
+          current=""
+          current_count=0
+          if services/api/node_modules/.bin/wrangler deployments list \
+            --config "$API_WRANGLER_CONFIG" \
+            "${environment_args[@]}" \
+            --json > api-rollback-current.json 2> api-rollback-current.stderr; then
+            current_count="$(jq -r 'length' api-rollback-current.json)"
+            current="$(jq -r 'if length == 0 then "" else (sort_by(.created_on) | last | if ((.versions | length) == 1 and .versions[0].percentage == 100) then .versions[0].version_id else "" end) end' api-rollback-current.json)"
+          elif ! grep -q "does not exist" api-rollback-current.stderr; then
+            cat api-rollback-current.stderr >&2
+            exit 1
+          fi
+          if { [[ -n "$previous" ]] && [[ "$current" == "$previous" ]]; } || { [[ -z "$previous" ]] && [[ "$current_count" == "0" ]]; }; then
+            echo "API provider state is unchanged from the rollback baseline."
+            exit 0
+          fi
+          if [[ -n "$previous" ]]; then
+            services/api/node_modules/.bin/wrangler rollback "$previous" \
+              --config "$API_WRANGLER_CONFIG" \
+              "${environment_args[@]}" \
+              --message "automatic rollback after failed ${RELEASE_ENVIRONMENT} release" \
+              --yes
+          else
+            if [[ "$RELEASE_ENVIRONMENT" != "staging" ]]; then
+              echo "::error::Production API rollback baseline is missing"
+              exit 1
+            fi
+            services/api/node_modules/.bin/wrangler delete "$worker_name" \
+              --config "$API_WRANGLER_CONFIG" \
+              "${environment_args[@]}" \
+              --force
+          fi
+          rollback_verified=false
+          for _ in {1..12}; do
+            if services/api/node_modules/.bin/wrangler deployments list \
+              --config "$API_WRANGLER_CONFIG" \
+              "${environment_args[@]}" \
+              --json > api-rollback-readback.json 2> api-rollback-readback.stderr; then
+              readback_count="$(jq -r 'length' api-rollback-readback.json)"
+              restored="$(jq -r 'if length == 0 then "" else (sort_by(.created_on) | last | if ((.versions | length) == 1 and .versions[0].percentage == 100) then .versions[0].version_id else "" end) end' api-rollback-readback.json)"
+              if [[ -n "$previous" ]] && [[ "$restored" == "$previous" ]]; then
+                rollback_verified=true
+                break
+              elif [[ -z "$previous" ]] && [[ "$readback_count" == "0" ]]; then
+                rollback_verified=true
+                break
+              fi
+            elif [[ -z "$previous" ]] && grep -q "does not exist" api-rollback-readback.stderr; then
+              rollback_verified=true
+              break
+            fi
+            sleep 10
+          done
+          [[ "$rollback_verified" == "true" ]] || {
+            echo "::error::API rollback provider readback did not reach the exact baseline"
+            exit 1
+          }
+      - name: Upload API rollback evidence
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: omdala-api-rollback-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            api-pre-deployments.json
+            api-rollback-*.json
+            api-rollback-*.stderr
+          if-no-files-found: ignore
+          retention-days: 30

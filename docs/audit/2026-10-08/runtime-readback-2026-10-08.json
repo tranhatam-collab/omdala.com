@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-10-07T21:53:56Z",
+  "timezone_context": "Asia/Ho_Chi_Minh",
+  "method": "Read-only curl and authoritative DNS queries; no resource mutation.",
+  "production": {
+    "api_health": {
+      "url": "https://api.omdala.com/health",
+      "http_status": 522,
+      "time_total_seconds": 20.405968
+    },
+    "app_workspace": {
+      "url": "https://app.omdala.com/workspace",
+      "http_status": 404,
+      "time_total_seconds": 1.234881
+    },
+    "web_release": {
+      "url": "https://omdala.com/release.json",
+      "http_status": 404,
+      "time_total_seconds": 0.95746
+    },
+    "auth_home": {
+      "url": "https://auth.omdala.com/",
+      "http_status": 200,
+      "time_total_seconds": 0.932685,
+      "contains_next_error_marker": true,
+      "redirect_digest_observed": "NEXT_REDIRECT to /login with status 307"
+    },
+    "auth_release": {
+      "url": "https://auth.omdala.com/release.json",
+      "http_status": 404,
+      "time_total_seconds": 0.912917
+    },
+    "brand_home": {
+      "url": "https://brand.omdala.com/",
+      "http_status": 0,
+      "curl_exit": 6,
+      "dns_result": "NXDOMAIN_OR_NO_ANSWER"
+    },
+    "brand_release": {
+      "url": "https://brand.omdala.com/release.json",
+      "http_status": 0,
+      "curl_exit": 6,
+      "dns_result": "NXDOMAIN_OR_NO_ANSWER"
+    }
+  },
+  "staging_dns": {
+    "staging.omdala.com": "NO_A_AAAA_OR_CNAME_ANSWER",
+    "app-staging.omdala.com": "NO_A_AAAA_OR_CNAME_ANSWER",
+    "auth-staging.omdala.com": "NO_A_AAAA_OR_CNAME_ANSWER",
+    "brand-staging.omdala.com": "NO_A_AAAA_OR_CNAME_ANSWER",
+    "api-staging.omdala.com": "NO_A_AAAA_OR_CNAME_ANSWER"
+  },
+  "verdict": "RUNTIME_BLOCKED"
+}

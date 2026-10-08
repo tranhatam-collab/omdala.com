@@ -1,0 +1,410 @@
+{
+  "schema_version": 2,
+  "generated_at": "2026-10-08T15:42:19Z",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "repository": "tranhatam-collab/omdala.com",
+  "branch": "OMCODE/infra-staging-final-20261007",
+  "base_sha": "355693bfd5798ea222f0eaf7f466c05167205f5a",
+  "source_candidate": {
+    "sha": "5beb8df7e595670610f63110010bba0a8a1ff3ab",
+    "classification": "VERIFIED_HEAD_ONLY",
+    "commits": [
+      {
+        "sha": "b5754e81d27eea637ba2b373916423b7ce864aee",
+        "subject": "feat(release): add recoverable staging transaction",
+        "source_paths": 54
+      },
+      {
+        "sha": "7cdb40cf3e7f68d5bf0f7b480d1524a8beb601c1",
+        "subject": "fix(release): harden staging credential handoff",
+        "source_paths": 6
+      },
+      {
+        "sha": "5beb8df7e595670610f63110010bba0a8a1ff3ab",
+        "subject": "fix(release): bind trusted staging handoff paths",
+        "source_paths": 6
+      }
+    ],
+    "remote_state_at": "2026-10-08T15:33:54Z",
+    "remote_state": "LOCAL_ONLY_NOT_PUBLISHED",
+    "remote_branch_sha": "03c74100f22e2902ac43323ebd61b8731e5674c5",
+    "pull_request": null,
+    "independent_delta_review": {
+      "status": "PASS",
+      "scope": "SOURCE_DELTA_ONLY",
+      "sha": "5beb8df7e595670610f63110010bba0a8a1ff3ab",
+      "findings": {
+        "P0": 0,
+        "P1": 0,
+        "P2": 0,
+        "P3": 0
+      },
+      "checks": [
+        "source contract 31/31 PASS",
+        "fault tests 16/16 PASS",
+        "actionlint PASS",
+        "shellcheck PASS",
+        "bash -n PASS",
+        "git diff --check PASS"
+      ],
+      "limit": "This review accepts only the exact local source delta. It is not remote parity, hosted CI, deployment, runtime, staging acceptance, production approval, or release authorization."
+    },
+    "packet_commit_sha": null,
+    "packet_commit_rule": "The packet must not embed the SHA of a commit that contains itself. Bind the packet to its eventual commit with an external exact-SHA receipt after commit."
+  },
+  "authorization_boundary": {
+    "source_commit_and_push": "AUTHORIZED_BY_FOUNDER",
+    "isolated_staging_provision_and_deploy": "AUTHORIZED_BY_FOUNDER",
+    "production_deploy": "NOT_AUTHORIZED_AND_HOLD",
+    "live_ai_spend_cap_usd": 0.25,
+    "live_ai_spend_consumed_usd": 0,
+    "secret_entry_channels": [
+      "GitHub protected environment",
+      "Cloudflare protected secret store"
+    ]
+  },
+  "verdict": {
+    "source_candidate": "VERIFIED_HEAD_ONLY_SAFE_HOLD",
+    "packet_exact_commit": "BLOCKED_PENDING_PACKET_COMMIT_AND_EXTERNAL_RECEIPT",
+    "github_release_controls": "BLOCKED",
+    "cloudflare_staging_resources": "BLOCKED",
+    "ssh_authority": "BLOCKED_UNVERIFIED_HOST_KEY_CHANGE",
+    "team_ai_exact_candidate": "BLOCKED_PENDING_CLEAN_SHA_AND_CONSUMER_PIN",
+    "staging_runtime_e2e": "BLOCKED_NOT_EXECUTED",
+    "current_live_runtime": "BLOCKED",
+    "production": "HOLD_NO_GO"
+  },
+  "classification": {
+    "VERIFIED_HEAD_ONLY": "Verified against the named local Git commit. It is not remote, CI, deployment, runtime, review, or release proof.",
+    "VERIFIED_CURRENT_READ_ONLY": "Observed through a current read-only provider or registry query, with no mutation performed.",
+    "VERIFIED_WORKTREE_ONLY": "Observed or tested in mutable local bytes that do not yet form a clean exact candidate.",
+    "REPORTED_UNVERIFIED": "Reported by another receipt or worktree but not independently reproducible as a clean exact candidate in this packet.",
+    "INCONCLUSIVE": "The attempted check did not produce a pass or fail result.",
+    "BLOCKED": "A required dependency, external control, immutable receipt, or runtime resource is absent, failed, or unverified.",
+    "HOLD_NO_GO": "Production change and go-live remain prohibited until every hard gate has immutable evidence and the Founder issues an exact-SHA decision."
+  },
+  "source_validation": {
+    "node": "v22.22.3",
+    "full_governance_on_previous_head": {
+      "result": "PASS",
+      "tests": 362,
+      "suites": 41,
+      "passed": 362,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "duration_ms": 113565.99525,
+      "scope_sha": "7cdb40cf3e7f68d5bf0f7b480d1524a8beb601c1"
+    },
+    "full_governance_on_exact_head": {
+      "result": "PASS",
+      "tests": 362,
+      "suites": 41,
+      "passed": 362,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "duration_ms": 56868.265792,
+      "scope_sha": "5beb8df7e595670610f63110010bba0a8a1ff3ab"
+    },
+    "head_hardening": {
+      "result": "PASS",
+      "tests": 47,
+      "passed": 47,
+      "failed": 0,
+      "scope_sha": "5beb8df7e595670610f63110010bba0a8a1ff3ab",
+      "additional_checks": [
+        "actionlint PASS",
+        "shellcheck PASS",
+        "Bash syntax PASS",
+        "Node syntax PASS",
+        "git diff --check PASS"
+      ]
+    },
+    "independent_source_delta_review": {
+      "result": "PASS",
+      "scope_sha": "5beb8df7e595670610f63110010bba0a8a1ff3ab",
+      "severity_counts": {
+        "P0": 0,
+        "P1": 0,
+        "P2": 0,
+        "P3": 0
+      },
+      "scope_limit": "SOURCE_DELTA_ONLY"
+    },
+    "app_typescript": "INCONCLUSIVE_LOCAL_FILE_PROVIDER_TIMEOUT_AFTER_MORE_THAN_3_MINUTES",
+    "limit": "Source checks do not prove GitHub publication, CI, Cloudflare resources, staging deployment, authenticated E2E, recovery, independent acceptance, or production readiness."
+  },
+  "evidence": [
+    {
+      "id": "SOURCE-TRANSACTION",
+      "status": "VERIFIED_HEAD_ONLY",
+      "claim": "The named source commit contains one protected staging transaction job, pre-mutation recovery capsule, append-only D1 transaction ledger controls, reverse compensation, Team AI receipt binding, artifact sanitization, and Cloudflare execution-safety checks. Production mutation markers remain fail closed.",
+      "sha": "5beb8df7e595670610f63110010bba0a8a1ff3ab",
+      "limit": "The exact local source delta passed independent review, but the workflow has not been published, reviewed through the required hosted exact-SHA control, dispatched, or exercised against provider resources."
+    },
+    {
+      "id": "MOBILE-NPM-AUDIT",
+      "status": "VERIFIED_CURRENT_READ_ONLY",
+      "claim": "npm production audit for om-ai.omdala.com/app reports 0 total vulnerabilities: 0 critical, high, moderate, low, or info.",
+      "package_lock_sha256": "581ee23096e760cb0ce043fc1fdf06129caead889357698389554c794e8b7358",
+      "receipt_paths": [
+        "docs/audit/2026-10-08/receipts/mobile-npm-prod-audit.json",
+        "docs/audit/2026-10-08/receipts/mobile-npm-prod-audit.meta.json"
+      ],
+      "limit": "This clears the npm advisory observation for the locked production graph only. Native builds, signed artifacts, physical-device tests, session behavior, and distribution acceptance remain open."
+    },
+    {
+      "id": "GITHUB-PUBLICATION-AND-GOVERNANCE",
+      "status": "BLOCKED",
+      "observed_at": "2026-10-08T15:24:59Z",
+      "claim": "The final local SHA is not published: a read-only git ls-remote at 2026-10-08T15:33:54Z still showed the remote branch at 03c74100f22e2902ac43323ebd61b8731e5674c5. PR 10 is a legacy candidate at 415927e5f1580d539013b55765dfba834de655e7, not this packet's candidate.",
+      "legacy_pr_10": {
+        "state": "OPEN_UNSTABLE",
+        "checks": "48 success, 1 failed Independent Exact-SHA Review",
+        "approved_reviews": 0,
+        "rulesets": 0
+      },
+      "staging_environment": {
+        "exists": true,
+        "admin_bypass_allowed": true,
+        "required_reviewer": "tranhatam-collab",
+        "prevent_self_review": false,
+        "deployment_branch_policy": "main only"
+      },
+      "deployments_total": 0,
+      "staging_deployments": 0,
+      "limit": "Public GitHub REST and git ls-remote were read-only. Branch-protection readback requiring authenticated authority remained blocked."
+    },
+    {
+      "id": "CLOUDFLARE-CONTROL-PLANE",
+      "status": "BLOCKED",
+      "observed_at": "2026-10-08T15:29:00Z",
+      "claim": "Wrangler 4.113.0 was logged in through OAuth and the configured account f3f9e76222dcb488d5e303e29e8ba192 was visible. Read-only deployment queries returned code 10007 for the exact API and four static staging Worker names; production omdala-api was also absent on this configured account.",
+      "absent_workers": [
+        "omdala-api-staging",
+        "omdala-surface-web-staging",
+        "omdala-surface-app-staging",
+        "omdala-surface-auth-staging",
+        "omdala-surface-brand-staging",
+        "omdala-api"
+      ],
+      "staging_d1": [
+        "omdala-global-staging: exists, num_tables=0, file_size=12288",
+        "omdala-auth-staging: exists, num_tables=0, file_size=12288",
+        "omdala-audit-staging: exists, num_tables=0, file_size=12288",
+        "omdala-vn-staging: exists, num_tables=0, file_size=12288"
+      ],
+      "staging_dns": "All five staging hostnames NXDOMAIN for A and AAAA via 1.1.1.1; HTTP probes exited 6 with status 000.",
+      "not_checked": [
+        "KV",
+        "R2",
+        "Pages",
+        "Hyperdrive"
+      ],
+      "limit": "No Worker was created or deployed. Existing empty D1 databases are not a schema-activation or runtime receipt; secrets, routes, versions, KV, R2, Pages, and Hyperdrive remain open."
+    },
+    {
+      "id": "SSH-HOST-AUTHORITY",
+      "status": "BLOCKED_UNVERIFIED_HOST_KEY_CHANGE",
+      "observed_at": "2026-10-08T09:40:27Z",
+      "claim": "infra.omdala.com resolved to 89.167.116.167, but all presented SSH host-key fingerprints differed from known_hosts. Strict verification failed and no login was attempted.",
+      "receipt_path": "docs/audit/2026-10-08/ssh-host-key-observation.json",
+      "required_exit_evidence": "Verify the replacement fingerprints through an independent infrastructure-provider or console channel before changing known_hosts or using SSH."
+    },
+    {
+      "id": "TEAM-AI-PROVIDER",
+      "status": "BLOCKED_PENDING_CLEAN_SHA_AND_CONSUMER_PIN",
+      "claim": "The Team AI worktree is dirty by its remediation: 42 modified and 15 untracked paths. Its local cross-repository contract is worktree-only; provider CI still pins OMDALA SHA 30b89f03f476abd4c86393cd27868cfa9a74f1e8 and has not pinned 5beb8df7e595670610f63110010bba0a8a1ff3ab.",
+      "reported_local_results": [
+        "provider contract 119/119",
+        "npm test 390 pass, 6 bundle-only skip, 0 fail",
+        "deploy gate 6/6",
+        "ledger 17 pass, 1 exact-bundle skip",
+        "web tests/build exit 0",
+        "CI provenance 6/6",
+        "npm audit 0",
+        "actionlint 0 findings"
+      ],
+      "rejected_historical_bundle_sha256": "c8fa958ed9cb6bc461cefc8da2852657d5f7865a8d76355c28161b8c0e3d96ea",
+      "limit": "The historical bundle is excluded because the billing-ledger source-input manifest is missing and runtime_verified is false. Dirty-worktree dry-run digests are integrity leads only and must not be used as CI or deploy inputs."
+    },
+    {
+      "id": "STAGING-RUNTIME",
+      "status": "BLOCKED_NOT_EXECUTED",
+      "claim": "No final-candidate Cloudflare staging deployment, authenticated staging E2E, mail delivery, paid model call, D1 transaction activation, rollback, or recovery drill has run.",
+      "live_ai_spend_consumed_usd": 0
+    },
+    {
+      "id": "CURRENT-LIVE-RUNTIME",
+      "status": "BLOCKED",
+      "observed_at": "2026-10-08T15:28:00Z",
+      "claim": "Current read-only probes found production Web / at 200 with a valid title and App / at 200 with a meaningful landing, but App /workspace was 404. Auth / was 200 with __next_error__/404 markers, Auth /login/ was meaningful 200, and Auth /release.json was 404. API health and deep-health GET timed out at 20 seconds with zero bytes; HEAD returned 522 after about 20 seconds. Brand, infra.omdala.com, and api.infra.omdala.com were NXDOMAIN.",
+      "receipt_path": "docs/audit/2026-10-08/runtime-readback-2026-10-08.json",
+      "limit": "The in-tree receipt is the earlier snapshot; the 2026-10-08T15:25-15:28Z refresh was retained only in sanitized /tmp logs. Both are time-bounded signals, not root-cause or deployment proof."
+    },
+    {
+      "id": "TERRAFORM-AUTHORITY",
+      "status": "BLOCKED",
+      "claim": "The R2 backend bucket was previously observed, but no bucket-scoped key, identified or migrated state, verified locking, or accepted zero-destroy Wrangler-to-Terraform handoff exists.",
+      "receipt_path": "docs/audit/2026-10-08/terraform-backend-bootstrap.json"
+    }
+  ],
+  "receipt_hashes": {
+    "mobile_npm_prod_audit_sha256": "0add83df956eeb69a456c6e53d4271ca295a32236e45f7a66538b435476c790a",
+    "mobile_npm_prod_audit_meta_sha256": "3504e4703e83ed6d0b5a6e368c935dde29c597773bc7994cadb1d29b3e4366ae",
+    "ssh_host_key_observation_sha256": "94b83595ded22df33ede8c385c89849f25a2c0010456fde311fa396343b1a402",
+    "final_candidate_secret_scan_sha256": "4c06ce83084bf4bd12b60e0eb826bcfc6af1aba25797a9912317cfb79c5961d7",
+    "runtime_readback_2026_10_08_sha256": "d0fd42067e8842dcdac457473ca51d42025d8df286dd344c3ed4fa3fab337d61",
+    "terraform_backend_bootstrap_sha256": "ba033c54bf1c2f2db04dd8dbc1e7c596935894ebf26f675fa5cc86468eb0c013",
+    "final_candidate_content_manifest_sha256": "EXTERNAL_EXACT_SHA_RECEIPT_REQUIRED",
+    "packet_commit_sha": "EXTERNAL_EXACT_SHA_RECEIPT_REQUIRED"
+  },
+  "remaining_gates": [
+    {
+      "id": "FINAL-01",
+      "status": "BLOCKED_PENDING_PACKET_COMMIT_AND_EXACT_RECEIPT",
+      "owner": "Team 1 integration owner",
+      "next": "Finish the packet, generate the self-excluding content manifest, commit once, then create the exact-SHA receipt outside the commit and rerun required checks from that commit.",
+      "exit_evidence": "Clean exact SHA, manifest verification, external receipt, and exact-SHA local/CI checks."
+    },
+    {
+      "id": "FINAL-02",
+      "status": "BLOCKED",
+      "owner": "Team AI provider owner",
+      "next": "Pin the exact OMDALA candidate SHA, finish the provider remediation, create a clean Team AI commit, and rebuild provider and ledger bundles in immutable CI.",
+      "exit_evidence": "Clean provider SHA, exact consumer pin, fresh provider and ledger receipts, and green immutable CI."
+    },
+    {
+      "id": "FINAL-03",
+      "status": "BLOCKED",
+      "owner": "Repository administrator and independent reviewer",
+      "next": "Publish the final branch, open or update a PR for its exact SHA, configure required checks and protection, and obtain independent exact-SHA approval.",
+      "exit_evidence": "Remote SHA parity, PR head parity, green required checks, no active veto, and independent APPROVED review."
+    },
+    {
+      "id": "FINAL-04",
+      "status": "BLOCKED",
+      "owner": "Repository administrator",
+      "next": "Fix the staging environment so the reviewer is independent, prevent self-review is true, admin bypass is appropriately constrained, and exact secret and variable names are present through protected stores.",
+      "exit_evidence": "Authenticated environment and protection readback with redacted config inventory."
+    },
+    {
+      "id": "FINAL-05",
+      "status": "BLOCKED",
+      "owner": "Cloudflare infrastructure owner",
+      "next": "Provision isolated staging Workers and distinct staging data resources in the locked account; do not reuse production resources.",
+      "exit_evidence": "Complete account/resource inventory, staging-only IDs, empty static secret lists, exact API bindings, and provider version readbacks."
+    },
+    {
+      "id": "FINAL-06",
+      "status": "BLOCKED",
+      "owner": "Team 2 data owner and Cloudflare infrastructure owner",
+      "next": "Verify the D1 transaction-ledger schema and activation reconciliation, then initialize or restore the isolated staging PostgreSQL path and exercise backup, restore, migration, and deep health.",
+      "exit_evidence": "D1 activation receipt plus target, backup, decrypt, byte-compare, isolated restore, migration, and deep-health receipts."
+    },
+    {
+      "id": "FINAL-07",
+      "status": "BLOCKED",
+      "owner": "DNS and Cloudflare zone owner",
+      "next": "Attach all five staging hostnames only after exact staging resources exist, then verify DNS, TLS, routes, headers, release metadata, and absence of production resource IDs.",
+      "exit_evidence": "Authoritative DNS/TLS and deployment-bound HTTP/provider readbacks for all five surfaces."
+    },
+    {
+      "id": "FINAL-08",
+      "status": "BLOCKED",
+      "owner": "Team 2 Auth owner",
+      "next": "Configure exact staging OAuth origins and protected session secrets, then run authenticated and negative session-boundary scenarios.",
+      "exit_evidence": "OAuth config readback and authenticated, expiry, revoke, replay, wrong-tenant, and wrong-workspace receipts."
+    },
+    {
+      "id": "FINAL-09",
+      "status": "BLOCKED",
+      "owner": "Team 3 mail owner",
+      "next": "Provision the staging mail workspace and controlled sink, then prove recipient replacement and provider delivery.",
+      "exit_evidence": "Workspace scope, sink-mode, provider message ID, delivery, and invalid-policy receipts."
+    },
+    {
+      "id": "FINAL-10",
+      "status": "BLOCKED_RUNTIME_NOT_EXECUTED",
+      "owner": "Team 1 release operator",
+      "next": "After FINAL-01 through FINAL-09 pass, dispatch the protected single staging transaction from current main with the exact candidate and Team AI baseline run.",
+      "exit_evidence": "Immutable capsule, ledger, deployment, acceptance, provider readback, and compensation evidence sharing exact identities."
+    },
+    {
+      "id": "FINAL-11",
+      "status": "BLOCKED",
+      "owner": "Team 4 independent QA",
+      "next": "Run authenticated staging E2E and all negative cases, using real AI only as necessary under the cumulative USD 0.25 cap.",
+      "exit_evidence": "Exact-SHA STAGING_ACCEPTED receipt, complete Playwright JSON, signed provider receipts, reconciled cost ledger, mail and DB persistence, and independent QA signature."
+    },
+    {
+      "id": "FINAL-12",
+      "status": "BLOCKED",
+      "owner": "Team 1 release operator and Team 4 independent QA",
+      "next": "Exercise failure, cancel, manual recovery-only redispatch where required, five-target rollback, and isolated database restore.",
+      "exit_evidence": "Terminal D1 ledger state, provider rollback readbacks, restored backup integrity, recovery time, and independent acceptance."
+    },
+    {
+      "id": "FINAL-13",
+      "status": "BLOCKED",
+      "owner": "Infrastructure authority owner",
+      "next": "Verify SSH host authority independently, provision a bucket-scoped R2 key, identify and migrate Terraform state without apply, test locking, and accept a zero-destroy authority handoff.",
+      "exit_evidence": "Verified host key, backend lineage, lock contention, accepted handoff, and zero-destroy plan."
+    },
+    {
+      "id": "FINAL-14",
+      "status": "BLOCKED",
+      "owner": "OM-AI owner and Team 2 Auth owner",
+      "next": "Implement and independently review the canonical server-side session bridge and explicit public route allowlist.",
+      "exit_evidence": "Threat review, negative identity tests, exact-SHA staging /ready receipt, and approval before public routing."
+    },
+    {
+      "id": "FINAL-15",
+      "status": "BLOCKED_NATIVE_EVIDENCE",
+      "owner": "Mobile owner and security reviewer",
+      "next": "Keep the now-zero npm audit bound to the lockfile and complete clean iOS and Android builds, signed-device security flows, and distribution acceptance.",
+      "exit_evidence": "Committed audit receipt, signed native provenance, device tests, and channel acceptance."
+    },
+    {
+      "id": "FINAL-16",
+      "status": "BLOCKED",
+      "owner": "Operations owner",
+      "next": "Investigate the current live API, App, Brand, and release-provenance failures read-only; route any live fix through a separately reviewed incident change.",
+      "exit_evidence": "Incident timeline, origin and route evidence, root cause, remediation and rollback plan, and post-change receipts if later authorized."
+    },
+    {
+      "id": "FINAL-17",
+      "status": "HOLD_NO_GO",
+      "owner": "Repository administrator, Cloudflare owner, independent reviewer, and Founder",
+      "next": "Design and review a unified production transaction while keeping every production hold active; present accepted staging and recovery receipts for an exact-SHA Founder decision.",
+      "exit_evidence": "Protected production control plane, config inventory, backup and rollback baseline, independent recommendation, and exact-SHA Founder GO."
+    },
+    {
+      "id": "FINAL-18",
+      "status": "HOLD_NO_GO",
+      "owner": "Founder-authorized release operator and independent reviewer",
+      "next": "Do not execute without explicit Founder GO for the exact SHA, scope, window, spend, and rollback authority.",
+      "exit_evidence": "Successful protected production workflow, provider deployment readback, authenticated production E2E, recovery evidence, independent acceptance, and final Founder sign-off."
+    }
+  ],
+  "manifest_contract": {
+    "content_manifest": "docs/audit/2026-10-08/receipts/final-candidate-files.sha256",
+    "deletion_manifest": "docs/audit/2026-10-08/receipts/final-candidate-deletions.txt",
+    "local_manifest_verification": "266 of 295 paths rehashed successfully; 29 File Provider dataless paths retained their prior baseline hashes and require full verification in a hydrated checkout or CI.",
+    "self_reference_rule": "The content manifest must include the packet and all in-tree receipts but must exclude itself. The packet must not contain the content manifest hash or its own eventual commit SHA.",
+    "external_receipt_rule": "After committing the packet, create an out-of-tree receipt that names the exact commit, tree, parent, content-manifest hash, deletion-manifest hash, and verification results. Attach that external receipt to CI or the PR; do not amend it into the same commit."
+  },
+  "hard_stops": [
+    "Do not call local SHA 5beb8df7e595670610f63110010bba0a8a1ff3ab published, hosted-review accepted, deployed, or runtime-accepted; local governance and independent source-delta review passed, but remote, CI, staging, runtime, and authority gates remain open.",
+    "Do not replace known_hosts or use SSH until the new host fingerprints are verified through an independent authority.",
+    "Do not use the historical Team AI bundle or dirty-worktree dry-run digests as deploy inputs.",
+    "Do not deploy staging until GitHub governance, protected environment, Team AI exact pin, Cloudflare resources, D1 activation, data, DNS, Auth, and mail gates close.",
+    "Do not enable OM-AI public runtime routes before the canonical session bridge passes independent review.",
+    "Do not treat npm audit 0 as native release acceptance.",
+    "Do not mutate production, merge, migrate production data, change production DNS, or claim go-live without explicit Founder GO for the exact accepted SHA.",
+    "Do not remove any PRODUCTION_HOLD_UNIFIED_TRANSACTION_REQUIRED marker before a unified production transaction and independent mutation review exist."
+  ]
+}

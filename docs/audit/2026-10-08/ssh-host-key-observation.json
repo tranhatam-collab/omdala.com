@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-10-08T09:40:27Z",
+  "target": {
+    "hostname": "infra.omdala.com",
+    "resolved_ipv4": "89.167.116.167",
+    "port": 22
+  },
+  "verdict": "BLOCKED_UNVERIFIED_HOST_KEY_CHANGE",
+  "strict_host_key_check": {
+    "result": "FAILED",
+    "remote_ed25519_fingerprint": "SHA256:E6cBOgOLiPC0L5zGB7v1fvYAO0r8PQ24pEfMjxPWziY",
+    "known_hosts_offending_line": 6
+  },
+  "previous_known_host_fingerprints": {
+    "ed25519": "SHA256:/dNbgZB6aivNdX4kPFNJ/Hx25WmqUzE8rbdIguBiFrE",
+    "rsa": "SHA256:2n5hBJkJls4o2BSqpo8KrEYI1gpPKl7jY8GwQdTTbQ8",
+    "ecdsa": "SHA256:ZMGPslAJhdx/bE+8jgwQYZvlvJvAE30TzLDnKe05ftQ"
+  },
+  "currently_presented_fingerprints": {
+    "ed25519": "SHA256:E6cBOgOLiPC0L5zGB7v1fvYAO0r8PQ24pEfMjxPWziY",
+    "rsa": "SHA256:dNcnf9Apqxdww17/E9DD3VDv4MrasTlOVkHBp5GcWis",
+    "ecdsa": "SHA256:HjcntbccoTW9W+NlTamUmkXOOv8iWXGTCvOwbj9vTHc"
+  },
+  "current_keyscan_sha256": "ff6097bef5eab46ca059d074d57de5544d81699ad07c33058c1abc08c10f8c52",
+  "safety_action": "Known-host entries were not modified and no SSH login was attempted after strict verification failed.",
+  "required_exit_evidence": "Verify the new fingerprints through an independent infrastructure-provider or console channel before replacing known_hosts or accessing the database host."
+}
