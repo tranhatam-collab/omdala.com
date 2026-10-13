@@ -1,5 +1,5 @@
 // OMDALA — Shared Type Definitions
-// Source of truth expands from the master data model in docs/DATA_MODEL_OMDALA.md
+// Source of truth expands from the master data model in docs/04-engineering/DATA_MODEL_OMDALA.md
 
 // ─── Identity ─────────────────────────────────────────────────────────────
 

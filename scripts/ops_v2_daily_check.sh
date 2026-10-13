@@ -99,8 +99,8 @@ payload = {
     "trace_request_id": trace_request_id or None,
     "latency": None,
     "docs": {
-        "runbook": "docs/OMDALA_V2_ALERT_RESPONSE_RUNBOOK_2026.md",
-        "queries": "docs/OMDALA_CLOUDFLARE_LOG_QUERIES_2026.md",
+        "runbook": "docs/05-operations/OMDALA_V2_ALERT_RESPONSE_RUNBOOK_2026.md",
+        "queries": "docs/05-operations/OMDALA_CLOUDFLARE_LOG_QUERIES_2026.md",
     },
     "health_budget": {
         "source": "not_available",
@@ -270,8 +270,8 @@ UPLOAD_TARGET="${UPLOAD_RESULT##*|}"
   echo
   echo "## Notes"
   echo
-  echo "- Runbook: docs/OMDALA_V2_ALERT_RESPONSE_RUNBOOK_2026.md"
-  echo "- Logs queries: docs/OMDALA_CLOUDFLARE_LOG_QUERIES_2026.md"
+  echo "- Runbook: docs/05-operations/OMDALA_V2_ALERT_RESPONSE_RUNBOOK_2026.md"
+  echo "- Logs queries: docs/05-operations/OMDALA_CLOUDFLARE_LOG_QUERIES_2026.md"
   echo "- JSON upload status: ${UPLOAD_STATUS}"
   echo "- JSON upload target: ${UPLOAD_TARGET}"
 } > "${REPORT_FILE}"

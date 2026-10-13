@@ -1,5 +1,7 @@
 # OMDALA DESIGN SYSTEM 2026
 
+> Component and layout guidance. Color and typography values are owned by `OMDALA_THEME_SYSTEM.md` (v1.2) and implemented in `packages/ui/src/styles/tokens.css`. Where this file disagrees, the theme lock wins.
+
 ## 1. Purpose
 
 Define the visual system for OMDALA so product, design, and frontend implementation stay consistent across the global platform.
@@ -45,20 +47,20 @@ Avoid:
 
 ### Primary Signals
 
-- trust / success: `#00FF88`
+- trust / success: `--omdala-success` (`#3EE6A8`)
 - information / active edge: `#7EF2FF`
 - brand infrastructure blue: `#3D8BFF`
 
 ### Surfaces
 
-- background: `#0B0B0B`
-- elevated surface: `#111111`
-- deep background: `#040816`
+- background: `--omdala-space-950` (`#040816`)
+- elevated surface: `--omdala-space-800` (`#101C33`)
+- panel: `--omdala-bg-panel`
 
 ### States
 
-- error: `#FF4444`
-- warning: `#FFB020`
+- error: `--omdala-danger` (`#FF6B6B`)
+- warning: `--omdala-warning` (`#FFB020`)
 - muted text: `rgba(255,255,255,0.68)`
 
 Rules:
@@ -72,8 +74,8 @@ Rules:
 
 Recommended fonts:
 
-- Inter
-- SF Pro
+- Inter — UI and body
+- Sora — headings
 
 Typography rules:
 

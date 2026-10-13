@@ -51,43 +51,47 @@ Routing and auth must stay on the global domain model unless a city-node scope i
 
 ## Start here
 
-Read these files first:
+- Docs index and reading order: `docs/README.md`
+- Conventions for developers and AI agents: `CLAUDE.md`
+- Brand lock: `docs/01-brand/OMDALA_THEME_SYSTEM.md`
 
-1. `docs/README_DEV_HANDOFF_OMDALA.md`
-2. `docs/BRAND_ARCHITECTURE_OMDALA.md`
-3. `docs/PRODUCT_SPEC_OMDALA.md`
-4. `docs/DATA_MODEL_OMDALA.md`
-5. `docs/API_SPEC_OMDALA.md`
-6. `docs/architecture/OMDALA_MASTER_SYSTEM_ARCHITECTURE_2026_FINAL.md`
+## Surfaces
+
+| Domain | Code | Indexing |
+|---|---|---|
+| `omdala.com` | `apps/web` | public, SSR-first |
+| `app.omdala.com` | `apps/app` | noindex |
+| `admin.omdala.com` | `apps/admin` | noindex, Zero Trust |
+| `docs.omdala.com` | `apps/docs` | public |
+| `api.omdala.com` | `services/api` (Cloudflare Worker) | noindex |
 
 ## Repo structure
 
 ```text
 omdala.com/
-  .github/
-    copilot-instructions.md
-    prompts/
-    agents/
-    workflows/
-  apps/
-    web/
-    app/
-    admin/
-    docs/
+  apps/            web, app, admin, docs (Next.js 15, one Cloudflare Pages project each)
+  services/        api (Hono Worker) + auth, trust, matching, notifications, ai
   packages/
-    core/
-    seo/
-    types/
-    ui/
-  services/
-    api/
-    auth/
-    trust/
-    matching/
-    notifications/
-    ai/
-  docs/
-  scripts/
+    ui/            brand tokens, assets, shared React components
+    seo/           metadata, canonical, hreflang, JSON-LD
+    core/          routes, navigation, i18n, mail constants, demo data
+    types/         shared domain types
+  infra/           db schema and SQL migrations
+  scripts/         deploy, smoke, ops, backup, brand check
+  docs/            plans and specs, 00-start -> 06-strategy, 99-archive
+  reports/ops/     output folder for ops scripts (generated files are git-ignored)
+  .github/         CI workflows, AI agent prompts
+```
+
+## Commands
+
+```bash
+pnpm install
+pnpm dev                 # all surfaces
+pnpm typecheck
+pnpm build
+pnpm brand:check         # brand token and asset drift guard
+pnpm --filter @omdala/api test
 ```
 
 ## Development principles

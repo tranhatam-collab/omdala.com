@@ -109,7 +109,7 @@ psql "$DATABASE_URL" -f scripts/cleanup_test_data.test.sql
 - Every `/v2/reality/*` response now includes `meta.requestId`.
 - Server echoes/sets `x-request-id` header for end-to-end tracing.
 - Structured v2 logs include: `request_id`, `route/path`, `error_code`, `duration_ms`.
-- Cloudflare query examples: `docs/OMDALA_CLOUDFLARE_LOG_QUERIES_2026.md`.
+- Cloudflare query examples: `docs/05-operations/OMDALA_CLOUDFLARE_LOG_QUERIES_2026.md`.
 
 Trace helper from smoke outputs:
 
@@ -179,5 +179,5 @@ pnpm smoke:reality:cleanup:consistency
 
 Alert runbook:
 
-- `docs/OMDALA_V2_ALERT_RESPONSE_RUNBOOK_2026.md`
+- `docs/05-operations/OMDALA_V2_ALERT_RESPONSE_RUNBOOK_2026.md`
 - Covers `DATABASE_TIMEOUT`, `DATABASE_UNAVAILABLE`, and `DATABASE_CONSTRAINT_*` response playbooks.

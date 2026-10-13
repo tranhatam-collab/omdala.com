@@ -58,3 +58,7 @@ apps/web/app/page.js
 services/api/src/index.js
 scripts/build-static.mjs
 scripts/dev-server.mjs
+
+# Ops script outputs (scripts/ops_v2_*); only the sample fixture is tracked
+reports/ops/v2-daily-check-*
+reports/ops/cache/v2-log-query-cache.json

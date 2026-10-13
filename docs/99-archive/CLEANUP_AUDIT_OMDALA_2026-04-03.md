@@ -38,12 +38,12 @@ These files look intentional, useful, and aligned with the current OMDALA repo d
 - `.github/prompts/refactor.prompt.md`
 - `.github/prompts/review-changes.prompt.md`
 - `.github/prompts/write-docs.prompt.md`
-- `docs/OMDALA_API_BOUNDARIES.md`
-- `docs/OMDALA_INFORMATION_ARCHITECTURE.md`
-- `docs/OMDALA_MASTER_ARCHITECTURE.md`
-- `docs/OMDALA_PRODUCT_PRINCIPLES.md`
-- `docs/OMDALA_ROADMAP.md`
-- `docs/OMDALA_TASK_SYSTEM.md`
+- `docs/03-architecture/OMDALA_API_BOUNDARIES.md`
+- `docs/02-product/OMDALA_INFORMATION_ARCHITECTURE.md`
+- `docs/03-architecture/OMDALA_MASTER_ARCHITECTURE.md`
+- `docs/02-product/OMDALA_PRODUCT_PRINCIPLES.md`
+- `docs/06-strategy/OMDALA_ROADMAP.md`
+- `docs/00-start/OMDALA_TASK_SYSTEM.md`
 
 Reason:
 
@@ -69,18 +69,18 @@ Why:
 
 Keep the content, but merge into the existing canonical tracked doc:
 
-- `docs/DATA_MODEL_OMDALA.md`
+- `docs/04-engineering/DATA_MODEL_OMDALA.md`
 
 Why:
 
 - current repo already has a tracked canonical data-model file
 - keeping both names will create duplicate truth sources
 
-### `docs/OMDALA_MASTER_SYSTEM_ARCHITECTURE_2026_FINAL.md`
+### `docs/03-architecture/OMDALA_MASTER_SYSTEM_ARCHITECTURE_2026_FINAL.md`
 
 Keep the content, but reconcile it with the already tracked architecture doc:
 
-- `docs/architecture/OMDALA_MASTER_SYSTEM_ARCHITECTURE_2026_FINAL.md`
+- `docs/03-architecture/OMDALA_MASTER_SYSTEM_ARCHITECTURE_2026_FINAL.md`
 
 Why:
 
@@ -184,7 +184,7 @@ Recommendation:
 If we want the safest next step, the cleanup should happen in this order:
 
 1. decide final canonical location for the new docs
-2. merge `README.md`, `docs/OMDALA_DATA_MODEL.md`, and `docs/OMDALA_MASTER_SYSTEM_ARCHITECTURE_2026_FINAL.md`
+2. merge `README.md`, `docs/OMDALA_DATA_MODEL.md`, and `docs/03-architecture/OMDALA_MASTER_SYSTEM_ARCHITECTURE_2026_FINAL.md`
 3. commit `.github/*` plus the kept docs
 4. remove the generated/temp group
 5. remove the mixed-brand OMDALAT document from repo scope

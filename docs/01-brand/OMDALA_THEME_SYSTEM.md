@@ -2,7 +2,7 @@
 
 ## OMDALA.COM
 ## Final Theme Lock for Design + Frontend
-## Version 1.1
+## Version 1.2 — canonical brand lock for every *.omdala.com surface
 
 ---
 
@@ -146,3 +146,36 @@ Design tokens must be defined once and shared across:
 - `apps/admin`
 
 Theme drift is not allowed.
+
+---
+
+## 9. Status colors (v1.2)
+
+Product surfaces (app, admin) need state colors. They are tuned to the space palette and are never used as decoration:
+
+```css
+--omdala-success: #3EE6A8;
+--omdala-warning: #FFB020;
+--omdala-danger:  #FF6B6B;
+--omdala-danger-soft: #FFD6D6;
+```
+
+`#00FF88`, `#FF4444`, `#0B0B0B` and `#111111` from earlier drafts are retired: they read as neon/generic and break the space-950 depth.
+
+---
+
+## 10. Where this lives in code
+
+| What | File |
+|---|---|
+| CSS tokens (single source of truth) | `packages/ui/src/styles/tokens.css` |
+| JS mirror (themeColor, OG, email) | `packages/ui/src/tokens.ts` |
+| Logo, icon, OG image | `packages/ui/assets/` |
+| Shared components | `packages/ui/src/components/` |
+| Drift guard (CI) | `pnpm brand:check` → `scripts/brand-check.mjs` |
+
+Rules:
+
+- every app root layout imports `@omdala/ui/styles/tokens.css` before its own `globals.css`
+- app CSS may only alias tokens (`--app-bg: var(--omdala-bg-primary)`), never declare raw hex
+- change a brand value in `tokens.css` and `tokens.ts` together, then run `pnpm brand:sync` if assets changed

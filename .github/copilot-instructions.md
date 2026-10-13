@@ -2,6 +2,8 @@
 
 You are working on a production-oriented system.
 
+Repo rules and layout: `CLAUDE.md`. Docs index and source-of-truth rules: `docs/README.md`.
+
 ---
 
 ## 1. Core Rules
