@@ -1,6 +1,6 @@
 'use client'
 
-import { OMDALA_API_ORIGIN, OMDALA_CONTACT_TOPICS, OMDALA_INBOXES } from '../../../../packages/core/src/mail'
+import { OMDALA_API_ORIGIN, OMDALA_CONTACT_TOPICS, OMDALA_INBOXES } from '@omdala/core'
 import { resolveLanguage } from '@omdala/core'
 import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'

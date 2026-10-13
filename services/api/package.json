@@ -16,6 +16,7 @@
     "smoke:ci": "bash ../../scripts/smoke_v2_reality_ci.sh"
   },
   "dependencies": {
+    "@omdala/core": "workspace:*",
     "@omdala/types": "workspace:*",
     "hono": "^4.6.0",
     "pg": "^8.13.1"

@@ -1,5 +1,6 @@
-import type { Metadata } from 'next'
-import { LanguageSwitcher } from './components/LanguageSwitcher'
+import type { Metadata, Viewport } from 'next'
+import { LanguageSwitcher, OMDALA_VIEWPORT } from '@omdala/ui'
+import '@omdala/ui/styles/tokens.css'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -10,6 +11,8 @@ export const metadata: Metadata = {
   description: 'Authenticated product surface for nodes, trust, and coordinated action.',
   robots: { index: false, follow: false },
 }
+
+export const viewport: Viewport = OMDALA_VIEWPORT
 
 export default function AppRootLayout({
   children,

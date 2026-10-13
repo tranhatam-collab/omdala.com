@@ -9,7 +9,7 @@ import { OMDALA_PAGES } from "@omdala/seo";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { LocaleLink } from "./components/LocaleLink";
+import { LocaleLink } from "@omdala/ui";
 import { LanguageSwitcher } from "./components/LanguageSwitcher";
 
 const COPY: Record<OmdalaLanguage, any> = {

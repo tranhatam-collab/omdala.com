@@ -1,7 +1,7 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { getMockAdminSession, hasRequiredRole } from '@omdala/auth-service'
-import { LanguageSwitcher } from './components/LanguageSwitcher'
-import { LocaleLink } from './components/LocaleLink'
+import { LanguageSwitcher, LocaleLink, OMDALA_VIEWPORT } from '@omdala/ui'
+import '@omdala/ui/styles/tokens.css'
 import './globals.css'
 
 const adminNavigation = [
@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   description: 'Restricted moderation and operations surface for OMDALA.',
   robots: { index: false, follow: false },
 }
+
+export const viewport: Viewport = OMDALA_VIEWPORT
 
 export default function AdminLayout({
   children,

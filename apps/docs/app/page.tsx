@@ -2,7 +2,7 @@
 
 import { resolveLanguage } from '@omdala/core'
 import { useEffect, useState } from 'react'
-import { LocaleLink } from './components/LocaleLink'
+import { LocaleLink } from '@omdala/ui'
 
 export default function DocsHomePage() {
   const [isVi, setIsVi] = useState(false)

@@ -1,17 +1,18 @@
+/* Surface aliases over @omdala/ui/styles/tokens.css. Do not add raw hex here. */
 :root {
-  --app-bg: #06111f;
-  --app-panel: rgba(10, 24, 44, 0.88);
-  --app-panel-soft: rgba(255, 255, 255, 0.03);
-  --app-border: rgba(255, 255, 255, 0.08);
-  --app-border-soft: rgba(255, 255, 255, 0.06);
-  --app-text: #f7fbff;
-  --app-text-muted: #bfcde1;
-  --app-accent: #3d8bff;
-  --app-accent-strong: #153a72;
-  --app-glow: #7ef2ff;
-  --app-radius-lg: 24px;
-  --app-radius-md: 18px;
-  --app-radius-sm: 14px;
+  --app-bg: var(--omdala-bg-primary);
+  --app-panel: var(--omdala-bg-panel);
+  --app-panel-soft: var(--omdala-bg-panel-soft);
+  --app-border: var(--omdala-border-default);
+  --app-border-soft: var(--omdala-border-subtle);
+  --app-text: var(--omdala-text-primary);
+  --app-text-muted: var(--omdala-text-muted);
+  --app-accent: var(--omdala-accent-primary);
+  --app-accent-strong: var(--omdala-accent-strong);
+  --app-glow: var(--omdala-link);
+  --app-radius-lg: var(--omdala-radius-xl);
+  --app-radius-md: var(--omdala-radius-lg);
+  --app-radius-sm: var(--omdala-radius-sm);
 }
 
 *,
@@ -27,11 +28,17 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(circle at top right, rgba(126, 242, 255, 0.12), transparent 30%),
-    radial-gradient(circle at left center, rgba(61, 139, 255, 0.12), transparent 32%),
-    linear-gradient(180deg, #08101f 0%, var(--app-bg) 100%);
+  background: var(--omdala-gradient-surface);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
   color: var(--app-text);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
 }
 
 a {
@@ -388,12 +395,12 @@ a {
 
 .app-pill--high {
   border-color: rgba(255, 120, 120, 0.45);
-  color: #ffd6d6;
+  color: var(--omdala-danger-soft);
 }
 
 .app-pill--medium {
   border-color: rgba(126, 242, 255, 0.4);
-  color: #d9f8ff;
+  color: var(--omdala-white-200);
 }
 
 .app-pill--low {
@@ -420,7 +427,7 @@ a {
 }
 
 .danger-link {
-  color: #ff9f9f;
+  color: var(--omdala-danger);
 }
 
 @media (max-width: 920px) {

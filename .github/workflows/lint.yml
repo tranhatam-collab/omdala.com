@@ -31,3 +31,6 @@ jobs:
 
       - name: Run lint
         run: pnpm lint
+
+      - name: Brand system check
+        run: pnpm brand:check

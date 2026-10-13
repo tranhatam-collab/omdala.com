@@ -3,7 +3,7 @@
 import { APP_PRIMARY_NAV } from "@omdala/core";
 import { resolveLanguage } from "@omdala/core";
 import { Suspense, useEffect, useState } from "react";
-import { LocaleLink } from "../components/LocaleLink";
+import { LocaleLink } from '@omdala/ui'
 import { DashboardAuthGate } from "./DashboardAuthGate";
 
 const NAV_LABELS_VI: Record<string, string> = {

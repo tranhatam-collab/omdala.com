@@ -3,7 +3,7 @@
 import { AUTH_ENTRY_LINKS } from '@omdala/core'
 import { resolveLanguage } from '@omdala/core'
 import { useEffect, useState } from 'react'
-import { LocaleLink } from './components/LocaleLink'
+import { LocaleLink } from '@omdala/ui'
 
 export default function AppPage() {
   const [isVi, setIsVi] = useState(false)

@@ -1,10 +1,11 @@
+/* Surface aliases over @omdala/ui/styles/tokens.css. Do not add raw hex here. */
 :root {
-  --docs-bg: #070f1e;
-  --docs-panel: rgba(11, 22, 40, 0.9);
-  --docs-border: rgba(255, 255, 255, 0.08);
-  --docs-text: #f7fbff;
-  --docs-muted: #bfd0e6;
-  --docs-accent: #7ef2ff;
+  --docs-bg: var(--omdala-bg-primary);
+  --docs-panel: var(--omdala-bg-panel);
+  --docs-border: var(--omdala-border-default);
+  --docs-text: var(--omdala-text-primary);
+  --docs-muted: var(--omdala-text-muted);
+  --docs-accent: var(--omdala-link);
 }
 
 *,
@@ -19,9 +20,9 @@ body {
 }
 
 body {
-  background: linear-gradient(180deg, #0b1326 0%, var(--docs-bg) 100%);
+  background: var(--omdala-gradient-surface);
   color: var(--docs-text);
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 
 main {
@@ -44,6 +45,13 @@ nav {
   flex-wrap: wrap;
   gap: 12px 18px;
   margin-top: 16px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
 }
 
 a {

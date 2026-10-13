@@ -1,15 +1,16 @@
+/* Surface aliases over @omdala/ui/styles/tokens.css. Do not add raw hex here. */
 :root {
-  --admin-bg: #071019;
-  --admin-panel: rgba(14, 25, 42, 0.92);
-  --admin-panel-soft: rgba(255, 255, 255, 0.03);
-  --admin-border: rgba(255, 255, 255, 0.08);
-  --admin-border-soft: rgba(255, 255, 255, 0.06);
-  --admin-text: #f7fbff;
-  --admin-text-muted: #bfcde1;
-  --admin-accent: #8db8ff;
-  --admin-alert: #ffb37a;
-  --admin-radius-lg: 22px;
-  --admin-radius-md: 16px;
+  --admin-bg: var(--omdala-bg-primary);
+  --admin-panel: var(--omdala-bg-panel);
+  --admin-panel-soft: var(--omdala-bg-panel-soft);
+  --admin-border: var(--omdala-border-default);
+  --admin-border-soft: var(--omdala-border-subtle);
+  --admin-text: var(--omdala-text-primary);
+  --admin-text-muted: var(--omdala-text-muted);
+  --admin-accent: var(--omdala-blue-400);
+  --admin-alert: var(--omdala-warning);
+  --admin-radius-lg: var(--omdala-radius-lg);
+  --admin-radius-md: var(--omdala-radius-md);
 }
 
 *,
@@ -25,10 +26,17 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(circle at top right, rgba(141, 184, 255, 0.14), transparent 28%),
-    linear-gradient(180deg, #0a1321 0%, var(--admin-bg) 100%);
+  background: var(--omdala-gradient-surface);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
   color: var(--admin-text);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
 }
 
 a {

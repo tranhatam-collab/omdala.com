@@ -1,5 +1,5 @@
 import { APP_ROUTES } from "@omdala/core";
-import { LocaleLink } from "../../components/LocaleLink";
+import { LocaleLink } from '@omdala/ui'
 import { AccessRequestForm } from "./AccessRequestForm";
 
 export default function SignupPage() {

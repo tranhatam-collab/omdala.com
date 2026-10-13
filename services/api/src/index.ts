@@ -5,7 +5,7 @@ import {
   OMDALA_INBOXES,
   OMDALA_MAIL_API_ORIGIN,
   OMDALA_WEB_ORIGIN,
-} from "../../../packages/core/src/mail";
+} from "@omdala/core";
 import type {
   CommitmentRecord,
   NodeRecord,
@@ -13,7 +13,7 @@ import type {
   StateRecord,
   TransitionRecord,
   TrustScoreRecord,
-} from "../../../packages/types/src";
+} from "@omdala/types";
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";

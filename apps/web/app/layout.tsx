@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { getOrganizationSchema, getWebSiteSchema } from '@omdala/seo'
-import { SchemaScript } from '@omdala/ui'
+import { OMDALA_VIEWPORT, SchemaScript } from '@omdala/ui'
 import { WebChrome } from './WebChrome'
+import '@omdala/ui/styles/tokens.css'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -46,12 +47,7 @@ export const metadata: Metadata = {
   },
 }
 
-export const viewport: Viewport = {
-  themeColor:   '#040816',
-  colorScheme:  'dark',
-  width:        'device-width',
-  initialScale: 1,
-}
+export const viewport: Viewport = OMDALA_VIEWPORT
 
 export default function RootLayout({
   children,

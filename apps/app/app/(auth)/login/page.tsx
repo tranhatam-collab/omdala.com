@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { APP_ROUTES } from "@omdala/core";
 import { createPasswordlessDraft } from "@omdala/auth-service";
-import { LocaleLink } from "../../components/LocaleLink";
+import { LocaleLink } from '@omdala/ui'
 import { MagicLinkLoginForm } from "./MagicLinkLoginForm";
 
 export default function LoginPage() {

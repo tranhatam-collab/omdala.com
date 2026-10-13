@@ -1,6 +1,6 @@
 'use client'
 
-import { LocaleLink } from './components/LocaleLink'
+import { LocaleLink } from "@omdala/ui";
 import { homeContent, pickText } from './lib/content'
 import { useWebLocale } from './lib/useWebLocale'
 
