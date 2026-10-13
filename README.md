@@ -1,126 +1,119 @@
 # OMDALA
 
-OMDALA is the master global brand.
-
-This repository is the foundation for:
+OMDALA is the master platform repository for the global brand and system layer behind:
 
 - `omdala.com`
 - `app.omdala.com`
 - `api.omdala.com`
-- future `docs.omdala.com`
+- `docs.omdala.com`
+- `admin.omdala.com`
 
-OMDALA is not a city website and not a tourism site. It is the global operating layer for real-world value, trust, and coordination.
+OMDALA is not a city website, tourism product, or thin marketplace. It is the operating layer for real-world value, trust, and intelligent coordination.
 
-## Role in the brand system
+## Core definition
 
-- `OMDALA` = master/global platform brand
-- `OMDALAT` = first city implementation and living lab
+OMDALA exists to help people, places, organizations, and communities:
 
-## Positioning
+- see underused resources clearly
+- structure needs, commitments, and outcomes correctly
+- match with better relevance and trust
+- move from intent to real action
+- store proof so future outcomes improve
 
-Primary line:
+The current system thesis is:
 
-- OMDALA
-- The Operating Layer for Real-World Value
+> OMDALA is verified coordination infrastructure for real-world state transitions.
 
-Supporting line:
+Core loop:
 
-- Activate people, places, and intelligence.
+> See value -> Activate it -> Prove it -> Compound it
+
+## Repo status
+
+This branch now includes:
+
+- monorepo foundation with `pnpm` and `turbo`
+- public OMDALA web routes for the masterbrand surface
+- app, docs, admin, and API shells
+- master brand, theme, SEO, deploy, and developer lock files
+- core product, data, API, trust, and matching specifications
+- process guidance for AI-assisted engineering under `.github/`
+
+## Domain lock
+
+OMDALA and OMDALAT are intentionally separate:
+
+- `omdala.com` is the global system layer
+- `omdalat.com` is the city node layer
+- `docs.omdala.com` and `app.omdala.com` belong to the global layer only
+
+Routing and auth must stay on the global domain model unless a city-node scope is explicitly approved.
 
 ## Start here
 
-Read:
+- Docs index and reading order: `docs/README.md`
+- Conventions for developers and AI agents: `CLAUDE.md`
+- Brand lock: `docs/01-brand/OMDALA_THEME_SYSTEM.md`
 
-1. `docs/MASTER_BUILD_SYSTEM_OMDALA_OMDALAT.md`
-2. `docs/BRAND_ARCHITECTURE_OMDALA.md`
-3. `docs/README_DEV_HANDOFF_OMDALA.md`
+## Surfaces
+
+| Domain | Code | Indexing |
+|---|---|---|
+| `omdala.com` | `apps/web` | public, SSR-first |
+| `app.omdala.com` | `apps/app` | noindex |
+| `admin.omdala.com` | `apps/admin` | noindex, Zero Trust |
+| `docs.omdala.com` | `apps/docs` | public |
+| `api.omdala.com` | `services/api` (Cloudflare Worker) | noindex |
 
 ## Repo structure
 
 ```text
 omdala.com/
-  apps/
-    web/
-    app/
+  apps/            web, app, admin, docs (Next.js 15, one Cloudflare Pages project each)
+  services/        api (Hono Worker) + auth, trust, matching, notifications, ai
   packages/
-    ui/
-  services/
-    api/
-  docs/
-  index.html
-  styles.css
+    ui/            brand tokens, assets, shared React components
+    seo/           metadata, canonical, hreflang, JSON-LD
+    core/          routes, navigation, i18n, mail constants, demo data
+    types/         shared domain types
+  infra/           db schema and SQL migrations
+  scripts/         deploy, smoke, ops, backup, brand check
+  docs/            plans and specs, 00-start -> 06-strategy, 99-archive
+  reports/ops/     output folder for ops scripts (generated files are git-ignored)
+  .github/         CI workflows, AI agent prompts
 ```
 
-## Immediate build intent
-
-This repo starts as a static-first foundation plus handoff docs.
-The next build phase should turn it into the real master platform surface for the OMDALA ecosystem.
-
-## Local development
-
-The active frontend now lives in `apps/web` as a Next.js app.
+## Commands
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev                 # all surfaces
+pnpm typecheck
+pnpm build
+pnpm brand:check         # brand token and asset drift guard
+pnpm --filter @omdala/api test
 ```
 
-Default local URL:
+## Development principles
 
-- `http://localhost:3000`
+- architecture first, code second
+- minimal safe changes over broad rewrites
+- one canonical source of truth per system concern
+- no silent architectural drift
+- production-first thinking
+- no mixed-brand scope unless explicitly approved
+- keep global and city scopes separate
 
-If that port is already in use, Next.js uses the next available port.
+## AI-assisted development
 
-## Web build
+This repository is designed to be developed with AI assistance.
 
-```bash
-npm run build
-```
+Working rules and task scaffolding live in:
 
-## Application shell
+- `.github/copilot-instructions.md`
+- `.github/prompts/*`
+- `.github/agents/*`
 
-The logged-in product shell now lives in `apps/app`.
+## Build rule
 
-```bash
-cd apps/app
-npm install
-cd ../..
-npm run dev:app
-```
-
-Default local URL:
-
-- `http://localhost:3000`
-
-You can point the app shell at the backend skeleton with:
-
-```bash
-NEXT_PUBLIC_OMDALA_API_BASE_URL=http://127.0.0.1:8789 npm run dev:app
-```
-
-## API skeleton
-
-The backend boundary now lives in `services/api` as a Cloudflare Worker.
-
-```bash
-cd services/api
-npm install
-cd ../..
-npm run dev:api
-```
-
-Default local URL:
-
-- `http://127.0.0.1:8789`
-
-## Static prototype commands
-
-The original static foundation at the repo root is still available:
-
-```bash
-npm run dev:static
-npm run build:static
-npm run preview:static
-```
-
-`npm run build:static` writes a deployable static bundle to `dist/`.
+Do not introduce implementation-specific brands or local-node logic into this repository unless that scope has been explicitly approved and documented as a separate system contract.

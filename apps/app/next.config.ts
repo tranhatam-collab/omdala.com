@@ -1,0 +1,28 @@
+import path from 'path'
+import { fileURLToPath } from 'url'
+import type { NextConfig } from 'next'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const monorepoRoot = path.join(__dirname, '..', '..')
+
+const config: NextConfig = {
+  reactStrictMode: true,
+  outputFileTracingRoot: monorepoRoot,
+  output: 'export',
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
+  transpilePackages: [
+    '@omdala/ui',
+    '@omdala/types',
+    '@omdala/core',
+    '@omdala/ai-service',
+    '@omdala/auth-service',
+    '@omdala/notifications-service',
+    '@omdala/trust-service',
+    '@omdala/matching-service',
+  ],
+}
+
+export default config

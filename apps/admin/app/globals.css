@@ -1,0 +1,186 @@
+/* Surface aliases over @omdala/ui/styles/tokens.css. Do not add raw hex here. */
+:root {
+  --admin-bg: var(--omdala-bg-primary);
+  --admin-panel: var(--omdala-bg-panel);
+  --admin-panel-soft: var(--omdala-bg-panel-soft);
+  --admin-border: var(--omdala-border-default);
+  --admin-border-soft: var(--omdala-border-subtle);
+  --admin-text: var(--omdala-text-primary);
+  --admin-text-muted: var(--omdala-text-muted);
+  --admin-accent: var(--omdala-blue-400);
+  --admin-alert: var(--omdala-warning);
+  --admin-label: var(--omdala-link);
+  --admin-radius-lg: var(--omdala-radius-lg);
+  --admin-radius-md: var(--omdala-radius-md);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--omdala-gradient-surface);
+  background-attachment: fixed;
+  background-color: var(--omdala-bg-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  color: var(--admin-text);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+a {
+  color: var(--admin-accent);
+  text-decoration: none;
+}
+
+.admin-shell {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 260px minmax(0, 1fr);
+  padding: 32px;
+}
+
+.language-switcher {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.language-switcher__item {
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  color: var(--admin-text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 5px 9px;
+  text-transform: uppercase;
+}
+
+.language-switcher__item--active {
+  border-color: var(--omdala-cyan-400);
+  color: var(--admin-text);
+}
+
+.language-switcher__item--disabled {
+  opacity: 0.45;
+}
+
+.admin-sidebar,
+.admin-main {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-card {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-lg);
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.24);
+  padding: 24px;
+}
+
+.admin-brand {
+  color: var(--admin-text);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.admin-eyebrow {
+  color: var(--admin-label);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.admin-copy {
+  color: var(--admin-text-muted);
+  line-height: 1.7;
+}
+
+.admin-nav {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-nav a {
+  border: 1px solid var(--admin-border-soft);
+  border-radius: var(--admin-radius-md);
+  color: var(--admin-text-muted);
+  padding: 12px 14px;
+}
+
+.admin-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.admin-stat,
+.admin-list-item {
+  background: var(--admin-panel-soft);
+  border: 1px solid var(--admin-border-soft);
+  border-radius: var(--admin-radius-md);
+  padding: 18px;
+}
+
+.admin-stat strong {
+  color: var(--admin-label);
+  display: block;
+  font-size: 0.84rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.admin-stat p {
+  font-size: 1.8rem;
+  margin: 0;
+}
+
+.admin-list {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-meta {
+  color: var(--admin-text-muted);
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.admin-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 18px;
+}
+
+@media (max-width: 960px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+}
