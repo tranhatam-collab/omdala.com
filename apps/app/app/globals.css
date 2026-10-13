@@ -28,7 +28,10 @@ body {
 }
 
 body {
+  min-height: 100dvh;
   background: var(--omdala-gradient-surface);
+  background-attachment: fixed;
+  background-color: var(--omdala-bg-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   color: var(--app-text);

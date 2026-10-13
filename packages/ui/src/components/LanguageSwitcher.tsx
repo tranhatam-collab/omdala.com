@@ -55,11 +55,12 @@ export function LanguageSwitcher({ classPrefix = 'language-switcher' }: Language
             key={language}
             href={withLanguageParam(pathname, language)}
             className={`${classPrefix}__item${isActive ? ` ${classPrefix}__item--active` : ''}`}
-            onClick={() =>
+            onClick={() => {
+              setCurrentLanguage(language)
               window.dispatchEvent(
                 new CustomEvent('omdala:language-changed', { detail: { language } }),
               )
-            }
+            }}
           >
             {label}
           </Link>

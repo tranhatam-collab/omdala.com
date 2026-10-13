@@ -9,6 +9,7 @@
   --admin-text-muted: var(--omdala-text-muted);
   --admin-accent: var(--omdala-blue-400);
   --admin-alert: var(--omdala-warning);
+  --admin-label: var(--omdala-link);
   --admin-radius-lg: var(--omdala-radius-lg);
   --admin-radius-md: var(--omdala-radius-md);
 }
@@ -26,7 +27,10 @@ body {
 }
 
 body {
+  min-height: 100dvh;
   background: var(--omdala-gradient-surface);
+  background-attachment: fixed;
+  background-color: var(--omdala-bg-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   color: var(--admin-text);
@@ -53,6 +57,7 @@ a {
 
 .language-switcher {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   margin-top: 12px;
@@ -70,7 +75,7 @@ a {
 }
 
 .language-switcher__item--active {
-  border-color: rgba(255, 179, 122, 0.45);
+  border-color: var(--omdala-cyan-400);
   color: var(--admin-text);
 }
 
@@ -101,7 +106,7 @@ a {
 }
 
 .admin-eyebrow {
-  color: var(--admin-alert);
+  color: var(--admin-label);
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -141,7 +146,7 @@ a {
 }
 
 .admin-stat strong {
-  color: var(--admin-alert);
+  color: var(--admin-label);
   display: block;
   font-size: 0.84rem;
   letter-spacing: 0.08em;
