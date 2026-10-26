@@ -25,7 +25,7 @@ logs: ## Tail logs from all services
 ps: ## List running containers
 	docker compose ps
 
-health: ## Run health check script
+health: ## Read-only probe; requires INFRA_ENVIRONMENT and INFRA_DOMAIN
 	@./scripts/health-check.sh
 
 backup: ## Trigger manual backup

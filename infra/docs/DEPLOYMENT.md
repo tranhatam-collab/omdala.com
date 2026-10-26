@@ -87,7 +87,7 @@ sops -d secrets/production.enc.env > .env
 docker compose up -d
 
 # Verify
-make health
+INFRA_ENVIRONMENT=production INFRA_DOMAIN=infra.omdala.com make health
 # Restore gate remains HOLD until an isolated scratch restore receipt exists.
 ```
 
@@ -148,7 +148,7 @@ git checkout origin/main
 docker compose up -d --build
 
 # 5. Verify
-./scripts/health-check.sh
+INFRA_ENVIRONMENT=production INFRA_DOMAIN=infra.omdala.com ./scripts/health-check.sh
 # Restore gate remains HOLD until an isolated scratch restore receipt exists.
 ```
 

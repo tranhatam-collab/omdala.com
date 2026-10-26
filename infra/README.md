@@ -190,11 +190,16 @@ cd omdala.com/infra
 
 ### Layer 2 — Agent Control Plane
 
+The legacy quick-start command is held until staging DB bootstrap, Docker host,
+secret scope, and isolated scratch restore are reviewed. After an authorized
+staging deployment, run this probe on the approved host:
+
 ```bash
-# After PostgreSQL is running and restore test passes
-docker compose up -d postgres valkey api-gateway worker
-./scripts/health-check.sh
+INFRA_ENVIRONMENT=staging INFRA_DOMAIN=staging.infra.omdala.com ./scripts/health-check.sh
 ```
+
+This local service probe does not establish protected deploy or end-to-end
+acceptance.
 
 ---
 

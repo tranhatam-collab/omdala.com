@@ -28,7 +28,7 @@
 ### 2.2 Triage
 ```bash
 # Quick health check
-./scripts/health-check.sh
+INFRA_ENVIRONMENT=production INFRA_DOMAIN=infra.omdala.com ./scripts/health-check.sh
 
 # Check recent logs
 docker logs --tail 100 omdala-api
