@@ -84,6 +84,35 @@ env GH_TOKEN="$token" "$gh_bin" api \
   "/repos/$repository/git/ref/heads/main" > "$dispatch_dir/current-main.json"
 test "$(jq -er '.object.sha | select(test("^[a-f0-9]{40}$"))' "$dispatch_dir/current-main.json")" = "$baseline_head_sha"
 
+# GitHub only accepts workflow_dispatch for a workflow registered from the
+# default branch. The requested ref must also contain the same workflow file.
+# Verify both before any POST or provider run can be created.
+env GH_TOKEN="$token" "$gh_bin" api \
+  "/repos/$repository/actions/workflows/$workflow_file" > "$dispatch_dir/workflow.json" || {
+  echo "::error::Team AI acceptance workflow is not registered on the default branch"
+  exit 1
+}
+jq -e \
+  --arg workflow_name "$workflow_name" \
+  --arg workflow_path "$workflow_path" \
+  '.name == $workflow_name and .path == $workflow_path and .state == "active" and (.id | type == "number" and . > 0)' \
+  "$dispatch_dir/workflow.json" >/dev/null || {
+  echo "::error::Team AI acceptance workflow metadata does not match the protected contract"
+  exit 1
+}
+env GH_TOKEN="$token" "$gh_bin" api \
+  "/repos/$repository/contents/$workflow_path?ref=main" > "$dispatch_dir/main-workflow.json" || {
+  echo "::error::Team AI acceptance workflow is missing from protected main"
+  exit 1
+}
+jq -e \
+  --arg workflow_path "$workflow_path" \
+  '.type == "file" and .path == $workflow_path and (.sha | test("^[a-f0-9]{40}$"))' \
+  "$dispatch_dir/main-workflow.json" >/dev/null || {
+  echo "::error::Team AI acceptance workflow main-branch file identity is invalid"
+  exit 1
+}
+
 runs_endpoint="/repos/$repository/actions/workflows/$workflow_file/runs?branch=main&event=workflow_dispatch&per_page=100"
 env GH_TOKEN="$token" "$gh_bin" api "$runs_endpoint" > "$dispatch_dir/runs-before.json"
 jq -e '.workflow_runs | type == "array"' "$dispatch_dir/runs-before.json" >/dev/null
