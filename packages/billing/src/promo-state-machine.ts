@@ -74,9 +74,9 @@ const TRANSITIONS: Transition[] = [
   { from: "trial_expired", event: "subscribe", to: "active_annual", condition: (s) => s.billingMode === "annual" },
   { from: "trial_expired", event: "subscribe", to: "active_biennial", condition: (s) => s.billingMode === "biennial" },
   { from: "trial_expired", event: "subscribe", to: "active_triennial", condition: (s) => s.billingMode === "triennial" },
-  { from: "promo_1", event: "month_end", to: "promo_2" },
-  { from: "promo_2", event: "month_end", to: "promo_3" },
-  { from: "promo_3", event: "month_end", to: "active_monthly" },
+  { from: "promo_1", event: "month_end", to: "promo_2", condition: (s, now) => isPromoMonthEndDue(s, now, 1) },
+  { from: "promo_2", event: "month_end", to: "promo_3", condition: (s, now) => isPromoMonthEndDue(s, now, 2) },
+  { from: "promo_3", event: "month_end", to: "active_monthly", condition: (s, now) => isPromoMonthEndDue(s, now, 3) },
   { from: "active_monthly", event: "switch_annual", to: "active_annual" },
   { from: "active_monthly", event: "switch_biennial", to: "active_biennial" },
   { from: "active_monthly", event: "switch_triennial", to: "active_triennial" },
@@ -92,6 +92,34 @@ const TRANSITIONS: Transition[] = [
 ];
 
 const GRACE_PERIOD_DAYS = 7;
+
+function monthlyAnniversary(start: Date, months: number): number {
+  const year = start.getUTCFullYear();
+  const month = start.getUTCMonth() + months;
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  return Date.UTC(
+    year,
+    month,
+    Math.min(start.getUTCDate(), lastDay),
+    start.getUTCHours(),
+    start.getUTCMinutes(),
+    start.getUTCSeconds(),
+    start.getUTCMilliseconds()
+  );
+}
+
+function isPromoMonthEndDue(sub: Subscription, now: Date, monthIndex: 1 | 2 | 3): boolean {
+  if (sub.promoMonthIndex !== monthIndex || !sub.promoStartDate) return false;
+  const start = new Date(sub.promoStartDate);
+  const timestamp = now.getTime();
+  if (Number.isNaN(start.getTime()) || Number.isNaN(timestamp)) return false;
+
+  // Each event belongs to one UTC calendar-month window anchored to the original
+  // subscription date. The caller must supply the authoritative event time so a
+  // replay retains its original period instead of using the processing time.
+  return timestamp >= monthlyAnniversary(start, monthIndex) &&
+    timestamp < monthlyAnniversary(start, monthIndex + 1);
+}
 
 function trialHasEnded(sub: Subscription, now: Date): boolean {
   if (!sub.trialEndDate) return false;
@@ -131,11 +159,13 @@ export function getNextState(
   return null;
 }
 
-export function applyTransition(
-  sub: Subscription,
-  event: SubscriptionEvent,
-  now: Date = new Date()
-): Subscription {
+export function applyTransition(sub: Subscription, event: "month_end", now: Date): Subscription;
+export function applyTransition(sub: Subscription, event: Exclude<SubscriptionEvent, "month_end">, now?: Date): Subscription;
+export function applyTransition(sub: Subscription, event: SubscriptionEvent, now?: Date): Subscription {
+  if (event === "month_end" && now === undefined) {
+    throw new Error("month_end requires the authoritative billing event time");
+  }
+  now ??= new Date();
   const next = getNextState(sub.state, event, sub, now);
   if (!next) {
     throw new Error(`Invalid transition: ${sub.state} + ${event}`);

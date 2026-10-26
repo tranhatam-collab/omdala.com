@@ -1,6 +1,16 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
+const stagingSurfaceWorker = `export default {
+  async fetch(request, env) {
+    const assetResponse = await env.ASSETS.fetch(request);
+    const response = new Response(assetResponse.body, assetResponse);
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return response;
+  },
+};
+`;
+
 export function evaluateReleaseControlSources(files) {
   const apiDeploy = files.apiDeploy ?? "";
   const surfaceDeploy = files.surfaceDeploy ?? "";
@@ -468,8 +478,7 @@ export function evaluateReleaseControlSources(files) {
         (surfaceWorkerConfigs.match(/"run_worker_first": true/g)?.length ?? 0) ===
           4 &&
         !surfaceWorkerConfigs.includes('"keep_vars"') &&
-        surfaceStaticWorker.includes("return env.ASSETS.fetch(request)") &&
-        !/fetch\s*\(\s*["'`]/.test(surfaceStaticWorker),
+        surfaceStaticWorker === stagingSurfaceWorker,
     },
     {
       id: "PRODUCTION_PAGES_DEPLOYMENT_IDENTITY_AND_ROLLBACK",

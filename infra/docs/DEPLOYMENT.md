@@ -94,10 +94,14 @@ make health
 cp .env.staging.example .env.staging
 # Edit .env.staging with staging values
 
-# Deploy with staging compose
-cp .env.staging .env
-docker compose -f docker-compose.yml -f docker-compose.staging.yml up -d --build
+# Run the staging identity and DB bootstrap preflights, then use the staging env file directly.
+# This does not replace the production .env file.
+make staging-up
 ```
+
+The current source intentionally fails the DB bootstrap preflight before Docker starts: the init SQL references `omdala_prod`, contains literal password placeholders, and requests pgvector from an image without verified extension support. Team 2 and Infra must review the database initialization and image, then rerun the gate. Do not bypass it to start staging.
+
+The staging env template lists the active Compose inputs, including scoped mail, AIAGENT release pins, receipt keys, and alert sink. The preflight rejects blanks, template placeholders, production AI mode, and non-HTTPS mail/R2/alert URLs. The worker requires `NODE_ENV` to be explicitly `staging` or `production`; in staging it rejects a mail job unless the recipient equals `EMAIL_STAGING_SINK_ADDRESS`, the sender equals `EMAIL_FROM`, and the endpoint/key are explicitly configured. These source checks do not establish provider ownership, secret scope, live sink delivery, or deployment identity; retain separate receipts for those gates.
 
 ---
 

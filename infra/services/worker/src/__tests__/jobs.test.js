@@ -11,6 +11,13 @@ const TASK_ID = '11111111-1111-4111-8111-111111111111';
 const TENANT_ID = '22222222-2222-4222-8222-222222222222';
 const originalQuery = pg.query.bind(pg);
 const originalFetch = globalThis.fetch;
+const EMAIL_ENV = {
+  NODE_ENV: 'staging',
+  EMAIL_API_URL: 'https://staging-mail.example.invalid/api/send',
+  EMAIL_API_KEY: 'test-staging-mail-key',
+  EMAIL_FROM: 'sender@omdala.com',
+  EMAIL_STAGING_SINK_ADDRESS: 'sink@example.invalid',
+};
 
 function withMockPg(mockFn) {
   pg.query = mockFn || originalQuery;
@@ -70,11 +77,11 @@ test('emailJob sends email via fetch', async () => {
   });
   try {
     const result = await emailJob({
-      data: { to: 'test@omdala.com', subject: 'Hello', html: '<b>Hi</b>' },
-    });
+      data: { to: 'sink@example.invalid', subject: 'Hello', html: '<b>Hi</b>' },
+    }, { env: EMAIL_ENV });
     assert.equal(result.success, true);
     assert.equal(result.messageId, 'msg-123');
-    assert.ok(captured.url.includes('mail.iai.one') || captured.url.includes(process.env.EMAIL_API_URL || ''));
+    assert.equal(captured.url, EMAIL_ENV.EMAIL_API_URL);
   } finally {
     restoreFetch();
   }
@@ -84,7 +91,7 @@ test('emailJob throws on non-ok response', async () => {
   withMockFetch(async () => ({ ok: false, text: async () => 'SMTP error' }));
   try {
     await assert.rejects(
-      emailJob({ data: { to: 'test@omdala.com', subject: 'X' } }),
+      emailJob({ data: { to: 'sink@example.invalid', subject: 'X' } }, { env: EMAIL_ENV }),
       /Email failed/,
     );
   } finally {

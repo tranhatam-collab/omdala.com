@@ -465,8 +465,24 @@ describe("release control source contract", () => {
   it("rejects a staging static Worker that bypasses the ASSETS binding", () => {
     const files = actualSources();
     files.surfaceStaticWorker = files.surfaceStaticWorker.replace(
-      "return env.ASSETS.fetch(request)",
-      'return fetch("https://staging.omdala.com")',
+      "await env.ASSETS.fetch(request)",
+      'await fetch("https://staging.omdala.com")',
+    );
+    const result = evaluateReleaseControlSources(files);
+    assert.equal(result.accepted, false);
+    assert.equal(
+      result.checks.find(
+        (check) => check.id === "STAGING_SURFACE_EXACT_REMOTE_AUTHORITY",
+      )?.pass,
+      false,
+    );
+  });
+
+  it("rejects a staging static Worker that drops the noindex response header", () => {
+    const files = actualSources();
+    files.surfaceStaticWorker = files.surfaceStaticWorker.replace(
+      'response.headers.set("X-Robots-Tag", "noindex, nofollow");',
+      'response.headers.set("X-Robots-Tag", "index, follow");',
     );
     const result = evaluateReleaseControlSources(files);
     assert.equal(result.accepted, false);
