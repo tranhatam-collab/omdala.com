@@ -18,6 +18,12 @@ export function detectKnownStagingDatabaseBootstrapHazards(compose, initSql) {
   ) {
     errors.push("STAGING_DB_IMAGE_PGVECTOR_UNPROVEN");
   }
+  if (
+    /\.\/postgres\/init-scripts:\/docker-entrypoint-initdb\.d(?::ro)?\b/.test(compose) &&
+    /-- OMDALA Seed Data for Local Development\b/.test(initSql)
+  ) {
+    errors.push("STAGING_DB_DEV_SEED_AUTOLOAD");
+  }
   return errors;
 }
 

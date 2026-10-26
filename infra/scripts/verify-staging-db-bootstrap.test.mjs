@@ -19,7 +19,28 @@ test("blocks the current staging bootstrap before Docker starts", () => {
     "STAGING_DB_INIT_PRODUCTION_DATABASE",
     "STAGING_DB_INIT_LITERAL_SECRET_PLACEHOLDER",
     "STAGING_DB_IMAGE_PGVECTOR_UNPROVEN",
+    "STAGING_DB_DEV_SEED_AUTOLOAD",
   ]);
+});
+
+test("blocks local demo seed even when other bootstrap hazards are removed", () => {
+  assert.deepEqual(
+    detectKnownStagingDatabaseBootstrapHazards(
+      "  postgres:\n    image: pgvector/pgvector:pg17\n    volumes:\n      - ./postgres/init-scripts:/docker-entrypoint-initdb.d:ro",
+      "-- OMDALA Seed Data for Local Development\nINSERT INTO tenants (slug) VALUES ('demo');",
+    ),
+    ["STAGING_DB_DEV_SEED_AUTOLOAD"],
+  );
+});
+
+test("does not flag an unmounted local seed", () => {
+  assert.deepEqual(
+    detectKnownStagingDatabaseBootstrapHazards(
+      "  postgres:\n    image: pgvector/pgvector:pg17",
+      "-- OMDALA Seed Data for Local Development\nINSERT INTO tenants (slug) VALUES ('demo');",
+    ),
+    [],
+  );
 });
 
 test("permits a source fixture without those known hazards", () => {
