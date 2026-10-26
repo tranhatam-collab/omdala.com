@@ -31,7 +31,7 @@ health: ## Run health check script
 backup: ## Trigger manual backup
 	@./scripts/backup-now.sh
 
-restore-test: ## Run restore test (mandatory gate)
+restore-test: ## Legacy drill blocked until isolated scratch restore is reviewed
 	@./scripts/restore-test.sh
 
 migrate: ## Run database migrations

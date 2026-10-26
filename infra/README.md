@@ -157,15 +157,15 @@ Serve as sovereign backend for:
 
 ---
 
-## Estimated Cost (Revised)
+## Historical Cost Sketch — Revalidation Required
 
 | Layer | Item | Monthly |
 |-------|------|---------|
 | Edge | Cloudflare (existing — mostly within free/pro) | ~$0–20 |
 | Storage | R2 (primary) + Backblaze B2 (backup copy) | ~$5–15 |
-| Sovereign Core | Hetzner CX42 (PostgreSQL + Agent Worker) | €15–20 |
+| Staging core | DigitalOcean SGP1 pilot; capacity and billing receipt pending | TBD |
 | Secrets | Cloudflare Secrets Store + SOPS | $0 |
-| **Total** | | **€15–20 + $5–15 (~$25–40)** |
+| **Total** | | **TBD after provider readback and capacity test** |
 
 ---
 
@@ -185,7 +185,7 @@ cd omdala.com
 ```bash
 cd omdala.com/infra
 ./scripts/backup-now.sh
-./scripts/restore-test.sh  # MUST PASS
+# Restore gate HOLD: legacy restore-test.sh is disabled pending isolated scratch proof.
 ```
 
 ### Layer 2 — Agent Control Plane

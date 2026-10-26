@@ -3,6 +3,11 @@
 > **Scope:** Deploying OMDALA infrastructure to production  
 > **Warning:** Requires Founder approval for production deploys.
 
+> **Restore gate HOLD:** `./scripts/restore-test.sh` is disabled. The old script
+> targeted `omdala-postgres` from a shared `.env` and could claim success from
+> a `public` table count. Replace it with an approved isolated scratch restore
+> and independently reviewed parity receipt before any release decision.
+
 ---
 
 ## Pre-Deploy Checklist
@@ -25,7 +30,7 @@
 | OS | Ubuntu 24.04 LTS | Debian 12 |
 | Network | 1 Gbps | 10 Gbps |
 
-**Provider:** Hetzner CX42 (Germany or Singapore)
+**Provider:** DigitalOcean for the staging pilot. Production provider and capacity require a separate approved packet.
 
 ---
 
@@ -34,8 +39,9 @@
 ### 1. Provision VPS
 
 ```bash
-# Via Hetzner Cloud Console or hcloud CLI
-hcloud server create --name omdala-infra --type cx42 --image ubuntu-24.04 --location nbg1
+# Staging DigitalOcean resource already has a separate identity receipt.
+# Verify the approved project, Droplet, VPC, firewall, and cost owner before use.
+# Do not provision or change a production host from this guide.
 ```
 
 ### 2. DNS Configuration
@@ -82,7 +88,7 @@ docker compose up -d
 
 # Verify
 make health
-./scripts/restore-test.sh
+# Restore gate remains HOLD until an isolated scratch restore receipt exists.
 ```
 
 ---
@@ -143,7 +149,7 @@ docker compose up -d --build
 
 # 5. Verify
 ./scripts/health-check.sh
-./scripts/restore-test.sh
+# Restore gate remains HOLD until an isolated scratch restore receipt exists.
 ```
 
 ---
@@ -182,7 +188,7 @@ docker compose up -d api-gateway
 | Phase | Action | Command |
 |-------|--------|---------|
 | Horizontal | Add worker replicas | `docker compose up -d --scale worker=3` |
-| Vertical | Upgrade VPS | Hetzner console → rescale |
+| Vertical | Upgrade VPS | Provider console only after capacity review and approval |
 | Multi-node | Docker Swarm | See ARCHITECTURE.md Phase 2 |
 
 ---
