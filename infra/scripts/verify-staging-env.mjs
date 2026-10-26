@@ -95,6 +95,11 @@ export function validateStagingEnv(content, shellEnv = process.env, composeConte
   if (shellEnv.COMPOSE_PROFILES?.trim()) {
     errors.push("COMPOSE_PROFILES must be empty for staging");
   }
+  for (const key of ["DOCKER_HOST", "DOCKER_CONTEXT"]) {
+    if (shellEnv[key]?.trim()) {
+      errors.push(`${key} must be unset for staging; use the approved local Docker daemon`);
+    }
+  }
   for (const key of composeVariables) {
     if (shellEnv[key] !== undefined && shellEnv[key] !== values.get(key)) {
       errors.push(`shell override for ${key} differs from staging env`);

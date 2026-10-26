@@ -103,6 +103,8 @@ The current source intentionally fails the DB bootstrap preflight before Docker 
 
 The staging env template lists the active Compose inputs, including scoped mail, AIAGENT release pins, receipt keys, and alert sink. The preflight rejects blanks, template placeholders, production AI mode, and non-HTTPS mail/R2/alert URLs. The worker requires `NODE_ENV` to be explicitly `staging` or `production`; in staging it rejects a mail job unless the recipient equals `EMAIL_STAGING_SINK_ADDRESS`, the sender equals `EMAIL_FROM`, and the endpoint/key are explicitly configured. These source checks do not establish provider ownership, secret scope, live sink delivery, or deployment identity; retain separate receipts for those gates.
 
+Run `staging-up` only on the approved staging host with its local Docker daemon. The env preflight rejects nonempty `DOCKER_HOST` and `DOCKER_CONTEXT` so an inherited shell setting cannot redirect the command. This check does not attest the host, daemon, firewall, or Docker context configuration; collect those readbacks before any protected deployment.
+
 ---
 
 ## Production Deploy

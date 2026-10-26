@@ -68,6 +68,18 @@ test("rejects a staging launch with development Compose profiles", () => {
   );
 });
 
+test("rejects shell redirection to another Docker daemon or context", () => {
+  const errors = validateStagingEnv(env, {
+    DOCKER_HOST: "ssh://production.example.invalid",
+    DOCKER_CONTEXT: "production",
+  }, compose);
+  assert.deepEqual(errors, [
+    "DOCKER_HOST must be unset for staging; use the approved local Docker daemon",
+    "DOCKER_CONTEXT must be unset for staging; use the approved local Docker daemon",
+  ]);
+  assert.ok(!errors.join(" ").includes("production.example.invalid"));
+});
+
 test("rejects omitted Compose variables but permits inactive MinIO and optional B2", () => {
   const composeWithOptional = `${compose} \${EMAIL_API_KEY} \${API_PORT} \${MINIO_ROOT_PASSWORD} \${B2_BUCKET:-}`;
   const errors = validateStagingEnv(env, {}, composeWithOptional);
