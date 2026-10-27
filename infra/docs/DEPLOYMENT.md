@@ -7,6 +7,11 @@
 > targeted `omdala-postgres` from a shared `.env` and could claim success from
 > a `public` table count. Replace it with an approved isolated scratch restore
 > and independently reviewed parity receipt before any release decision.
+>
+> **Queue deploy gate HOLD:** the background worker's legacy `deploy` job is
+> disabled and always fails closed. It must not execute Git, Docker, Wrangler,
+> SSH, or branch input from queue data. Use only the reviewed protected
+> exact-SHA staging or production transaction after its required approvals.
 
 ---
 
