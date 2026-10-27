@@ -26,8 +26,13 @@ OMDALA (`*.omdala.com`) is one pnpm + Turborepo monorepo. OMDALAT (`omdalat.com`
 ```bash
 pnpm typecheck
 pnpm build
+pnpm lint
 pnpm brand:check
 pnpm --filter @omdala/api test
 ```
 
 Run `typecheck` and `build` as separate commands: Next.js regenerates `.next/types` during build, so running both in one parallel turbo invocation can produce false TS6053 errors.
+
+## Scheduled development
+
+Work on this branch is driven by `docs/06-strategy/OMDALA_CONTINUOUS_DEV_PLAN_2026.md` and tracked in `docs/06-strategy/DEV_LEDGER.md`. Scheduled runs follow section 6 of the plan, start with `bash scripts/dev-cycle.sh preflight`, and obey the limits in section 4.2 (no other branches, no PRs, no deploys, no secrets, no external systems). Set `AUTOMATION: PAUSED` in the ledger to stop them.

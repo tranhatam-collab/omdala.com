@@ -21,7 +21,7 @@ All planning, specification and operations documents for `*.omdala.com` live her
 | `03-architecture/` | Master system architecture, backend architecture, API boundaries, repo layout | `services/api`, `packages/*` |
 | `04-engineering/` | API spec (v1 + v2 reality namespace), data model, DB schema, SEO lock, email | `services/api/src`, `packages/types`, `infra/db`, `infra/migrations`, `packages/seo`, `packages/core/src/mail.ts` |
 | `05-operations/` | Deploy, DNS and subdomains, Cloudflare baseline, logs, alerts, DR, Postgres hardening | `services/api/wrangler.toml`, `scripts/`, `.github/workflows/` |
-| `06-strategy/` | Roadmap, MVP scale plan, growth, fundraising, pitch, hiring | — |
+| `06-strategy/` | Roadmap, continuous dev plan and ledger (scheduled work), MVP scale plan, growth, fundraising, pitch, hiring | `scripts/dev-cycle.sh` |
 | `99-archive/` | Past audits and superseded drafts. Read-only history, never a source of truth | — |
 
 ## Source-of-truth rules
