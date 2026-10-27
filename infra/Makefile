@@ -46,6 +46,7 @@ seed: ## Seed local development data
 staging-up: ## Start staging environment
 	@node scripts/verify-staging-env.mjs $(STAGING_ENV_FILE)
 	@node scripts/verify-staging-db-bootstrap.mjs
+	@node scripts/verify-staging-edge-auth.mjs
 	$(STAGING_COMPOSE) up -d --build
 
 staging-down: ## Stop staging environment
