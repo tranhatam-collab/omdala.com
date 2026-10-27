@@ -1,15 +1,17 @@
 # DEV LEDGER — OMDALA continuous development
 
-AUTOMATION: ACTIVE
+AUTOMATION: PAUSED
 
-Đổi dòng trên thành `AUTOMATION: PAUSED`, commit và push để dừng mọi chu kỳ. Kế hoạch: `OMDALA_CONTINUOUS_DEV_PLAN_2026.md`. Lập 2026-10-27.
+Đang tạm dừng theo yêu cầu của người dùng (2026-10-27): VS Code đang làm việc, nên chỉ chuyển sang audit và các chu kỳ tự động khi người dùng yêu cầu. Khi được yêu cầu: đổi dòng trên thành `AUTOMATION: ACTIVE` rồi tạo routine (mục 1). Đổi lại `PAUSED`, commit và push để dừng mọi chu kỳ. Kế hoạch: `OMDALA_CONTINUOUS_DEV_PLAN_2026.md`. Lập 2026-10-27.
 
 ## 1. Routine
 
-| Tên | Lịch | ID |
+Trạng thái 2026-10-27: **chưa có routine nào chạy**. Người dùng từ chối lượt tạo đầu tiên và yêu cầu chờ vì VS Code đang làm. Bảng dưới là lịch đề xuất.
+
+| Tên | Lịch đề xuất | ID |
 |---|---|---|
-| OMDALA dev cycle (BUILD) | Mỗi 6 giờ | `<điền sau khi tạo>` |
-| OMDALA weekly review (REVIEW) | Thứ Hai 08:56 giờ Việt Nam | `<điền sau khi tạo>` |
+| OMDALA dev cycle (BUILD) | Mỗi 6 giờ | chưa tạo |
+| OMDALA weekly review (REVIEW) | Thứ Hai 08:56 giờ Việt Nam | chưa tạo |
 
 ## 2. Quyết định của con người
 
@@ -58,7 +60,8 @@ AUTOMATION: ACTIVE
 
 | Thời điểm (UTC) | Loại | WP | Kết quả | SHA |
 |---|---|---|---|---|
-| 2026-10-27 | PLAN | — | Kế hoạch, ledger, `scripts/dev-cycle.sh` được lập; routine được tạo | |
+| 2026-10-27 | PLAN | — | Kế hoạch, ledger, `scripts/dev-cycle.sh` được lập. Routine chưa được tạo (người dùng từ chối lượt tạo đầu) | 450686d |
+| 2026-10-27 | HOLD | — | Người dùng yêu cầu chờ, chuyển sang audit khi được yêu cầu vì VS Code đang làm. Đặt `AUTOMATION: PAUSED` | |
 
 ## 6. Phát hiện review PR #1 (Copilot, 2026-10-13, 28 thread)
 

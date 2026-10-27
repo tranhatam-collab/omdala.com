@@ -35,4 +35,4 @@ Run `typecheck` and `build` as separate commands: Next.js regenerates `.next/typ
 
 ## Scheduled development
 
-Work on this branch is driven by `docs/06-strategy/OMDALA_CONTINUOUS_DEV_PLAN_2026.md` and tracked in `docs/06-strategy/DEV_LEDGER.md`. Scheduled runs follow section 6 of the plan, start with `bash scripts/dev-cycle.sh preflight`, and obey the limits in section 4.2 (no other branches, no PRs, no deploys, no secrets, no external systems). Set `AUTOMATION: PAUSED` in the ledger to stop them.
+Planned work on this branch is described in `docs/06-strategy/OMDALA_CONTINUOUS_DEV_PLAN_2026.md` and tracked in `docs/06-strategy/DEV_LEDGER.md`. When scheduled runs are enabled (ledger section 1 says whether they are), they follow section 6 of the plan, start with `bash scripts/dev-cycle.sh preflight`, and obey the limits in section 4.2 (no other branches, no PRs, no deploys, no secrets, no external systems). Set `AUTOMATION: PAUSED` in the ledger to stop them.

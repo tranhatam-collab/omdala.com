@@ -180,12 +180,14 @@ zh/es/ja/ko (ADR-003 chỉ chừa code path), giao diện thanh toán, mobile na
 
 ## 7. Lịch tự động
 
+Trạng thái 2026-10-27: **chưa bật routine nào**. Người dùng yêu cầu chờ (VS Code đang làm) và chỉ chuyển sang audit khi được yêu cầu. Bảng dưới là lịch đề xuất, chỉ tạo sau khi Founder duyệt và ledger chuyển sang `AUTOMATION: ACTIVE`.
+
 | Routine | Lịch | Việc |
 |---|---|---|
 | OMDALA dev cycle | Mỗi 6 giờ | Giao thức mục 6 (BUILD) |
 | OMDALA weekly review | Thứ Hai 08:56 giờ Việt Nam | Chỉ đọc và báo cáo: tiến độ, cổng đang chờ người, rủi ro, đề xuất ưu tiên. Ghi `docs/06-strategy/reports/WEEKLY_<năm>-W<tuần>.md` |
 
-Cả hai chạy trong chính phiên này (giữ ngữ cảnh và nhánh được giao). ID routine ở ledger mục 1.
+Khi bật, cả hai chạy trong chính phiên này (giữ ngữ cảnh và nhánh được giao). ID routine ghi ở ledger mục 1.
 
 - Dừng ngay: đổi `AUTOMATION: PAUSED` trong ledger rồi push, hoặc tắt routine.
 - Đổi nhịp: nói với Claude hoặc dùng `update_trigger` với `cron_expression`.
