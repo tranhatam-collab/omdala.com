@@ -5,6 +5,12 @@
 > **Owner:** Database Team (Team B)  
 > **Frequency:** Daily backup, weekly restore test
 
+> **Queue backup gate HOLD:** the background worker's legacy `backup` job is
+> disabled and always fails closed. It formerly constructed shell commands from
+> queue-controlled database and destination input. Use only the reviewed backup
+> service or protected pre-migration workflow with fixed target, encryption,
+> digest, isolated restore, and receipt.
+
 ---
 
 ## 1. Backup Strategy
