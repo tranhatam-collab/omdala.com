@@ -55,6 +55,10 @@ export function AuthLoginForm() {
       searchParams.get("next"),
       redirectTo,
     );
+    // The token is single-use and secret: keep it out of the address bar and history.
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete("token");
+    window.history.replaceState(window.history.state, "", cleanUrl.toString());
     setStatus({
       tone: "info",
       message: pickBilingualValue(language, copy.verifying),
