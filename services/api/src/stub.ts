@@ -19,8 +19,33 @@ function isEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
+const PLACEHOLDER_ORIGIN = 'https://redirect-check.invalid'
+
+// Accept only same-origin absolute paths. Protocol-relative ("//host"),
+// backslash and control-character forms are treated as hosts by browsers.
+function isUnsafeRedirectText(value: string, allowSpace = false): boolean {
+  return (
+    value.startsWith('//') ||
+    (allowSpace ? /[\\\u0000-\u001f\u007f]/ : /[\\\u0000-\u0020\u007f]/).test(value)
+  )
+}
+
 function normalizePath(value: string | undefined, fallback: string): string {
-  if (!value || !value.startsWith('/')) {
+  if (typeof value !== 'string' || !value.startsWith('/')) {
+    return fallback
+  }
+  if (isUnsafeRedirectText(value)) {
+    return fallback
+  }
+
+  try {
+    if (isUnsafeRedirectText(decodeURIComponent(value), true)) {
+      return fallback
+    }
+    if (new URL(value, PLACEHOLDER_ORIGIN).origin !== PLACEHOLDER_ORIGIN) {
+      return fallback
+    }
+  } catch {
     return fallback
   }
 
