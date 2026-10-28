@@ -396,11 +396,12 @@ are executors, rules and sub-work of existing packages.
 | WO-T0-03 | T0 | Section 11 | Decision packets for queue items 2–5 with consequences of each option | One page each |
 | WO-T4-01 | T4 | CORE-12/15/18 | E2E-0 matrix at 7abd962 | Every cell classified with file references |
 | WO-T4-02 | T4 | P0-03 | Reproduce R-01..R-28 on the candidate | Each CONFIRMED / NOT_REPRODUCED / MOOT with command |
-| WO-T3-01 | T3 | CORE-12, E2E-1 | Playwright E2E for Auth (login, magic-link landing, expiry, error states) | Specs green locally; CI job runs them |
+| WO-T3-01 | T3 | CORE-12, E2E-1 | Playwright E2E for Auth (login, magic-link landing, expiry, error states), run through the App's Playwright like `e2e:web`; lease: root `package.json` scripts only, no dependency change | Specs green locally; T1 wires the CI job |
 | WO-T3-02 | T3 | CORE-12, E2E-1 | Playwright E2E for Docs and Admin (routes, noindex, EN/VI, 404) | Same |
 | WO-T2-01 | T2 | CORE-03, E2E-2 | Schema bootstrap from an empty PostgreSQL volume, migrations forward/rollback | `PREP_UNDER_ASSUMPTION(CTL-03, PostgreSQL)`; tests green |
 | WO-T2-02 | T2 | CORE-08 prep, E2E-2 | Auth lifecycle negatives against the local worker: expiry, revoke, replay, wrong tenant | Integration tests green |
 | WO-TAI-01 | TAI | OMAI-01 | Map Om AI spec to implemented code; nothing counted from spec checkmarks | Mapping with file references and gaps |
-| WO-TAI-02 | TAI | AI-06 | Provider quota, signature and failure contract tests on the consumer side | Tests green |
+| WO-TAI-02 | TAI | OMAI-06 | Moderation, child, family and organization safety tests in the Om AI backend | Tests green; gaps listed |
+| WO-T2-03 | T2 | AI-06 | Provider quota, signature and failure contract tests for `services/api/src/aiagent-client.ts` | Tests green |
 | WO-T1-01 | T1 | CORE-18 | Relayed to VS Code: in `.github/workflows/ci.yml` add `claude/omdala-**` to push branches and `OMCODE/**` to pull_request branches; no other workflow change | CI runs on a `claude/omdala-*` push and on a draft PR into PR #13's branch |
 | WO-T1-02 | T1 | E2E-3, REL-01, CORE-07 | Relayed to VS Code: staging suite dry-run, read-only API 522 evidence packet, surface marker contracts | Per section 9 |

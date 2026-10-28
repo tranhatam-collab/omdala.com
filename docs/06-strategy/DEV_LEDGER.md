@@ -97,19 +97,20 @@ Staging E2E **OPEN**. Production **HOLD**. AUTOMATION remains **PAUSED**.
 | D-002 draft PRs | APPROVED: draft PRs stacked on `OMCODE/infra-e2e-auto-20261026`; no merge, no approve |
 | Prep-ahead (plan 8.4) | APPROVED with `PREP_UNDER_ASSUMPTION` labels |
 | T1 executor | Local VS Code agent keeps T1; T0 writes T1 orders here for the owner to relay |
-| Coordinator routine | Being created (ID in section 6) |
+| Coordinator routine | `trig_011XrmiQupK2SLA2VdfwrPqX`, enabled, cron `20 * * * *` (anchored by the server), fires into the T0 session; first run 2026-10-28T17:20Z |
 | AUTOMATION flag | ACTIVE |
+| Leases | Root `package.json` scripts: T3 during WO-T3-01/02 (no dependency or lockfile change) |
 
 ## 6. Team roster
 
 | Team | Executor | Branch | Session | State |
 |---|---|---|---|---|
-| T0 Coordinator | Claude cloud | `claude/omdala-coordination` | `session_011NjrMT2mFGRNNyxofbXcPX` | ACTIVE for planning only |
+| T0 Coordinator | Claude cloud, claude-opus-5-5 | `claude/omdala-coordination` | `session_011NjrMT2mFGRNNyxofbXcPX` | ACTIVE, hourly routine |
 | T1 Infra and Release | Local VS Code agent | `OMCODE/infra-e2e-auto-20261026` | owner-run | Scheduler disabled; eight waiting sessions for the owner to close |
-| T2 Core API/Data/Auth/Billing | Claude cloud | `claude/omdala-t2-core` | not created | — |
-| T3 Web/UI/Docs | Claude cloud | `claude/omdala-t3-web` | not created | — |
-| TAI Om AI/Provider/Mobile source | Claude cloud | `claude/omdala-tai-omai` | not created | — |
-| T4 Independent QA | Claude cloud | `claude/omdala-t4-qa` | not created | — |
+| T2 Core API/Data/Auth/Billing | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t2-core` | `session_015zwouVg9EARRhsEXRQVfcw` | DISPATCHED WO-T2-01..03 at creation |
+| T3 Web/UI/Docs | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t3-web` | `session_015zwouUz4xi7CAwpcUoh5ie` | DISPATCHED WO-T3-01..02 at creation |
+| TAI Om AI/Provider/Mobile source | Claude cloud, claude-sonnet-5-5 | `claude/omdala-tai-omai` | `session_015zwouXH3y3GrPfyv8ypTFL` | DISPATCHED WO-TAI-01..02 at creation |
+| T4 Independent QA | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t4-qa` | `session_015zwouVJHpogx5cfV4N5fyf` | DISPATCHED WO-T4-01..02 at creation |
 
 ## 7. Dispatch board
 
@@ -121,14 +122,15 @@ FAILED, WAITING. Nothing is dispatched before activation.
 | WO-T0-01 | T0 | QUEUED | | | 2026-10-28 |
 | WO-T0-02 | T0 | QUEUED | | | 2026-10-28 |
 | WO-T0-03 | T0 | QUEUED | | | 2026-10-28 |
-| WO-T4-01 | T4 | QUEUED | | | 2026-10-28 |
-| WO-T4-02 | T4 | QUEUED | | | 2026-10-28 |
-| WO-T3-01 | T3 | QUEUED | | | 2026-10-28 |
-| WO-T3-02 | T3 | QUEUED | | | 2026-10-28 |
-| WO-T2-01 | T2 | QUEUED | | | 2026-10-28 |
-| WO-T2-02 | T2 | QUEUED | | | 2026-10-28 |
-| WO-TAI-01 | TAI | QUEUED | | | 2026-10-28 |
-| WO-TAI-02 | TAI | QUEUED | | | 2026-10-28 |
+| WO-T4-01 | T4 | DISPATCHED | base 7abd962 | | 2026-10-28 |
+| WO-T4-02 | T4 | DISPATCHED | base 7abd962 | | 2026-10-28 |
+| WO-T3-01 | T3 | DISPATCHED | base 7abd962 | | 2026-10-28 |
+| WO-T3-02 | T3 | DISPATCHED | base 7abd962 | | 2026-10-28 |
+| WO-T2-01 | T2 | DISPATCHED | base 7abd962 | | 2026-10-28 |
+| WO-T2-02 | T2 | DISPATCHED | base 7abd962 | | 2026-10-28 |
+| WO-TAI-01 | TAI | DISPATCHED | base 7abd962 | | 2026-10-28 |
+| WO-TAI-02 | TAI | DISPATCHED | base 7abd962 | | 2026-10-28 |
+| WO-T2-03 | T2 | DISPATCHED | base 7abd962 | | 2026-10-28 |
 | WO-T1-01 | T1 | QUEUED (owner relays; CI triggers for team branches) | | | 2026-10-28 |
 | WO-T1-02 | T1 | QUEUED (owner relays) | | | 2026-10-28 |
 
@@ -137,3 +139,4 @@ FAILED, WAITING. Nothing is dispatched before activation.
 | Time (UTC) | Tick | Actions | Result |
 |---|---|---|---|
 | 2026-10-28 | PLAN | Version 3 plan and ledger sections 5-8 written on `claude/omdala-coordination` from 7abd962 | Activation approved |
+| 2026-10-28T16:20Z | ACTIVATE | Created T2/T3/TAI/T4 sessions with first orders; created coordinator routine `trig_011XrmiQupK2SLA2VdfwrPqX`; told T4 to retarget an auto-created PR from main | Teams starting |
