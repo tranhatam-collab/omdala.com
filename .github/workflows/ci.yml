@@ -286,6 +286,8 @@ jobs:
           node-version: 22.22.3
           cache: 'pnpm'
       - run: pnpm install --frozen-lockfile
+      - name: Verify staging Playwright config loader
+        run: node --test scripts/playwright-staging-loader.test.mjs
       - run: pnpm --filter @omdala/app exec playwright install --with-deps chromium
       - run: pnpm e2e:app
         env:

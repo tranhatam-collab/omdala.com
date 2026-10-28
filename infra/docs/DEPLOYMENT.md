@@ -23,6 +23,25 @@
 - [ ] Restore test passed within last 7 days
 - [ ] Approval gate PR merged (2 reviewers + Founder)
 
+### Staging browser configuration preflight
+
+After installing the locked workspace dependencies, run from the repository root:
+
+```bash
+node --test scripts/playwright-staging-loader.test.mjs
+```
+
+This uses the installed Playwright loader with `--list` and synthetic configuration
+to discover exactly four scenarios without executing them or contacting staging.
+It also verifies that missing staging origins and output paths inside the candidate
+are rejected. CI runs it in App Playwright E2E after dependency installation; the
+dependency-free release governance job must not require Playwright.
+
+The staging config is loaded as CommonJS by Playwright, so its policy receives a
+file URL derived from `__dirname`, not `import.meta.url`. Real staging acceptance
+still requires the protected environment, actual deployment identities, scoped
+test credentials, external artifact paths, and independent acceptance receipts.
+
 ---
 
 ## Server Requirements
