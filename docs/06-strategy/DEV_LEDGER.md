@@ -1,6 +1,6 @@
 # DEV LEDGER - OMDALA continuous development
 
-AUTOMATION: PAUSED
+AUTOMATION: ACTIVE
 
 Updated 2026-10-28. Canonical plan:
 [OMDALA_CONTINUOUS_DEV_PLAN_2026.md](./OMDALA_CONTINUOUS_DEV_PLAN_2026.md).
@@ -88,3 +88,52 @@ Independent review jobs may remain gated; report them separately and retain HOLD
 No commit here is a deployment, no CI success is independent staging approval.
 
 Staging E2E **OPEN**. Production **HOLD**. AUTOMATION remains **PAUSED**.
+
+## 5. Version 3 activation (2026-10-28)
+
+| Item | State |
+|---|---|
+| Activation packet (plan 8.1) | APPROVED by the owner in chat, 2026-10-28: four cloud teams on claude-sonnet-5-5, coordinator on claude-opus-5-5, hourly coordinator |
+| D-002 draft PRs | APPROVED: draft PRs stacked on `OMCODE/infra-e2e-auto-20261026`; no merge, no approve |
+| Prep-ahead (plan 8.4) | APPROVED with `PREP_UNDER_ASSUMPTION` labels |
+| T1 executor | Local VS Code agent keeps T1; T0 writes T1 orders here for the owner to relay |
+| Coordinator routine | Being created (ID in section 6) |
+| AUTOMATION flag | ACTIVE |
+
+## 6. Team roster
+
+| Team | Executor | Branch | Session | State |
+|---|---|---|---|---|
+| T0 Coordinator | Claude cloud | `claude/omdala-coordination` | `session_011NjrMT2mFGRNNyxofbXcPX` | ACTIVE for planning only |
+| T1 Infra and Release | Local VS Code agent | `OMCODE/infra-e2e-auto-20261026` | owner-run | Scheduler disabled; eight waiting sessions for the owner to close |
+| T2 Core API/Data/Auth/Billing | Claude cloud | `claude/omdala-t2-core` | not created | — |
+| T3 Web/UI/Docs | Claude cloud | `claude/omdala-t3-web` | not created | — |
+| TAI Om AI/Provider/Mobile source | Claude cloud | `claude/omdala-tai-omai` | not created | — |
+| T4 Independent QA | Claude cloud | `claude/omdala-t4-qa` | not created | — |
+
+## 7. Dispatch board
+
+First wave: plan section 12. Status per order: QUEUED, DISPATCHED, DONE, VERIFIED,
+FAILED, WAITING. Nothing is dispatched before activation.
+
+| Order | Team | Status | SHA | Evidence | Updated |
+|---|---|---|---|---|---|
+| WO-T0-01 | T0 | QUEUED | | | 2026-10-28 |
+| WO-T0-02 | T0 | QUEUED | | | 2026-10-28 |
+| WO-T0-03 | T0 | QUEUED | | | 2026-10-28 |
+| WO-T4-01 | T4 | QUEUED | | | 2026-10-28 |
+| WO-T4-02 | T4 | QUEUED | | | 2026-10-28 |
+| WO-T3-01 | T3 | QUEUED | | | 2026-10-28 |
+| WO-T3-02 | T3 | QUEUED | | | 2026-10-28 |
+| WO-T2-01 | T2 | QUEUED | | | 2026-10-28 |
+| WO-T2-02 | T2 | QUEUED | | | 2026-10-28 |
+| WO-TAI-01 | TAI | QUEUED | | | 2026-10-28 |
+| WO-TAI-02 | TAI | QUEUED | | | 2026-10-28 |
+| WO-T1-01 | T1 | QUEUED (owner relays; CI triggers for team branches) | | | 2026-10-28 |
+| WO-T1-02 | T1 | QUEUED (owner relays) | | | 2026-10-28 |
+
+## 8. Coordinator run log (keep last 20)
+
+| Time (UTC) | Tick | Actions | Result |
+|---|---|---|---|
+| 2026-10-28 | PLAN | Version 3 plan and ledger sections 5-8 written on `claude/omdala-coordination` from 7abd962 | Activation approved |
