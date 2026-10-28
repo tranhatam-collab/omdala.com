@@ -1,5 +1,5 @@
 # OMDALA Infra — Caddyfile
-# Automatic HTTPS via ACME. Cloudflare proxy recommended.
+# Site names follow INFRA_DOMAIN. TLS and proxy mode require staging readback.
 
 {
 	admin off
@@ -18,7 +18,7 @@
 }
 
 # Main infra domain
-infra.omdala.com {
+{$INFRA_DOMAIN} {
 	route /health {
 		respond "OMDALA Infra OK" 200
 	}
@@ -27,7 +27,7 @@ infra.omdala.com {
 }
 
 # API Gateway
-api.infra.omdala.com {
+api.{$INFRA_DOMAIN} {
 	route /health {
 		reverse_proxy api-gateway:3000
 	}
@@ -36,16 +36,16 @@ api.infra.omdala.com {
 }
 
 # Keycloak Auth
-auth.infra.omdala.com {
+auth.{$INFRA_DOMAIN} {
 	reverse_proxy /* keycloak:8080
 }
 
 # Monitoring (protected by basic auth + IP whitelist in production)
-monitor.infra.omdala.com {
+monitor.{$INFRA_DOMAIN} {
 	reverse_proxy /* uptime-kuma:3001
 }
 
 # MinIO Console (internal only, no public route by default)
-# storage.infra.omdala.com {
+# storage.{$INFRA_DOMAIN} {
 # 	reverse_proxy /* minio:9001
 # }

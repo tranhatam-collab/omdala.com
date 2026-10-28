@@ -45,12 +45,12 @@
     "infra:audit:source": "node scripts/infra-readonly-probe.mjs",
     "infra:audit:remote": "node scripts/infra-readonly-probe.mjs --remote --confirm-read-only-remote",
     "test:brand-core": "pnpm --filter @omdala/brand-core run test",
-    "test:release-governance": "node --test scripts/release-review-policy.test.mjs scripts/postgres-target-guard.test.mjs scripts/hyperdrive-target-guard.test.mjs scripts/playwright-staging-receipt.test.mjs scripts/playwright-staging-output-isolation.test.mjs scripts/production-acceptance-receipt.test.mjs scripts/production-e2e-config.test.mjs scripts/production-no-spend-contract.test.mjs scripts/public-origin-contract.test.mjs scripts/release-control-contract.test.mjs scripts/render-api-wrangler-config.test.mjs scripts/sanitize-staging-mail-evidence.test.mjs scripts/scan-staging-artifacts-for-secrets.test.mjs scripts/security-audit-gate.test.mjs scripts/staging-ai-acceptance-contract.test.mjs scripts/staging-durable-ledger-evidence.test.mjs scripts/staging-recovery-capsule.test.mjs scripts/staging-restore-recovery-workspace.test.mjs scripts/staging-recovery-plan.test.mjs scripts/staging-transaction-contract.test.mjs scripts/staging-transaction-ledger.test.mjs scripts/staging-unified-transaction.test.mjs scripts/staging-unresolved-capsules.test.mjs scripts/surface-release-contract.test.mjs scripts/dispatch-team-ai-staging-acceptance.test.mjs scripts/verify-api-version-hyperdrive.test.mjs scripts/verify-api-worker-authority.test.mjs scripts/verify-cloudflare-worker-absence.test.mjs scripts/verify-infra-authority-handoff.test.mjs scripts/verify-migration-compatibility.test.mjs scripts/verify-omdala-ai-call-reconciliation.test.mjs scripts/verify-surface-artifacts.test.mjs scripts/verify-surface-worker-authority.test.mjs scripts/verify-staging-wrangler-execution-safety.test.mjs scripts/verify-team-ai-staging-receipt.test.mjs scripts/production-cross-workflow-rollback.test.mjs scripts/production-transaction-hold.test.mjs",
+    "test:release-governance": "node --test scripts/release-review-policy.test.mjs scripts/postgres-target-guard.test.mjs scripts/hyperdrive-target-guard.test.mjs scripts/playwright-staging-receipt.test.mjs scripts/playwright-staging-output-isolation.test.mjs scripts/production-acceptance-receipt.test.mjs scripts/production-e2e-config.test.mjs scripts/production-no-spend-contract.test.mjs scripts/public-origin-contract.test.mjs scripts/release-control-contract.test.mjs scripts/render-api-wrangler-config.test.mjs scripts/sanitize-staging-mail-evidence.test.mjs scripts/scan-staging-artifacts-for-secrets.test.mjs scripts/security-audit-gate.test.mjs scripts/staging-ai-acceptance-contract.test.mjs scripts/staging-durable-ledger-evidence.test.mjs scripts/staging-recovery-capsule.test.mjs scripts/staging-restore-recovery-workspace.test.mjs scripts/staging-recovery-plan.test.mjs scripts/staging-transaction-contract.test.mjs scripts/staging-transaction-ledger.test.mjs scripts/staging-unified-transaction.test.mjs scripts/staging-unresolved-capsules.test.mjs scripts/surface-release-contract.test.mjs infra/scripts/verify-staging-compose-source.test.mjs infra/scripts/verify-staging-db-bootstrap.test.mjs infra/scripts/verify-staging-edge-auth.test.mjs infra/scripts/restore-test.test.mjs infra/scripts/health-check.test.mjs infra/scripts/verify-staging-env.test.mjs infra/staging/surfaces/static-worker.test.mjs scripts/dispatch-team-ai-staging-acceptance.test.mjs scripts/verify-api-version-hyperdrive.test.mjs scripts/verify-api-worker-authority.test.mjs scripts/verify-cloudflare-worker-absence.test.mjs scripts/verify-infra-authority-handoff.test.mjs scripts/verify-migration-compatibility.test.mjs scripts/verify-omdala-ai-call-reconciliation.test.mjs scripts/verify-surface-artifacts.test.mjs scripts/verify-surface-worker-authority.test.mjs scripts/verify-staging-wrangler-execution-safety.test.mjs scripts/verify-team-ai-staging-receipt.test.mjs scripts/production-cross-workflow-rollback.test.mjs scripts/production-transaction-hold.test.mjs",
     "build:all": "pnpm run build:web && pnpm --filter @omdala/app run build && pnpm --filter @omdala/docs run build && pnpm --filter @omdala/admin run build && pnpm --filter @omdala/auth run build"
   },
   "devDependencies": {
     "eslint": "9.39.2",
-    "eslint-config-next": "16.3.8"
+    "eslint-config-next": "16.4.1"
   },
   "pnpm": {
     "overrides": {
@@ -61,9 +61,10 @@
       "brace-expansion@>=4.0.0 <5.0.12": "5.0.12",
       "builder-util-runtime": "9.7.0",
       "dmg-builder": "26.15.3",
-      "dompurify": "3.4.16",
+      "body-parser": "2.4.0",
+      "dompurify": "3.4.17",
       "electron-builder-squirrel-windows": "26.15.3",
-      "fast-uri": "3.1.8",
+      "fast-uri": "3.1.9",
       "hono": "4.13.7",
       "http-cache-semantics": "4.3.0",
       "js-yaml": "4.3.2",
@@ -72,9 +73,10 @@
       "sharp": "0.35.5",
       "source-map-js": "1.2.2",
       "tar": "7.5.21",
-      "undici": "7.29.1",
-      "vite": "8.0.16",
-      "vitest": "4.1.11",
+      "undici": "7.30.1",
+      "vite": "8.1.6",
+      "vitest": "4.1.12",
+      "zod": "4.6.6",
       "ws": "8.21.0"
     }
   }

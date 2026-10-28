@@ -1,4 +1,6 @@
 import { defineConfig } from "@playwright/test";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { resolveStagingPlaywrightOutputPolicy } from "./playwright-staging-policy";
 
 function requiredEnvironment(name: string): string {
@@ -45,7 +47,11 @@ if (!/^[a-f0-9]{40}$/.test(requiredEnvironment("E2E_RELEASE_SHA"))) {
 requiredEnvironment("E2E_API_DEPLOYMENT_ID");
 requiredEnvironment("E2E_SURFACE_RELEASE_ID");
 const { outputDirectory: stagingOutputDirectory, jsonReport: stagingJsonReport } =
-  resolveStagingPlaywrightOutputPolicy(process.env, import.meta.url);
+  resolveStagingPlaywrightOutputPolicy(
+    process.env,
+    // Playwright loads this config as CommonJS, where import.meta is a syntax error.
+    pathToFileURL(join(__dirname, "playwright.staging.config.ts")).href,
+  );
 
 export default defineConfig({
   testDir: "./e2e-staging",

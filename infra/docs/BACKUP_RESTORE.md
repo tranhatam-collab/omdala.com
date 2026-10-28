@@ -1,9 +1,15 @@
 # Backup & Restore Runbook
 
-> **Status:** OPERATIONAL  
+> **Status:** HOLD — legacy restore drill disabled; isolated scratch proof required
 > **Version:** 1.0  
 > **Owner:** Database Team (Team B)  
 > **Frequency:** Daily backup, weekly restore test
+
+> **Queue backup gate HOLD:** the background worker's legacy `backup` job is
+> disabled and always fails closed. It formerly constructed shell commands from
+> queue-controlled database and destination input. Use only the reviewed backup
+> service or protected pre-migration workflow with fixed target, encryption,
+> digest, isolated restore, and receipt.
 
 ---
 
@@ -30,17 +36,21 @@ aws s3 ls s3://omdala-prod-backups/backups/postgres/ \
 ```
 
 ### Weekly Restore Test (MANDATORY)
-```bash
-# Automated via CI/CD (backup-test.yml)
-./scripts/restore-test.sh
-```
 
-**Success criteria:**
+`./scripts/restore-test.sh` is disabled. It sourced the shared `.env`, targeted
+`omdala-postgres`, and compared only the count of `public` tables. That could
+mutate a production cluster and could falsely report a valid restore. Do not
+use its former output as release evidence. Team 2, Infra, and Team 4 must
+design and witness an isolated scratch restore with a pinned backup digest,
+explicit non-production target, `ON_ERROR_STOP`, schema and data parity,
+cleanup evidence, and measured RPO/RTO.
+
+**Proposed success criteria (not yet verified):**
 - Backup file size > 1 KB (not empty)
-- Restore to staging DB completes without error
-- Row count per table matches production ±0%
+- Restore to an isolated non-production scratch DB completes without SQL errors
+- Per-table counts and schema hashes match the pinned non-production backup snapshot
 - Key constraints validated
-- Can connect and query staging DB
+- Can connect and query only the scratch DB
 
 ---
 

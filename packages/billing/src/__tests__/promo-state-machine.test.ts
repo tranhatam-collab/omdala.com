@@ -23,11 +23,12 @@ test("monthly billing stays free for the full trial before entering promo", () =
   assert.strictEqual(sub.state, "trial_expired");
   sub = applyTransition(sub, "subscribe_within_grace", new Date("2026-09-28T00:00:00.000Z"));
   assert.strictEqual(sub.state, "promo_1");
-  sub = applyTransition(sub, "month_end", NOW);
+  assert.throws(() => applyTransition(sub, "month_end", NOW));
+  sub = applyTransition(sub, "month_end", new Date("2026-10-28T00:00:00.000Z"));
   assert.strictEqual(sub.state, "promo_2");
-  sub = applyTransition(sub, "month_end", NOW);
+  sub = applyTransition(sub, "month_end", new Date("2026-11-28T00:00:00.000Z"));
   assert.strictEqual(sub.state, "promo_3");
-  sub = applyTransition(sub, "month_end", NOW);
+  sub = applyTransition(sub, "month_end", new Date("2026-12-28T00:00:00.000Z"));
   assert.strictEqual(sub.state, "active_monthly");
 });
 
@@ -43,14 +44,59 @@ test("promo state machine: trial_expired → promo_1 → promo_2 → promo_3 →
   assert.strictEqual(sub.state, "promo_1");
   assert.strictEqual(sub.promoMonthIndex, 1);
 
-  sub = applyTransition(sub, "month_end");
+  sub = applyTransition(sub, "month_end", new Date("2026-09-29T00:00:00.000Z"));
   assert.strictEqual(sub.state, "promo_2");
 
-  sub = applyTransition(sub, "month_end");
+  sub = applyTransition(sub, "month_end", new Date("2026-10-29T00:00:00.000Z"));
   assert.strictEqual(sub.state, "promo_3");
 
-  sub = applyTransition(sub, "month_end");
+  sub = applyTransition(sub, "month_end", new Date("2026-11-29T00:00:00.000Z"));
   assert.strictEqual(sub.state, "active_monthly");
+});
+
+test("promo month end rejects early, repeated, and stale billing events", () => {
+  const promo1: Subscription = {
+    id: "sub_period", accountId: "acc_period", packageId: "infra-explore",
+    market: "en", state: "promo_1", billingMode: "monthly",
+    createdAt: NOW.toISOString(), promoStartDate: NOW.toISOString(), promoMonthIndex: 1,
+  };
+  const firstEnd = new Date("2026-09-29T00:00:00.000Z");
+  assert.throws(() => applyTransition(promo1, "month_end", new Date("2026-09-28T23:59:59.999Z")));
+  assert.throws(() => {
+    // @ts-expect-error JavaScript callers must also supply the billing event time.
+    applyTransition(promo1, "month_end");
+  });
+
+  const promo2 = applyTransition(promo1, "month_end", firstEnd);
+  assert.strictEqual(promo2.state, "promo_2");
+  assert.throws(() => applyTransition(promo2, "month_end", firstEnd));
+  assert.throws(() => applyTransition(promo2, "month_end", new Date("2026-09-30T00:00:00.000Z")));
+  assert.throws(() => applyTransition(promo1, "month_end", new Date("2026-10-29T00:00:00.000Z")));
+});
+
+test("promo calendar months clamp to month end while retaining the original anchor", () => {
+  const promo1: Subscription = {
+    id: "sub_month_end", accountId: "acc_month_end", packageId: "infra-explore",
+    market: "en", state: "promo_1", billingMode: "monthly",
+    createdAt: "2027-01-31T12:00:00.000Z",
+    promoStartDate: "2027-01-31T12:00:00.000Z", promoMonthIndex: 1,
+  };
+  assert.throws(() => applyTransition(promo1, "month_end", new Date("2027-02-28T11:59:59.999Z")));
+  const promo2 = applyTransition(promo1, "month_end", new Date("2027-02-28T12:00:00.000Z"));
+  assert.throws(() => applyTransition(promo2, "month_end", new Date("2027-03-30T12:00:00.000Z")));
+  const promo3 = applyTransition(promo2, "month_end", new Date("2027-03-31T12:00:00.000Z"));
+  assert.strictEqual(applyTransition(promo3, "month_end", new Date("2027-04-30T12:00:00.000Z")).state, "active_monthly");
+});
+
+test("promo month end fails closed without consistent period metadata", () => {
+  const base: Subscription = {
+    id: "sub_missing_period", accountId: "acc_missing_period", packageId: "infra-explore",
+    market: "en", state: "promo_1", billingMode: "monthly", createdAt: NOW.toISOString(),
+  };
+  const due = new Date("2026-09-29T00:00:00.000Z");
+  assert.throws(() => applyTransition(base, "month_end", due));
+  assert.throws(() => applyTransition({ ...base, promoStartDate: "invalid", promoMonthIndex: 1 }, "month_end", due));
+  assert.throws(() => applyTransition({ ...base, promoStartDate: NOW.toISOString(), promoMonthIndex: 2 }, "month_end", due));
 });
 
 test("annual billing skips promo, goes to active_annual", () => {

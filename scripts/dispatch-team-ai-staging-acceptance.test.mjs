@@ -37,7 +37,7 @@ function receipt(version = "40000000-0000-4000-8000-000000000004") {
   };
 }
 
-function fixture({ mainSha = headSha } = {}) {
+function fixture({ mainSha = headSha, workflowState = "active", missingRegisteredWorkflow = false, missingMainWorkflow = false } = {}) {
   const directory = mkdtempSync(join(tmpdir(), "omdala-team-ai-dispatch-"));
   const baselineRun = join(directory, "baseline-run.json");
   const baselineReceipt = join(directory, "baseline-receipt.json");
@@ -66,6 +66,10 @@ test "\${GH_TOKEN:-}" = "ghp_${"x".repeat(40)}"
 printf '%s\n' "$*" >> "${directory}/gh.log"
 if [[ "$1" == "api" && "$2" == "/repos/tranhatam-collab/AI.OMDALA.COM/git/ref/heads/main" ]]; then
   printf '{"object":{"sha":"${mainSha}"}}\n'
+elif [[ "$1" == "api" && "$2" == "/repos/tranhatam-collab/AI.OMDALA.COM/actions/workflows/omdala-staging-acceptance.yml" ]]; then
+  ${missingRegisteredWorkflow ? "exit 22" : `printf '%s\\n' '{"id":42,"name":"OMDALA protected staging AI acceptance","path":".github/workflows/omdala-staging-acceptance.yml","state":"${workflowState}"}'`}
+elif [[ "$1" == "api" && "$2" == "/repos/tranhatam-collab/AI.OMDALA.COM/contents/.github/workflows/omdala-staging-acceptance.yml?ref=main" ]]; then
+  ${missingMainWorkflow ? "exit 22" : `printf '%s\\n' '{"type":"file","path":".github/workflows/omdala-staging-acceptance.yml","sha":"${"e".repeat(40)}"}'`}
 elif [[ "$1" == "api" && "$2" == *"/runs?"* ]]; then
   count_file="${state}/list-count"
   count=0; [[ ! -f "$count_file" ]] || count="$(cat "$count_file")"
@@ -133,6 +137,42 @@ describe("post-deploy Team AI acceptance dispatch", () => {
     try {
       const result = execute(f);
       assert.notEqual(result.status, 0);
+      assert.doesNotMatch(readFileSync(join(f.directory, "gh.log"), "utf8"), /--method POST/);
+    } finally {
+      rmSync(f.directory, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses dispatch when Team AI workflow is absent from the default branch", () => {
+    const f = fixture({ missingRegisteredWorkflow: true });
+    try {
+      const result = execute(f);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stdout, /not registered on the default branch/);
+      assert.doesNotMatch(readFileSync(join(f.directory, "gh.log"), "utf8"), /--method POST/);
+    } finally {
+      rmSync(f.directory, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses dispatch when Team AI workflow is missing from main", () => {
+    const f = fixture({ missingMainWorkflow: true });
+    try {
+      const result = execute(f);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stdout, /missing from protected main/);
+      assert.doesNotMatch(readFileSync(join(f.directory, "gh.log"), "utf8"), /--method POST/);
+    } finally {
+      rmSync(f.directory, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses dispatch when Team AI workflow is not active", () => {
+    const f = fixture({ workflowState: "disabled_manually" });
+    try {
+      const result = execute(f);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stdout, /metadata does not match/);
       assert.doesNotMatch(readFileSync(join(f.directory, "gh.log"), "utf8"), /--method POST/);
     } finally {
       rmSync(f.directory, { recursive: true, force: true });

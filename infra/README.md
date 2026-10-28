@@ -157,15 +157,15 @@ Serve as sovereign backend for:
 
 ---
 
-## Estimated Cost (Revised)
+## Historical Cost Sketch — Revalidation Required
 
 | Layer | Item | Monthly |
 |-------|------|---------|
 | Edge | Cloudflare (existing — mostly within free/pro) | ~$0–20 |
 | Storage | R2 (primary) + Backblaze B2 (backup copy) | ~$5–15 |
-| Sovereign Core | Hetzner CX42 (PostgreSQL + Agent Worker) | €15–20 |
+| Staging core | DigitalOcean SGP1 pilot; capacity and billing receipt pending | TBD |
 | Secrets | Cloudflare Secrets Store + SOPS | $0 |
-| **Total** | | **€15–20 + $5–15 (~$25–40)** |
+| **Total** | | **TBD after provider readback and capacity test** |
 
 ---
 
@@ -185,16 +185,21 @@ cd omdala.com
 ```bash
 cd omdala.com/infra
 ./scripts/backup-now.sh
-./scripts/restore-test.sh  # MUST PASS
+# Restore gate HOLD: legacy restore-test.sh is disabled pending isolated scratch proof.
 ```
 
 ### Layer 2 — Agent Control Plane
 
+The legacy quick-start command is held until staging DB bootstrap, Docker host,
+secret scope, and isolated scratch restore are reviewed. After an authorized
+staging deployment, run this probe on the approved host:
+
 ```bash
-# After PostgreSQL is running and restore test passes
-docker compose up -d postgres valkey api-gateway worker
-./scripts/health-check.sh
+INFRA_ENVIRONMENT=staging INFRA_DOMAIN=staging.infra.omdala.com ./scripts/health-check.sh
 ```
+
+This local service probe does not establish protected deploy or end-to-end
+acceptance.
 
 ---
 

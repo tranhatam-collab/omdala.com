@@ -3,10 +3,21 @@
 
 services:
   caddy:
+    container_name: omdala-staging-caddy
     environment:
       - INFRA_DOMAIN=staging.infra.omdala.com
 
+  postgres:
+    container_name: omdala-staging-postgres
+
+  valkey:
+    container_name: omdala-staging-valkey
+
+  minio:
+    container_name: omdala-staging-minio
+
   api-gateway:
+    container_name: omdala-staging-api
     environment:
       - NODE_ENV=staging
       - PORT=3000
@@ -15,7 +26,18 @@ services:
       - RATE_LIMIT_WINDOW_MS=60000
 
   worker:
+    container_name: omdala-staging-worker
     environment:
       - NODE_ENV=staging
       - DATABASE_URL=postgresql://omdala_app:${POSTGRES_APP_PASSWORD}@postgres:5432/omdala_staging
       - WORKER_CONCURRENCY=3
+      - EMAIL_STAGING_SINK_ADDRESS=${EMAIL_STAGING_SINK_ADDRESS}
+
+  uptime-kuma:
+    container_name: omdala-staging-uptime
+
+  keycloak:
+    container_name: omdala-staging-keycloak
+
+  backup:
+    container_name: omdala-staging-backup

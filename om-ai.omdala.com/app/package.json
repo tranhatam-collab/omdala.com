@@ -36,6 +36,9 @@
     "node-forge": "file:vendor/node-forge"
   },
   "overrides": {
+    "@expo/cli": {
+      "zod": "4.6.6"
+    },
     "@istanbuljs/load-nyc-config": {
       "js-yaml": "4.3.2"
     },

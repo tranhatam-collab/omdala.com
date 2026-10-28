@@ -32,6 +32,6 @@
   "devDependencies": {
     "playwright": "^1.62.1",
     "prettier": "3.6.2",
-    "vite": "8.0.16"
+    "vite": "8.1.6"
   }
 }

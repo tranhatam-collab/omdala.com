@@ -4,6 +4,8 @@
 .PHONY: help up down restart logs ps health backup restore-test migrate seed clean
 
 COMPOSE_FILES := -f docker-compose.yml -f docker-compose.staging.yml
+STAGING_ENV_FILE ?= .env.staging
+STAGING_COMPOSE := docker compose --env-file $(STAGING_ENV_FILE) --project-name omdala-staging $(COMPOSE_FILES)
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -23,13 +25,13 @@ logs: ## Tail logs from all services
 ps: ## List running containers
 	docker compose ps
 
-health: ## Run health check script
+health: ## Read-only probe; requires INFRA_ENVIRONMENT and INFRA_DOMAIN
 	@./scripts/health-check.sh
 
 backup: ## Trigger manual backup
 	@./scripts/backup-now.sh
 
-restore-test: ## Run restore test (mandatory gate)
+restore-test: ## Legacy drill blocked until isolated scratch restore is reviewed
 	@./scripts/restore-test.sh
 
 migrate: ## Run database migrations
@@ -42,11 +44,14 @@ seed: ## Seed local development data
 	@docker compose exec postgres psql -U $$POSTGRES_APP_USER -d $$POSTGRES_DB -f /tmp/seed.sql
 
 staging-up: ## Start staging environment
-	cp .env.staging .env
-	docker compose $(COMPOSE_FILES) up -d --build
+	@node scripts/verify-staging-env.mjs $(STAGING_ENV_FILE)
+	@node scripts/verify-staging-db-bootstrap.mjs
+	@node scripts/verify-staging-edge-auth.mjs
+	$(STAGING_COMPOSE) up -d --build
 
 staging-down: ## Stop staging environment
-	docker compose $(COMPOSE_FILES) down
+	@node scripts/verify-staging-env.mjs $(STAGING_ENV_FILE)
+	$(STAGING_COMPOSE) down
 
 clean: ## Remove all containers, volumes, and images
 	docker compose down -v --rmi all

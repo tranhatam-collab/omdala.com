@@ -155,7 +155,11 @@ describe("staging static surface Worker authority", () => {
       "infra/staging/surfaces/static-worker.mjs",
       "utf8",
     );
-    assert.match(worker, /return env\.ASSETS\.fetch\(request\)/);
+    assert.match(worker, /await env\.ASSETS\.fetch\(request\)/);
+    assert.match(
+      worker,
+      /response\.headers\.set\("X-Robots-Tag", "noindex, nofollow"\)/,
+    );
     assert.doesNotMatch(worker, /fetch\s*\(\s*["'`]/);
   });
 });

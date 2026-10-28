@@ -17,10 +17,9 @@ cp .env.example .env
 # 2. Start all services (dev profile with hot-reload)
 docker compose up -d
 
-# 3. Verify health
-make health
-# or
-./scripts/health-check.sh
+# 3. Inspect local containers only. The health-check script requires an
+# explicit deployed staging/production identity and is not a local E2E receipt.
+docker compose ps
 
 # 4. Open services
 # API Gateway: http://localhost:3000/health
