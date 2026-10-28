@@ -3,6 +3,7 @@
 import { pickLanguageValue, resolveLanguage } from '@omdala/core'
 import { useLocationSearchParam } from '@omdala/ui'
 import { LocaleLink } from './components/LocaleLink'
+import { docsLanguageAlternates } from './lib/docs-seo'
 
 export default function DocsHomePage() {
   const language = resolveLanguage(useLocationSearchParam('lang'))
@@ -16,6 +17,10 @@ export default function DocsHomePage() {
 
   return (
     <main>
+      {/* Next metadata drops the query from the root alternate URL, so emit the links directly. */}
+      {Object.entries(docsLanguageAlternates('/')).map(([hrefLang, href]) => (
+        <link key={hrefLang} rel="alternate" hrefLang={hrefLang} href={href} />
+      ))}
       <h1>{pickLanguageValue(language, copy.title)}</h1>
       <p>{pickLanguageValue(language, copy.lead)}</p>
       <nav>

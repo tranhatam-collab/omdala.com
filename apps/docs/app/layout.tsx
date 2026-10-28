@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     template: '%s | OMDALA Docs',
   },
   description: 'Official documentation for OMDALA — platform guides, API reference, and system architecture.',
+  alternates: {
+    canonical: '/',
+  },
 }
 
 export default function DocsLayout({

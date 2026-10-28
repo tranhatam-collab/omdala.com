@@ -28,6 +28,8 @@
     "e2e:app": "pnpm --filter @omdala/app exec playwright test",
     "e2e:web": "pnpm --filter @omdala/app exec playwright test --config ../../apps/web/playwright.config.ts",
     "e2e:auth": "pnpm --filter @omdala/app exec playwright test --config ../../apps/auth/playwright.config.ts",
+    "e2e:docs": "pnpm --filter @omdala/app exec playwright test --config ../../apps/docs/playwright.config.ts",
+    "e2e:admin": "pnpm --filter @omdala/app exec playwright test --config ../../apps/admin/playwright.config.ts",
     "e2e:brand-exchange": "pnpm --filter @omdala/brand-marketplace run test:e2e",
     "e2e:staging": "pnpm --filter @omdala/app exec playwright test --config playwright.staging.config.ts",
     "e2e:production": "pnpm --filter @omdala/app exec playwright test --config playwright.production.config.ts",
