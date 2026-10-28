@@ -8,7 +8,7 @@
 
 ## 1. Cell vocabulary
 
-- **COVERED** a test at this SHA asserts the journey for that surface and environment. IDs resolve in section 5. COVERED says the test exists; section 3 says whether it passed when T4 ran it. A staging or production COVERED means the spec exists; T4 did not run it (needs protected environments and secrets, barred by the hard rules) so those are NOT_CHECKED for execution.
+- **COVERED** a test at this SHA asserts the journey for that surface and environment. IDs resolve in section 6. COVERED says the test exists; section 3 says whether it passed when T4 ran it. A staging or production COVERED means the spec exists; T4 did not run it (needs protected environments and secrets, barred by the hard rules) so those are NOT_CHECKED for execution.
 - **PARTIAL** something relevant exists; the text says what is missing.
 - **GAP** no test found. Source presence of a behaviour (for example a robots file) is not coverage.
 - **N/A** with a reason.
