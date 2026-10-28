@@ -58,3 +58,29 @@ Total executed: 45 passing tests, 0 failing. Direct backend remains fail-closed 
 3. Child safety: add a `child_profile`-style guard on session create so a child context cannot start a non-child-safe persona. Needs a verified signal; only a caller-declared guard is possible today (see WO-TAI-02 notes).
 4. Persona list/detail/favorite, memory profile validation, usage endpoint tests.
 5. Family/org controls, transcripts, export/delete: blocked on CTL-03; list only.
+
+## 5. WO-TAI-02 outcome (backend moderation, plan gating, child safety)
+
+Backend after WO-02: typecheck 0, **29 tests, 29 pass, 0 fail**, build 0, `node dist/e2e.js` runs (VERIFIED_WORKTREE_ONLY; new tests in `backend/src/live.safety.test.ts`, 10 added).
+
+Row changes versus §2 (the §2 text records the 2026-10-28 baseline before WO-02):
+
+| Row | Now | What changed |
+| --- | --- | --- |
+| 2 Personas | IMPLEMENTED+TESTED (filters, detail, favorite, 404). `premium_required` still unenforced; custom personas MISSING | tests added |
+| 6 Memory profile | IMPLEMENTED+TESTED | null/absent PATCH body no longer throws; `target_language` validated (non-empty, <= 40); fixed a bug where patching one field overwrote the others with `undefined`; `audience` cannot be set or cleared through PATCH |
+| 8 Metering | usage endpoint now tested; non-zero billable split still unreachable (sessions never go `active`) | unchanged otherwise |
+| 9 Plan gating | PARTIAL | `plan_context` from the request is ignored (plan comes from the stored subscription); `avatar_enabled` returns 403 `plan_upgrade_required` when the plan lacks avatar and 400 when the persona lacks it. Self-service `/plans/upgrade` remains open until a billing authority exists |
+| 10 Moderation | IMPLEMENTED+TESTED (local screen) | shared `live/moderation.ts`; English and Vietnamese self-harm signals; non-string, missing and oversized text return 400; session `goal` is screened (422 `content_requires_escalation`, no session created). Still a substring screen, not a classifier |
+| 11 Child safety | PARTIAL | `LiveMemoryProfile.audience: 'child'` is enforced at session create (403 `persona_not_child_safe` for non-child-safe personas). Nothing in a route can set it; `liveStore.setProfileAudience` exists for a future guardian path |
+
+Still MISSING, smallest safe implementation, and why it was not built here:
+
+| Rule | Smallest safe implementation | Blocker |
+| --- | --- | --- |
+| Guardian-set child profile and age band (row 11/12) | Family workspace record binding guardian to child `user_id`; guardian-only route calling `setProfileAudience` | Needs verified role and tenant from the auth bridge (Team 2) and a family/workspace model from CTL-03; a caller-declared age would be self-assertion |
+| Guardian controls: transcript visibility, quota, allowlist (row 12) | Per-profile policy object read at create/bootstrap | Same as above |
+| Org personas, admin approval, org quota (row 13) | `workspace_id` on session and usage keys; admin-approved persona list | Needs tenant model (CTL-03) and verified workspace claim |
+| Moderation of live transcript turns and escalation routing | Call `assessText` on each transcript segment before storage; route flagged segments to a wellness path | No transcript path exists (row 5); real classification belongs to the provider AI lane |
+| Server-side billing entitlement for `/plans/upgrade` | Remove self-service upgrade; read plan from the billing authority | Billing authority (Team 2) |
+| Enforce `premium_required` personas | Reject create when persona is premium and the plan has no premium entitlement | Plan definitions carry no premium flag; needs entitlement model |

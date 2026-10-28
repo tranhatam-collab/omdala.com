@@ -330,16 +330,27 @@ class LiveStore {
 
   async patchMemoryProfile(
     userId: string,
-    patch: Partial<Omit<LiveMemoryProfile, 'user_id' | 'updated_at'>>,
+    patch: Partial<Omit<LiveMemoryProfile, 'user_id' | 'updated_at' | 'audience'>>,
   ): Promise<LiveMemoryProfile> {
     await this.ensureLoaded();
     const current = await this.getMemoryProfile(userId);
+    const defined = Object.fromEntries(Object.entries(patch).filter(([key, value]) => value !== undefined && key !== 'audience'));
     const next: LiveMemoryProfile = {
       ...current,
-      ...patch,
+      ...defined,
       timezone: normalizeTimezone(patch.timezone ?? current.timezone),
       updated_at: nowIso(),
     };
+    this.state.memory_profiles = [...this.state.memory_profiles.filter((m) => m.user_id !== userId), next];
+    await this.persist();
+    return next;
+  }
+
+  /** Guardian/admin path only; deliberately not reachable from any route until a family model exists. */
+  async setProfileAudience(userId: string, audience: LiveMemoryProfile['audience']) {
+    await this.ensureLoaded();
+    const current = await this.getMemoryProfile(userId);
+    const next: LiveMemoryProfile = { ...current, audience, updated_at: nowIso() };
     this.state.memory_profiles = [...this.state.memory_profiles.filter((m) => m.user_id !== userId), next];
     await this.persist();
     return next;
@@ -383,7 +394,8 @@ class LiveStore {
   async createSession(input: CreateLiveSessionInput, options?: { idempotencyKey?: string }) {
     await this.ensureLoaded();
     const usage = await this.getUsageToday(input.user_id);
-    const plan = normalizePlanId(input.plan_context ?? usage.plan_id);
+    // Plan comes from the stored subscription only; request-supplied plan_context is ignored.
+    const plan = normalizePlanId(usage.plan_id);
     const idempotencyKey = normalizeIdempotencyKey(options?.idempotencyKey);
 
     if (idempotencyKey) {

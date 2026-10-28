@@ -71,6 +71,7 @@ export type LiveMemoryProfile = {
   timezone: string;
   target_language?: string;
   correction_style?: 'none' | 'gentle' | 'inline' | 'post_turn' | 'end_of_session';
+  audience?: 'child';
   updated_at: string;
 };
 

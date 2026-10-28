@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createOperationalTestApp as createApp } from './testSupport.js';
+import { createOperationalTestApp, createOperationalTestApp as createApp } from './testSupport.js';
 import { sanitizeLiveSessionRecords } from './live/store.js';
 
 test('persisted direct-provider routing is stripped and rehydrated as blocked authority state', () => {
@@ -116,7 +116,14 @@ test('live session creation exposes only the OMDALA authority and fails closed w
 });
 
 test('avatar requests cannot select a direct provider', async () => {
-  const app = createApp();
+  const app = createOperationalTestApp({ userId: 'test_user_live_provider_business', role: 'owner' });
+
+  const upgraded = await app.inject({
+    method: 'POST',
+    url: '/v2/live/plans/upgrade',
+    payload: { plan_id: 'business' },
+  });
+  assert.equal(upgraded.statusCode, 200);
 
   const created = await app.inject({
     method: 'POST',
