@@ -1,6 +1,6 @@
 # DEV LEDGER - OMDALA continuous development
 
-AUTOMATION: ACTIVE
+AUTOMATION: PAUSED
 
 Updated 2026-10-28. Canonical plan:
 [OMDALA_CONTINUOUS_DEV_PLAN_2026.md](./OMDALA_CONTINUOUS_DEV_PLAN_2026.md).
@@ -98,19 +98,21 @@ Staging E2E **OPEN**. Production **HOLD**. AUTOMATION remains **PAUSED**.
 | Prep-ahead (plan 8.4) | APPROVED with `PREP_UNDER_ASSUMPTION` labels |
 | T1 executor | Local VS Code agent keeps T1; T0 writes T1 orders here for the owner to relay |
 | Coordinator routine | `trig_011XrmiQupK2SLA2VdfwrPqX`, enabled, cron `20 * * * *` (anchored by the server), fires into the T0 session; first run 2026-10-28T17:20Z |
-| AUTOMATION flag | ACTIVE |
+| AUTOMATION flag | PAUSED 2026-10-29T03:2xZ by T0 under the two-failed-ticks rule |
+| Pause cause | `send_message` to team sessions requires owner approval in this session. Unattended ticks 17:20Z..03:20Z could not dispatch (one attempt at 01:20Z stayed pending until the worker restarted); teams idle since 16:35Z after finishing the first wave |
+| To resume | Owner either (a) approves `send_message` for this session with "always allow", or (b) approves giving each team its own trigger that reads its orders from ledger section 7, so dispatch needs no message. Then set ACTIVE |
 | Leases | Root `package.json` scripts: T3 during WO-T3-01/02 (no dependency or lockfile change) |
 
 ## 6. Team roster
 
 | Team | Executor | Branch | Session | State |
 |---|---|---|---|---|
-| T0 Coordinator | Claude cloud, claude-opus-5-5 | `claude/omdala-coordination` | `session_011NjrMT2mFGRNNyxofbXcPX` | ACTIVE, hourly routine |
+| T0 Coordinator | Claude cloud, claude-opus-5-5 | `claude/omdala-coordination` | `session_011NjrMT2mFGRNNyxofbXcPX` | PAUSED: cannot dispatch without approval |
 | T1 Infra and Release | Local VS Code agent | `OMCODE/infra-e2e-auto-20261026` | owner-run | Scheduler disabled; eight waiting sessions for the owner to close |
-| T2 Core API/Data/Auth/Billing | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t2-core` | `session_015zwouVg9EARRhsEXRQVfcw` | DISPATCHED WO-T2-01..03 at creation |
-| T3 Web/UI/Docs | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t3-web` | `session_015zwouUz4xi7CAwpcUoh5ie` | DISPATCHED WO-T3-01..02 at creation |
-| TAI Om AI/Provider/Mobile source | Claude cloud, claude-sonnet-5-5 | `claude/omdala-tai-omai` | `session_015zwouXH3y3GrPfyv8ypTFL` | DISPATCHED WO-TAI-01..02 at creation |
-| T4 Independent QA | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t4-qa` | `session_015zwouVJHpogx5cfV4N5fyf` | DISPATCHED WO-T4-01..02 at creation |
+| T2 Core API/Data/Auth/Billing | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t2-core` | `session_015zwouVg9EARRhsEXRQVfcw` | DONE first wave 16:33Z; idle, next order WO-T2-04 waiting |
+| T3 Web/UI/Docs | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t3-web` | `session_015zwouUz4xi7CAwpcUoh5ie` | DONE first wave 16:35Z; idle, next order WO-T3-03 waiting |
+| TAI Om AI/Provider/Mobile source | Claude cloud, claude-sonnet-5-5 | `claude/omdala-tai-omai` | `session_015zwouXH3y3GrPfyv8ypTFL` | DONE first wave 16:24Z; idle, next order WO-TAI-03 waiting |
+| T4 Independent QA | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t4-qa` | `session_015zwouVJHpogx5cfV4N5fyf` | DONE first wave 16:31Z; idle, next order WO-T4-03 waiting |
 
 ## 7. Dispatch board
 
@@ -122,17 +124,24 @@ FAILED, WAITING. Nothing is dispatched before activation.
 | WO-T0-01 | T0 | QUEUED | | | 2026-10-28 |
 | WO-T0-02 | T0 | QUEUED | | | 2026-10-28 |
 | WO-T0-03 | T0 | QUEUED | | | 2026-10-28 |
-| WO-T4-01 | T4 | DISPATCHED | base 7abd962 | | 2026-10-28 |
-| WO-T4-02 | T4 | DISPATCHED | base 7abd962 | | 2026-10-28 |
-| WO-T3-01 | T3 | DISPATCHED | base 7abd962 | | 2026-10-28 |
-| WO-T3-02 | T3 | DISPATCHED | base 7abd962 | | 2026-10-28 |
-| WO-T2-01 | T2 | DISPATCHED | base 7abd962 | | 2026-10-28 |
-| WO-T2-02 | T2 | DISPATCHED | base 7abd962 | | 2026-10-28 |
-| WO-TAI-01 | TAI | DISPATCHED | base 7abd962 | | 2026-10-28 |
-| WO-TAI-02 | TAI | DISPATCHED | base 7abd962 | | 2026-10-28 |
-| WO-T2-03 | T2 | DISPATCHED | base 7abd962 | | 2026-10-28 |
+| WO-T4-01 | T4 | DONE | c074189 | VERIFIED_HEAD_ONLY (team-reported) | 2026-10-28 |
+| WO-T4-02 | T4 | DONE | 96afdd5 | VERIFIED_HEAD_ONLY (team-reported) | 2026-10-28 |
+| WO-T3-01 | T3 | DONE, awaiting T4 verification | dd12483 | VERIFIED_WORKTREE_ONLY (team-reported; one unpushed test edit) | 2026-10-28 |
+| WO-T3-02 | T3 | DONE, awaiting T4 verification | a7466fd | VERIFIED_WORKTREE_ONLY (team-reported; one unpushed test edit) | 2026-10-28 |
+| WO-T2-01 | T2 | DONE, awaiting T4 verification | 64c581d | VERIFIED_WORKTREE_ONLY (team-reported) | 2026-10-28 |
+| WO-T2-02 | T2 | DONE, awaiting T4 verification | 6114316 | VERIFIED_WORKTREE_ONLY (team-reported) | 2026-10-28 |
+| WO-TAI-01 | TAI | DONE, awaiting T4 verification | 516e130 | VERIFIED_WORKTREE_ONLY (team-reported) | 2026-10-28 |
+| WO-TAI-02 | TAI | DONE, awaiting T4 verification | 13d6f19 | VERIFIED_WORKTREE_ONLY (team-reported) | 2026-10-28 |
+| WO-T2-03 | T2 | DONE, awaiting T4 verification | 163c280 | VERIFIED_WORKTREE_ONLY (team-reported) | 2026-10-28 |
 | WO-T1-01 | T1 | QUEUED (owner relays; CI triggers for team branches) | | | 2026-10-28 |
 | WO-T1-02 | T1 | QUEUED (owner relays) | | | 2026-10-28 |
+| WO-T4-03 | T4 | WAITING (send_message needs owner approval) | verify T2 163c280, T3 head, TAI 13d6f19 | | 2026-10-28T18:2xZ (not delivered) |
+| WO-T3-03 | T3 | WAITING (send_message needs owner approval) | push pending edit; R-01, R-07/10/13, R-08/09, R-21, R-28 | | 2026-10-28T18:2xZ (not delivered) |
+| WO-T3-04 | T3 | QUEUED after T3-03 | R-12 docs server-rendered EN/VI | | 2026-10-28T18:2xZ (not delivered) |
+| WO-T2-04 | T2 | WAITING (send_message needs owner approval) | R-03 TLS default, real-SQL auth tests, R-26, R-19, stray file | | 2026-10-28T18:2xZ (not delivered) |
+| WO-TAI-03 | TAI | WAITING (send_message needs owner approval) | close /plans/upgrade self-escalation | | 2026-10-28T18:2xZ (not delivered) |
+| WO-TAI-04 | TAI | QUEUED after TAI-03 | MOB-02 reproducible mobile toolchain report | | 2026-10-28T18:2xZ (not delivered) |
+| WO-T1-03 | T1 | QUEUED (owner relays) | CI: postgres service + OMDALA_TEST_DATABASE_URL; jobs e2e:auth/docs/admin; .gitignore apps/*/test-results; desktop test hardcodes /bin/zsh | | 2026-10-28 |
 
 ## 8. Coordinator run log (keep last 20)
 
@@ -140,3 +149,5 @@ FAILED, WAITING. Nothing is dispatched before activation.
 |---|---|---|---|
 | 2026-10-28 | PLAN | Version 3 plan and ledger sections 5-8 written on `claude/omdala-coordination` from 7abd962 | Activation approved |
 | 2026-10-28T16:20Z | ACTIVATE | Created T2/T3/TAI/T4 sessions with first orders; created coordinator routine `trig_011XrmiQupK2SLA2VdfwrPqX`; told T4 to retarget an auto-created PR from main | Teams starting |
+| 2026-10-28T17:20Z..2026-10-29T02:20Z | 10 ticks | Observed all four teams DONE with draft PRs #16-#19 (base correct); recorded results; dispatch not delivered (worker restarts, then send_message approval pending) | FAILED |
+| 2026-10-29T03:2xZ | PAUSE | Set PAUSED per two-failed-ticks rule; recorded cause and resume options | Waiting for owner |
