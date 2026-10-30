@@ -18,6 +18,14 @@
 //   development           ENVIRONMENT=development. Magic links and sessions are
 //                         in memory (lost on restart).
 //
+// Options:
+//   --public-origins=staging   (development profile only) treat the three staging
+//                              public origins as this stack's own web, app and auth
+//                              origins, so a browser whose requests for those hosts
+//                              are forwarded to loopback gets CORS answers (with
+//                              credentials) and login links that point at them.
+//                              Configuration only: no API code path changes.
+//
 // Mail in both profiles goes to a loopback stub sink, never to a provider; read
 // it at the printed "mail inbox" URL. The mail and provider-credential bindings
 // are pinned on the command line, which outranks wrangler.toml [vars] and any
@@ -52,6 +60,21 @@ if (!["persistent", "development"].includes(profile)) {
   process.exit(1);
 }
 const persistent = profile === "persistent";
+const publicOrigins =
+  process.argv.find((arg) => arg.startsWith("--public-origins="))?.split("=")[1] ?? "loopback";
+if (!["loopback", "staging"].includes(publicOrigins)) {
+  console.error(`local-stack: unknown --public-origins "${publicOrigins}" (use loopback or staging)`);
+  process.exit(1);
+}
+if (publicOrigins === "staging" && persistent) {
+  console.error("local-stack: --public-origins=staging is for --profile=development only");
+  process.exit(1);
+}
+const STAGING_PUBLIC_ORIGINS = {
+  web: "https://staging.omdala.com",
+  app: "https://app-staging.omdala.com",
+  auth: "https://auth-staging.omdala.com",
+};
 const SINK_ADDRESS = "local-sink@example.test";
 const SEED_EMAIL = "local-dev@example.test";
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
@@ -109,6 +132,7 @@ let scratch;
 let wrangler;
 let proxy;
 let mailSink;
+let resetRateLimits = null; // set once the worker is up (development profile)
 const mailInbox = [];
 const proxySockets = new Set();
 let workDir;
@@ -198,6 +222,24 @@ function startMailSink() {
         res.end(JSON.stringify(mailInbox));
         return;
       }
+      if (req.method === "DELETE" && req.url === "/__inbox") {
+        mailInbox.length = 0;
+        res.writeHead(204).end();
+        return;
+      }
+      if (req.method === "POST" && req.url === "/__reset-rate-limits") {
+        // Development profile only: the API route behind it answers 404 elsewhere.
+        if (persistent || !resetRateLimits) {
+          res.writeHead(409, { "content-type": "application/json" });
+          res.end('{"error":"rate limit reset is available in the development profile only"}');
+          return;
+        }
+        resetRateLimits().then(
+          () => res.writeHead(200, { "content-type": "application/json" }).end('{"reset":true}'),
+          () => res.writeHead(502, { "content-type": "application/json" }).end('{"reset":false}'),
+        );
+        return;
+      }
       if (req.method === "POST" && req.url === "/emails") {
         const chunks = [];
         req.on("data", (chunk) => chunks.push(chunk));
@@ -269,7 +311,7 @@ async function expectProfile(baseUrl, cookies, label) {
   }
 }
 
-async function smoke(baseUrl, restartWorker) {
+async function smoke(baseUrl, restartWorker, { mailUrl }) {
   const health = await fetch(`${baseUrl}/health`);
   if (health.status !== 200) throw new Error(`GET /health answered ${health.status}`);
   const healthBody = await health.json();
@@ -327,12 +369,63 @@ async function smoke(baseUrl, restartWorker) {
     if (ran.status !== 200 || runs.data?.pagination?.total !== 1 || stored.rows[0].scenes < 1 || stored.rows[0].runs !== 1) {
       throw new Error(`scenes/runs were not persisted in PostgreSQL (run ${ran.status}, ${JSON.stringify(stored.rows[0])})`);
     }
+    // With the staging public origins, the login link must point at the staging auth origin.
+    if (publicOrigins === "staging" && !JSON.stringify(mailInbox).includes(`${STAGING_PUBLIC_ORIGINS.auth}/login?token=`)) {
+      throw new Error("the login link does not point at the staging auth origin");
+    }
+
+    // Journey support: the magic-link limit can be cleared without a restart, and the
+    // inbox can be emptied between runs.
+    const limited = `limited-${randomBytes(4).toString("hex")}@example.test`;
+    const requestLink = () => jsonPost(`${baseUrl}/v1/auth/magic-link/request`, { email: limited, redirectTo: "/dashboard" });
+    const statuses = [];
+    for (let i = 0; i < 6; i++) statuses.push((await requestLink()).status);
+    if (statuses[5] !== 429) throw new Error(`expected the sixth magic-link request to be limited, got ${statuses}`);
+    const reset = await fetch(`${mailUrl}/__reset-rate-limits`, { method: "POST" });
+    if (reset.status !== 200) throw new Error(`rate limit reset answered ${reset.status}`);
+    if ((await requestLink()).status === 429) throw new Error("the limit was still active after the reset");
+    const cleared = await fetch(`${mailUrl}/__inbox`, { method: "DELETE" });
+    if (cleared.status !== 204 || mailInbox.length !== 0) throw new Error("the inbox was not emptied");
+
+    // CORS for the staging public origins, only when this stack was told to use them.
+    let corsNote = "";
+    if (publicOrigins === "staging") {
+      const preflight = (origin) =>
+        fetch(`${baseUrl}/v1/auth/session`, {
+          method: "OPTIONS",
+          headers: { origin, "access-control-request-method": "GET", "access-control-request-headers": "content-type" },
+        });
+      for (const origin of Object.values(STAGING_PUBLIC_ORIGINS)) {
+        const response = await preflight(origin);
+        if (response.headers.get("access-control-allow-origin") !== origin ||
+            response.headers.get("access-control-allow-credentials") !== "true") {
+          throw new Error(`no credentialed CORS answer for ${origin}`);
+        }
+      }
+      for (const origin of ["https://evil.example", "https://app.omdala.com"]) {
+        if ((await preflight(origin)).headers.get("access-control-allow-origin")) {
+          throw new Error(`CORS allowed ${origin}`);
+        }
+      }
+      corsNote = "; login link on the staging auth origin; CORS answers for the three staging origins only";
+    } else if ((await fetch(`${baseUrl}/v1/auth/session`, {
+      method: "OPTIONS",
+      headers: { origin: STAGING_PUBLIC_ORIGINS.app, "access-control-request-method": "GET" },
+    })).headers.get("access-control-allow-origin")) {
+      throw new Error("the default stack must not allow the staging origins");
+    }
+
     console.log(
       "local-stack smoke [development]: /health 200; magic-link request 201 (stub mail sink); " +
-        "session exchange 200; seeded profile read back from PostgreSQL; scenes and runs persisted in PostgreSQL",
+        "session exchange 200; seeded profile read back from PostgreSQL; scenes and runs persisted in PostgreSQL; " +
+        `rate limit reset and inbox clear work${corsNote}`,
     );
     return;
   }
+
+  // The reset is a development-profile feature: the sink refuses it here.
+  const refused = await fetch(`${mailUrl}/__reset-rate-limits`, { method: "POST" });
+  if (refused.status !== 409) throw new Error(`persistent profile reset answered ${refused.status}, expected 409`);
 
   // Persistent auth: the link is consumed and the session exists in PostgreSQL ...
   const link = await scratch.query(
@@ -421,12 +514,13 @@ async function main() {
   mailSink = await startMailSink();
   const mailUrl = `http://127.0.0.1:${mailSink.address().port}`;
   const mailKey = randomBytes(24).toString("hex"); // only the loopback stub ever sees it
+  const e2eSecret = randomBytes(32).toString("hex");
   const envFile = join(workDir, "stack.env");
   writeFileSync(
     envFile,
     [
       `MAGIC_LINK_SECRET=${randomBytes(32).toString("hex")}`,
-      `E2E_TEST_SECRET=${randomBytes(32).toString("hex")}`,
+      `E2E_TEST_SECRET=${e2eSecret}`,
       `DATABASE_URL=${workerDbUrl.toString()}`,
       "",
     ].join("\n"),
@@ -440,6 +534,10 @@ async function main() {
   // Command-line --var outranks wrangler.toml [vars] and .dev.vars/.env, so these hold
   // whatever the checkout says. Empty values blank credentials a developer may keep
   // in a local .dev.vars: this stack must never make a real provider call.
+  const origins =
+    publicOrigins === "staging"
+      ? STAGING_PUBLIC_ORIGINS
+      : { web: baseUrl, app: baseUrl, auth: baseUrl };
   const profileVars = [
     "--var", `ENVIRONMENT:${persistent ? "staging" : "development"}`,
     "--var", "MAIL_DELIVERY_MODE:sink",
@@ -462,9 +560,9 @@ async function main() {
         "--ip", "127.0.0.1", "--port", String(port),
         "--env-file", envFile,
         ...profileVars,
-        "--var", `APP_BASE_URL:${baseUrl}`,
-        "--var", `AUTH_BASE_URL:${baseUrl}`,
-        "--var", `WEB_BASE_URL:${baseUrl}`,
+        "--var", `APP_BASE_URL:${origins.app}`,
+        "--var", `AUTH_BASE_URL:${origins.auth}`,
+        "--var", `WEB_BASE_URL:${origins.web}`,
         "--persist-to", join(workDir, "state"),
       ],
       {
@@ -499,14 +597,28 @@ async function main() {
 
   startWorker();
   await waitForHealth(baseUrl);
+  if (!persistent) {
+    resetRateLimits = async () => {
+      const response = await fetch(`${baseUrl}/v1/_dev/reset-rate-limits`, {
+        method: "POST",
+        headers: { "x-e2e-test-secret": e2eSecret },
+      });
+      if (!response.ok) throw new Error(`rate limit reset answered ${response.status}`);
+    };
+  }
 
   if (smokeMode) {
-    await smoke(baseUrl, restartWorker);
+    await smoke(baseUrl, restartWorker, { mailUrl });
     return;
   }
 
   console.log(`local-stack: API ready at ${baseUrl} (profile: ${profile})`);
   console.log(`local-stack: mail inbox at ${mailUrl}/__inbox (stub sink, loopback only)`);
+  console.log(`local-stack: clear the inbox with DELETE ${mailUrl}/__inbox`);
+  if (!persistent) console.log(`local-stack: reset the magic-link rate limit with POST ${mailUrl}/__reset-rate-limits`);
+  if (publicOrigins === "staging") {
+    console.log(`local-stack: web, app and auth origins are the staging public origins (${Object.values(STAGING_PUBLIC_ORIGINS).join(", ")})`);
+  }
   console.log(`local-stack: seeded account ${SEED_EMAIL}; scratch database ${dbName} (dropped on exit)`);
   console.log("local-stack: press Ctrl+C to stop");
   await new Promise(() => undefined); // run until a signal arrives

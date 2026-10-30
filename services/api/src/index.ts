@@ -2810,6 +2810,25 @@ app.post("/v1/auth/access-request", async (c) => {
   }
 });
 
+// Development only: lets a local browser journey start from a clean rate limiter
+// without restarting the worker. Every other environment (production, staging, test,
+// unset) answers exactly like an unknown path, whatever credential is sent.
+app.post("/v1/_dev/reset-rate-limits", async (c) => {
+  if (c.env.ENVIRONMENT !== "development") return c.notFound();
+
+  const expectedSecret = c.env.E2E_TEST_SECRET?.trim() ?? "";
+  if (expectedSecret.length < 32) {
+    return jsonError(c, 503, "dev_reset_not_configured", "Local reset is not configured.");
+  }
+  const providedSecret = c.req.header("x-e2e-test-secret")?.trim() ?? "";
+  if (!providedSecret || !(await secureStringEqual(providedSecret, expectedSecret))) {
+    return jsonError(c, 401, "invalid_dev_secret", "Invalid credential.");
+  }
+
+  rateLimiter.clear();
+  return jsonOk(c, { reset: true });
+});
+
 app.post("/v1/_e2e/magic-link", async (c) => {
   if (c.env.ENVIRONMENT !== "staging") {
     return jsonError(c, 404, "not_found", "Not found.");

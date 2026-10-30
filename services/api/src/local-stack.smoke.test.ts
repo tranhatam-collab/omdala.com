@@ -63,6 +63,16 @@ describe("local stack refusals", () => {
     expect(result.stderr).toContain("unknown profile");
   });
 
+  it("accepts --public-origins only with the development profile, and only known values", async () => {
+    const base = { OMDALA_LOCAL_PG_URL: "postgresql://u@127.0.0.1:5432/postgres" };
+    const persistent = await stack(["--smoke", "--public-origins=staging"], base);
+    expect(persistent.code).toBe(1);
+    expect(persistent.stderr).toContain("--profile=development only");
+    const unknown = await stack(["--smoke", "--profile=development", "--public-origins=production"], base);
+    expect(unknown.code).toBe(1);
+    expect(unknown.stderr).toContain("unknown --public-origins");
+  });
+
   it("refuses an invalid URL", async () => {
     const result = await stack(["--smoke"], { OMDALA_LOCAL_PG_URL: "not a url" });
     expect(result.code).toBe(1);
@@ -85,6 +95,15 @@ describe.skipIf(!process.env.OMDALA_TEST_DATABASE_URL || !haveOpenssl())(
       expect(result.stdout).toContain("session valid after worker restart");
       expect(result.stdout).toContain("replayed link refused");
     }, 200_000);
+
+    it("development profile with the staging public origins: CORS, login link, rate limit reset, inbox clear", async () => {
+      const result = await stack(["--smoke", "--profile=development", "--public-origins=staging"], env());
+      expect(result.stderr + result.stdout).not.toMatch(/local-stack: (?!smoke)/);
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain("rate limit reset and inbox clear work");
+      expect(result.stdout).toContain("login link on the staging auth origin");
+      expect(result.stdout).toContain("CORS answers for the three staging origins only");
+    }, 160_000);
 
     it("development profile: in-memory auth, stub mail sink, seeded profile and persisted scenes", async () => {
       const result = await stack(["--smoke", "--profile=development"], env());

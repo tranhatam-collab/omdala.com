@@ -259,6 +259,10 @@ export class RateLimiter {
     this.store.delete(key);
   }
 
+  clear(): void {
+    this.store.clear();
+  }
+
   getState(key: string): RateLimitState | undefined {
     return this.store.get(key);
   }
