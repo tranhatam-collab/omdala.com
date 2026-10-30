@@ -267,7 +267,7 @@ T1 stays with the local VS Code agent.
 
 | Item | Proposal |
 |---|---|
-| Scheduler | One routine, "OMDALA coordinator", firing hourly into the T0 session. Teams have no triggers of their own; T0 wakes them with messages only when it has an order |
+| Scheduler | Version 4 (2026-10-30, section 8.6): one trigger per cloud team plus the T0 coordinator trigger. Teams pull orders from ledger section 7; T0 no longer sends messages |
 | Branches | Section 7 only. Never `main`, `feat/*`, `OMCODE/*` (T1 alone writes its branch), never PR #10's head |
 | Allowed paths | Section 7 |
 | Cadence | T0 hourly; each team holds at most one order at a time; at most four cloud teams running concurrently |
@@ -319,8 +319,8 @@ T1 stays with the local VS Code agent.
   its inputs changed (new SHA, new decision, failed verification). Re-running an
   unchanged green suite is not work.
 - Idle is allowed only after all of the above, with the reason recorded.
-- Adapt: T0 changes order content, team assignment and concurrency every tick.
-  Changing the routine's own schedule needs owner approval of the update.
+- Adapt: T0 changes order content, team assignment and concurrency every tick,
+  and changes trigger cadence under ledger section 5.1 (approved 2026-10-30).
 
 ### 8.5 Budget and safety controls
 
@@ -328,6 +328,22 @@ At most four concurrent cloud teams; one order per team; about 60 minutes per
 order; T0 lowers concurrency when the five-hour usage window reports pressure.
 Two failed cycles of one team pause that team; two failed T0 ticks pause
 everything. Stopping follows the two-part rule in section 5.
+
+### 8.6 Version 4: pull model (2026-10-30)
+
+Version 3 pushed orders with `send_message`, which needs owner approval for each
+message; approvals were lost on worker restarts and the teams sat idle while the
+coordinator fired empty ticks. In version 4:
+
+- Each cloud team has its own hourly trigger. A turn reads the ledger flag, takes
+  READY orders of its team from ledger section 7 (specs in 7.1), then its standing
+  backlog (7.2), and works for up to about 90 minutes. Each team also owns
+  `docs/06-strategy/reports/<TEAM>/**` on its branch for its reports.
+- T0 harvests reports from the team branches, marks orders, keeps every queue at
+  two or more READY orders, routes T4 verification, and does its own orders.
+- Cadence adapts under ledger section 5.1: idle or blocked teams have their
+  trigger disabled until new work exists, and T0 slows itself when nothing moves.
+- `AUTOMATION: PAUSED` in the ledger still stops every trigger at its first step.
 
 ## 9. E2E-to-release sequence
 
