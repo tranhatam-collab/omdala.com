@@ -196,19 +196,26 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-T2-13 local persistent auth | T2 | DONE, awaiting T4 | b857bbd | 2026-10-30 |
 | WO-T2-14 scenes and runs persisted | T2 | PARTIAL: migration 0004 sits in `infra/postgres/migrations/proposed/` until T1 promotes it (WO-T1-06) | e464a40 | 2026-10-30 |
 | WO-T3-11 web `/vi` lang, sitemap, docs 404 | T3 | DONE, awaiting T4 | e9a29cd | 2026-10-30 |
-| WO-T3-12 | T3 | READY | | 2026-10-30 |
+| WO-T3-12 auth to app journey on a real local API | T3 | DONE, awaiting T4; found and fixed a HIGH defect: app and auth bundles always used the production API origin (optional-chained `process?.env` is not inlined), so a staging build talked to `api.omdala.com` | 5190ac8 | 2026-10-30 |
 | WO-T3-13 app switcher styling | T3 | DONE, awaiting T4 | 1821553 | 2026-10-30 |
 | WO-TAI-06 hermetic web live-card E2E | TAI | DONE, awaiting T4 | fc41625, 5c8871b | 2026-10-30 |
 | WO-TAI-07 moderation normalization | TAI | DONE, awaiting T4 | 5c7a79a | 2026-10-30 |
 | WO-TAI-08 gateway negatives | TAI | PARTIAL: the gateway has no HTTP surface; command, registry and router negatives done | c79c3cb | 2026-10-30 |
 | WO-T4-09 local-stack safety review | T4 | DONE: 4 findings, fix is WO-T2-15 | 5a0647d | 2026-10-30 |
 | WO-T4-10 | T4 | READY | | 2026-10-30 |
-| WO-T2-15 | T2 | READY | | 2026-10-30 |
-| WO-T2-16 | T2 | READY | | 2026-10-30 |
-| WO-T3-14 | T3 | READY | | 2026-10-30 |
-| WO-TAI-09 | TAI | READY | | 2026-10-30 |
-| WO-TAI-10 | TAI | READY | | 2026-10-30 |
+| WO-T2-15 local-stack hardening | T2 | DONE, awaiting T4 | acdcfc4 | 2026-10-30 |
+| WO-T2-16 /v1 tenant isolation | T2 | DONE, awaiting T4; 3 defects fixed: colliding default workspace ids, `analytics/track` wrote to a workspace the caller does not own, service-token mint did not require a session | 2c48d55 | 2026-10-30 |
+| WO-T3-14 bilingual web 404 | T3 | DONE, awaiting T4 | 8c1e3b9 | 2026-10-30 |
+| WO-TAI-09 moderation wording | TAI | DONE; two claims outside TAI paths routed as WO-T1-08 | e8c5a67 | 2026-10-30 |
+| WO-TAI-10 contract against code | TAI | DONE: five envelope and status divergences; T0 decision in WO-TAI-11 | cde0132 | 2026-10-30 |
 | WO-T4-11 | T4 | READY | | 2026-10-30 |
+| WO-T4-12 | T4 | READY | | 2026-10-30 |
+| WO-T2-17 | T2 | READY | | 2026-10-30 |
+| WO-T2-18 | T2 | READY | | 2026-10-30 |
+| WO-T2-19 | T2 | READY | | 2026-10-30 |
+| WO-T3-15 | T3 | READY | | 2026-10-30 |
+| WO-TAI-11 | TAI | READY | | 2026-10-30 |
+| WO-TAI-12 | TAI | QUEUED until WO-T2-17 lands | | 2026-10-30 |
 | WO-T0-01 | T0 | QUEUED | | 2026-10-28 |
 | WO-T0-02 | T0 | QUEUED | | 2026-10-28 |
 | WO-T0-03 | T0 | QUEUED | | 2026-10-28 |
@@ -218,6 +225,8 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-T1-04 | T1 | QUEUED, owner relays | CI: run `npm test` in the "OM AI Web Typecheck and Build" job (7 tests); add a `services/ai` job running `node --test tests/*.test.ts` (Node 22.18+); add `test:seo` (T3, 6 tests); in the Om AI web job also `npm run test:e2e` with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` or a Chromium install step (TAI, 6 specs) | 2026-10-30 |
 | WO-T1-05 | T1 | QUEUED, owner relays | Config review: staging and production never carry `ENVIRONMENT=local/development/test` (the TLS opt-out depends on it); `OMDALA_ADMIN_PREVIEW=1` only on preview builds; Hyperdrive origin TLS mode set to verify the certificate; optional edge redirect for old docs `?lang=vi` links | 2026-10-30 |
 | WO-T1-06 | T1 | QUEUED, owner relays | Promote T2's migration 0004 (scenes, runs): `git mv` it from `infra/postgres/migrations/proposed/` up one level, add its entry to `compatibility.json`, and update the three-migration expectations in `scripts/verify-migration-compatibility.test.mjs`; exact steps and sha256 in `reports/T2/WO-T2-14.md` on the T2 branch | 2026-10-30 |
+| WO-T1-07 | T1 | QUEUED, owner relays, **priority** | T3 found that app and auth bundles built before `5190ac8` always call the production API (`api.omdala.com`), even in a staging build. Check every staging deploy and staging go-live run for this, and treat earlier staging results that touched the API as invalid | 2026-10-30 |
+| WO-T1-08 | T1 | QUEUED, owner relays | Wording: `docs/VERIFIED_PROGRESS_2026-04-29.md` lines 48 and 61 and `docs/OMDALA_MASTER_EXECUTION_PLAN_2026-04-27.md` line 208 count the Om AI keyword screen as moderation or safety coverage; point them at `om-ai.omdala.com/docs/OMAI_MODERATION_SCOPE.md` | 2026-10-30 |
 
 ### 7.1 Order specs
 
@@ -388,6 +397,45 @@ each implemented endpoint that has none.
 table set each time; recompute the sha256 that T2 gives for T1's
 `compatibility.json` entry; run the expand-only verifier on 0004.
 
+**WO-T2-17 (unblocks TAI).** Lease: new file
+`docs/contracts/OMAI_SESSION_BRIDGE_CONTRACT_DRAFT.md` only. Draft the contract Om
+AI consumes for OMDALA sessions: how a session or token is presented, the claims
+and scopes actually issued by `services/api` today (trace each to code), route
+allowlist, tenant and workspace binding, expiry, revocation and replay behaviour,
+and error codes. Mark it PROPOSED and label
+`PREP_UNDER_ASSUMPTION(CTL-03, PostgreSQL)`. No code change unless a claim the
+draft needs is missing, which is then a finding.
+
+**WO-T2-18.** WO-T3-12 findings for `local:stack`: answer CORS for the staging
+public origins when they are forwarded to loopback (development profile only), and
+add a development-only way to reset the magic-link rate limit between journey runs.
+Neither may change staging or production behaviour; tests prove it.
+
+**WO-T2-19 (matrix gap 8, API side).** Find whether a per-tenant AI cost or usage cap
+exists on the chat path. If it does, test exhaustion end to end at the API with a
+stable error code and status. If it does not, report the gap with a proposed design
+(where the counter lives, which code, which status); do not build it in this order.
+
+**WO-T3-15.** Accessibility checks without new dependencies: Playwright specs over
+the built web, docs and auth pages (EN and VI) and the app dashboard for one `h1`,
+heading order, landmarks, alt text, form labels, visible focus and `lang`, using
+the accessibility tree and DOM queries. Fix what fails inside T3 paths.
+
+**WO-TAI-11.** T0 decision on WO-TAI-10: before release, the code is the source of
+truth. Update `AI_OM_LIVE_API_CONTRACT_V1.md` and `AI_OM_API_CONTRACT_V1.md` to the
+implemented envelope `{data, error, meta}` and status values, settle the recap path
+on the implemented one, and add a short change note at the top of each document.
+Keep the contract tests from WO-TAI-10 green.
+
+**WO-TAI-12 (after WO-T2-17).** Consumer-side contract tests in Om AI for the session
+bridge draft: accepted claims, wrong tenant or workspace, expired, revoked and
+replayed tokens, unknown routes.
+
+**WO-T4-12 (priority).** Independently confirm T3's API-origin finding: build
+`apps/app` and `apps/auth` with staging environment values at `1821553^` (before
+the fix, 5190ac8's parent) and at the T3 head, and show which API origin each built
+bundle contains. Report the exact command and the matched strings.
+
 ### 7.2 Standing backlog (taken in order when a team has no READY order)
 
 | ID | Team | Work |
@@ -412,6 +460,8 @@ BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
 | R-27 Worker account id | Owner, INFRA-003 | `services/api/wrangler.toml` |
 | Network access to `developers.cloudflare.com` for the cloud environment, or a T1 staging check: does `pg` with `ssl: { rejectUnauthorized: true }` connect through `env.HYPERDRIVE.connectionString`? | Owner (environment network settings) or T1 | WO-T2-08, the one change that could break the deployed API |
 | `update_trigger` allowed in the T0 session ("always allow") | Owner | T0 pausing and resuming idle team triggers by itself (rule 5.1.6) |
+| T4 session waiting on a Bash permission prompt since 2026-10-30T22:57Z (task: verifying the API-origin finding) | Owner, in the T4 session; T0 never approves it | T4 verification of every new head |
+| Service tokens never verify and API keys are never stored (WO-T2-16): build them or remove them | Owner; T0 recommends refusing the mint endpoints with 501 until designed | `services/api` security routes |
 
 ## 8. Coordinator run log (keep last 20)
 
@@ -429,3 +479,4 @@ BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
 | 2026-10-30T19:20Z, 20:20Z | 2 ticks | 19:20Z: TAI disable needed owner approval; the request closed on a worker restart. 20:20Z: worker restarted before work | No ledger change |
 | 2026-10-30T21:2xZ | HARVEST | T2 second cycle (4 orders + BL-T2-06 VERIFIED, WO-T2-08 BLOCKED on network); T3 WO-T3-07..10, BL-T3-02 VERIFIED, BL-T3-04 DONE; T4 WO-T4-07/08 DONE (web `/vi` lang FAILED). Refilled T2 (2), T3 (3), TAI (3), T4 (2); recorded the `update_trigger` approval limit | |
 | 2026-10-30T22:2xZ | HARVEST | All four teams worked 21:45-22:02Z: T2 WO-T2-13 DONE, WO-T2-14 PARTIAL (T1 must promote migration 0004); T3 WO-T3-11/13 DONE; TAI WO-TAI-06/07 DONE, WO-TAI-08 PARTIAL; T4 VERIFY T3 02d5453 and WO-T4-09 (4 findings). Refilled T2 (2), T3 (1 + WO-T3-12), TAI (2), T4 (1 + WO-T4-10); added WO-T1-06 | |
+| 2026-10-30T23:2xZ | HARVEST | T2 WO-T2-15/16 DONE (3 isolation defects fixed); T3 WO-T3-12/14 DONE (HIGH: staging builds used the production API, fixed in 5190ac8); TAI WO-TAI-09/10 DONE; T4 WAITING on a Bash permission prompt since 22:57Z. Refilled T2 (3), T3 (1), TAI (1 + 1 queued), T4 (+WO-T4-12); added WO-T1-07 (priority) and WO-T1-08 | Owner notified |
