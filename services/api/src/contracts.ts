@@ -14,6 +14,8 @@ export interface ApiBindings {
   DEPLOYMENT_ID?: string;
   VERSION_METADATA?: WorkerVersionMetadata;
   DATABASE_URL?: string;
+  // Local/test only: "1" skips PostgreSQL TLS certificate verification.
+  OMDALA_DB_TLS_INSECURE?: string;
   HYPERDRIVE?: HyperdriveBinding;
   APP_BASE_URL?: string;
   WEB_BASE_URL?: string;
