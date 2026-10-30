@@ -1652,6 +1652,27 @@ function protectedRuntimeDatabaseErrorResponse(
   return jsonError(c, mapped.status, mapped.errorCode, mapped.message);
 }
 
+// Authentication state lives in PostgreSQL. A storage failure must surface as a
+// stable, non-leaking code instead of the raw driver or configuration message.
+function authStorageFailureResponse(
+  c: ApiContext,
+  error: unknown,
+  operation: string,
+): Response | null {
+  if (error instanceof DbQueryError) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, operation);
+  }
+  if (error instanceof Error && error.message === "DATABASE_URL is not configured") {
+    return jsonError(
+      c,
+      503,
+      "PERSISTENCE_REQUIRED",
+      "PostgreSQL persistence is required for this protected API in the current environment.",
+    );
+  }
+  return null;
+}
+
 function releaseIdentity(env: ApiBindings) {
   const runtimeVersionId = env.VERSION_METADATA?.id?.trim() || null;
   const protectedEnvironment =
@@ -2855,6 +2876,8 @@ app.post("/v1/auth/magic-link/request", async (c) => {
       201,
     );
   } catch (error) {
+    const storage = authStorageFailureResponse(c, error, "requestMagicLink");
+    if (storage) return storage;
     return jsonError(
       c,
       502,
@@ -2919,6 +2942,8 @@ app.post("/v1/auth/session/exchange", async (c) => {
       expiresAt: new Date(accessExp).toISOString(),
     });
   } catch (error) {
+    const storage = authStorageFailureResponse(c, error, "exchangeSession");
+    if (storage) return storage;
     return jsonError(
       c,
       500,
@@ -3569,6 +3594,8 @@ app.post("/v1/auth/refresh", async (c) => {
       expires_at: new Date(accessExp).toISOString(),
     });
   } catch (error) {
+    const storage = authStorageFailureResponse(c, error, "refreshSession");
+    if (storage) return storage;
     return jsonError(
       c,
       500,

@@ -134,7 +134,7 @@ describe("protected runtime API persistence", () => {
       },
     );
 
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(503);
     await expect(response.json()).resolves.toMatchObject({
       ok: false,
       error: { code: "DATABASE_UNAVAILABLE" },

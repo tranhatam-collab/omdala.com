@@ -158,7 +158,7 @@ export function toDbQueryError(
 }
 
 export function mapDbErrorToHttp(error: unknown): {
-  status: 422 | 500 | 502 | 504;
+  status: 422 | 500 | 502 | 503 | 504;
   errorCode: string;
   message: string;
   sqlState?: string;
@@ -179,7 +179,7 @@ export function mapDbErrorToHttp(error: unknown): {
   if (normalized.kind === "unavailable") {
     return withOptionalState(
       {
-        status: 502,
+        status: 503,
         errorCode: "DATABASE_UNAVAILABLE",
         message: "Database connection unavailable",
       },
