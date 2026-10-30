@@ -1,0 +1,8 @@
+# WO-TAI-06 report
+Order: WO-TAI-06 (hermetic browser tests for the web live card). Status: DONE. Base SHA: d141c22.
+Files (om-ai.omdala.com/web): e2e/live-card-failure-states.spec.ts (new, 5 tests), e2e/app-smoke.spec.ts (rewritten hermetic), e2e/playwright.config.ts, e2e/support/mockApi.ts (new), src/api/client.ts, tests/e2eTransport.test.ts (new), package.json, package-lock.json (`@playwright/test` 1.63.0 dev dependency, web's own lockfile), .gitignore.
+Mechanism: the web client was a fail-closed stub that never calls fetch, so mocks could not reach it. `client.ts` now has a transport compiled in only for `vite --mode e2e` (marker header `x-om-ai-e2e-transport`); production/preview builds keep the stub. The Playwright config serves the app in e2e mode and mocks every /v1 and /v2 call with page.route; no test reaches api.omdala.com (smoke test asserts all request hosts are 127.0.0.1).
+Commands (om-ai.omdala.com/web): `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npm run test:e2e` 6 pass / 0 fail / 0 skip (backend down, quota exhausted, provider 429, plan refusal, authority 503, smoke); `npm test` 9 pass / 0 fail (2 new: production bundle has no e2e transport, e2e bundle has it); `npm run typecheck` pass; `npm run build` pass; `npm audit --audit-level=high` 0 vulnerabilities. No browser downloaded.
+Evidence: VERIFIED_WORKTREE_ONLY.
+Findings: (1) CI does not run `npm test` or `npm run test:e2e` for web; request for T1: add both to "OM AI Web Typecheck and Build", with Playwright's chromium install step or `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`. (2) Unmocked e2e requests fall through to a 404 `not_mocked`; vite's /v2 proxy to localhost:3001 is only used if a test omits mocks.
+Next: WO-TAI-07.

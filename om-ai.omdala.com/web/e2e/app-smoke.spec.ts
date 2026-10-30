@@ -1,74 +1,24 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import { mockApi } from './support/mockApi';
 
-const API_ORIGIN = process.env.OM_AI_SMOKE_API_ORIGIN || 'https://api.omdala.com';
-const SMOKE_USER_ID = process.env.OM_AI_SMOKE_USER_ID || 'playwright_om_ai_web_smoke';
-const TARGET_PERSONA_ID = process.env.OM_AI_SMOKE_PERSONA_ID || 'teacher_english_01';
+test('app MVP smoke: page loads, magic link request, and live card flow with a mocked API', async ({ page }) => {
+  const hosts = await mockApi(page);
 
-test('app MVP smoke: auth placeholder and Om AI live web bridge flow', async ({ page }) => {
   await page.goto('/');
-  const title = await page.title();
-  expect(/Om AI|OMDALA App|AI Om/i.test(title)).toBeTruthy();
+  expect(await page.title()).toMatch(/Om AI/);
+  expect(((await page.locator('body').textContent()) ?? '').trim().length).toBeGreaterThan(0);
 
-  const bodyText = ((await page.locator('body').textContent()) ?? '').trim();
-  expect(bodyText.length).toBeGreaterThan(0);
+  await page.getByPlaceholder(/you@domain.com/).fill('verify@app.omdala.com');
+  await page.getByRole('button', { name: /Send magic link/ }).click();
+  await expect(page.getByText(/Check your email: verify@app.omdala.com/)).toBeVisible();
 
-  const magicLinkResp = await page.request.post(`${API_ORIGIN}/v1/auth/magic-link/request`, {
-    data: { email: 'verify@app.omdala.com', redirectTo: '/dashboard' },
-  });
-  expect(magicLinkResp.status()).toBeGreaterThanOrEqual(200);
-  expect(magicLinkResp.status()).toBeLessThan(300);
+  await expect(page.getByText(/plan=free \/ free=0\/1800 \/ remaining=1800/)).toBeVisible();
+  await page.getByRole('button', { name: 'Create session' }).click();
+  await expect(page.getByText(/created=live_session_e2e_01 \/ status=blocked/)).toBeVisible();
 
-  const healthResp = await page.request.get(`${API_ORIGIN}/v2/reality/health`);
-  expect(healthResp.status()).toBe(200);
+  await page.getByRole('button', { name: /Save memory/i }).click();
+  await expect(page.getByText(/saved=2026-10-30/)).toBeVisible();
 
-  const personaResp = await page.request.get(`${API_ORIGIN}/v2/live/personas/${TARGET_PERSONA_ID}`);
-  expect(personaResp.status()).toBe(200);
-  const personaBody = await personaResp.json();
-  expect(personaBody.data.persona_id).toBe(TARGET_PERSONA_ID);
-  expect(Array.isArray(personaBody.data.supported_modes)).toBeTruthy();
-  expect(personaBody.data.supported_modes).toContain('voice_call');
-
-  const memorySaveResp = await page.request.patch(`${API_ORIGIN}/v2/live/memory/profile`, {
-    data: {
-      user_id: SMOKE_USER_ID,
-      display_name: 'Playwright Om AI Smoke',
-      timezone: 'Asia/Ho_Chi_Minh',
-      target_language: 'en',
-      correction_style: 'gentle',
-    },
-  });
-  expect(memorySaveResp.status()).toBe(200);
-  const memorySaveBody = await memorySaveResp.json();
-  expect(memorySaveBody.data.profile.user_id).toBe(SMOKE_USER_ID);
-  expect(memorySaveBody.data.profile.timezone).toBe('Asia/Ho_Chi_Minh');
-  expect(memorySaveBody.data.profile.target_language).toBe('en');
-  expect(memorySaveBody.data.profile.correction_style).toBe('gentle');
-
-  const memoryRefreshResp = await page.request.get(`${API_ORIGIN}/v2/live/memory/profile?user_id=${encodeURIComponent(SMOKE_USER_ID)}`);
-  expect(memoryRefreshResp.status()).toBe(200);
-  const memoryRefreshBody = await memoryRefreshResp.json();
-  expect(memoryRefreshBody.data.profile.user_id).toBe(SMOKE_USER_ID);
-  expect(memoryRefreshBody.data.profile.target_language).toBe('en');
-
-  const plansResp = await page.request.get(`${API_ORIGIN}/v2/live/plans`);
-  expect(plansResp.status()).toBe(200);
-  const plansBody = await plansResp.json();
-  expect(Array.isArray(plansBody.data.plans)).toBeTruthy();
-  expect(plansBody.data.plans.some((plan: { plan_id: string }) => plan.plan_id === 'personal_pro')).toBeTruthy();
-
-  const upgradeResp = await page.request.post(`${API_ORIGIN}/v2/live/plans/upgrade`, {
-    data: {
-      user_id: SMOKE_USER_ID,
-      plan_id: 'personal_pro',
-    },
-  });
-  expect(upgradeResp.status()).toBe(200);
-  const upgradeBody = await upgradeResp.json();
-  expect(upgradeBody.data.subscription.user_id).toBe(SMOKE_USER_ID);
-  expect(upgradeBody.data.subscription.plan_id).toBe('personal_pro');
-
-  const usageResp = await page.request.get(`${API_ORIGIN}/v2/live/usage/today?user_id=${encodeURIComponent(SMOKE_USER_ID)}`);
-  expect(usageResp.status()).toBe(200);
-  const usageBody = await usageResp.json();
-  expect(usageBody.data.usage.plan_id).toBe('personal_pro');
+  // Hermetic: nothing left the local server.
+  expect([...hosts].every((host) => host.startsWith('127.0.0.1'))).toBeTruthy();
 });
