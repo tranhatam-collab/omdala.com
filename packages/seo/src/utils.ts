@@ -3,6 +3,10 @@ import { SEO_DEFAULTS } from './constants'
 export type SeoLocale = 'en' | 'vi' | 'zh' | 'es' | 'ja' | 'ko'
 export type SeoHreflang = SeoLocale | 'x-default'
 
+// ADR-003: the public product ships EN + VI; callers pass `locales` to narrow or widen it.
+export const DEFAULT_SEO_LOCALES = ['en', 'vi'] as const satisfies readonly SeoLocale[]
+const KNOWN_SEO_LOCALES: readonly SeoLocale[] = ['en', 'vi', 'zh', 'es', 'ja', 'ko']
+
 export function normalizeSeoPath(path: string): string {
   if (!path) return '/'
   return path.startsWith('/') ? path : `/${path}`
@@ -20,12 +24,12 @@ export function buildLanguageAlternates(
   } = {},
 ): Record<SeoHreflang, string> {
   const defaultLocale = options.defaultLocale ?? 'en'
-  const locales = options.locales ?? ['en', 'vi', 'zh', 'es', 'ja', 'ko']
+  const locales = options.locales ?? DEFAULT_SEO_LOCALES
   const normalizedPath = normalizeSeoPath(path)
   const segments = normalizedPath.split('/').filter(Boolean)
   const maybeLocale = segments[0] as SeoLocale | undefined
   const basePath =
-    maybeLocale && locales.includes(maybeLocale)
+    maybeLocale && KNOWN_SEO_LOCALES.includes(maybeLocale)
       ? `/${segments.slice(1).join('/')}` || '/'
       : normalizedPath
   const safeBasePath = basePath === '//' ? '/' : basePath
