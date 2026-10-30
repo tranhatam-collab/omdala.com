@@ -159,6 +159,11 @@ test.describe("404", () => {
     await expect(page.locator("body")).toContainText(/404|not found/i);
   });
 
+  test("the 404 page declares its language in the static HTML", () => {
+    const html = readFileSync(path.join(OUT, "404.html"), "utf8");
+    expect(html).toMatch(/<html[^>]*\slang="en"/);
+  });
+
   test("unknown VI route returns HTTP 404", async ({ page }) => {
     const response = await page.goto("/vi/does-not-exist/");
     expect(response?.status()).toBe(404);

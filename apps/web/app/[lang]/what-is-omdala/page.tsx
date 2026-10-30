@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { WhatIsOmdalaPageView } from "../../what-is-omdala/WhatIsOmdalaPageView"
+import { WhatIsOmdalaPageView } from "../../(en)/what-is-omdala/WhatIsOmdalaPageView"
 import { buildLocalizedMetadata } from "../../lib/localized-metadata"
 import { getPrefixedLocaleStaticParams, resolveRouteLanguage } from "../../lib/locale-routing"
 

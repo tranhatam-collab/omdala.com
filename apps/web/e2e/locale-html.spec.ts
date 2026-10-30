@@ -19,6 +19,10 @@ test.describe("server-rendered locale HTML", () => {
         (textOf(viHtml).match(new RegExp(diacritics.source, "g"))?.length ?? 0) / 4,
       );
 
+      // The static HTML itself must declare the page language (not just after hydration).
+      expect(enHtml).toMatch(/<html[^>]*\slang="en"/)
+      expect(viHtml).toMatch(/<html[^>]*\slang="vi"/)
+
       for (const html of [enHtml, viHtml]) {
         expect(html).toMatch(/hrefLang="en"|hreflang="en"/i);
         expect(html).toMatch(/hrefLang="vi"|hreflang="vi"/i);
@@ -26,4 +30,22 @@ test.describe("server-rendered locale HTML", () => {
       }
     });
   }
+});
+
+test.describe("sitemap and 404", () => {
+  test("sitemap.xml lists every page in both locales", async ({ request }) => {
+    const body = await (await request.get("/sitemap.xml")).text();
+    for (const p of [...PAGES, "/faq/", "/vision/"]) {
+      const path = p === "/" ? "" : p.replace(/\/$/, "");
+      expect(body).toContain(`<loc>https://omdala.com${path}`);
+      expect(body).toContain(`<loc>https://omdala.com/vi${path}`);
+    }
+    expect(body).toContain("<loc>https://omdala.com/vi</loc>");
+  });
+
+  test("an unknown URL returns 404 and the 404 page declares a language", async ({ request }) => {
+    const response = await request.get("/does-not-exist/");
+    expect(response.status()).toBe(404);
+    expect(await response.text()).toMatch(/<html[^>]*\slang="(en|vi)"/);
+  });
 });

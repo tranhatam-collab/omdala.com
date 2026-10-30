@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { ContactPageView } from "../../contact/ContactPageView"
+import { ContactPageView } from "../../(en)/contact/ContactPageView"
 import { buildLocalizedMetadata } from "../../lib/localized-metadata"
 import { getPrefixedLocaleStaticParams, resolveRouteLanguage } from "../../lib/locale-routing"
 

@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { ForCommunitiesPageView } from "../../for-communities/ForCommunitiesPageView"
+import { ForCommunitiesPageView } from "../../(en)/for-communities/ForCommunitiesPageView"
 import { buildLocalizedMetadata } from "../../lib/localized-metadata"
 import { getPrefixedLocaleStaticParams, resolveRouteLanguage } from "../../lib/locale-routing"
 

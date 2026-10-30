@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { ForExpertsPageView } from "../../for-experts/ForExpertsPageView"
+import { ForExpertsPageView } from "../../(en)/for-experts/ForExpertsPageView"
 import { buildLocalizedMetadata } from "../../lib/localized-metadata"
 import { getPrefixedLocaleStaticParams, resolveRouteLanguage } from "../../lib/locale-routing"
 

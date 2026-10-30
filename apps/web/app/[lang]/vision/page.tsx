@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { VisionPageView } from "../../vision/VisionPageView"
+import { VisionPageView } from "../../(en)/vision/VisionPageView"
 import { buildLocalizedMetadata } from "../../lib/localized-metadata"
 import { getPrefixedLocaleStaticParams, resolveRouteLanguage } from "../../lib/locale-routing"
 
