@@ -193,7 +193,14 @@ describe("mail failures are explicit errors, never a false success", { timeout: 
     vi.useFakeTimers({ toFake: ["setTimeout"] });
     auth.registerMagicLink.mockResolvedValue(undefined);
   });
-  afterEach(() => vi.useRealTimers());
+  afterEach(async () => {
+    // The sibling mail of a failed Promise.all keeps retrying; let it finish
+    // against this test's fetch spy before the spy is restored.
+    await vi.advanceTimersByTimeAsync(30_000);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
 
   const respondWith = (make: () => Response | Promise<Response>) =>
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => make());
@@ -215,8 +222,10 @@ describe("mail failures are explicit errors, never a false success", { timeout: 
     const result = pending.finally(() => {
       done = true;
     });
-    for (let i = 0; i < 100 && !done; i++) {
-      await vi.advanceTimersByTimeAsync(1_000);
+    // setImmediate is not faked, so each pass also gives real stream I/O a turn.
+    for (let i = 0; i < 5_000 && !done; i++) {
+      await vi.advanceTimersByTimeAsync(250);
+      await new Promise<void>((resolve) => setImmediate(resolve));
     }
     return result;
   }
