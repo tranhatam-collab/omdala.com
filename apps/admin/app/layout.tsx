@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { getMockAdminSession, hasRequiredRole } from '@omdala/auth-service'
+import type { AuthSession } from '@omdala/auth-service'
 import { DocumentLanguageSync } from '@omdala/ui'
 import { ADMIN_COPY, t } from './lib/admin-copy'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
@@ -32,8 +33,11 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = getMockAdminSession()
-  const canAccessAdmin = hasRequiredRole(session, ['admin', 'system'])
+  // Deny by default: the mock admin grant exists only for explicit local previews
+  // and tests (build-time OMDALA_ADMIN_PREVIEW=1). No real auth provider is wired yet.
+  const session: AuthSession | null =
+    process.env.OMDALA_ADMIN_PREVIEW === '1' ? getMockAdminSession() : null
+  const canAccessAdmin = session !== null && hasRequiredRole(session, ['admin', 'system'])
 
   return (
     <html lang="en">
@@ -46,10 +50,11 @@ export default function AdminLayout({
               <LocaleLink href="/" className="admin-brand">
                 {t(language, ADMIN_COPY.layout.brand)}
               </LocaleLink>
-              <p className="admin-copy">{session.user.email}</p>
+              {session ? <p className="admin-copy">{session.user.email}</p> : null}
               <LanguageSwitcher />
             </section>
 
+            {canAccessAdmin ? (
             <nav
               className="admin-card admin-nav"
               aria-label={t(language, ADMIN_COPY.layout.adminNavigation)}
@@ -60,6 +65,7 @@ export default function AdminLayout({
                 </LocaleLink>
               ))}
             </nav>
+            ) : null}
           </aside>
 
           <section className="admin-main">

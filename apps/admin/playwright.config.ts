@@ -33,7 +33,9 @@ export default defineConfig({
     : {
         // Tests run against the static export (ADR-002), not next dev.
         webServer: {
-          command: "pnpm --filter @omdala/admin run build && node e2e/serve-static.mjs",
+          // Default build (deny) is kept in out-deny; the main specs run on the preview build.
+          command:
+            "pnpm --filter @omdala/admin run build && rm -rf out-deny && mv out out-deny && OMDALA_ADMIN_PREVIEW=1 pnpm --filter @omdala/admin run build && node e2e/serve-static.mjs",
           cwd: "../admin",
           url: baseURL,
           reuseExistingServer: false,

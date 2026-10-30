@@ -81,3 +81,25 @@ test.describe("404", () => {
     await expect(page.locator("body")).toContainText(/404|not found/i);
   });
 });
+
+test.describe("default build denies access", () => {
+  // The default build (no OMDALA_ADMIN_PREVIEW) is served on the port after the preview one.
+  const denyURL = "http://127.0.0.1:3017";
+  test.skip(Boolean(process.env.E2E_BASE_URL), "needs the local default-build server");
+
+  test("renders access-restricted and no admin data or navigation", async ({ page }) => {
+    const response = await page.goto(`${denyURL}/`);
+    expect(response?.status()).toBe(200);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(/admin role required/i);
+    await expect(page.getByText(/access restricted/i)).toBeVisible();
+    await expect(page.locator("nav.admin-nav")).toHaveCount(0);
+    await expect(page.locator(".admin-list-item")).toHaveCount(0);
+    await expect(page.locator("body")).not.toContainText("operator@omdala.com");
+  });
+
+  test("deny build still ships noindex", async ({ page }) => {
+    await page.goto(`${denyURL}/providers/`);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(/admin role required/i);
+  });
+});
