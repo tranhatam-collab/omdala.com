@@ -51,6 +51,14 @@ describe("local stack refusals", () => {
     expect(result.stderr).toContain("refusing non-loopback database host");
   });
 
+  it("refuses an unknown profile before connecting to anything", async () => {
+    const result = await stack(["--smoke", "--profile=production"], {
+      OMDALA_LOCAL_PG_URL: "postgresql://u@127.0.0.1:5432/postgres",
+    });
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("unknown profile");
+  });
+
   it("refuses an invalid URL", async () => {
     const result = await stack(["--smoke"], { OMDALA_LOCAL_PG_URL: "not a url" });
     expect(result.code).toBe(1);
@@ -61,12 +69,24 @@ describe("local stack refusals", () => {
 describe.skipIf(!process.env.OMDALA_TEST_DATABASE_URL || !haveOpenssl())(
   "local stack against a scratch PostgreSQL",
   () => {
-    it("starts the worker locally, seeds an account, and passes the smoke", async () => {
-      const result = await stack(["--smoke"], {
-        OMDALA_LOCAL_PG_URL: process.env.OMDALA_TEST_DATABASE_URL,
-      });
+    const env = () => ({ OMDALA_LOCAL_PG_URL: process.env.OMDALA_TEST_DATABASE_URL });
+
+    it("persistent profile: link and session live in PostgreSQL and survive a worker restart", async () => {
+      const result = await stack(["--smoke"], env());
       expect(result.stderr + result.stdout).not.toMatch(/local-stack: (?!smoke)/);
       expect(result.code).toBe(0);
+      expect(result.stdout).toContain("[persistent]");
+      expect(result.stdout).toContain("magic-link request 201 (stub mail sink)");
+      expect(result.stdout).toContain("link and session persisted in PostgreSQL");
+      expect(result.stdout).toContain("session valid after worker restart");
+      expect(result.stdout).toContain("replayed link refused");
+    }, 200_000);
+
+    it("development profile: in-memory auth, console mail, seeded profile from PostgreSQL", async () => {
+      const result = await stack(["--smoke", "--profile=development"], env());
+      expect(result.stderr + result.stdout).not.toMatch(/local-stack: (?!smoke)/);
+      expect(result.code).toBe(0);
+      expect(result.stdout).toContain("[development]");
       expect(result.stdout).toContain("magic-link request 201 (console transport)");
       expect(result.stdout).toContain("seeded profile read back from PostgreSQL");
     }, 160_000);

@@ -39,11 +39,20 @@ out of scope, so the supported reset is drop-and-rebootstrap.
 creates a scratch database on a loopback PostgreSQL server, applies the
 migrations, seeds `local-dev@example.test`, and starts `wrangler dev --local`
 (never remote), printing the base URL. `local:smoke` does the same, runs a
-health + magic-link + session + profile smoke, and tears everything down.
-Needs `openssl`. Secrets and a throwaway CA are generated per run in a private
-temp directory; the worker's database TLS is fully verified through a loopback
-TLS proxy. Mode is `ENVIRONMENT=development`: account data is in PostgreSQL,
-magic links and sessions are in memory (lost on restart), mail is printed to
-the worker console and never sent. The refresh/logout cookies are `Secure`, so
-a browser journey should use `http://localhost`/`127.0.0.1` in a browser that
-treats loopback as secure (Chromium, Firefox).
+smoke, and tears everything down. Needs `openssl`. Secrets and a throwaway CA
+are generated per run in a private temp directory; the worker's database TLS is
+fully verified through a loopback TLS proxy.
+
+Profiles (`-- --profile=<name>`):
+
+- `persistent` (default): `ENVIRONMENT=staging`. Magic links and sessions are in
+  PostgreSQL and survive a worker restart. Mail goes to a loopback stub sink,
+  never a provider; the printed `mail inbox` URL (`.../__inbox`) lists what was
+  sent, so a browser journey can read its login link there. The smoke proves
+  persistence by restarting the worker and re-using the same session.
+- `development`: `ENVIRONMENT=development`. Magic links and sessions are in
+  memory (lost on restart); mail is printed to the worker console.
+
+The session cookies are `Secure`, so a browser journey should use
+`http://localhost`/`127.0.0.1` in a browser that treats loopback as secure
+(Chromium, Firefox).
