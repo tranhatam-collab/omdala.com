@@ -1,0 +1,8 @@
+# WO-TAI-05 report
+Order: WO-TAI-05 (E2E-4 Om AI failure states). Status: PARTIAL (mapping and tests done; browser-level E2E not possible yet). Base SHA: 66b169d.
+Files: om-ai.omdala.com/web/src/api/liveErrors.ts (new), web/src/components/LiveExecutionCard.tsx, web/package.json (`test` script), web/tests/liveErrors.test.ts (new).
+Change: `describeLiveError` maps backend down / bridge or authority unavailable / 5xx / timeout, quota exhausted, provider 429, 401, plan and billing refusals to bilingual user messages; unknown codes get a generic message and the raw code is never shown. The live card now renders the mapped message (it used to print `Live execution error: <raw code>`) and shows the quota message when usage reports 0 free seconds left on a plan with a free limit.
+Commands (om-ai.omdala.com/web): `npm run typecheck` pass; `npm test` (node --test, 7 tests) 7 pass / 0 fail; `npm run build` pass.
+Evidence: VERIFIED_WORKTREE_ONLY.
+Findings: (1) the existing Playwright spec `web/e2e/app-smoke.spec.ts` calls the live api.omdala.com and `@playwright/test` is not in web/package.json, so a browser test of the three states was not added; the web API client is also a fail-closed stub, so the backend-down state is what the UI shows today. (2) The CI job "OM AI Web Typecheck and Build" does not run `npm test`; request for T1: add `npm test` to that job. (3) Backend returns no quota-exhausted or provider-429 error yet because the realtime path is blocked on the AI authority; the mapper already covers those codes.
+Next: when the authority contract exists, add a Playwright test with mocked 503/429/quota responses; T1 adds `npm test` to the web CI job.
