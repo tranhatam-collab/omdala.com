@@ -84,3 +84,14 @@ Still MISSING, smallest safe implementation, and why it was not built here:
 | Moderation of live transcript turns and escalation routing | Call `assessText` on each transcript segment before storage; route flagged segments to a wellness path | No transcript path exists (row 5); real classification belongs to the provider AI lane |
 | Server-side billing entitlement for `/plans/upgrade` | Remove self-service upgrade; read plan from the billing authority | Billing authority (Team 2) |
 | Enforce `premium_required` personas | Reject create when persona is premium and the plan has no premium entitlement | Plan definitions carry no premium flag; needs entitlement model |
+
+## 6. Update 2026-10-30 (BL-TAI-01/02, WO-TAI-03/05)
+
+Backend now 39 tests, `services/ai` 5 tests, web 7 tests (VERIFIED_WORKTREE_ONLY).
+
+| Row | Now |
+| --- | --- |
+| 8 Metering | IMPLEMENTED+TESTED at the store boundary (`live.metering.test.ts`: free quota first, spill to premium, paid plan, default/fractional/negative billable, double end, never-connected). Still unreachable end to end: sessions cannot go `active` while the AI authority is blocked |
+| 9 Plan gating | `/plans/upgrade` now returns 403 `PLAN_CHANGE_REQUIRES_BILLING` for users (WO-TAI-03; admin only under test) |
+| 14 Account UX (web) | live card shows mapped messages for backend-down, quota and 429 states (`web/src/api/liveErrors.ts`, `web/tests/liveErrors.test.ts`); no browser-level test |
+| 18 `services/ai` | IMPLEMENTED+TESTED: ordering, priority rule, fallback text, determinism, no network reference (`services/ai/tests/suggestions.test.ts`, run with `npm test`; needs no install because the package only imports types) |
