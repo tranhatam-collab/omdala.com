@@ -176,7 +176,7 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-TAI-04 MOB-02 toolchain | TAI | PARTIAL: Linux side done; bundle ids need the owner (7.3) | 66b169d | 2026-10-30 |
 | WO-TAI-05 failure states | TAI | PARTIAL: messages and unit tests done; browser test waits on the AI authority contract | cba5ccb | 2026-10-30 |
 | BL-TAI-01..03 | TAI | VERIFIED | e1d3be3, 696dad1 | 2026-10-30 |
-| WO-T4-03 standing | T4 | READY (standing, every turn) | Verified through T2 93fbd4a, T3 cfcda04, TAI d141c22; next: T3 02d5453 and every new head | 2026-10-30 |
+| WO-T4-03 standing | T4 | READY (standing, every turn) | Verified through T2 93fbd4a, T3 02d5453, TAI d141c22; next: T2 e464a40, T3 1821553, TAI 5c8871b | 2026-10-30 |
 | WO-T4-04, -05, -06 | T4 | DONE | 4248392, 9ed2ab0 (+638d097), 9e4ece3 | 2026-10-30 |
 | BL-T4-01, -02, -03 | T4 | DONE | d3291e8, 7c251b1 | 2026-10-30 |
 | WO-T2-08 Hyperdrive TLS | T2 | BLOCKED: `developers.cloudflare.com` is outside this environment's network allowlist; T2 will not configure it from memory. Needs the owner (allow the host) or a T1 staging check (7.3) | 131b5d4 | 2026-10-30 |
@@ -193,24 +193,31 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | BL-T3-04 matrix gaps, contact forms | T3 | DONE, awaiting T4 | 02d5453 | 2026-10-30 |
 | WO-T4-07 DR negative control | T4 | DONE: one-byte change fails the comparison | ee76d31 | 2026-10-30 |
 | WO-T4-08 SEO check | T4 | DONE: FAILED for web `/vi/*` (raw `<html lang="en">`), sitemap lacks `/vi` entries, docs 404 lacks `lang`; fix is WO-T3-11 | ee76d31 | 2026-10-30 |
-| WO-T2-13 | T2 | READY | | 2026-10-30 |
-| WO-T2-14 | T2 | READY | | 2026-10-30 |
-| WO-T3-11 | T3 | READY | | 2026-10-30 |
+| WO-T2-13 local persistent auth | T2 | DONE, awaiting T4 | b857bbd | 2026-10-30 |
+| WO-T2-14 scenes and runs persisted | T2 | PARTIAL: migration 0004 sits in `infra/postgres/migrations/proposed/` until T1 promotes it (WO-T1-06) | e464a40 | 2026-10-30 |
+| WO-T3-11 web `/vi` lang, sitemap, docs 404 | T3 | DONE, awaiting T4 | e9a29cd | 2026-10-30 |
 | WO-T3-12 | T3 | READY | | 2026-10-30 |
-| WO-T3-13 | T3 | READY | | 2026-10-30 |
-| WO-TAI-06 | TAI | READY | | 2026-10-30 |
-| WO-TAI-07 | TAI | READY | | 2026-10-30 |
-| WO-TAI-08 | TAI | READY | | 2026-10-30 |
-| WO-T4-09 | T4 | READY | | 2026-10-30 |
+| WO-T3-13 app switcher styling | T3 | DONE, awaiting T4 | 1821553 | 2026-10-30 |
+| WO-TAI-06 hermetic web live-card E2E | TAI | DONE, awaiting T4 | fc41625, 5c8871b | 2026-10-30 |
+| WO-TAI-07 moderation normalization | TAI | DONE, awaiting T4 | 5c7a79a | 2026-10-30 |
+| WO-TAI-08 gateway negatives | TAI | PARTIAL: the gateway has no HTTP surface; command, registry and router negatives done | c79c3cb | 2026-10-30 |
+| WO-T4-09 local-stack safety review | T4 | DONE: 4 findings, fix is WO-T2-15 | 5a0647d | 2026-10-30 |
 | WO-T4-10 | T4 | READY | | 2026-10-30 |
+| WO-T2-15 | T2 | READY | | 2026-10-30 |
+| WO-T2-16 | T2 | READY | | 2026-10-30 |
+| WO-T3-14 | T3 | READY | | 2026-10-30 |
+| WO-TAI-09 | TAI | READY | | 2026-10-30 |
+| WO-TAI-10 | TAI | READY | | 2026-10-30 |
+| WO-T4-11 | T4 | READY | | 2026-10-30 |
 | WO-T0-01 | T0 | QUEUED | | 2026-10-28 |
 | WO-T0-02 | T0 | QUEUED | | 2026-10-28 |
 | WO-T0-03 | T0 | QUEUED | | 2026-10-28 |
 | WO-T1-01 | T1 | QUEUED, owner relays | On `OMCODE/infra-e2e-auto-20261026`: add `"claude/omdala-**"` to `on.push.branches` in `ci.yml` (T2 and TAI branches already carry the identical line; T3 needs it from here) | 2026-10-30 |
 | WO-T1-02 | T1 | QUEUED, owner relays | Staging suite dry-run, read-only API 522 evidence packet, `/release.json` contract | 2026-10-28 |
 | WO-T1-03 | T1 | QUEUED, owner relays | CI: PostgreSQL service **with TLS on** (client.ts now requires it; setup in `reports/T2/WO-T2-05.md` on the T2 branch) and `OMDALA_TEST_DATABASE_URL`, so the 27 skipped DB suites run; jobs for `e2e:auth`, `e2e:docs`, `e2e:admin`; `.gitignore` `apps/*/test-results`; desktop test hardcodes `/bin/zsh` | 2026-10-30 |
-| WO-T1-04 | T1 | QUEUED, owner relays | CI: run `npm test` in the "OM AI Web Typecheck and Build" job (7 tests); add a `services/ai` job running `node --test tests/*.test.ts` (Node 22.18+); add `test:seo` (T3, 6 tests) | 2026-10-30 |
+| WO-T1-04 | T1 | QUEUED, owner relays | CI: run `npm test` in the "OM AI Web Typecheck and Build" job (7 tests); add a `services/ai` job running `node --test tests/*.test.ts` (Node 22.18+); add `test:seo` (T3, 6 tests); in the Om AI web job also `npm run test:e2e` with `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` or a Chromium install step (TAI, 6 specs) | 2026-10-30 |
 | WO-T1-05 | T1 | QUEUED, owner relays | Config review: staging and production never carry `ENVIRONMENT=local/development/test` (the TLS opt-out depends on it); `OMDALA_ADMIN_PREVIEW=1` only on preview builds; Hyperdrive origin TLS mode set to verify the certificate; optional edge redirect for old docs `?lang=vi` links | 2026-10-30 |
+| WO-T1-06 | T1 | QUEUED, owner relays | Promote T2's migration 0004 (scenes, runs): `git mv` it from `infra/postgres/migrations/proposed/` up one level, add its entry to `compatibility.json`, and update the three-migration expectations in `scripts/verify-migration-compatibility.test.mjs`; exact steps and sha256 in `reports/T2/WO-T2-14.md` on the T2 branch | 2026-10-30 |
 
 ### 7.1 Order specs
 
@@ -347,6 +354,40 @@ databases; also confirm the workerd TLS finding with a minimal reproduction.
 delta (`docs/audit/team4/2026-10-30_E2E_MATRIX_REFRESH.md`) at the newest heads, so
 T0 can tell which E2E-1/E2E-2 exits are met.
 
+**WO-T2-15.** T4 WO-T4-09 on `services/api/scripts/local-stack.mjs`: every
+failure path runs teardown (no `process.exit` before cleanup), SIGHUP also tears
+down, and the worker always runs with a local mail mode whatever the top-level
+`[vars]` in `wrangler.toml` say (today it inherits `MAIL_DELIVERY_MODE="direct"`
+and the real mail host). Comment why the loopback-only admin connection may skip
+verification. Tests or a scripted check for each point.
+
+**WO-T2-16.** BL-T2-01 covered `/v2/reality`. Do the same for every `/v1` route
+scoped to an account or workspace (account, workspaces, notifications, billing,
+analytics, security): a caller from another account or workspace gets 403 or 404
+and the repository is not touched; one test per route, plus real-SQL checks where
+a repository exists.
+
+**WO-T3-14.** WO-T3-11 finding: `apps/web` renders a Vietnamese 404 for every URL
+outside `/en`, so English visitors get Vietnamese. Make the 404 bilingual (EN and
+VI on one page, `lang` set on each block), keep it `noindex`, and assert it in the
+locale HTML spec.
+
+**WO-TAI-09.** WO-TAI-07 finding: find every document under `om-ai.omdala.com/**`
+that counts the keyword screen as moderation or safety coverage (release criteria,
+checklists, specs) and correct it to point at `docs/OMAI_MODERATION_SCOPE.md`. List
+any such claim outside TAI paths in the report for T0 to route.
+
+**WO-TAI-10.** Contract against code: compare every endpoint in
+`om-ai.omdala.com/AI_OM_LIVE_API_CONTRACT_V1.md` (and `AI_OM_API_CONTRACT_V1.md`)
+with the backend routes. Report implemented, missing and undocumented endpoints in
+a table, and add contract tests (status codes, error codes, required fields) for
+each implemented endpoint that has none.
+
+**WO-T4-11.** Independent check of WO-T2-14 on a scratch local PostgreSQL: apply
+0001-0003 plus `proposed/0004`, run the rollback, apply again, and compare the
+table set each time; recompute the sha256 that T2 gives for T1's
+`compatibility.json` entry; run the expand-only verifier on 0004.
+
 ### 7.2 Standing backlog (taken in order when a team has no READY order)
 
 | ID | Team | Work |
@@ -387,3 +428,4 @@ BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
 | 2026-10-30T18:2xZ | HARVEST | Marked 25 orders and backlog items (T2 and TAI queues empty, T4 empty, T3 on backlog); hosted CI green on every T2 and TAI SHA; T4 confirms 13 of the 14 CONFIRMED R findings fixed (only R-27, a human gate, remains). Refilled T2 (5), T3 (4), T4 (2); disabled TAI (waits on humans, 7.3); T1 orders 01, 03-05 updated | |
 | 2026-10-30T19:20Z, 20:20Z | 2 ticks | 19:20Z: TAI disable needed owner approval; the request closed on a worker restart. 20:20Z: worker restarted before work | No ledger change |
 | 2026-10-30T21:2xZ | HARVEST | T2 second cycle (4 orders + BL-T2-06 VERIFIED, WO-T2-08 BLOCKED on network); T3 WO-T3-07..10, BL-T3-02 VERIFIED, BL-T3-04 DONE; T4 WO-T4-07/08 DONE (web `/vi` lang FAILED). Refilled T2 (2), T3 (3), TAI (3), T4 (2); recorded the `update_trigger` approval limit | |
+| 2026-10-30T22:2xZ | HARVEST | All four teams worked 21:45-22:02Z: T2 WO-T2-13 DONE, WO-T2-14 PARTIAL (T1 must promote migration 0004); T3 WO-T3-11/13 DONE; TAI WO-TAI-06/07 DONE, WO-TAI-08 PARTIAL; T4 VERIFY T3 02d5453 and WO-T4-09 (4 findings). Refilled T2 (2), T3 (1 + WO-T3-12), TAI (2), T4 (1 + WO-T4-10); added WO-T1-06 | |
