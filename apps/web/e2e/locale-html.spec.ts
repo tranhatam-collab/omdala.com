@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { getNotFoundCopy } from "../app/lib/bilingual-source";
 
 // The server-rendered HTML (no JavaScript) of each locale route must already be localized.
 const PAGES = ["/", "/how-it-works/", "/what-is-omdala/", "/trust/"];
@@ -43,9 +44,20 @@ test.describe("sitemap and 404", () => {
     expect(body).toContain("<loc>https://omdala.com/vi</loc>");
   });
 
-  test("an unknown URL returns 404 and the 404 page declares a language", async ({ request }) => {
-    const response = await request.get("/does-not-exist/");
-    expect(response.status()).toBe(404);
-    expect(await response.text()).toMatch(/<html[^>]*\slang="(en|vi)"/);
+  test("an unknown URL returns a bilingual, noindex 404", async ({ request }) => {
+    // The dev server answers an unknown first segment (/x/) with a 500 because [lang] matches it;
+    // the static host serves the same global 404 for it. /vi/x/ exercises that 404 in dev.
+    for (const path of ["/vi/does-not-exist/"]) {
+      const response = await request.get(path);
+      expect(response.status()).toBe(404);
+      const html = await response.text();
+      expect(html).toMatch(/<html[^>]*\slang="en"/);
+      // Both languages on one page, each block tagged with its own lang.
+      expect(html).toMatch(/<section[^>]*\slang="en"/);
+      expect(html).toMatch(/<section[^>]*\slang="vi"/);
+      expect(html).toContain(getNotFoundCopy("en").title);
+      expect(html).toContain(getNotFoundCopy("vi").title);
+      expect(html).toMatch(/<meta name="robots" content="noindex/);
+    }
   });
 });
