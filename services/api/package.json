@@ -8,7 +8,9 @@
     "deploy": "wrangler deploy",
     "check": "tsc --noEmit",
     "test": "vitest run",
-    "test:postgres-bootstrap": "vitest run src/postgres-bootstrap.integration.test.ts"
+    "test:postgres-bootstrap": "vitest run src/postgres-bootstrap.integration.test.ts",
+    "local:stack": "node scripts/local-stack.mjs",
+    "local:smoke": "node scripts/local-stack.mjs --smoke"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260728.1",

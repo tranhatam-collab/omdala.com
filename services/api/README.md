@@ -32,3 +32,18 @@ CI can provide one with a service container, for example
 `OMDALA_TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:5432/postgres`.
 There are no down migrations: `compatibility.json` declares schema rollback
 out of scope, so the supported reset is drop-and-rebootstrap.
+
+## Local stand-up (PREP_UNDER_ASSUMPTION(CTL-03))
+
+`OMDALA_LOCAL_PG_URL=postgresql://<user>@127.0.0.1:5432/postgres pnpm --filter @omdala/api run local:stack`
+creates a scratch database on a loopback PostgreSQL server, applies the
+migrations, seeds `local-dev@example.test`, and starts `wrangler dev --local`
+(never remote), printing the base URL. `local:smoke` does the same, runs a
+health + magic-link + session + profile smoke, and tears everything down.
+Needs `openssl`. Secrets and a throwaway CA are generated per run in a private
+temp directory; the worker's database TLS is fully verified through a loopback
+TLS proxy. Mode is `ENVIRONMENT=development`: account data is in PostgreSQL,
+magic links and sessions are in memory (lost on restart), mail is printed to
+the worker console and never sent. The refresh/logout cookies are `Secure`, so
+a browser journey should use `http://localhost`/`127.0.0.1` in a browser that
+treats loopback as secure (Chromium, Firefox).
