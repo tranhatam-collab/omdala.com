@@ -155,3 +155,72 @@ describe("AIAGENT chat route failure mapping", () => {
     expect(text).not.toContain("sk-aiagent");
   });
 });
+
+async function modelsRequest(testEnv: Record<string, string> = env) {
+  const cookie = await accessCookie(`models-${counter++}@omdala.com`);
+  return app.request("http://localhost/v1/ai/models", { headers: { cookie } }, testEnv);
+}
+
+describe("AIAGENT models route failure mapping", () => {
+  it("answers 429 with a stable code and passes Retry-After through", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(providerFail(429, { "Retry-After": "17" }));
+    const response = await modelsRequest();
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("17");
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      error: { code: "aiagent_quota_exceeded" },
+    });
+  });
+
+  it("drops a garbage Retry-After and clamps an absurd one", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    fetchSpy.mockResolvedValueOnce(providerFail(429, { "Retry-After": "soon" }));
+    expect((await modelsRequest()).headers.get("retry-after")).toBeNull();
+    fetchSpy.mockResolvedValueOnce(providerFail(429, { "Retry-After": "999999999" }));
+    expect((await modelsRequest()).headers.get("retry-after")).toBe("86400");
+  });
+
+  it("answers 504 with a stable code on a provider timeout", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(
+      new DOMException("The operation timed out.", "TimeoutError"),
+    );
+    const response = await modelsRequest();
+    expect(response.status).toBe(504);
+    await expect(response.json()).resolves.toMatchObject({ error: { code: "aiagent_timeout" } });
+  });
+
+  it.each([500, 502, 503, 504, 401, 403])("answers 502 when the provider returns %s", async (status) => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(providerFail(status));
+    const response = await modelsRequest();
+    expect(response.status).toBe(502);
+    expect(response.headers.get("retry-after")).toBeNull();
+    await expect(response.json()).resolves.toMatchObject({
+      error: { code: "aiagent_catalog_unavailable" },
+    });
+  });
+
+  it("keeps 503 for failures that are not provider responses", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    fetchSpy.mockRejectedValueOnce(new TypeError("fetch failed"));
+    expect((await modelsRequest()).status).toBe(503);
+    fetchSpy.mockResolvedValueOnce(
+      new Response("<html></html>", { status: 200, headers: { "Content-Type": "text/html" } }),
+    );
+    expect((await modelsRequest()).status).toBe(503);
+  });
+
+  it("keeps 503 and never calls the provider when AIAGENT is not configured", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const response = await modelsRequest({ ...env, AIAGENT_API_KEY: "" });
+    expect(response.status).toBe(503);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("never echoes provider bodies or the credential", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response('{"error":"sk-aiagent-leak"}', { status: 429, headers: { "Content-Type": "application/json" } }),
+    );
+    expect(await (await modelsRequest()).text()).not.toContain("sk-aiagent");
+  });
+});

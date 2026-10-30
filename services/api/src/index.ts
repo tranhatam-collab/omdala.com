@@ -3765,6 +3765,34 @@ app.get("/v1/ai/health", async (c) => {
   });
 });
 
+// Shared by every AIAGENT route: quota/rate limits and timeouts keep the same
+// stable status and code everywhere, with a bounded Retry-After passed through.
+function aiagentTransportFailureResponse(
+  c: ApiContext,
+  error: unknown,
+): Response | null {
+  if (error instanceof AiagentProviderError && error.status === 429) {
+    if (error.retryAfterSeconds !== null) {
+      c.header("Retry-After", String(error.retryAfterSeconds));
+    }
+    return jsonError(
+      c,
+      429,
+      "aiagent_quota_exceeded",
+      "The AI provider quota or rate limit was reached. Retry later.",
+    );
+  }
+  if (error instanceof Error && error.message === "AIAGENT_TIMEOUT") {
+    return jsonError(
+      c,
+      504,
+      "aiagent_timeout",
+      "The AI provider did not respond in time.",
+    );
+  }
+  return null;
+}
+
 app.get("/v1/ai/models", async (c) => {
   const session = await requireAuthenticatedSession(c);
   if (session instanceof Response) return session;
@@ -3780,7 +3808,17 @@ app.get("/v1/ai/models", async (c) => {
       models,
       total: models.length,
     });
-  } catch {
+  } catch (error) {
+    const transport = aiagentTransportFailureResponse(c, error);
+    if (transport) return transport;
+    if (error instanceof AiagentProviderError) {
+      return jsonError(
+        c,
+        502,
+        "aiagent_catalog_unavailable",
+        "The AI provider rejected the catalog request.",
+      );
+    }
     return jsonError(
       c,
       503,
@@ -3835,25 +3873,8 @@ app.post("/v1/ai/chat", async (c) => {
     return jsonOk(c, result);
   } catch (error) {
     const code = error instanceof Error ? error.message : "AIAGENT_UNKNOWN_ERROR";
-    if (error instanceof AiagentProviderError && error.status === 429) {
-      if (error.retryAfterSeconds !== null) {
-        c.header("Retry-After", String(error.retryAfterSeconds));
-      }
-      return jsonError(
-        c,
-        429,
-        "aiagent_quota_exceeded",
-        "The AI provider quota or rate limit was reached. Retry later.",
-      );
-    }
-    if (code === "AIAGENT_TIMEOUT") {
-      return jsonError(
-        c,
-        504,
-        "aiagent_timeout",
-        "The AI provider did not respond in time.",
-      );
-    }
+    const providerFailure = aiagentTransportFailureResponse(c, error);
+    if (providerFailure) return providerFailure;
     if (code === "AIAGENT_CHAT_INPUT_INVALID" || code === "AIAGENT_MODEL_NOT_AVAILABLE") {
       return jsonError(c, 422, "invalid_ai_request", "The requested AI model or input is invalid.");
     }
