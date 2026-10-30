@@ -60,8 +60,14 @@ export default function NewRequestPage() {
           <input type="text" defaultValue={draft.budgetHint} />
         </label>
         <div className="entity-actions">
-          <button type="button" className="app-button app-button--primary">
-            Save draft
+          <button
+            type="button"
+            className="app-button app-button--primary"
+            disabled
+            aria-disabled="true"
+            title="Saving drafts is not available yet"
+          >
+            Save draft (not available yet)
           </button>
           <Link href="/requests" className="app-button app-button--ghost">
             Cancel

@@ -39,6 +39,18 @@ test.describe("routes", () => {
   });
 });
 
+test.describe("api reference", () => {
+  test("lists only implemented route groups", async ({ page }) => {
+    await page.goto("/api/");
+    const groups = await page.locator('ul[aria-label="API route groups"] code').allTextContents();
+    expect(groups).toContain("/v1/auth");
+    expect(groups).toContain("/v2/reality");
+    for (const removed of ["/v1/offers", "/v1/requests", "/v1/matches", "/v1/bookings", "/v1/payments", "/v1/proofs"]) {
+      expect(groups).not.toContain(removed);
+    }
+  });
+});
+
 test.describe("canonical and hreflang", () => {
   for (const route of ROUTES) {
     test(`${route.path} has a self canonical and EN/VI/x-default alternates`, async ({ page }) => {

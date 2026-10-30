@@ -70,8 +70,14 @@ export default function NewOfferPage() {
           </select>
         </label>
         <div className="entity-actions">
-          <button type="button" className="app-button app-button--primary">
-            Save draft
+          <button
+            type="button"
+            className="app-button app-button--primary"
+            disabled
+            aria-disabled="true"
+            title="Saving drafts is not available yet"
+          >
+            Save draft (not available yet)
           </button>
           <Link href="/offers" className="app-button app-button--ghost">
             Cancel
