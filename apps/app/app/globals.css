@@ -435,3 +435,8 @@ a.language-switcher__item:hover {
   opacity: 0.45;
   text-decoration: line-through;
 }
+
+/* Pages with the dashboard header carry their own switcher; the floating one would cover its buttons. */
+body[data-inline-language-switcher] .language-switcher-floating {
+  display: none;
+}

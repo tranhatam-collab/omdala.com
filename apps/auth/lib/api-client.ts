@@ -1,12 +1,11 @@
 import { OMDALA_API_ORIGIN } from "@omdala/core";
 
-declare const process:
-  | {
-      env?: {
-        NEXT_PUBLIC_API_URL?: string;
-      };
-    }
-  | undefined;
+// Read as `process.env.NEXT_PUBLIC_*`: the bundler only inlines the direct form.
+declare const process: {
+  env: {
+    NEXT_PUBLIC_API_URL?: string;
+  };
+};
 
 export class ApiClientError extends Error {
   code: string;
@@ -30,7 +29,7 @@ type ApiEnvelope = {
 };
 
 export function getApiBaseUrl() {
-  const runtimeApiUrl = process?.env?.NEXT_PUBLIC_API_URL;
+  const runtimeApiUrl = process.env.NEXT_PUBLIC_API_URL;
   return (runtimeApiUrl ?? OMDALA_API_ORIGIN).replace(/\/+$/g, "");
 }
 

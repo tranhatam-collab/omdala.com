@@ -87,7 +87,7 @@ export default function AppRootLayout({
       </head>
       <body>
         <DocumentLanguageSync />
-        <div style={{
+        <div className="language-switcher-floating" style={{
           position: 'fixed',
           top: '1rem',
           right: '1rem',

@@ -4,6 +4,8 @@ import * as React from "react";
 import { resolveLanguage, withLanguageParam } from "@omdala/core";
 import { AICommandPalette, useLocationSearchParam } from "@omdala/ui";
 import { LocaleLink } from "./LocaleLink";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { SignOutButton } from "./SignOutButton";
 import { APP_COPY, t } from "@/lib/bilingual-copy";
 
 interface SmartLayoutProps {
@@ -22,6 +24,12 @@ export function SmartLayout({ children }: SmartLayoutProps) {
   const language = resolveLanguage(useLocationSearchParam("lang"));
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+
+  // The header carries its own language switcher, so hide the floating one while it is mounted.
+  React.useEffect(() => {
+    document.body.setAttribute("data-inline-language-switcher", "");
+    return () => document.body.removeAttribute("data-inline-language-switcher");
+  }, []);
 
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -244,6 +252,8 @@ export function SmartLayout({ children }: SmartLayoutProps) {
             <LocaleLink href="/profile" className="app-button app-button--primary">
               {t(language, APP_COPY.layout.navLabels.Profile)}
             </LocaleLink>
+            <LanguageSwitcher />
+            <SignOutButton />
           </div>
         </header>
 

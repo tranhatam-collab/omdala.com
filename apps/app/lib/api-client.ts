@@ -1,13 +1,14 @@
 import { resolvePublicOrigin } from "@omdala/core";
 
-declare const process:
-  | {
-      env?: {
-        NEXT_PUBLIC_API_URL?: string;
-        NEXT_PUBLIC_RELEASE_ENVIRONMENT?: string;
-      };
-    }
-  | undefined;
+// Read as `process.env.NEXT_PUBLIC_*` (never `process?.env?.…`): the bundler only inlines the
+// direct form, and an optional-chained read is undefined in the browser, which silently
+// selects the production API origin.
+declare const process: {
+  env: {
+    NEXT_PUBLIC_API_URL?: string;
+    NEXT_PUBLIC_RELEASE_ENVIRONMENT?: string;
+  };
+};
 
 export class ApiClientError extends Error {
   code: string;
@@ -31,11 +32,11 @@ type ApiEnvelope = {
 };
 
 export function getApiBaseUrl() {
-  const runtimeApiUrl = process?.env?.NEXT_PUBLIC_API_URL;
+  const runtimeApiUrl = process.env.NEXT_PUBLIC_API_URL;
   return resolvePublicOrigin(
     "api",
     runtimeApiUrl,
-    process?.env?.NEXT_PUBLIC_RELEASE_ENVIRONMENT,
+    process.env.NEXT_PUBLIC_RELEASE_ENVIRONMENT,
   );
 }
 
