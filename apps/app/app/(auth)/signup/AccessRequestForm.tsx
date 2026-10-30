@@ -123,7 +123,7 @@ export function AccessRequestForm() {
           {isVi ? "Tên node đầu tiên" : "First node name"}
           <input
             type="text"
-            name="nodeName"
+            name="node-name"
             value={form.nodeName}
             onChange={(event) =>
               setForm((current) => ({

@@ -81,6 +81,7 @@ export function ContactForm({ language }: { language: OmdalaLanguage }) {
   const copy = {
     sending: { en: 'Sending your message...', vi: 'Đang gửi liên hệ...', zh: '正在发送你的消息...', es: 'Enviando tu mensaje...', ja: 'メッセージを送信中...', ko: '메시지를 보내는 중...' },
     sent: { en: `Sent. The team will reply from ${OMDALA_INBOXES.support}.`, vi: `Đã gửi. Đội ngũ sẽ phản hồi từ ${OMDALA_INBOXES.support}.`, zh: `已发送。团队将从 ${OMDALA_INBOXES.support} 回复。`, es: `Enviado. El equipo responderá desde ${OMDALA_INBOXES.support}.`, ja: `送信完了。チームは ${OMDALA_INBOXES.support} から返信します。`, ko: `전송되었습니다. 팀이 ${OMDALA_INBOXES.support} 에서 회신합니다.` },
+    unavailable: { en: 'The service is temporarily unavailable. Please retry shortly.', vi: 'Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.', zh: '服务暂时不可用，请稍后重试。', es: 'El servicio no está disponible temporalmente. Inténtalo de nuevo en breve.', ja: 'サービスは一時的に利用できません。しばらくしてからもう一度お試しください。', ko: '서비스를 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해 주세요.' },
     sendError: { en: 'Unable to deliver your message.', vi: 'Không gửi được liên hệ.', zh: '无法发送你的消息。', es: 'No se pudo enviar tu mensaje.', ja: 'メッセージを送信できません。', ko: '메시지를 보낼 수 없습니다.' },
     name: { en: 'Your name', vi: 'Tên của bạn', zh: '你的姓名', es: 'Tu nombre', ja: 'あなたの名前', ko: '이름' },
     namePlaceholder: { en: 'Builder name', vi: 'Tên người gửi', zh: '发送者姓名', es: 'Nombre del remitente', ja: '送信者名', ko: '보내는 사람 이름' },
@@ -116,9 +117,13 @@ export function ContactForm({ language }: { language: OmdalaLanguage }) {
         }),
       })
 
-      const payload = await response.json()
+      // A gateway error can return a non-JSON body; never surface the parse error to the user.
+      const payload = (await response.json().catch(() => null)) as { error?: { message?: string } } | null
       if (!response.ok) {
-        throw new Error(payload.error?.message ?? pickLanguageValue(language, copy.sendError))
+        if ([502, 503, 504].includes(response.status)) {
+          throw new Error(pickLanguageValue(language, copy.unavailable))
+        }
+        throw new Error(payload?.error?.message ?? pickLanguageValue(language, copy.sendError))
       }
 
       setForm(initialState)
