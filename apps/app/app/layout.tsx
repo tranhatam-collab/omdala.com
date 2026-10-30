@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { DocumentLanguageSync } from '@omdala/ui'
 import { LanguageSwitcher } from './components/LanguageSwitcher'
+import '../../../packages/ui/src/fonts.css'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -62,7 +63,7 @@ export default function AppRootLayout({
             --om-border: rgba(255,255,255,0.08);
             --om-border-focus: rgba(126,242,255,0.4);
             --om-glow: 0 0 20px rgba(126,242,255,0.15);
-            --font-sans: 'SF Pro Display', system-ui, -apple-system, sans-serif;
+            --font-sans: Inter, 'SF Pro Display', system-ui, -apple-system, sans-serif;
             --font-mono: 'SFMono-Regular', Consolas, monospace;
           }
           body {

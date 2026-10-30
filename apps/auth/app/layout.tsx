@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AUTH_COPY, DocumentLanguageSync } from "@omdala/ui";
+import "../../../packages/ui/src/fonts.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

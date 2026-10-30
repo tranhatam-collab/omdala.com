@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { getOrganizationSchema, getWebSiteSchema } from "@omdala/seo";
 import { SchemaScript } from "@omdala/ui";
 import { getPageCopy } from "./lib/bilingual-source";
+import "../../../packages/ui/src/fonts.css";
 import "./globals.css";
 
 const homeSeo = getPageCopy("home", "en");
@@ -84,7 +85,7 @@ export default function RootLayout({
             --om-border: rgba(255,255,255,0.08);
             --om-border-focus: rgba(126,242,255,0.4);
             --om-glow: 0 0 20px rgba(126,242,255,0.15);
-            --font-sans: 'SF Pro Display', system-ui, -apple-system, sans-serif;
+            --font-sans: Inter, 'SF Pro Display', system-ui, -apple-system, sans-serif;
             --font-mono: 'SFMono-Regular', Consolas, monospace;
           }
           body {

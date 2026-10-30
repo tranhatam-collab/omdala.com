@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { DOCS_ORIGIN, type DocsLanguage } from './docs-seo'
+import '../../../../packages/ui/src/fonts.css'
 import '../globals.css'
 
 export const DOCS_ROOT_METADATA: Metadata = {

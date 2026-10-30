@@ -211,3 +211,8 @@ a {
 .auth-language-switcher__item--active {
   border-color: var(--auth-glow);
 }
+
+h1,
+h2 {
+  font-family: Sora, "Inter", "Segoe UI", sans-serif;
+}
