@@ -47,6 +47,7 @@ import {
   parsePaginationParams,
 } from "./contracts";
 import {
+  AiagentProviderError,
   executeAiagentChat,
   getAiagentAuthority,
   listAiagentModels,
@@ -3807,6 +3808,25 @@ app.post("/v1/ai/chat", async (c) => {
     return jsonOk(c, result);
   } catch (error) {
     const code = error instanceof Error ? error.message : "AIAGENT_UNKNOWN_ERROR";
+    if (error instanceof AiagentProviderError && error.status === 429) {
+      if (error.retryAfterSeconds !== null) {
+        c.header("Retry-After", String(error.retryAfterSeconds));
+      }
+      return jsonError(
+        c,
+        429,
+        "aiagent_quota_exceeded",
+        "The AI provider quota or rate limit was reached. Retry later.",
+      );
+    }
+    if (code === "AIAGENT_TIMEOUT") {
+      return jsonError(
+        c,
+        504,
+        "aiagent_timeout",
+        "The AI provider did not respond in time.",
+      );
+    }
     if (code === "AIAGENT_CHAT_INPUT_INVALID" || code === "AIAGENT_MODEL_NOT_AVAILABLE") {
       return jsonError(c, 422, "invalid_ai_request", "The requested AI model or input is invalid.");
     }

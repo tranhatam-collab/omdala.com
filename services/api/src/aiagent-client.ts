@@ -18,6 +18,36 @@ const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const MODEL_ID_PATTERN = /^iai-one\/[a-z0-9][a-z0-9-]{1,63}$/;
 const CREDENTIAL_PATTERN = /^sk-aiagent-[a-f0-9]{48}$/;
 
+const MAX_RETRY_AFTER_SECONDS = 24 * 60 * 60;
+
+export class AiagentProviderError extends Error {
+  constructor(
+    readonly status: number,
+    readonly retryAfterSeconds: number | null,
+  ) {
+    super(`AIAGENT_HTTP_${status}`);
+    this.name = "AiagentProviderError";
+  }
+}
+
+// Retry-After is provider-controlled; only a bounded number of seconds passes through.
+function parseRetryAfter(value: string | null): number | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  let seconds: number;
+  if (/^\d{1,9}$/.test(trimmed)) {
+    seconds = Number(trimmed);
+  } else {
+    if (!/^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(trimmed)) {
+      return null;
+    }
+    const date = Date.parse(trimmed);
+    if (!Number.isFinite(date)) return null;
+    seconds = Math.ceil((date - Date.now()) / 1000);
+  }
+  return Math.min(Math.max(seconds, 0), MAX_RETRY_AFTER_SECONDS);
+}
+
 type ReleaseEnvironment = keyof typeof AIAGENT_ORIGINS;
 type JsonObject = Record<string, unknown>;
 
@@ -202,15 +232,27 @@ async function requestAiagentJson(
   headers.set("X-Actor-Role", "agent");
   headers.set("X-Surface", "agent");
 
-  const response = await fetch(`${identity.origin}${path}`, {
-    ...init,
-    redirect: "error",
-    signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${identity.origin}${path}`, {
+      ...init,
+      redirect: "error",
+      signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
+      headers,
+    });
+  } catch (error) {
+    const name = (error as { name?: string } | null)?.name;
+    if (name === "TimeoutError" || name === "AbortError") {
+      throw new Error("AIAGENT_TIMEOUT");
+    }
+    throw error;
+  }
   if (!response.ok) {
     await response.body?.cancel();
-    throw new Error(`AIAGENT_HTTP_${response.status}`);
+    throw new AiagentProviderError(
+      response.status,
+      parseRetryAfter(response.headers.get("Retry-After")),
+    );
   }
   if (
     options.expectedRequestId &&

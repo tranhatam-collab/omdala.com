@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { executeAiagentChat, listAiagentModels } from "./aiagent-client";
+import { AiagentProviderError, executeAiagentChat, listAiagentModels } from "./aiagent-client";
 import type { ApiBindings } from "./contracts";
 
 // Every provider response below is synthesized in-process; fetch is replaced
@@ -342,7 +342,7 @@ describe("AIAGENT client: timeout", () => {
     const timeoutError = new DOMException("The operation timed out.", "TimeoutError");
     const { calls } = installProvider({ chat: { throws: timeoutError } });
     const error = await failure(executeAiagentChat(env, "a@omdala.com", "k", input));
-    expect(error.name).toBe("TimeoutError");
+    expect(error.message).toBe("AIAGENT_TIMEOUT");
     expect(calls.map((c) => c.url.pathname)).toEqual(["/v1/ai/models", "/v1/ai/chat"]);
   });
 
@@ -357,7 +357,18 @@ describe("AIAGENT client: timeout", () => {
     );
     vi.spyOn(AbortSignal, "timeout").mockReturnValue(AbortSignal.abort(new DOMException("t", "TimeoutError")));
     const error = await failure(listAiagentModels(env));
-    expect(error.name).toBe("TimeoutError");
+    expect(error.message).toBe("AIAGENT_TIMEOUT");
+  });
+
+  it("maps an AbortError to the same timeout code", async () => {
+    installProvider({ models: { throws: new DOMException("aborted", "AbortError") } });
+    expect((await failure(listAiagentModels(env))).message).toBe("AIAGENT_TIMEOUT");
+  });
+
+  it("does not relabel other network failures as timeouts", async () => {
+    installProvider({ models: { throws: new TypeError("fetch failed") } });
+    const error = await failure(listAiagentModels(env));
+    expect(error).toBeInstanceOf(TypeError);
   });
 });
 
@@ -366,9 +377,36 @@ describe("AIAGENT client: quota and budget", () => {
     installProvider({
       chat: { status: 429, rawBody: '{"ok":false,"error":{"code":"quota_exceeded"}}' },
     });
-    expect((await failure(executeAiagentChat(env, "a@omdala.com", "k", input))).message).toBe(
-      "AIAGENT_HTTP_429",
-    );
+    const error = await failure(executeAiagentChat(env, "a@omdala.com", "k", input));
+    expect(error.message).toBe("AIAGENT_HTTP_429");
+    expect(error).toBeInstanceOf(AiagentProviderError);
+    expect((error as AiagentProviderError).status).toBe(429);
+    expect((error as AiagentProviderError).retryAfterSeconds).toBeNull();
+  });
+
+  it.each([
+    ["seconds", "30", 30],
+    ["zero", "0", 0],
+    ["huge value is clamped", "999999999", 86_400],
+    ["garbage is dropped", "soon", null],
+    ["negative is dropped", "-5", null],
+    ["empty is dropped", "", null],
+  ])("passes Retry-After through bounded: %s", async (_label, header, expected) => {
+    installProvider({ chat: { status: 429, rawBody: "{}", headers: { "Retry-After": header } } });
+    const error = (await failure(
+      executeAiagentChat(env, "a@omdala.com", "k", input),
+    )) as AiagentProviderError;
+    expect(error.retryAfterSeconds).toBe(expected);
+  });
+
+  it("converts an HTTP-date Retry-After to bounded seconds", async () => {
+    const date = new Date(Date.now() + 120_000).toUTCString();
+    installProvider({ chat: { status: 429, rawBody: "{}", headers: { "Retry-After": date } } });
+    const error = (await failure(
+      executeAiagentChat(env, "a@omdala.com", "k", input),
+    )) as AiagentProviderError;
+    expect(error.retryAfterSeconds).toBeGreaterThan(100);
+    expect(error.retryAfterSeconds).toBeLessThanOrEqual(121);
   });
 
   it("treats a 402/403 plan limit as a provider failure", async () => {
