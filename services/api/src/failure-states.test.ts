@@ -196,8 +196,10 @@ describe("mail failures are explicit errors, never a false success", { timeout: 
   afterEach(async () => {
     // The sibling mail of a failed Promise.all keeps retrying; let it finish
     // against this test's fetch spy before the spy is restored.
-    await vi.advanceTimersByTimeAsync(30_000);
-    await new Promise<void>((resolve) => setImmediate(resolve));
+    for (let i = 0; i < 200; i++) {
+      await vi.advanceTimersByTimeAsync(500);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+    }
     vi.restoreAllMocks();
     vi.useRealTimers();
   });

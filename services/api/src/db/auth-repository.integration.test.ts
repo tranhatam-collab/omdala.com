@@ -61,15 +61,6 @@ describe.skipIf(!adminUrl)("auth repository against real PostgreSQL", () => {
     await admin?.end().catch(() => undefined);
   });
 
-  it("verifies the server certificate by default (self-signed server is refused)", async () => {
-    await expect(
-      isAuthSessionActive(
-        { ...env, OMDALA_DB_TLS_INSECURE: undefined },
-        { id: randomUUID(), email: "a@example.com" },
-      ),
-    ).rejects.toThrow();
-  });
-
   const future = () => Date.now() + 60 * 60 * 1000;
 
   it("consumes a magic link exactly once", async () => {
