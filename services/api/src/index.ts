@@ -761,8 +761,17 @@ function toDisplayNameFromEmail(email: string): string {
     .join(" ");
 }
 
-function toIdFromEmail(email: string): string {
-  return email.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+// Injective by construction: every byte outside [a-z0-9] becomes "_" plus two hex
+// digits, so two different addresses can never share a default id. (The earlier
+// lossy form mapped "john.doe@x.com" and "john_doe@x.com" to one primary key, which
+// locked the second account out of its workspace features.) The "wsd_" prefix also
+// keeps new ids disjoint from the "ws_" ids already issued.
+function defaultWorkspaceIdForEmail(email: string): string {
+  const escaped = Array.from(new TextEncoder().encode(email.toLowerCase()), (byte) => {
+    const char = String.fromCharCode(byte);
+    return /[a-z0-9]/.test(char) ? char : `_${byte.toString(16).padStart(2, "0")}`;
+  }).join("");
+  return `wsd_${escaped}`;
 }
 
 function toSlug(value: string): string {
@@ -1028,10 +1037,9 @@ function buildDefaultWorkspacesForEmail(
   profile: OmAiAccountProfile,
 ): WorkspaceRecord[] {
   const now = new Date().toISOString();
-  const baseId = toIdFromEmail(email);
   return [
     {
-      id: `ws_${baseId}`,
+      id: defaultWorkspaceIdForEmail(email),
       slug: `${toSlug(profile.displayName || email)}-workspace`,
       name: `${profile.displayName || email} Workspace`,
       type: "organization",
@@ -3455,6 +3463,20 @@ app.post("/v1/analytics/track", async (c) => {
   if (persistenceError) return persistenceError;
 
   try {
+    // An event may only reference a workspace the caller owns.
+    if (body.workspaceId) {
+      const owned = (await getRuntimeWorkspaces(c.env, session.email)).some(
+        (item) => item.id === body.workspaceId,
+      );
+      if (!owned) {
+        return jsonError(
+          c,
+          404,
+          "workspace_not_found",
+          "Workspace was not found in current session scope.",
+        );
+      }
+    }
     const profile = isDatabaseConfigured(c.env)
       ? await getRuntimeAccountProfile(c.env, session.email)
       : getAccountProfileForEmail(session.email);
@@ -3732,6 +3754,9 @@ app.post("/v1/security/webhooks/verify", async (c) => {
 });
 
 app.post("/v1/security/service-token", async (c) => {
+  const session = await requireAuthenticatedSession(c);
+  if (session instanceof Response) return session;
+
   const secret = c.env.SERVICE_TOKEN_SECRET ?? c.env.MAGIC_LINK_SECRET ?? "";
   if (!secret) {
     return jsonError(c, 501, "not_configured", "Service token secret is not configured.");
