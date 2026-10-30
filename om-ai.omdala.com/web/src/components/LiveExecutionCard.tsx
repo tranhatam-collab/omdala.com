@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { describeLiveError } from '../api/liveErrors';
 import {
   createLiveSession,
   connectLiveSession,
@@ -148,6 +149,9 @@ export function LiveExecutionCard({ className = '' }: Props) {
     setUsageText(
       `plan=${nextPlanId} / free=${usage.value.free_seconds_used}/${usage.value.free_seconds_limit} / remaining=${usage.value.free_seconds_remaining}`,
     );
+    if (usage.value.free_seconds_remaining <= 0 && usage.value.free_seconds_limit > 0) {
+      setError('quota_exhausted');
+    }
     setCurrentPlanId(nextPlanId);
     setSelectedPlanId((previous) => (previous === currentPlanId ? nextPlanId : previous));
   }
@@ -383,7 +387,7 @@ export function LiveExecutionCard({ className = '' }: Props) {
       {usageText ? <Alert>{usageText}</Alert> : null}
       {memoryText ? <Alert>{memoryText}</Alert> : null}
       {planText ? <Alert>{planText}</Alert> : null}
-      {error ? <Alert tone="warning">Live execution error: {error}</Alert> : null}
+      {error ? <Alert tone="warning">{describeLiveError(error).message}</Alert> : null}
     </Card>
   );
 }
