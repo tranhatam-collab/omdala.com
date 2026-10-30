@@ -30,7 +30,7 @@ async function runWithDbContext<T>(
   }
 }
 
-function normalizeExplanation(raw: unknown): string[] {
+export function normalizeExplanation(raw: unknown): string[] {
   if (Array.isArray(raw)) {
     return raw.map((item) => String(item));
   }
