@@ -39,6 +39,8 @@ Status: Draft for DEV handoff
 
 ## 6. Safety
 
+Note: the in-repo moderation check is a keyword screen, not a safety classifier, and must not be ticked as safety coverage (`docs/OMAI_MODERATION_SCOPE.md`).
+
 - denied actions explainable
 - sensitive actions approved
 - proof generated for actions

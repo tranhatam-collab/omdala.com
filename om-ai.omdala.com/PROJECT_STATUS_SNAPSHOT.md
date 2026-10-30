@@ -37,6 +37,7 @@ The repo is now centered around:
 ## Current Constraints
 
 - backend runtime implementation is still partial in several Om AI Live paths
+- moderation in code is a keyword screen only, not a safety classifier; see `docs/OMAI_MODERATION_SCOPE.md`
 - mobile app structures exist, but full call MVP implementation remains for DEV execution
 - shared account and billing leverage from `omdala.com` is active, but Om AI still owns product-specific live logic
 - some archival docs remain in the repo for historical context and bridge planning
