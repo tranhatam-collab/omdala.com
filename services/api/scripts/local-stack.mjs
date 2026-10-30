@@ -14,12 +14,15 @@
 //
 // Profiles (--profile=<name>):
 //   persistent (default)  ENVIRONMENT=staging. Magic links and sessions live in
-//                         PostgreSQL and survive a worker restart. Mail goes to a
-//                         loopback stub sink, never to a provider; read it at the
-//                         printed "mail inbox" URL.
+//                         PostgreSQL and survive a worker restart.
 //   development           ENVIRONMENT=development. Magic links and sessions are
-//                         in memory (lost on restart); mail is printed to the
-//                         worker console.
+//                         in memory (lost on restart).
+//
+// Mail in both profiles goes to a loopback stub sink, never to a provider; read
+// it at the printed "mail inbox" URL. The mail and provider-credential bindings
+// are pinned on the command line, which outranks wrangler.toml [vars] and any
+// developer .dev.vars, so no setting in the checkout can send real mail or make
+// a paid AI call from this stack.
 //
 // The API always connects with TLS and verifies the certificate, and workerd
 // ignores `rejectUnauthorized: false`. So the script makes a throwaway CA, runs a
@@ -53,14 +56,22 @@ const SINK_ADDRESS = "local-sink@example.test";
 const SEED_EMAIL = "local-dev@example.test";
 const LOOPBACK = new Set(["127.0.0.1", "localhost", "::1", "[::1]"]);
 
+class StackError extends Error {}
+
+// Used once resources may exist: throws so main()'s catch runs teardown before exiting.
 function fail(message) {
+  throw new StackError(message);
+}
+
+// Used before anything has been created (argument validation): nothing to clean up.
+function exitEarly(message) {
   console.error(`local-stack: ${message}`);
   process.exit(1);
 }
 
 const adminUrl = process.env.OMDALA_LOCAL_PG_URL;
 if (!adminUrl) {
-  fail(
+  exitEarly(
     "set OMDALA_LOCAL_PG_URL to a disposable LOCAL PostgreSQL server, " +
       "for example postgresql://postgres@127.0.0.1:5432/postgres",
   );
@@ -69,10 +80,10 @@ let parsedAdmin;
 try {
   parsedAdmin = new URL(adminUrl);
 } catch {
-  fail("OMDALA_LOCAL_PG_URL is not a valid URL");
+  exitEarly("OMDALA_LOCAL_PG_URL is not a valid URL");
 }
 if (!LOOPBACK.has(parsedAdmin.hostname)) {
-  fail(`refusing non-loopback database host "${parsedAdmin.hostname}"; this stand-up is local only`);
+  exitEarly(`refusing non-loopback database host "${parsedAdmin.hostname}"; this stand-up is local only`);
 }
 
 const dbName = `omdala_local_${randomBytes(5).toString("hex")}`;
@@ -102,12 +113,17 @@ const mailInbox = [];
 const proxySockets = new Set();
 let workDir;
 let tornDown = false;
-let workerOutput = ""; // worker stdout; the console mail transport prints the login link here
 
 async function teardown() {
   if (tornDown) return;
   tornDown = true;
-  if (wrangler && !wrangler.killed) wrangler.kill("SIGTERM");
+  if (wrangler && wrangler.exitCode === null) {
+    const exited = new Promise((resolveExit) => wrangler.once("exit", resolveExit));
+    wrangler.kill("SIGTERM");
+    const timer = setTimeout(() => wrangler.kill("SIGKILL"), 5_000);
+    await exited;
+    clearTimeout(timer);
+  }
   for (const socket of proxySockets) socket.destroy();
   proxy?.close();
   mailSink?.close();
@@ -118,8 +134,16 @@ async function teardown() {
     await admin.end().catch(() => undefined);
   }
 }
-for (const signal of ["SIGINT", "SIGTERM"]) {
-  process.on(signal, () => teardown().finally(() => process.exit(130)));
+
+// Every way the process can end other than SIGKILL tears the stack down first.
+for (const [signal, code] of [["SIGINT", 130], ["SIGTERM", 143], ["SIGHUP", 129]]) {
+  process.on(signal, () => teardown().finally(() => process.exit(code)));
+}
+for (const event of ["uncaughtException", "unhandledRejection"]) {
+  process.on(event, (error) => {
+    console.error(`local-stack: ${error instanceof Error ? error.message : String(error)}`);
+    teardown().finally(() => process.exit(1));
+  });
 }
 
 function makeCertificates(dir) {
@@ -262,16 +286,20 @@ async function smoke(baseUrl, restartWorker) {
     throw new Error(`magic-link request answered ${request.status}: ${JSON.stringify(body).slice(0, 200)}`);
   }
   const transport = body.data?.deliveryReceipt?.transport;
-  if (transport !== (persistent ? "mail-api" : "console")) {
+  if (transport !== "mail-api") {
     throw new Error(`unexpected mail transport "${transport}"; no mail may leave this stack`);
   }
 
-  // The link arrives in the stub sink (persistent) or the worker console (development).
-  const token = await findLoginToken(() =>
-    persistent ? mailInbox.map((mail) => JSON.stringify(mail)).join("\n") : workerOutput,
-  );
+  // The link arrives in the loopback stub sink.
+  const token = await findLoginToken(() => mailInbox.map((mail) => JSON.stringify(mail)).join("\n"));
   if (persistent && !mailInbox.every((mail) => mail.to === SINK_ADDRESS)) {
     throw new Error("a mail reached the sink with a recipient other than the sink address");
+  }
+
+  // The checked-in wrangler.toml says direct delivery on the production workspace; the
+  // pinned local settings must win.
+  if (!mailInbox.every((mail) => mail.workspace_id === "omdala.com-staging")) {
+    throw new Error("a mail was built for a workspace other than the pinned local one");
   }
 
   const exchange = await jsonPost(`${baseUrl}/v1/auth/session/exchange`, { token });
@@ -300,7 +328,7 @@ async function smoke(baseUrl, restartWorker) {
       throw new Error(`scenes/runs were not persisted in PostgreSQL (run ${ran.status}, ${JSON.stringify(stored.rows[0])})`);
     }
     console.log(
-      "local-stack smoke [development]: /health 200; magic-link request 201 (console transport); " +
+      "local-stack smoke [development]: /health 200; magic-link request 201 (stub mail sink); " +
         "session exchange 200; seeded profile read back from PostgreSQL; scenes and runs persisted in PostgreSQL",
     );
     return;
@@ -338,6 +366,13 @@ async function smoke(baseUrl, restartWorker) {
 
 async function main() {
   // 1. scratch database on the local server (plain first, TLS if the server insists)
+  //
+  // This connection is the script's own DDL/seed connection, not the worker's. The
+  // host was checked above to be loopback, so the traffic never leaves this machine
+  // and there is no remote party to be impersonated: skipping certificate
+  // verification here (a throwaway local server often has a self-signed certificate)
+  // exposes nothing. The worker's own connection, which does carry the API's data,
+  // always verifies through the throwaway CA.
   const connect = async (url) => {
     for (const ssl of [false, { rejectUnauthorized: false }]) {
       const client = new pg.Client({ connectionString: url, ssl });
@@ -383,11 +418,9 @@ async function main() {
   const workerDbUrl = new URL(scratchUrl);
   workerDbUrl.hostname = "127.0.0.1";
   workerDbUrl.port = String(proxyPort);
-  let mailUrl = "";
-  if (persistent) {
-    mailSink = await startMailSink();
-    mailUrl = `http://127.0.0.1:${mailSink.address().port}`;
-  }
+  mailSink = await startMailSink();
+  const mailUrl = `http://127.0.0.1:${mailSink.address().port}`;
+  const mailKey = randomBytes(24).toString("hex"); // only the loopback stub ever sees it
   const envFile = join(workDir, "stack.env");
   writeFileSync(
     envFile,
@@ -395,7 +428,6 @@ async function main() {
       `MAGIC_LINK_SECRET=${randomBytes(32).toString("hex")}`,
       `E2E_TEST_SECRET=${randomBytes(32).toString("hex")}`,
       `DATABASE_URL=${workerDbUrl.toString()}`,
-      ...(persistent ? [`MAIL_API_KEY=${randomBytes(24).toString("hex")}`] : []),
       "",
     ].join("\n"),
     { mode: 0o600 },
@@ -405,17 +437,22 @@ async function main() {
   const port = Number(process.env.OMDALA_LOCAL_API_PORT) || (await freePort());
   const baseUrl = `http://127.0.0.1:${port}`;
   const wranglerBin = join(apiDir, "node_modules/wrangler/bin/wrangler.js");
-  const profileVars = persistent
-    ? [
-        "--var", "ENVIRONMENT:staging",
-        "--var", "MAIL_DELIVERY_MODE:sink",
-        "--var", "MAIL_API_WORKSPACE_ID:omdala.com-staging",
-        "--var", `MAIL_STAGING_SINK_ADDRESS:${SINK_ADDRESS}`,
-        "--var", `MAIL_API_URL:${mailUrl}`,
-        "--var", "AIAGENT_API_URL:https://staging-api.aiagent.iai.one",
-        "--var", "AIAGENT_WORKSPACE_ID:omdala-com-staging",
-      ]
-    : ["--var", "ENVIRONMENT:development"];
+  // Command-line --var outranks wrangler.toml [vars] and .dev.vars/.env, so these hold
+  // whatever the checkout says. Empty values blank credentials a developer may keep
+  // in a local .dev.vars: this stack must never make a real provider call.
+  const profileVars = [
+    "--var", `ENVIRONMENT:${persistent ? "staging" : "development"}`,
+    "--var", "MAIL_DELIVERY_MODE:sink",
+    "--var", "MAIL_API_WORKSPACE_ID:omdala.com-staging",
+    "--var", `MAIL_STAGING_SINK_ADDRESS:${SINK_ADDRESS}`,
+    "--var", `MAIL_API_URL:${mailUrl}`,
+    "--var", `MAIL_API_KEY:${mailKey}`,
+    "--var", "AIAGENT_API_URL:https://staging-api.aiagent.iai.one",
+    "--var", "AIAGENT_WORKSPACE_ID:omdala-com-staging",
+    "--var", "AIAGENT_API_KEY:",
+    "--var", "GOOGLE_CLIENT_ID:",
+    "--var", "GOOGLE_CLIENT_SECRET:",
+  ];
 
   const startWorker = () => {
     wrangler = spawn(
@@ -439,12 +476,9 @@ async function main() {
           SSL_CERT_FILE: certs.caCert,
           NODE_EXTRA_CA_CERTS: certs.caCert,
         },
-        stdio: ["ignore", "pipe", "inherit"],
+        stdio: ["ignore", "ignore", "inherit"],
       },
     );
-    wrangler.stdout.on("data", (chunk) => {
-      workerOutput = (workerOutput + chunk.toString()).slice(-200_000);
-    });
   };
   const stopWorker = async () => {
     const child = wrangler;
@@ -472,7 +506,7 @@ async function main() {
   }
 
   console.log(`local-stack: API ready at ${baseUrl} (profile: ${profile})`);
-  if (persistent) console.log(`local-stack: mail inbox at ${mailUrl}/__inbox (stub sink, loopback only)`);
+  console.log(`local-stack: mail inbox at ${mailUrl}/__inbox (stub sink, loopback only)`);
   console.log(`local-stack: seeded account ${SEED_EMAIL}; scratch database ${dbName} (dropped on exit)`);
   console.log("local-stack: press Ctrl+C to stop");
   await new Promise(() => undefined); // run until a signal arrives

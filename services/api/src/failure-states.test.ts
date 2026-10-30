@@ -183,7 +183,7 @@ describe("mail failures are explicit errors, never a false success", { timeout: 
     MAIL_STAGING_SINK_ADDRESS: "staging-sink@omdala.com",
     DATABASE_URL: "postgres://example.local/db",
   };
-  const requests: Array<[string, object]> = [
+  const requests: Array<[string, Record<string, unknown>]> = [
     ["/v1/contact", { name: "N", email: "n@example.com", message: "hello" }],
     ["/v1/auth/access-request", { email: "n@example.com", role: "owner", nodeName: "Node" }],
     ["/v1/auth/magic-link/request", { email: "n@example.com" }],
@@ -196,10 +196,15 @@ describe("mail failures are explicit errors, never a false success", { timeout: 
   afterEach(async () => {
     // The sibling mail of a failed Promise.all keeps retrying; let it finish
     // against this test's fetch spy before the spy is restored.
-    for (let i = 0; i < 200; i++) {
+    // A retry chain always has a pending back-off timer or an in-flight request, so
+    // "no pending timer for several consecutive turns" means every sibling is done.
+    let quiet = 0;
+    for (let i = 0; i < 4_000 && quiet < 25; i++) {
       await vi.advanceTimersByTimeAsync(500);
       await new Promise<void>((resolve) => setImmediate(resolve));
+      quiet = vi.getTimerCount() === 0 ? quiet + 1 : 0;
     }
+    expect(vi.getTimerCount()).toBe(0);
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
@@ -208,15 +213,26 @@ describe("mail failures are explicit errors, never a false success", { timeout: 
     vi.spyOn(globalThis, "fetch").mockImplementation(async () => make());
 
   let caller = 0;
-  // Unique email and IP per call so the in-memory rate limiter never interferes.
-  const fresh = (body: object, sink = true) => {
+  let lastToken = "";
+  // Unique email, IP and token per call: the rate limiter never interferes, and each
+  // test can pick out its own provider calls even if a failed mail's sibling from an
+  // earlier test fires late (its first fetch waits on thread-pool crypto work).
+  const fresh = (body: Record<string, unknown>, sink = true) => {
     caller += 1;
+    lastToken = `tok${caller}x${Math.random().toString(36).slice(2, 8)}`;
+    const tag = (value: unknown, fallback: string) => `${typeof value === "string" ? value : fallback} ${lastToken}`;
+    const tagged: Record<string, unknown> = { ...body, email: `caller-${caller}@example.com` };
+    for (const field of ["name", "message", "role", "nodeName"]) {
+      if (field in body) tagged[field] = tag(body[field], field);
+    }
     return {
-      body: { ...body, email: `caller-${caller}@example.com` },
+      body: tagged,
       env: sink ? mailEnv : { ...mailEnv, MAIL_STAGING_SINK_ADDRESS: undefined },
       headers: { "x-forwarded-for": `203.0.113.${caller}` },
     };
   };
+  const ownCalls = (spy: { mock: { calls: unknown[][] } }) =>
+    spy.mock.calls.filter(([, init]) => String((init as RequestInit | undefined)?.body ?? "").includes(lastToken));
 
   // Advance the fake clock through retry back-off until the response settles.
   async function settle(pending: Promise<Response>): Promise<Response> {
@@ -232,7 +248,7 @@ describe("mail failures are explicit errors, never a false success", { timeout: 
     return result;
   }
 
-  async function run(path: string, body: object, sink = true) {
+  async function run(path: string, body: Record<string, unknown>, sink = true) {
     const request = fresh(body, sink);
     return settle(Promise.resolve(post(path, request.body, request.env, request.headers)));
   }
@@ -254,7 +270,8 @@ describe("mail failures are explicit errors, never a false success", { timeout: 
     expect(response.status).toBe(502);
     expect(((await response.json()) as { ok: boolean }).ok).toBe(false);
     // no back-off retries: at most one provider call per outbound mail
-    expect(fetchSpy.mock.calls.length).toBeLessThanOrEqual(2);
+    const own = ownCalls(fetchSpy);
+    expect(own.length, `${own.length} calls for ${lastToken}`).toBeLessThanOrEqual(2);
   });
 
   it.each(requests)("%s answers 502 when the provider accepts without a message id", async (path, body) => {
@@ -277,7 +294,7 @@ describe("mail failures are explicit errors, never a false success", { timeout: 
     const fetchSpy = respondWith(() => new Response("{}", { status: 200 }));
     const response = await run(path, body, false);
     expect(response.status).toBe(502);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(ownCalls(fetchSpy)).toHaveLength(0);
   });
 
   it.each(requests)("%s succeeds only with a provider receipt", async (path, body) => {

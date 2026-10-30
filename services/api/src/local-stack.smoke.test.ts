@@ -3,10 +3,14 @@
 // scripts/local-stack.mjs: the refusal paths always run; the full local stand-up
 // (wrangler dev --local against a scratch database) is opt-in through
 // OMDALA_TEST_DATABASE_URL and needs openssl for its throwaway CA.
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
+import { readdirSync } from "node:fs";
+import net from "node:net";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { Client } from "pg";
 import { describe, expect, it } from "vitest";
 
 const run = promisify(execFile);
@@ -82,14 +86,96 @@ describe.skipIf(!process.env.OMDALA_TEST_DATABASE_URL || !haveOpenssl())(
       expect(result.stdout).toContain("replayed link refused");
     }, 200_000);
 
-    it("development profile: in-memory auth, console mail, seeded profile from PostgreSQL", async () => {
+    it("development profile: in-memory auth, stub mail sink, seeded profile and persisted scenes", async () => {
       const result = await stack(["--smoke", "--profile=development"], env());
       expect(result.stderr + result.stdout).not.toMatch(/local-stack: (?!smoke)/);
       expect(result.code).toBe(0);
       expect(result.stdout).toContain("[development]");
-      expect(result.stdout).toContain("magic-link request 201 (console transport)");
+      expect(result.stdout).toContain("magic-link request 201 (stub mail sink)");
       expect(result.stdout).toContain("seeded profile read back from PostgreSQL");
       expect(result.stdout).toContain("scenes and runs persisted in PostgreSQL");
+    }, 160_000);
+  },
+);
+
+// ── teardown guarantees (need the scratch server) ─────────────────────────────
+
+const stackDirs = () => readdirSync(tmpdir()).filter((n) => n.startsWith("omdala-local-stack-")).length;
+
+async function localDatabases(url: string): Promise<number> {
+  const client = new Client({ connectionString: url });
+  await client.connect();
+  try {
+    const { rows } = await client.query(
+      "SELECT count(*)::int AS n FROM pg_database WHERE datname LIKE 'omdala_local_%'",
+    );
+    return rows[0].n as number;
+  } finally {
+    await client.end();
+  }
+}
+
+describe.skipIf(!process.env.OMDALA_TEST_DATABASE_URL || !haveOpenssl())(
+  "local stack always tears down",
+  () => {
+    const url = process.env.OMDALA_TEST_DATABASE_URL!;
+
+    it("drops the scratch database and temp directory when the worker cannot start", async () => {
+      // A busy port makes wrangler exit after the database, proxy and sink already exist.
+      const blockerSockets = new Set<net.Socket>();
+      const blocker = net.createServer((socket) => {
+        blockerSockets.add(socket);
+        socket.on("error", () => undefined);
+      });
+      await new Promise<void>((resolve) => blocker.listen(0, "127.0.0.1", resolve));
+      const busyPort = (blocker.address() as net.AddressInfo).port;
+      const dbsBefore = await localDatabases(url);
+      const dirsBefore = stackDirs();
+      try {
+        const result = await stack(["--smoke"], {
+          OMDALA_LOCAL_PG_URL: url,
+          OMDALA_LOCAL_API_PORT: String(busyPort),
+        });
+        expect(result.code).toBe(1);
+        expect(result.stderr).toContain("wrangler exited early");
+      } finally {
+        // close() waits for open connections; wrangler's port probe may have left one
+        for (const socket of blockerSockets) socket.destroy();
+        await new Promise((resolve) => blocker.close(resolve));
+      }
+      expect(await localDatabases(url)).toBe(dbsBefore);
+      expect(stackDirs()).toBe(dirsBefore);
+    }, 160_000);
+
+    it.each([
+      ["SIGHUP", 129],
+      ["SIGINT", 130],
+      ["SIGTERM", 143],
+    ] as const)("%s tears the running stack down", async (signal, exitCode) => {
+      const dbsBefore = await localDatabases(url);
+      const dirsBefore = stackDirs();
+      const child = spawn(process.execPath, [script], {
+        env: { PATH: process.env.PATH, HOME: process.env.HOME, OMDALA_LOCAL_PG_URL: url },
+        stdio: ["ignore", "pipe", "ignore"],
+      });
+      const exited = new Promise<number | null>((resolve) => child.once("exit", resolve));
+      let output = "";
+      const ready = new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(`stack did not become ready:\n${output}`)), 120_000);
+        child.stdout!.on("data", (chunk) => {
+          output += chunk.toString();
+          if (output.includes("press Ctrl+C to stop")) {
+            clearTimeout(timer);
+            resolve();
+          }
+        });
+      });
+      await ready;
+      expect(await localDatabases(url)).toBe(dbsBefore + 1);
+      child.kill(signal);
+      expect(await exited).toBe(exitCode);
+      expect(await localDatabases(url)).toBe(dbsBefore);
+      expect(stackDirs()).toBe(dirsBefore);
     }, 160_000);
   },
 );
