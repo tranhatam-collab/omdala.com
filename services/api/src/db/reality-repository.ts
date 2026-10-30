@@ -11,6 +11,7 @@ import type {
   RealityCommitmentRequest,
   RealityProofRequest,
 } from "../contracts";
+import { DEFAULT_REALITY_SCENES } from "../reality-scene-defaults";
 import { queryRows } from "./client";
 import { ResourceAccessError, toDbQueryError } from "./errors";
 
@@ -501,4 +502,130 @@ export async function getTrustByNodeId(
     return null;
   }
   return mapTrust(rows[0]);
+}
+
+// ── Scenes and runs (tenant-scoped; migration 0004_reality_scenes_runs) ───────
+
+export type RealitySceneRecord = {
+  scene_id: string;
+  display_name: string;
+  safety_class: string;
+  actions: unknown[];
+  created_at: string;
+};
+
+export type RealityRunRecord = {
+  run_id: string;
+  source: string;
+  source_id: string;
+  actor_id: string;
+  status: string;
+  policy_decision: string;
+  proof_id: string | null;
+  created_at: string;
+};
+
+const iso = (value: unknown): string =>
+  value instanceof Date ? value.toISOString() : String(value);
+
+function mapScene(row: SqlRow): RealitySceneRecord {
+  return {
+    scene_id: String(row.scene_id),
+    display_name: String(row.display_name),
+    safety_class: String(row.safety_class),
+    actions: Array.isArray(row.actions) ? row.actions : [],
+    created_at: iso(row.created_at),
+  };
+}
+
+function mapRun(row: SqlRow): RealityRunRecord {
+  return {
+    run_id: String(row.run_id),
+    source: String(row.source),
+    source_id: String(row.source_id),
+    actor_id: String(row.actor_id),
+    status: String(row.status),
+    policy_decision: String(row.policy_decision),
+    proof_id: row.proof_id === null || row.proof_id === undefined ? null : String(row.proof_id),
+    created_at: iso(row.created_at),
+  };
+}
+
+// Every tenant starts from the default catalog; seeding is idempotent and
+// never touches rows a tenant already has.
+async function ensureDefaultScenes(env: ApiBindings, ownerEmail: string): Promise<void> {
+  for (const scene of DEFAULT_REALITY_SCENES) {
+    await queryRows(
+      env,
+      `INSERT INTO omdala.reality_scenes (owner_email, scene_id, display_name, safety_class, actions)
+       VALUES ($1, $2, $3, $4, $5::jsonb)
+       ON CONFLICT (owner_email, scene_id) DO NOTHING`,
+      [ownerEmail, scene.scene_id, scene.display_name, scene.safety_class, JSON.stringify(scene.actions)],
+    );
+  }
+}
+
+export async function listScenes(
+  env: ApiBindings,
+  ownerEmail: string,
+): Promise<RealitySceneRecord[]> {
+  const rows = (await runWithDbContext("listScenes", async () => {
+    await ensureDefaultScenes(env, ownerEmail);
+    return queryRows(
+      env,
+      `SELECT scene_id, display_name, safety_class, actions, created_at
+       FROM omdala.reality_scenes
+       WHERE owner_email = $1
+       ORDER BY created_at ASC, scene_id ASC
+       LIMIT 200`,
+      [ownerEmail],
+    );
+  })) as SqlRow[];
+  return rows.map(mapScene);
+}
+
+/** Runs a scene the caller owns; null when the scene is not in the caller's scope. */
+export async function runScene(
+  env: ApiBindings,
+  ownerEmail: string,
+  sceneId: string,
+): Promise<RealityRunRecord | null> {
+  const rows = (await runWithDbContext("runScene", async () => {
+    await ensureDefaultScenes(env, ownerEmail);
+    return queryRows(
+      env,
+      `INSERT INTO omdala.reality_runs
+         (owner_email, run_id, source, source_id, actor_id, status, policy_decision, proof_id, created_at)
+       SELECT s.owner_email, $3, 'scene', s.scene_id, s.owner_email,
+              'succeeded', 'allow_with_logging', $4, NOW()
+       FROM omdala.reality_scenes s
+       WHERE s.owner_email = $1 AND s.scene_id = $2
+       RETURNING run_id, source, source_id, actor_id, status, policy_decision, proof_id, created_at`,
+      [ownerEmail, sceneId, generateId("run_scene"), generateId("proof")],
+    );
+  })) as SqlRow[];
+  return rows[0] ? mapRun(rows[0]) : null;
+}
+
+export async function listRuns(
+  env: ApiBindings,
+  ownerEmail: string,
+  options: { page: number; limit: number },
+): Promise<{ runs: RealityRunRecord[]; total: number }> {
+  const offset = (options.page - 1) * options.limit;
+  const [totalRows, rows] = (await runWithDbContext("listRuns", () =>
+    Promise.all([
+      queryRows(env, "SELECT count(*)::int AS total FROM omdala.reality_runs WHERE owner_email = $1", [ownerEmail]),
+      queryRows(
+        env,
+        `SELECT run_id, source, source_id, actor_id, status, policy_decision, proof_id, created_at
+         FROM omdala.reality_runs
+         WHERE owner_email = $1
+         ORDER BY created_at DESC, run_id DESC
+         LIMIT $2 OFFSET $3`,
+        [ownerEmail, options.limit, offset],
+      ),
+    ]),
+  )) as [SqlRow[], SqlRow[]];
+  return { runs: rows.map(mapRun), total: Number(totalRows[0]?.total ?? 0) };
 }

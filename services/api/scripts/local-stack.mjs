@@ -29,7 +29,7 @@
 // sink and secrets are removed on exit.
 import { execFileSync, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import net from "node:net";
 import tls from "node:tls";
@@ -283,9 +283,25 @@ async function smoke(baseUrl, restartWorker) {
   await expectProfile(baseUrl, cookies, "after login");
 
   if (!persistent) {
+    // Outside staging/production the /v2/reality routes are open; with a database
+    // configured, scenes and runs are stored per owner in PostgreSQL.
+    const owner = "local-test@omdala.invalid";
+    const scenes = await (await fetch(`${baseUrl}/v2/reality/scenes`)).json();
+    const sceneId = scenes.data?.scenes?.[0]?.scene_id;
+    if (!sceneId) throw new Error("no scene came back from /v2/reality/scenes");
+    const ran = await fetch(`${baseUrl}/v2/reality/scenes/${sceneId}/run`, { method: "POST" });
+    const runs = await (await fetch(`${baseUrl}/v2/reality/runs`)).json();
+    const stored = await scratch.query(
+      `SELECT (SELECT count(*)::int FROM omdala.reality_scenes WHERE owner_email = $1) AS scenes,
+              (SELECT count(*)::int FROM omdala.reality_runs WHERE owner_email = $1) AS runs`,
+      [owner],
+    );
+    if (ran.status !== 200 || runs.data?.pagination?.total !== 1 || stored.rows[0].scenes < 1 || stored.rows[0].runs !== 1) {
+      throw new Error(`scenes/runs were not persisted in PostgreSQL (run ${ran.status}, ${JSON.stringify(stored.rows[0])})`);
+    }
     console.log(
       "local-stack smoke [development]: /health 200; magic-link request 201 (console transport); " +
-        "session exchange 200; seeded profile read back from PostgreSQL",
+        "session exchange 200; seeded profile read back from PostgreSQL; scenes and runs persisted in PostgreSQL",
     );
     return;
   }
@@ -341,9 +357,12 @@ async function main() {
   scratch = await connect(scratchUrl);
 
   // 2. migrations in order, then one seeded account
-  for (const name of readdirSync(migrationsDir).filter((n) => /^\d{4}_.+\.sql$/.test(n)).sort()) {
-    await scratch.query(readFileSync(join(migrationsDir, name), "utf8"));
-  }
+  // Applied set plus infra/postgres/migrations/proposed (migrations awaiting promotion).
+  const migrationFiles = [migrationsDir, join(migrationsDir, "proposed")]
+    .filter((dir) => existsSync(dir))
+    .flatMap((dir) => readdirSync(dir).filter((n) => /^\d{4}_.+\.sql$/.test(n)).map((n) => join(dir, n)))
+    .sort((a, b) => a.split("/").pop().localeCompare(b.split("/").pop()));
+  for (const file of migrationFiles) await scratch.query(readFileSync(file, "utf8"));
   await scratch.query(
     `INSERT INTO omdala.account_profiles (email, id, display_name) VALUES ($1, $2, $3)`,
     [SEED_EMAIL, `acc_local_${randomBytes(4).toString("hex")}`, "Local Dev"],

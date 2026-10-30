@@ -89,6 +89,7 @@ describe.skipIf(!process.env.OMDALA_TEST_DATABASE_URL || !haveOpenssl())(
       expect(result.stdout).toContain("[development]");
       expect(result.stdout).toContain("magic-link request 201 (console transport)");
       expect(result.stdout).toContain("seeded profile read back from PostgreSQL");
+      expect(result.stdout).toContain("scenes and runs persisted in PostgreSQL");
     }, 160_000);
   },
 );

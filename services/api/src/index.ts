@@ -60,10 +60,13 @@ import {
   getTrustByNodeId,
   listCommitments,
   listNodes,
+  listRuns,
+  listScenes,
   listProofs,
   listStates,
   listTransitions,
   listTrust,
+  runScene,
 } from "./db/reality-repository";
 import {
   readOrCreateAccountPreferences,
@@ -96,6 +99,7 @@ import {
   ResourceAccessError,
 } from "./db/errors";
 import { createApiContractStub } from "./stub";
+import { DEFAULT_REALITY_SCENES } from "./reality-scene-defaults";
 // ─── Custom Security & AI Connectors ───────────────────────────────────
 import {
   buildClearCookie as buildSecureClearCookie,
@@ -1408,18 +1412,11 @@ function createRealitySeed() {
     },
   ];
 
-  const scenes = [
-    {
-      scene_id: "scene_sleep_child",
-      display_name: "Sleep – Child's Room",
-      safety_class: "safe",
-      actions: [
-        { device: "smart_bulb_child", command: "set_brightness", value: 0 },
-        { device: "air_purifier_child", command: "set_mode", value: "sleep" },
-      ],
-      created_at: now,
-    },
-  ];
+  const scenes = DEFAULT_REALITY_SCENES.map((scene) => ({
+    ...scene,
+    actions: scene.actions.map((action) => ({ ...action })),
+    created_at: now,
+  }));
 
   const runs: Array<{
     run_id: string;
@@ -2561,6 +2558,11 @@ app.get("/v2/reality/trust/:nodeId", async (c) => {
 
 app.get("/v2/reality/scenes", async (c) => {
   return withV2Guard(c, async () => {
+    if (hasDatabase(c.env)) {
+      const scenes = await listScenes(c.env, getRealityOwnerEmail(c));
+      return jsonOk(c, { scenes, total: scenes.length });
+    }
+
     return jsonOk(c, {
       scenes: realitySeed.scenes,
       total: realitySeed.scenes.length,
@@ -2571,6 +2573,26 @@ app.get("/v2/reality/scenes", async (c) => {
 app.post("/v2/reality/scenes/:id/run", async (c) => {
   return withV2Guard(c, async () => {
     const sceneId = c.req.param("id");
+
+    if (hasDatabase(c.env)) {
+      const run = await runScene(c.env, getRealityOwnerEmail(c), sceneId);
+      if (!run) {
+        return jsonError(c, 404, "SCENE_NOT_FOUND", "Scene does not exist.");
+      }
+      return jsonOk(c, {
+        run_id: run.run_id,
+        scene_id: run.source_id,
+        status: run.status,
+        proof: {
+          proofId: run.proof_id,
+          runId: run.run_id,
+          actorId: run.actor_id,
+          policyDecision: run.policy_decision,
+          verifiedAt: run.created_at,
+        },
+      });
+    }
+
     const scene = realitySeed.scenes.find((s) => s.scene_id === sceneId);
     if (!scene) {
       return jsonError(c, 404, "SCENE_NOT_FOUND", "Scene does not exist.");
@@ -2615,6 +2637,23 @@ app.get("/v2/reality/runs", async (c) => {
       page: c.req.query("page"),
       limit: c.req.query("limit"),
     });
+
+    if (hasDatabase(c.env)) {
+      const { runs, total } = await listRuns(c.env, getRealityOwnerEmail(c), { page, limit });
+      const pagination = {
+        page,
+        limit,
+        total,
+        hasNextPage: (page - 1) * limit + runs.length < total,
+      };
+      return jsonOk(c, {
+        contractVersion: API_CONTRACT_VERSION,
+        runs,
+        pagination,
+        meta_pagination: pagination,
+      });
+    }
+
     const sorted = [...realitySeed.runs].sort((a, b) =>
       a.created_at < b.created_at ? 1 : -1,
     );
