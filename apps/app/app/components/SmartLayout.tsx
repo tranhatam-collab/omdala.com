@@ -238,9 +238,10 @@ export function SmartLayout({ children }: SmartLayoutProps) {
           }}
         >
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: "#f7fbff", margin: 0 }}>
+            {/* A paragraph, not a heading: every page below renders its own h1. */}
+            <p style={{ fontSize: 20, fontWeight: 700, color: "#f7fbff", margin: 0 }}>
               Omdala Operator
-            </h1>
+            </p>
             <p style={{ fontSize: 13, color: "#6b7f99", margin: "4px 0 0" }}>
               {t(language, APP_COPY.layout.productSurface)}
             </p>

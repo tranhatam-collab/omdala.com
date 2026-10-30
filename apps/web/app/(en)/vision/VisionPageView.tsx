@@ -22,13 +22,13 @@ export function VisionPageView({ locale }: { locale: OmdalaLanguage }) {
           {body
             ? body.horizons.map((horizon) => (
                 <article key={horizon.title} className="stack-item">
-                  <h3>{horizon.title}</h3>
+                  <h2 className="card-title">{horizon.title}</h2>
                   <p>{horizon.copy}</p>
                 </article>
               ))
             : visionContent.horizons.map((horizon) => (
                 <article key={horizon.title.en} className="stack-item">
-                  <h3>{pickText(locale, horizon.title)}</h3>
+                  <h2 className="card-title">{pickText(locale, horizon.title)}</h2>
                   <p>{pickText(locale, horizon.copy)}</p>
                 </article>
               ))}

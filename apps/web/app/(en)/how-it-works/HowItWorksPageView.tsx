@@ -22,13 +22,13 @@ export function HowItWorksPageView({ locale }: { locale: OmdalaLanguage }) {
           {body
             ? body.steps.map((step) => (
                 <article key={step.title} className="stack-item">
-                  <h3>{step.title}</h3>
+                  <h2 className="card-title">{step.title}</h2>
                   <p>{step.copy}</p>
                 </article>
               ))
             : processContent.steps.map((step) => (
                 <article key={step.title.en} className="stack-item">
-                  <h3>{pickText(locale, step.title)}</h3>
+                  <h2 className="card-title">{pickText(locale, step.title)}</h2>
                   <p>{pickText(locale, step.copy)}</p>
                 </article>
               ))}

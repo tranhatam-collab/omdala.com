@@ -22,13 +22,13 @@ export function FaqPageView({ locale }: { locale: OmdalaLanguage }) {
             {body
               ? body.questions.map((faq) => (
                   <article key={faq.question}>
-                    <h3>{faq.question}</h3>
+                    <h2 className="card-title">{faq.question}</h2>
                     <p>{faq.answer}</p>
                   </article>
                 ))
               : faqContent.questions.map((faq) => (
                   <article key={faq.question.en}>
-                    <h3>{pickText(locale, faq.question)}</h3>
+                    <h2 className="card-title">{pickText(locale, faq.question)}</h2>
                     <p>{pickText(locale, faq.answer)}</p>
                   </article>
                 ))}

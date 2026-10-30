@@ -22,13 +22,13 @@ export function WhatIsOmdalaPageView({ locale }: { locale: OmdalaLanguage }) {
           {body
             ? body.cards.map((card) => (
                 <article key={card.title}>
-                  <h3>{card.title}</h3>
+                  <h2 className="card-title">{card.title}</h2>
                   <p>{card.copy}</p>
                 </article>
               ))
             : definitionContent.cards.map((card) => (
                 <article key={card.title.en}>
-                  <h3>{pickText(locale, card.title)}</h3>
+                  <h2 className="card-title">{pickText(locale, card.title)}</h2>
                   <p>{pickText(locale, card.copy)}</p>
                 </article>
               ))}
