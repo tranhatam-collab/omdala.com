@@ -78,3 +78,15 @@ test.describe("OMCODE Critical Flows — IDE with project fixture", () => {
     await expect(page.getByText("AIAGENT catalog unavailable")).toBeVisible();
   });
 });
+
+test.describe("Workspace chrome", () => {
+  test("the global language switcher does not cover the IDE toolbar", async ({ page }) => {
+    await page.addInitScript(() => {
+      try { localStorage.setItem("omcode:terms:accepted:v1", "true"); } catch {}
+    });
+    await injectWorkspaceFixture(page);
+    await page.goto("/workspace/?fixture=1");
+    await expect(page.getByText("OMDALA Workspace")).toBeVisible({ timeout: 20000 });
+    await expect(page.locator(".language-switcher")).toHaveCount(0);
+  });
+});
