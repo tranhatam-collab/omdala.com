@@ -149,7 +149,7 @@ test('avatar is gated by the stored plan; request plan_context cannot raise it',
   const fetched = await app.inject({ method: 'GET', url: `/v2/live/sessions/${sessionId}` });
   assert.equal((fetched.json() as { data: { session: { plan_context: string } } }).data.session.plan_context, 'free');
 
-  await app.inject({ method: 'POST', url: '/v2/live/plans/upgrade', payload: { plan_id: 'personal_pro' } });
+  await liveStore.upgradePlan('safety_plan_01', 'personal_pro');
   const paid = await app.inject({
     method: 'POST',
     url: '/v2/live/sessions/create',
@@ -235,7 +235,7 @@ test('usage today reports the free quota and follows the stored plan', async () 
   assert.equal(freeUsage.free_seconds_limit, 1800);
   assert.equal(freeUsage.free_seconds_remaining, 1800);
 
-  await app.inject({ method: 'POST', url: '/v2/live/plans/upgrade', payload: { plan_id: 'business' } });
+  await liveStore.upgradePlan('safety_usage_01', 'business');
   const paid = await app.inject({ method: 'GET', url: '/v2/live/usage/today' });
   assert.equal((paid.json() as { data: { usage: { plan_id: string } } }).data.usage.plan_id, 'business');
   await app.close();

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createOperationalTestApp, createOperationalTestApp as createApp } from './testSupport.js';
-import { sanitizeLiveSessionRecords } from './live/store.js';
+import { liveStore, sanitizeLiveSessionRecords } from './live/store.js';
 
 test('persisted direct-provider routing is stripped and rehydrated as blocked authority state', () => {
   const records = sanitizeLiveSessionRecords([
@@ -118,12 +118,7 @@ test('live session creation exposes only the OMDALA authority and fails closed w
 test('avatar requests cannot select a direct provider', async () => {
   const app = createOperationalTestApp({ userId: 'test_user_live_provider_business', role: 'owner' });
 
-  const upgraded = await app.inject({
-    method: 'POST',
-    url: '/v2/live/plans/upgrade',
-    payload: { plan_id: 'business' },
-  });
-  assert.equal(upgraded.statusCode, 200);
+  await liveStore.upgradePlan('test_user_live_provider_business', 'business');
 
   const created = await app.inject({
     method: 'POST',
@@ -344,9 +339,10 @@ test('live validation failures return 400', async () => {
   await app.close();
 });
 
-test('live plans upgrade and moderation escalation work', async () => {
+test('live plans upgrade is closed and moderation escalation works', async () => {
   const app = createApp();
 
+  // Self-service plan change is closed; see live.plan-change.test.ts for caller matrix.
   const upgraded = await app.inject({
     method: 'POST',
     url: '/v2/live/plans/upgrade',
@@ -356,9 +352,7 @@ test('live plans upgrade and moderation escalation work', async () => {
     },
   });
 
-  assert.equal(upgraded.statusCode, 200);
-  const upgradedBody = upgraded.json() as { data: { subscription: { plan_id: string } } };
-  assert.equal(upgradedBody.data.subscription.plan_id, 'personal_pro');
+  assert.equal(upgraded.statusCode, 403);
 
   const moderation = await app.inject({
     method: 'POST',

@@ -367,10 +367,19 @@ export function registerLiveRoutes(app: FastifyInstance) {
     return ok({ plans });
   });
 
+  // PREP_UNDER_ASSUMPTION(billing authority, server-side only): no caller may change their own
+  // plan until a billing authority decides entitlements. Only a verified admin in a test run may.
   app.post('/v2/live/plans/upgrade', async (request, reply) => {
     const body = request.body as { plan_id?: string };
     const auth = requireSensitiveAuth(request, reply);
     if (!auth) return;
+    if (process.env.NODE_ENV !== 'test' || auth.role !== 'facility_admin') {
+      reply.code(403);
+      return fail(
+        'PLAN_CHANGE_REQUIRES_BILLING',
+        'Plan changes are applied by the billing authority, not by the account holder.',
+      );
+    }
     if (!isNonEmptyString(body?.plan_id, 40)) {
       reply.code(400);
       return fail('validation_error', 'plan_id is required.');

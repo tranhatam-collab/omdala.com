@@ -300,7 +300,11 @@ class LiveStore {
     return created;
   }
 
+  /** Test-support only until a billing authority exists; production code has no caller. */
   async upgradePlan(userId: string, planId: string) {
+    if (process.env.NODE_ENV !== 'test') {
+      throw new Error('plan_change_requires_billing_authority');
+    }
     await this.ensureLoaded();
     const nextPlan = normalizePlanId(planId);
     const updated: LiveSubscription = {
