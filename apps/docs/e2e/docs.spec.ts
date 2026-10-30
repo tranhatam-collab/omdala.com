@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { expect, test } from "@playwright/test";
 
 const ORIGIN = "https://docs.omdala.com";
@@ -87,6 +89,12 @@ test.describe("robots and sitemap", () => {
       expect(body).toContain(`<loc>${route.canonical}</loc>`);
       expect(body).toContain(`hreflang="vi" href="${route.canonical}?lang=vi"`);
     }
+  });
+});
+
+test.describe("single robots source", () => {
+  test("public/robots.txt is gone; app/robots.ts is the only source", () => {
+    expect(existsSync(path.join(__dirname, "..", "public", "robots.txt"))).toBe(false);
   });
 });
 

@@ -6,7 +6,7 @@ import {
   resolveLanguage,
   withLanguageParam,
 } from "@omdala/core";
-import { notifyLocationChange, useLocationSearchParam } from "@omdala/ui";
+import { notifyLocationChange, useLocationSearchParam, useLocationSuffix } from "@omdala/ui";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -22,7 +22,8 @@ const LANGUAGE_LABELS: Record<(typeof OMDALA_LANGUAGES)[number], string> = {
 export function LanguageSwitcher() {
   const pathname = usePathname();
   const currentLanguage = resolveLanguage(useLocationSearchParam("lang"));
-  const currentPath = pathname;
+  // Keep every other query parameter and the hash (for example ?next= and anchors).
+  const currentPath = `${pathname}${useLocationSuffix()}`;
 
   return (
     <div className="docs-language-switcher" aria-label="Language selector">

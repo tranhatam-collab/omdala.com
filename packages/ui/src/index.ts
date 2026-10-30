@@ -12,6 +12,7 @@ export { SmartInput } from './components/SmartInput'
 export {
   notifyLocationChange,
   useLocationSearchParam,
+  useLocationSuffix,
 } from './hooks/useLocationSearchParam'
 
 export {

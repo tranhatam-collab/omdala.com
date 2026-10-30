@@ -15,6 +15,7 @@ const chromiumExecutablePath = process?.env?.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
 
 export default defineConfig({
   testDir: "./e2e",
+  globalTeardown: "./e2e/teardown.mjs",
   fullyParallel: true,
   timeout: 60000,
   retries: 0,

@@ -48,6 +48,23 @@ test.describe("login page", () => {
   });
 });
 
+test.describe("language switcher", () => {
+  test("keeps ?next= and the hash when switching to VI and back", async ({ page }) => {
+    await page.goto("/login/?next=%2Fdashboard%2Fnodes#section");
+    await page.getByRole("link", { name: "VI", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("lang", "vi");
+    const vi = new URL(page.url());
+    expect(vi.searchParams.get("lang")).toBe("vi");
+    expect(vi.searchParams.get("next")).toBe("/dashboard/nodes");
+    expect(vi.hash).toBe("#section");
+    await page.getByRole("link", { name: "EN", exact: true }).click();
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    const en = new URL(page.url());
+    expect(en.searchParams.has("lang")).toBe(false);
+    expect(en.searchParams.get("next")).toBe("/dashboard/nodes");
+  });
+});
+
 test.describe("root", () => {
   test("/ lands on /login/", async ({ page }) => {
     await page.goto("/");

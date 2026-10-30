@@ -11,6 +11,7 @@ import {
   pickBilingualValue,
   SHARED_UI_COPY,
   useLocationSearchParam,
+  useLocationSuffix,
 } from "@omdala/ui";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -27,7 +28,8 @@ const LANGUAGE_LABELS: Record<(typeof OMDALA_LANGUAGES)[number], string> = {
 export function LanguageSwitcher() {
   const pathname = usePathname();
   const currentLanguage = resolveLanguage(useLocationSearchParam("lang"));
-  const currentPath = pathname;
+  // Keep every other query parameter and the hash (for example ?next= and anchors).
+  const currentPath = `${pathname}${useLocationSuffix()}`;
 
   return (
     <div

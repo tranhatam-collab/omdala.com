@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 
@@ -71,6 +71,12 @@ test.describe("routes render", () => {
     for (const route of ROUTES.slice(1)) {
       expect(hrefs.some((href) => href.startsWith(route.replace(/\/$/, "")))).toBe(true);
     }
+  });
+});
+
+test.describe("single robots source", () => {
+  test("public/robots.txt is gone; app/robots.ts is the only source", () => {
+    expect(existsSync(path.join(__dirname, "..", "public", "robots.txt"))).toBe(false);
   });
 });
 
