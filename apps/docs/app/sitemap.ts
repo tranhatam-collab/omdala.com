@@ -1,17 +1,17 @@
 import type { MetadataRoute } from 'next'
-import { DOCS_ORIGIN, DOCS_ROUTES, docsLanguageAlternates } from './lib/docs-seo'
+import { DOCS_LANGUAGES, DOCS_ROUTES, docsLanguageAlternates, docsUrl } from './lib/docs-seo'
 
 export const dynamic = 'force-static'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date()
-  return DOCS_ROUTES.map(({ path, priority }) => ({
-    url: `${DOCS_ORIGIN}${path}`,
-    lastModified,
-    changeFrequency: 'monthly',
-    priority,
-    alternates: {
-      languages: docsLanguageAlternates(path),
-    },
-  }))
+  return DOCS_ROUTES.flatMap(({ path, priority }) =>
+    DOCS_LANGUAGES.map((language) => ({
+      url: docsUrl(path, language),
+      lastModified,
+      changeFrequency: 'monthly' as const,
+      priority,
+      alternates: { languages: docsLanguageAlternates(path) },
+    })),
+  )
 }
