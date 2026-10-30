@@ -33,6 +33,20 @@ Define the canonical error set for Om AI.
 | `subscription_required` | Requested feature requires a paid plan |
 | `timeout` | Operation timed out |
 
+Codes returned by the current `/v2/live` backend (added 2026-10-30, WO-TAI-11):
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `validation_error` | 400 | Missing or malformed input |
+| `persona_not_found` | 404 | Persona does not exist |
+| `session_not_found` | 404 | Session does not exist or belongs to another user |
+| `ai_authority_unavailable` | 503 | Realtime path is blocked until the OMDALA AI authority publishes its contract |
+| `omdala_identity_authority_unavailable` | 503 | Direct access is disabled until the canonical session bridge exists |
+| `plan_upgrade_required` | 403 | Feature (for example avatar) not in the current plan |
+| `PLAN_CHANGE_REQUIRES_BILLING` | 403 | Plan changes are handled by the billing authority |
+| `persona_not_child_safe` | 403 | Child profile cannot use this persona |
+| `content_requires_escalation` | 422 | Text flagged by the keyword screen; needs a wellness-safe path |
+
 ## 3. Error Rules
 
 - every error must be typed

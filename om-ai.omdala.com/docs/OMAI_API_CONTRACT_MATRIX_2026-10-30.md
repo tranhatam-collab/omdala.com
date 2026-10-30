@@ -59,3 +59,7 @@ Tests: `live.contract.test.ts` (new, 10 contract tests: status codes, error code
 5. Path parameter names differ (`:id` vs `:session_id`); harmless.
 
 Proposed follow-ups (not done): update the two contract documents to the envelope and create-shape above, or change the code; add the missing endpoints only when their dependencies exist (recap and memory delete need CTL-03, curriculum needs content, escalation needs the AI authority).
+
+## Update (WO-TAI-11)
+
+T0 decided the code is the source of truth before release. `AI_OM_LIVE_API_CONTRACT_V1.md` and `AI_OM_API_CONTRACT_V1.md` now carry a change note and describe the implemented envelope, session statuses, create request and response, fail-closed realtime, closed plan upgrade, moderation request and response, and usage shape; unimplemented endpoints are marked. Divergences 1 to 4 above are resolved in the documents (new error codes added to `AI_OM_ERROR_CODE_MATRIX.md`). The recap path is settled as `GET /sessions/:id/recap` (not implemented); the recap is the `summary` in the end-session response today. `live.contract.test.ts` still passes unchanged.

@@ -8,6 +8,8 @@ Brand: OMDALA
 Base APIs: `api.omdala.com/v2/live`, shared platform baseline APIs
 Date: April 9, 2026
 
+> **Change note, 2026-10-30 (WO-TAI-11).** Before release the code is the source of truth. This file now matches the implemented `/v2/live` surface: the envelope is `{ data, error, meta? }`, session statuses are `blocked | active | ended | failed`, realtime connect/token/bootstrap are fail-closed (503 `ai_authority_unavailable`), and `POST /v2/live/plans/upgrade` is closed (403 `PLAN_CHANGE_REQUIRES_BILLING`). The recap is returned by `POST /v2/live/sessions/:id/end` as `summary`; the dedicated recap path is settled as `GET /v2/live/sessions/:id/recap` and is not implemented. Endpoints marked "(not implemented)" below are planned. Details: `AI_OM_LIVE_API_CONTRACT_V1.md`, `docs/OMAI_API_CONTRACT_MATRIX_2026-10-30.md`.
+
 ## Boundary normalization — April 9, 2026
 
 This file is now normalized to the current Om AI product boundary.
@@ -103,51 +105,51 @@ Shared dependency domains:
 - `GET /v2/live/personas`
 - `GET /v2/live/personas/:id`
 - `POST /v2/live/personas/:id/favorite`
-- `POST /v2/live/personas/custom`
+- `POST /v2/live/personas/custom` (not implemented)
 
 ### Sessions
 
 - `POST /v2/live/sessions/create`
-- `POST /v2/live/sessions/:id/connect`
+- `POST /v2/live/sessions/:id/connect` (fail-closed 503 today)
 - `POST /v2/live/sessions/:id/end`
 - `GET /v2/live/sessions/:id`
 - `GET /v2/live/sessions`
 
 ### Realtime
 
-- `POST /v2/live/realtime/token`
-- `POST /v2/live/realtime/session/bootstrap`
+- `POST /v2/live/realtime/token` (fail-closed 503 today)
+- `POST /v2/live/realtime/session/bootstrap` (fail-closed 503 today)
 
 ### Memory and Recap
 
 - `GET /v2/live/memory/profile`
 - `PATCH /v2/live/memory/profile`
-- `GET /v2/live/memory/personas/:id`
-- `DELETE /v2/live/memory/personas/:id`
-- `GET /v2/live/sessions/:id/recap`
+- `GET /v2/live/memory/personas/:id` (not implemented)
+- `DELETE /v2/live/memory/personas/:id` (not implemented)
+- `GET /v2/live/sessions/:id/recap` (not implemented; settled recap path)
 
 ### Curriculum and Lessons
 
-- `GET /v2/live/curriculum/paths`
-- `GET /v2/live/lessons/:id`
-- `POST /v2/live/lessons/:id/start`
-- `POST /v2/live/lessons/:id/complete`
+- `GET /v2/live/curriculum/paths` (not implemented)
+- `GET /v2/live/lessons/:id` (not implemented)
+- `POST /v2/live/lessons/:id/start` (not implemented)
+- `POST /v2/live/lessons/:id/complete` (not implemented)
 
 ### Usage and Plans
 
 - `GET /v2/live/usage/today`
-- `GET /v2/live/usage/cycle`
+- `GET /v2/live/usage/cycle` (not implemented)
 - `GET /v2/live/plans`
-- `POST /v2/live/plans/upgrade`
+- `POST /v2/live/plans/upgrade` (closed: 403 `PLAN_CHANGE_REQUIRES_BILLING`)
 
 ### Moderation and Avatar / Provider
 
 - `POST /v2/live/moderation/check`
-- `POST /v2/live/moderation/escalate`
-- `GET /v2/live/avatar/providers`
-- `POST /v2/live/avatar/session/start`
-- `POST /v2/live/avatar/session/end`
-- `GET /v2/live/provider/routes`
+- `POST /v2/live/moderation/escalate` (not implemented)
+- `GET /v2/live/avatar/providers` (returns an empty list)
+- `POST /v2/live/avatar/session/start` (not implemented)
+- `POST /v2/live/avatar/session/end` (not implemented)
+- `GET /v2/live/provider/routes` (not implemented)
 
 ## 6. Shared Dependency Rules
 
