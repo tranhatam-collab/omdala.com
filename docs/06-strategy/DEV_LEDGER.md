@@ -106,10 +106,10 @@ Staging E2E **OPEN**. Production **HOLD**. AUTOMATION: see the flag at the top a
 | Trigger | Fires into | Cadence now | Changed |
 |---|---|---|---|
 | `trig_011XrmiQupK2SLA2VdfwrPqX` T0 coordinator | T0 session | hourly at :20 (teams pushed within 3 h) | prompt rewritten for version 4, 2026-10-30T15:30Z |
-| `trig_01DHiQxFokgt9HAG3DQJ9EvT` T2 cycle | T2 session | hourly at :44 | refilled 2026-10-30T18:2xZ |
-| `trig_013uiQjr9pic9idjucdNJQ7t` T3 cycle | T3 session | hourly at :45 | refilled 2026-10-30T18:2xZ |
-| `trig_01EK3TgUb79vw6QGTMmF1uNp` TAI cycle | TAI session | **disabled** 2026-10-30T18:2xZ | QUEUE_EMPTY; every remaining TAI item waits on a human or another team (see 7.3). Re-enable when one becomes eligible |
-| `trig_01DGKeTb52qsK8dmR5NiZM2X` T4 cycle | T4 session | hourly at :45 | refilled 2026-10-30T18:2xZ; standing verification of new heads continues |
+| `trig_01DHiQxFokgt9HAG3DQJ9EvT` T2 cycle | T2 session | hourly at :44 | refilled 2026-10-30T18:2xZ and 21:2xZ |
+| `trig_013uiQjr9pic9idjucdNJQ7t` T3 cycle | T3 session | hourly at :45 | refilled 2026-10-30T18:2xZ and 21:2xZ |
+| `trig_01EK3TgUb79vw6QGTMmF1uNp` TAI cycle | TAI session | hourly at :45, **still enabled** | The disable at 19:20Z did not run: `update_trigger` needs owner approval in the T0 session and the request closed on a worker restart. TAI was idle 15:37-21:2xZ; refilled with 3 eligible orders at 21:2xZ instead |
+| `trig_01DGKeTb52qsK8dmR5NiZM2X` T4 cycle | T4 session | hourly at :45 | refilled 2026-10-30T18:2xZ and 21:2xZ; standing verification of new heads continues |
 
 A team turn works through orders for up to about 90 minutes, so a fire that lands
 during a running turn waits and starts the next order right after it: work is
@@ -128,17 +128,21 @@ records each change here and in section 8:
    read `allowed_warning` on the T3 session at 16:21Z: watched, no action yet.
 5. No empty tick: each tick harvests reports, refills queues or does T0's own
    orders. A tick with none of these lowers T0's cadence instead of reporting.
+6. Limit found 2026-10-30: `update_trigger` (pause, resume, cadence) needs owner
+   approval in the T0 session, like `send_message`. Until the owner allows it,
+   T0 keeps idle teams busy by refilling eligible work first, and a team with
+   nothing eligible only does a short ledger check when its trigger fires.
 
 ## 6. Team roster
 
-| Team | Executor | Branch head (2026-10-30T18:2xZ) | Session | Trigger | State |
+| Team | Executor | Branch head (2026-10-30T21:2xZ) | Session | Trigger | State |
 |---|---|---|---|---|---|
 | T0 Coordinator | Claude cloud, claude-opus-5-5 | `claude/omdala-coordination` | `session_011NjrMT2mFGRNNyxofbXcPX` | `trig_011XrmiQupK2SLA2VdfwrPqX` | ACTIVE |
 | T1 Infra and Release | Local VS Code agent | `OMCODE/infra-e2e-auto-20261026` 7abd962 | owner-run | none | Orders WO-T1-* wait for the owner to relay |
-| T2 Core API/Data/Auth/Billing | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t2-core` 3988b4c, PR #17 draft | `session_015zwouVg9EARRhsEXRQVfcw` | enabled | First pull cycle 15:30-15:53Z: 5 orders + 3 backlog DONE, 2 MOOT; refilled with 5 orders |
-| T3 Web/UI/Docs | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t3-web` 054ec10, PR #18 draft | `session_015zwouUz4xi7CAwpcUoh5ie` | enabled | WO-T3-03..06 and BL-T3-01 DONE; working through backlog; refilled with 4 orders |
-| TAI Om AI/Provider/Mobile source | Claude cloud, claude-sonnet-5-5 | `claude/omdala-tai-omai` d141c22, PR #16 draft | `session_015zwouXH3y3GrPfyv8ypTFL` | disabled | 4 orders + 3 backlog DONE (WO-TAI-04/05 PARTIAL); waits on decisions in 7.3 |
-| T4 Independent QA | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t4-qa` 7c251b1, PR #19 draft | `session_015zwouVJHpogx5cfV4N5fyf` | enabled | Verified every team head through T3 6256448; queue refilled with 2 orders |
+| T2 Core API/Data/Auth/Billing | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t2-core` 93fbd4a, PR #17 draft | `session_015zwouVg9EARRhsEXRQVfcw` | enabled | Second cycle 18:45-19:04Z: WO-T2-09..12 and BL-T2-06 DONE, WO-T2-08 BLOCKED (network); refilled with 2 orders |
+| T3 Web/UI/Docs | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t3-web` 02d5453, PR #18 draft | `session_015zwouUz4xi7CAwpcUoh5ie` | enabled | WO-T3-07..10, BL-T3-02, BL-T3-04 DONE; refilled with 3 orders |
+| TAI Om AI/Provider/Mobile source | Claude cloud, claude-sonnet-5-5 | `claude/omdala-tai-omai` d141c22, PR #16 draft | `session_015zwouXH3y3GrPfyv8ypTFL` | enabled | Idle since 15:37Z; refilled with 3 eligible orders at 21:2xZ |
+| T4 Independent QA | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t4-qa` 57aedd7, PR #19 draft | `session_015zwouVJHpogx5cfV4N5fyf` | enabled | Verified every head through T2 93fbd4a and T3 cfcda04; WO-T4-07/08 DONE; refilled with 2 orders |
 
 ## 7. Dispatch board
 
@@ -172,20 +176,33 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-TAI-04 MOB-02 toolchain | TAI | PARTIAL: Linux side done; bundle ids need the owner (7.3) | 66b169d | 2026-10-30 |
 | WO-TAI-05 failure states | TAI | PARTIAL: messages and unit tests done; browser test waits on the AI authority contract | cba5ccb | 2026-10-30 |
 | BL-TAI-01..03 | TAI | VERIFIED | e1d3be3, 696dad1 | 2026-10-30 |
-| WO-T4-03 standing | T4 | READY (standing, every turn) | Verified through T2 3988b4c, T3 6256448, TAI d141c22; next: T3 054ec10 and every new head | 2026-10-30 |
+| WO-T4-03 standing | T4 | READY (standing, every turn) | Verified through T2 93fbd4a, T3 cfcda04, TAI d141c22; next: T3 02d5453 and every new head | 2026-10-30 |
 | WO-T4-04, -05, -06 | T4 | DONE | 4248392, 9ed2ab0 (+638d097), 9e4ece3 | 2026-10-30 |
 | BL-T4-01, -02, -03 | T4 | DONE | d3291e8, 7c251b1 | 2026-10-30 |
-| WO-T2-08 | T2 | READY | | 2026-10-30 |
-| WO-T2-09 | T2 | READY | | 2026-10-30 |
-| WO-T2-10 | T2 | READY | | 2026-10-30 |
-| WO-T2-11 | T2 | READY | | 2026-10-30 |
-| WO-T2-12 | T2 | READY | | 2026-10-30 |
-| WO-T3-07 | T3 | READY | | 2026-10-30 |
-| WO-T3-08 | T3 | READY | | 2026-10-30 |
-| WO-T3-09 | T3 | READY | | 2026-10-30 |
-| WO-T3-10 | T3 | READY | | 2026-10-30 |
-| WO-T4-07 | T4 | READY | | 2026-10-30 |
-| WO-T4-08 | T4 | READY | | 2026-10-30 |
+| WO-T2-08 Hyperdrive TLS | T2 | BLOCKED: `developers.cloudflare.com` is outside this environment's network allowlist; T2 will not configure it from memory. Needs the owner (allow the host) or a T1 staging check (7.3) | 131b5d4 | 2026-10-30 |
+| WO-T2-09 TLS test self-contained | T2 | VERIFIED | 71b7b32; CI success at 93fbd4a | 2026-10-30 |
+| WO-T2-10 models route mapping | T2 | VERIFIED | fa0eb9a | 2026-10-30 |
+| WO-T2-11 contract doc | T2 | VERIFIED | 4a48c6c | 2026-10-30 |
+| WO-T2-12 local stand-up | T2 | VERIFIED (development mode: auth state in memory) | 456a58f; finding: workerd ignores `rejectUnauthorized: false`, so the stand-up uses a throwaway CA | 2026-10-30 |
+| BL-T2-06 mail sink policy | T2 | VERIFIED | 2ed5df9, CI run 41112163135 success at 93fbd4a | 2026-10-30 |
+| WO-T3-07 hermetic redirect specs | T3 | VERIFIED (`e2e:app` passes offline) | 3c3f683; no hosted CI | 2026-10-30 |
+| WO-T3-08 503/504 consumers | T3 | VERIFIED; switcher part waits for R-19 to reach the T3 base; app switcher unstyled (WO-T3-13) | 3c3f683 | 2026-10-30 |
+| WO-T3-09 staging policy `..name` | T3 | VERIFIED | 3c3f683 | 2026-10-30 |
+| WO-T3-10 VI go-live check | T3 | VERIFIED | 3c3f683 | 2026-10-30 |
+| BL-T3-02 self-hosted fonts | T3 | VERIFIED (admin stays on system fonts) | cfcda04 | 2026-10-30 |
+| BL-T3-04 matrix gaps, contact forms | T3 | DONE, awaiting T4 | 02d5453 | 2026-10-30 |
+| WO-T4-07 DR negative control | T4 | DONE: one-byte change fails the comparison | ee76d31 | 2026-10-30 |
+| WO-T4-08 SEO check | T4 | DONE: FAILED for web `/vi/*` (raw `<html lang="en">`), sitemap lacks `/vi` entries, docs 404 lacks `lang`; fix is WO-T3-11 | ee76d31 | 2026-10-30 |
+| WO-T2-13 | T2 | READY | | 2026-10-30 |
+| WO-T2-14 | T2 | READY | | 2026-10-30 |
+| WO-T3-11 | T3 | READY | | 2026-10-30 |
+| WO-T3-12 | T3 | READY | | 2026-10-30 |
+| WO-T3-13 | T3 | READY | | 2026-10-30 |
+| WO-TAI-06 | TAI | READY | | 2026-10-30 |
+| WO-TAI-07 | TAI | READY | | 2026-10-30 |
+| WO-TAI-08 | TAI | READY | | 2026-10-30 |
+| WO-T4-09 | T4 | READY | | 2026-10-30 |
+| WO-T4-10 | T4 | READY | | 2026-10-30 |
 | WO-T0-01 | T0 | QUEUED | | 2026-10-28 |
 | WO-T0-02 | T0 | QUEUED | | 2026-10-28 |
 | WO-T0-03 | T0 | QUEUED | | 2026-10-28 |
@@ -268,6 +285,68 @@ Hyperdrive documentation the report cites.
 canonical, hreflang for en, vi and x-default only, a matching `<html lang>`, and
 sitemap entries for both locales; no zh/es/ja/ko URL is advertised anywhere.
 
+**WO-T2-13.** Persistent auth in the local stand-up: add a `local:stack` profile
+that runs the worker in a staging-like mode on loopback, with a loopback stub mail
+sink, so magic links and sessions live in the scratch PostgreSQL. Certificate
+verification stays on through the stand-up's throwaway CA. Acceptance:
+request link, read it from the stub sink, exchange, restart the worker, and the
+session is still valid; `local:smoke` covers it. No remote bindings, no secret
+values committed.
+
+**WO-T2-14.** Lease: `infra/postgres/migrations/**` (T1 has made no change there
+on the candidate line; the lease ends if T1 does). Scenes, runs and scene-run are
+a process-wide in-memory seed today, unreleased in staging and production. Persist
+them per tenant behind the same release boundary (still 501 outside
+test/development), with a forward migration and its rollback, repository functions,
+tenant-isolation tests like BL-T2-01 and the real-SQL suite. Label:
+`PREP_UNDER_ASSUMPTION(CTL-03, PostgreSQL)`.
+
+**WO-T3-11.** T4 WO-T4-08: every `/vi/*` page of `apps/web` ships
+`<html lang="en">` in the static HTML (`apps/web/app/layout.tsx:62`); give `/vi`
+its own root layout as done for docs. `apps/web/app/sitemap.ts` must list `/vi/...`
+entries; the docs 404 root layout needs `lang`. Extend
+`apps/web/e2e/locale-html.spec.ts` to assert `<html lang>` on the raw HTML.
+
+**WO-T3-12 (matrix gap 3).** Browser journey across auth and app against a real
+local API: start T2's `local:stack` from a separate worktree of the T2 branch head
+(read only; do not write T2 paths), then run a new Playwright spec in `apps/app`
+that requests a magic link, follows it, lands on the dashboard and signs out. The
+spec reads the API base URL from an environment variable and is skipped with a
+clear message when it is unset, so normal runs stay hermetic.
+
+**WO-T3-13.** WO-T3-08 finding: the `apps/app` language switcher has no CSS, so
+disabled items look active. Style it with brand tokens without overlapping the
+workspace account button (workspace-critical spec 05 must pass); disabled items
+must look and behave disabled.
+
+**WO-TAI-06.** Browser tests for the Om AI web live card with mocked API responses
+(no live `api.omdala.com`): backend down, quota exhausted, provider 429 and plan
+refusal each show the mapped message from WO-TAI-05. Add `@playwright/test` to
+`om-ai.omdala.com/web` dev dependencies (its own npm lockfile, inside TAI paths) and
+use the preinstalled Chromium through `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium`; never download browsers. Make the existing
+`web/e2e/app-smoke.spec.ts` hermetic the same way.
+
+**WO-TAI-07.** T4 WO-T4-06 finding 3: the self-harm screen in
+`om-ai.omdala.com/backend/src/live/moderation.ts` is a substring list. Normalize
+input before matching (case folding, Vietnamese diacritics, spacing and punctuation
+inside words, common digit-for-letter swaps) with tests for each bypass, and add a
+short note in the Om AI docs that it is a keyword screen, not a safety classifier,
+so release criteria do not count it as one.
+
+**WO-TAI-08.** `om-ai.omdala.com/gateway` has 7 tests. Add negative tests for
+request validation: missing or malformed auth headers, disallowed origins (CORS),
+oversized bodies, unknown routes and method mismatches; fix any defect found inside
+TAI paths.
+
+**WO-T4-09.** Read-only safety review of T2's `services/api/scripts/local-stack.mjs`
+(456a58f): refuses non-loopback hosts, never passes `--remote`, generates secrets at
+run time and never writes them to tracked files, cleans up processes and scratch
+databases; also confirm the workerd TLS finding with a minimal reproduction.
+
+**WO-T4-10.** After this wave lands: refresh the R-finding table and the E2E matrix
+delta (`docs/audit/team4/2026-10-30_E2E_MATRIX_REFRESH.md`) at the newest heads, so
+T0 can tell which E2E-1/E2E-2 exits are met.
+
 ### 7.2 Standing backlog (taken in order when a team has no READY order)
 
 | ID | Team | Work |
@@ -290,6 +369,8 @@ BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
 | Admin edge access layer before any live data | T1 design, owner | T3 admin access order (T4 WO-T4-06 finding 1) |
 | Token in URL fragment instead of query | Owner (UX/security trade-off) | T3/T2 magic-link format change (T4 WO-T4-06 finding 2) |
 | R-27 Worker account id | Owner, INFRA-003 | `services/api/wrangler.toml` |
+| Network access to `developers.cloudflare.com` for the cloud environment, or a T1 staging check: does `pg` with `ssl: { rejectUnauthorized: true }` connect through `env.HYPERDRIVE.connectionString`? | Owner (environment network settings) or T1 | WO-T2-08, the one change that could break the deployed API |
+| `update_trigger` allowed in the T0 session ("always allow") | Owner | T0 pausing and resuming idle team triggers by itself (rule 5.1.6) |
 
 ## 8. Coordinator run log (keep last 20)
 
@@ -304,3 +385,5 @@ BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
 | 2026-10-30T15:30Z | START | T0 prompt rewritten for version 4; fired all four team triggers by hand | All four WORKING |
 | 2026-10-30T16:20Z, 17:20Z | 2 ticks | Harvest read, but the T0 worker restarted before the ledger was written both times | Ledger not updated; recovered at 18:2xZ |
 | 2026-10-30T18:2xZ | HARVEST | Marked 25 orders and backlog items (T2 and TAI queues empty, T4 empty, T3 on backlog); hosted CI green on every T2 and TAI SHA; T4 confirms 13 of the 14 CONFIRMED R findings fixed (only R-27, a human gate, remains). Refilled T2 (5), T3 (4), T4 (2); disabled TAI (waits on humans, 7.3); T1 orders 01, 03-05 updated | |
+| 2026-10-30T19:20Z, 20:20Z | 2 ticks | 19:20Z: TAI disable needed owner approval; the request closed on a worker restart. 20:20Z: worker restarted before work | No ledger change |
+| 2026-10-30T21:2xZ | HARVEST | T2 second cycle (4 orders + BL-T2-06 VERIFIED, WO-T2-08 BLOCKED on network); T3 WO-T3-07..10, BL-T3-02 VERIFIED, BL-T3-04 DONE; T4 WO-T4-07/08 DONE (web `/vi` lang FAILED). Refilled T2 (2), T3 (3), TAI (3), T4 (2); recorded the `update_trigger` approval limit | |
