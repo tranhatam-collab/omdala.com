@@ -8,7 +8,7 @@ import {
 import { useLocationSearchParam } from "@omdala/ui";
 import type { FormEvent } from "react";
 import { useState } from "react";
-import { ApiClientError, apiJsonRequest } from "@/lib/api-client";
+import { ApiClientError, apiJsonRequest, isServiceUnavailableError } from "@/lib/api-client";
 
 type AccessState = {
   email: string;
@@ -70,8 +70,11 @@ export function AccessRequestForm() {
     } catch (error) {
       setStatus({
         tone: "error",
-        message:
-          error instanceof ApiClientError
+        message: isServiceUnavailableError(error)
+          ? isVi
+            ? "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau."
+            : "The service is temporarily unavailable. Please retry shortly."
+          : error instanceof ApiClientError
             ? error.message
             : error instanceof Error
               ? error.message

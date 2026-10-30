@@ -96,6 +96,13 @@ test.describe.serial("OMDALA exact-candidate staging acceptance", () => {
     expect(webResponse?.status()).toBe(200);
     await expect(page.locator("body")).toContainText("OMDALA");
 
+    // Vietnamese browse: the /vi/ route renders localized text and declares lang="vi".
+    const webViResponse = await page.goto(`${webUrl}/vi/`);
+    expect(webViResponse?.status()).toBe(200);
+    await expect(page.locator("html")).toHaveAttribute("lang", "vi");
+    await expect(page).toHaveTitle(/Nền tảng/);
+    await expect(page.locator("body")).toContainText(/Bắt đầu/);
+
     const workspaceResponse = await page.goto(`${appUrl}/workspace/`);
     expect(workspaceResponse?.status()).toBe(200);
     await expect(page.getByRole("heading", { name: "OMCODE", exact: true })).toBeVisible();

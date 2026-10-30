@@ -71,3 +71,12 @@ export async function apiJsonRequest<T>(
 
   return payload.data as T;
 }
+
+const UNAVAILABLE_STATUSES = new Set([502, 503, 504]);
+const UNAVAILABLE_CODES = new Set(["DATABASE_UNAVAILABLE", "SERVICE_UNAVAILABLE", "UPSTREAM_TIMEOUT"]);
+
+/** True when the API says a dependency is down or timed out (502/503/504 or a known code). */
+export function isServiceUnavailableError(error: unknown): boolean {
+  if (!(error instanceof ApiClientError)) return false;
+  return UNAVAILABLE_STATUSES.has(error.status) || UNAVAILABLE_CODES.has(error.code);
+}

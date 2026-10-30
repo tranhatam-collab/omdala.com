@@ -165,6 +165,15 @@ async function mockAccountRuntime(page: Page) {
 // With a 401 response, the gate redirects to auth.omdala.com/login.
 // This tests redirect rendering without depending on a live API.
 async function mockUnauthedSession(page: Page) {
+  // Hermetic: the redirect target is answered locally, so no request leaves the machine
+  // and the browser URL still shows the real auth login URL (lang and next are asserted).
+  await page.route("https://auth.omdala.com/**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "text/html; charset=utf-8",
+      body: "<!doctype html><title>auth stub</title><h1>auth stub</h1>",
+    });
+  });
   await page.route("**/v1/auth/session", async (route) => {
     await route.fulfill({
       status: 401,
@@ -200,6 +209,8 @@ test("dashboard redirects when the mocked session endpoint returns 401", async (
   await expect(page).toHaveURL(/auth\.omdala\.com\/login/, { timeout: 15000 });
 
   const url = new URL(page.url());
+  expect(url.origin).toBe("https://auth.omdala.com");
+  expect(url.pathname).toBe("/login");
   expect(url.searchParams.get("lang")).toBe("en");
   expect(url.searchParams.get("next")).toContain("/dashboard");
 });
@@ -211,6 +222,9 @@ test("profile redirects when the mocked session endpoint returns 401", async ({ 
 
   await expect(page).toHaveURL(/auth\.omdala\.com\/login/, { timeout: 15000 });
   const url = new URL(page.url());
+  expect(url.origin).toBe("https://auth.omdala.com");
+  expect(url.pathname).toBe("/login");
+  expect(url.searchParams.get("lang")).toBe("en");
   expect(url.searchParams.get("next")).toContain("/profile");
 });
 
@@ -221,6 +235,9 @@ test("settings redirects when the mocked session endpoint returns 401", async ({
 
   await expect(page).toHaveURL(/auth\.omdala\.com\/login/, { timeout: 15000 });
   const url = new URL(page.url());
+  expect(url.origin).toBe("https://auth.omdala.com");
+  expect(url.pathname).toBe("/login");
+  expect(url.searchParams.get("lang")).toBe("en");
   expect(url.searchParams.get("next")).toContain("/settings");
 });
 

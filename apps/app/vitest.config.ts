@@ -4,6 +4,6 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    include: ["app/**/*.{test,spec}.{ts,tsx}"],
+    include: ["app/**/*.{test,spec}.{ts,tsx}", "playwright-staging-policy.test.ts"],
   },
 });

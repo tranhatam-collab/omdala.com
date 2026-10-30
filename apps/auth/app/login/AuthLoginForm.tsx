@@ -15,7 +15,7 @@ import {
 import { useSearchParams } from "next/navigation";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { ApiClientError, apiJsonRequest } from "@/lib/api-client";
+import { ApiClientError, apiJsonRequest, isServiceUnavailableError } from "@/lib/api-client";
 
 const AUTH_GOOGLE_START_PATH = "/v1/auth/google/start";
 
@@ -25,6 +25,11 @@ function getAuthApiBase() {
   if (process.env.NODE_ENV === "development") return "http://localhost:8787";
   return OMDALA_API_ORIGIN;
 }
+
+const SERVICE_UNAVAILABLE_COPY = {
+  en: "The service is temporarily unavailable. Please retry shortly or contact support.",
+  vi: "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.",
+};
 
 type StatusTone = "error" | "idle" | "info" | "success";
 
@@ -96,8 +101,9 @@ export function AuthLoginForm() {
       } catch (error) {
         setStatus({
           tone: "error",
-          message:
-            error instanceof ApiClientError
+          message: isServiceUnavailableError(error)
+            ? pickBilingualValue(language, SERVICE_UNAVAILABLE_COPY)
+            : error instanceof ApiClientError
               ? error.message
               : error instanceof Error
                 ? error.message
@@ -154,13 +160,10 @@ export function AuthLoginForm() {
             ? error.message
             : pickBilingualValue(language, copy.genericSendError);
 
-      // Friendly message when mail service is down (502/522/503/504)
-      const isMailUnavailable = /mail api|522|503|504|502|unreachable|timeout/i.test(rawMessage);
-      const friendlyMessage = isMailUnavailable
-        ? pickBilingualValue(language, {
-            en: "Mail service is temporarily unavailable. Please retry shortly or contact support.",
-            vi: "Dịch vụ gửi mail tạm thời không khả dụng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.",
-          })
+      // Friendly message when the API or mail service is unavailable (502/503/504 or a
+      // known unavailable code); the status and code decide, not the message text.
+      const friendlyMessage = isServiceUnavailableError(error)
+        ? pickBilingualValue(language, SERVICE_UNAVAILABLE_COPY)
         : rawMessage;
 
       setStatus({

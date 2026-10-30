@@ -158,6 +158,59 @@ test.describe("magic-link landing", () => {
   });
 });
 
+test.describe("service unavailable (502/503/504)", () => {
+  const FRIENDLY_EN = "The service is temporarily unavailable. Please retry shortly or contact support.";
+  const FRIENDLY_VI = "Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.";
+  const REQUEST = "**/v1/auth/magic-link/request";
+
+  async function mockRequest(page: Page, status: number, code: string) {
+    await page.route(REQUEST, (route) => {
+      const cors = {
+        "access-control-allow-origin": route.request().headers()["origin"] ?? "*",
+        "access-control-allow-credentials": "true",
+        "access-control-allow-headers": "content-type",
+        "access-control-allow-methods": "POST, OPTIONS",
+      };
+      if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+      return route.fulfill({
+        status,
+        contentType: "application/json",
+        headers: cors,
+        body: JSON.stringify({ ok: false, error: { code, message: "internal detail" } }),
+      });
+    });
+  }
+
+  for (const [status, code] of [[503, "DATABASE_UNAVAILABLE"], [504, "UPSTREAM_TIMEOUT"], [502, "MAIL_API_UNREACHABLE"]] as const) {
+    test(`magic-link request with ${status} ${code} shows the friendly message (EN)`, async ({ page }) => {
+      await mockRequest(page, status, code);
+      await page.goto("/login/");
+      await page.getByRole("button", { name: /send/i }).click();
+      await expect(page.locator(".auth-status--error")).toHaveText(FRIENDLY_EN);
+    });
+  }
+
+  test("503 shows the friendly message in VI", async ({ page }) => {
+    await mockRequest(page, 503, "DATABASE_UNAVAILABLE");
+    await page.goto("/login/?lang=vi");
+    await page.locator('button[type="submit"]').click();
+    await expect(page.locator(".auth-status--error")).toHaveText(FRIENDLY_VI);
+  });
+
+  test("a 400 keeps the API's own message", async ({ page }) => {
+    await mockRequest(page, 400, "INVALID_EMAIL");
+    await page.goto("/login/");
+    await page.getByRole("button", { name: /send/i }).click();
+    await expect(page.locator(".auth-status--error")).toHaveText("internal detail");
+  });
+
+  test("token exchange with 503 shows the friendly message, not the raw error", async ({ page }) => {
+    await mockExchange(page, 503, "DATABASE_UNAVAILABLE", "internal detail");
+    await page.goto("/login/?token=any-token");
+    await expect(page.locator(".auth-status--error")).toHaveText(FRIENDLY_EN);
+  });
+});
+
 test.describe("404", () => {
   test("unknown route returns HTTP 404 with a not-found page", async ({ page }) => {
     const response = await page.goto("/does-not-exist/");
