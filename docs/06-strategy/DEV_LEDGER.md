@@ -103,18 +103,18 @@ Staging E2E **OPEN**. Production **HOLD**. AUTOMATION: see the flag at the top a
 
 ### 5.1 Triggers and adaptive cadence
 
-| Trigger | Fires into | Cadence now |
-|---|---|---|
-| `trig_011XrmiQupK2SLA2VdfwrPqX` T0 coordinator | T0 session | hourly at :20 |
-| `trig_01DHiQxFokgt9HAG3DQJ9EvT` T2 cycle | T2 session | hourly at :44 |
-| `trig_013uiQjr9pic9idjucdNJQ7t` T3 cycle | T3 session | hourly at :45 |
-| `trig_01EK3TgUb79vw6QGTMmF1uNp` TAI cycle | TAI session | hourly at :45 |
-| `trig_01DGKeTb52qsK8dmR5NiZM2X` T4 cycle | T4 session | hourly at :45 |
+| Trigger | Fires into | Cadence now | Changed |
+|---|---|---|---|
+| `trig_011XrmiQupK2SLA2VdfwrPqX` T0 coordinator | T0 session | hourly at :20 (teams pushed within 3 h) | prompt rewritten for version 4, 2026-10-30T15:30Z |
+| `trig_01DHiQxFokgt9HAG3DQJ9EvT` T2 cycle | T2 session | hourly at :44 | refilled 2026-10-30T18:2xZ |
+| `trig_013uiQjr9pic9idjucdNJQ7t` T3 cycle | T3 session | hourly at :45 | refilled 2026-10-30T18:2xZ |
+| `trig_01EK3TgUb79vw6QGTMmF1uNp` TAI cycle | TAI session | **disabled** 2026-10-30T18:2xZ | QUEUE_EMPTY; every remaining TAI item waits on a human or another team (see 7.3). Re-enable when one becomes eligible |
+| `trig_01DGKeTb52qsK8dmR5NiZM2X` T4 cycle | T4 session | hourly at :45 | refilled 2026-10-30T18:2xZ; standing verification of new heads continues |
 
 A team turn works through orders for up to about 90 minutes, so a fire that lands
 during a running turn waits and starts the next order right after it: work is
 continuous while the queue holds work. T0 applies these rules every tick and
-records each change in section 8:
+records each change here and in section 8:
 
 1. A team trigger stays hourly while the team has a READY order or backlog item.
    T0 disables it when the team writes `QUEUE_EMPTY` or everything left is BLOCKED
@@ -124,200 +124,183 @@ records each change in section 8:
    3 hours; every 6 hours when every team trigger is disabled and T0 has no own
    work, with one notice listing the human decisions in plan section 11.
 4. Usage pressure (a team's rate limit not `allowed`, or overage): disable the
-   lowest-value trigger first, in the order TAI, T3, T2, T4.
+   lowest-value trigger first, in the order TAI, T3, T2, T4. The seven-day window
+   read `allowed_warning` on the T3 session at 16:21Z: watched, no action yet.
 5. No empty tick: each tick harvests reports, refills queues or does T0's own
    orders. A tick with none of these lowers T0's cadence instead of reporting.
 
 ## 6. Team roster
 
-| Team | Executor | Branch | Session | Trigger | State 2026-10-30T14:45Z |
+| Team | Executor | Branch head (2026-10-30T18:2xZ) | Session | Trigger | State |
 |---|---|---|---|---|---|
-| T0 Coordinator | Claude cloud, claude-opus-5-5 | `claude/omdala-coordination` | `session_011NjrMT2mFGRNNyxofbXcPX` | `trig_011XrmiQupK2SLA2VdfwrPqX` | ACTIVE, pull model |
-| T1 Infra and Release | Local VS Code agent | `OMCODE/infra-e2e-auto-20261026` (7abd962) | owner-run | none | Scheduler disabled; orders WO-T1-* for the owner to relay |
-| T2 Core API/Data/Auth/Billing | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t2-core` (163c280), PR #17 draft | `session_015zwouVg9EARRhsEXRQVfcw` | `trig_01DHiQxFokgt9HAG3DQJ9EvT` | Idle since 2026-10-28T16:33Z; 5 READY orders |
-| T3 Web/UI/Docs | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t3-web` (a7466fd), PR #18 draft | `session_015zwouUz4xi7CAwpcUoh5ie` | `trig_013uiQjr9pic9idjucdNJQ7t` | Idle since 2026-10-28T16:35Z; 5 READY orders |
-| TAI Om AI/Provider/Mobile source | Claude cloud, claude-sonnet-5-5 | `claude/omdala-tai-omai` (13d6f19), PR #16 draft | `session_015zwouXH3y3GrPfyv8ypTFL` | `trig_01EK3TgUb79vw6QGTMmF1uNp` | Idle since 2026-10-28T16:24Z; 4 READY orders |
-| T4 Independent QA | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t4-qa` (96afdd5), PR #19 draft | `session_015zwouVJHpogx5cfV4N5fyf` | `trig_01DGKeTb52qsK8dmR5NiZM2X` | Idle since 2026-10-28T16:31Z; standing verification plus 3 READY orders |
+| T0 Coordinator | Claude cloud, claude-opus-5-5 | `claude/omdala-coordination` | `session_011NjrMT2mFGRNNyxofbXcPX` | `trig_011XrmiQupK2SLA2VdfwrPqX` | ACTIVE |
+| T1 Infra and Release | Local VS Code agent | `OMCODE/infra-e2e-auto-20261026` 7abd962 | owner-run | none | Orders WO-T1-* wait for the owner to relay |
+| T2 Core API/Data/Auth/Billing | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t2-core` 3988b4c, PR #17 draft | `session_015zwouVg9EARRhsEXRQVfcw` | enabled | First pull cycle 15:30-15:53Z: 5 orders + 3 backlog DONE, 2 MOOT; refilled with 5 orders |
+| T3 Web/UI/Docs | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t3-web` 054ec10, PR #18 draft | `session_015zwouUz4xi7CAwpcUoh5ie` | enabled | WO-T3-03..06 and BL-T3-01 DONE; working through backlog; refilled with 4 orders |
+| TAI Om AI/Provider/Mobile source | Claude cloud, claude-sonnet-5-5 | `claude/omdala-tai-omai` d141c22, PR #16 draft | `session_015zwouXH3y3GrPfyv8ypTFL` | disabled | 4 orders + 3 backlog DONE (WO-TAI-04/05 PARTIAL); waits on decisions in 7.3 |
+| T4 Independent QA | Claude cloud, claude-sonnet-5-5 | `claude/omdala-t4-qa` 7c251b1, PR #19 draft | `session_015zwouVJHpogx5cfV4N5fyf` | enabled | Verified every team head through T3 6256448; queue refilled with 2 orders |
 
 ## 7. Dispatch board
 
-Status per order: READY (a team may take it), DONE, PARTIAL, BLOCKED, VERIFIED
-(T4 reproduced it), FAILED (T4 could not), REOPEN, QUEUED (T0 or owner-relayed).
-Teams take READY rows of their own team top to bottom; specs are in 7.1.
+Status per order: READY (a team may take it), DONE, PARTIAL, BLOCKED, MOOT,
+VERIFIED (T4 reproduced it), FAILED (T4 could not), REOPEN, WITHDRAWN, QUEUED
+(T0 or owner-relayed). Teams take READY rows of their own team top to bottom;
+specs are in 7.1. Reports: `docs/06-strategy/reports/<TEAM>/<ORDER>.md` on the
+team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 
-| Order | Team | Status | Parent | SHA / evidence | Updated |
-|---|---|---|---|---|---|
-| WO-T4-01 | T4 | DONE | CORE-12/15/18 | c074189, VERIFIED_HEAD_ONLY (team-reported) | 2026-10-28 |
-| WO-T4-02 | T4 | DONE | P0-03 | 96afdd5, VERIFIED_HEAD_ONLY (team-reported) | 2026-10-28 |
-| WO-T3-01 | T3 | DONE, awaiting T4 | CORE-12, E2E-1 | dd12483, VERIFIED_WORKTREE_ONLY | 2026-10-28 |
-| WO-T3-02 | T3 | DONE, awaiting T4 | CORE-12, E2E-1 | a7466fd, VERIFIED_WORKTREE_ONLY; one admin test edit was not pushed | 2026-10-28 |
-| WO-T2-01 | T2 | DONE, awaiting T4 | CORE-03, E2E-2 | 64c581d, VERIFIED_WORKTREE_ONLY | 2026-10-28 |
-| WO-T2-02 | T2 | DONE, awaiting T4 | CORE-08, E2E-2 | 6114316, VERIFIED_WORKTREE_ONLY | 2026-10-28 |
-| WO-T2-03 | T2 | DONE, awaiting T4 | AI-06 | 163c280, VERIFIED_WORKTREE_ONLY | 2026-10-28 |
-| WO-TAI-01 | TAI | DONE, awaiting T4 | OMAI-01 | 516e130, VERIFIED_WORKTREE_ONLY | 2026-10-28 |
-| WO-TAI-02 | TAI | DONE, awaiting T4 | OMAI-06 | 13d6f19, VERIFIED_WORKTREE_ONLY | 2026-10-28 |
-| WO-T4-03 | T4 | READY (standing, every turn) | CORE-15 | heads to verify now: T2 163c280, T3 a7466fd, TAI 13d6f19 | 2026-10-30 |
-| WO-T2-CI | T2 | READY | CORE-18 | | 2026-10-30 |
-| WO-T3-CI | T3 | READY | CORE-18 | | 2026-10-30 |
-| WO-TAI-CI | TAI | READY | CORE-18 | | 2026-10-30 |
-| WO-T2-04 | T2 | READY | P0-02 R-03, CORE-08 | | 2026-10-30 |
-| WO-T3-03 | T3 | READY | P0-02 R-01, CORE-12 | | 2026-10-30 |
-| WO-TAI-03 | TAI | READY | OMAI-06, OMAI-02 prep | | 2026-10-30 |
-| WO-T4-04 | T4 | READY | E2E-0, CORE-12/15/18 | | 2026-10-30 |
-| WO-T2-05 | T2 | READY | CORE-03/08, E2E-2 | | 2026-10-30 |
-| WO-T3-04 | T3 | READY | P0-06 R-07/R-10/R-13/R-17, R-21 | | 2026-10-30 |
-| WO-TAI-04 | TAI | READY | MOB-02 | | 2026-10-30 |
-| WO-T4-05 | T4 | READY | P0-03 | | 2026-10-30 |
-| WO-T2-06 | T2 | READY | P0-05 R-26, P0-06 R-19 | | 2026-10-30 |
-| WO-T3-05 | T3 | READY | P0-05 R-08/R-09/R-11/R-28 | | 2026-10-30 |
-| WO-TAI-05 | TAI | READY | E2E-4, OMAI-07 | | 2026-10-30 |
-| WO-T4-06 | T4 | READY | CORE-15 security review | | 2026-10-30 |
-| WO-T2-07 | T2 | READY | AI-06, E2E-4 | | 2026-10-30 |
-| WO-T3-06 | T3 | READY | P0-03 R-12/R-16 | | 2026-10-30 |
-| WO-T0-01 | T0 | QUEUED | CTL-01a | | 2026-10-28 |
-| WO-T0-02 | T0 | QUEUED | CTL-06 | | 2026-10-28 |
-| WO-T0-03 | T0 | QUEUED | Plan section 11 | | 2026-10-28 |
-| WO-T1-01 | T1 | QUEUED, owner relays | CORE-18 | Add `"claude/omdala-**"` to `on.push.branches` in `ci.yml`, the same line as WO-*-CI | 2026-10-30 |
-| WO-T1-02 | T1 | QUEUED, owner relays | E2E-3, REL-01, CORE-07 | Staging suite dry-run, read-only API 522 evidence packet, `/release.json` contract | 2026-10-28 |
-| WO-T1-03 | T1 | QUEUED, owner relays | CORE-18 | CI: postgres:17 service with `OMDALA_TEST_DATABASE_URL`; jobs for `e2e:auth`, `e2e:docs`, `e2e:admin`; `.gitignore` `apps/*/test-results`; desktop test hardcodes `/bin/zsh` | 2026-10-28 |
+| Order | Team | Status | SHA / evidence | Updated |
+|---|---|---|---|---|
+| First wave WO-T2-01..03, WO-T3-01/02, WO-TAI-01/02, WO-T4-01/02 | all | DONE; T4 verified the T2, T3 and TAI work at later heads (VERIFY-t2-1f1d532, VERIFY-t3-2b35cfc, VERIFY-tai-d141c22). Their records are the commit messages, not report files (BL-T4-01) | 64c581d, 6114316, 163c280, dd12483, a7466fd, 516e130, 13d6f19, c074189, 96afdd5 | 2026-10-30 |
+| WO-T2-CI | T2 | VERIFIED | 3e36cd4, CI run 41081482574 success; every later T2 SHA CI success | 2026-10-30 |
+| WO-T2-04 R-03 TLS | T2 | VERIFIED (R-03 FIXED_AT_47b1eb1) | 47b1eb1; Hyperdrive path open, see WO-T2-08 | 2026-10-30 |
+| WO-T2-05 real-SQL tests | T2 | VERIFIED except one test FAILED in T4's environment | 0259a1e; fix is WO-T2-09 | 2026-10-30 |
+| WO-T2-06 R-26, R-19, stray file | T2 | VERIFIED (R-19, R-26 FIXED_AT_4239b8d) | 4239b8d | 2026-10-30 |
+| WO-T2-07 AIAGENT 429/504 | T2 | VERIFIED | 1dfbf2b; CI success at 3988b4c | 2026-10-30 |
+| BL-T2-01 tenant isolation | T2 | VERIFIED | b74dd52 | 2026-10-30 |
+| BL-T2-02 failure states | T2 | VERIFIED | 1f1d532, b794619 (DATABASE_UNAVAILABLE is now 503, not 502) | 2026-10-30 |
+| BL-T2-03 R-18 | T2 | MOOT | File does not exist on the candidate line; T4 marked R-18 MOOT on 2026-10-28. T0's backlog item cited PR #1's branch by mistake | 2026-10-30 |
+| BL-T2-04 R-22..R-25 | T2 | MOOT, lease withdrawn | Same cause; successors in `infra/backup`, `infra/scripts` (T1) | 2026-10-30 |
+| BL-T2-05 local DR rehearsal | T2 | VERIFIED (6 tests pass; negative control NOT_CHECKED by T4) | 01f22d3, CI success at 3988b4c | 2026-10-30 |
+| WO-T3-CI | T3 | WITHDRAWN | T3 keeps its standing rule against `.github/**`; T3 gets hosted CI once WO-T1-01 lands on the OMCODE line and T3 merges it | 2026-10-30 |
+| WO-T3-03 R-01 admin deny | T3 | VERIFIED (R-01 FIXED_AT_2f24d80) | 2f24d80; no hosted CI | 2026-10-30 |
+| WO-T3-04 robots, switchers | T3 | VERIFIED (R-07/R-10/R-13/R-17, R-21) | 621b3a0; no hosted CI | 2026-10-30 |
+| WO-T3-05 Save draft, docs API | T3 | VERIFIED (R-08, R-09, R-28 FIXED_AT_63a258a; R-11 not applicable: file does not exist) | 63a258a; no hosted CI | 2026-10-30 |
+| WO-T3-06 docs EN/VI static | T3 | VERIFIED (R-12 FIXED_AT_6256448) | 6256448; old `?lang=vi` links now show English; no hosted CI | 2026-10-30 |
+| BL-T3-01 R-20 | T3 | DONE, awaiting T4 | 054ec10 | 2026-10-30 |
+| WO-TAI-CI | TAI | VERIFIED | e5eb70e, CI run 41081525781 success; d141c22 CI success | 2026-10-30 |
+| WO-TAI-03 plan change closed | TAI | VERIFIED | 66b169d | 2026-10-30 |
+| WO-TAI-04 MOB-02 toolchain | TAI | PARTIAL: Linux side done; bundle ids need the owner (7.3) | 66b169d | 2026-10-30 |
+| WO-TAI-05 failure states | TAI | PARTIAL: messages and unit tests done; browser test waits on the AI authority contract | cba5ccb | 2026-10-30 |
+| BL-TAI-01..03 | TAI | VERIFIED | e1d3be3, 696dad1 | 2026-10-30 |
+| WO-T4-03 standing | T4 | READY (standing, every turn) | Verified through T2 3988b4c, T3 6256448, TAI d141c22; next: T3 054ec10 and every new head | 2026-10-30 |
+| WO-T4-04, -05, -06 | T4 | DONE | 4248392, 9ed2ab0 (+638d097), 9e4ece3 | 2026-10-30 |
+| BL-T4-01, -02, -03 | T4 | DONE | d3291e8, 7c251b1 | 2026-10-30 |
+| WO-T2-08 | T2 | READY | | 2026-10-30 |
+| WO-T2-09 | T2 | READY | | 2026-10-30 |
+| WO-T2-10 | T2 | READY | | 2026-10-30 |
+| WO-T2-11 | T2 | READY | | 2026-10-30 |
+| WO-T2-12 | T2 | READY | | 2026-10-30 |
+| WO-T3-07 | T3 | READY | | 2026-10-30 |
+| WO-T3-08 | T3 | READY | | 2026-10-30 |
+| WO-T3-09 | T3 | READY | | 2026-10-30 |
+| WO-T3-10 | T3 | READY | | 2026-10-30 |
+| WO-T4-07 | T4 | READY | | 2026-10-30 |
+| WO-T4-08 | T4 | READY | | 2026-10-30 |
+| WO-T0-01 | T0 | QUEUED | | 2026-10-28 |
+| WO-T0-02 | T0 | QUEUED | | 2026-10-28 |
+| WO-T0-03 | T0 | QUEUED | | 2026-10-28 |
+| WO-T1-01 | T1 | QUEUED, owner relays | On `OMCODE/infra-e2e-auto-20261026`: add `"claude/omdala-**"` to `on.push.branches` in `ci.yml` (T2 and TAI branches already carry the identical line; T3 needs it from here) | 2026-10-30 |
+| WO-T1-02 | T1 | QUEUED, owner relays | Staging suite dry-run, read-only API 522 evidence packet, `/release.json` contract | 2026-10-28 |
+| WO-T1-03 | T1 | QUEUED, owner relays | CI: PostgreSQL service **with TLS on** (client.ts now requires it; setup in `reports/T2/WO-T2-05.md` on the T2 branch) and `OMDALA_TEST_DATABASE_URL`, so the 27 skipped DB suites run; jobs for `e2e:auth`, `e2e:docs`, `e2e:admin`; `.gitignore` `apps/*/test-results`; desktop test hardcodes `/bin/zsh` | 2026-10-30 |
+| WO-T1-04 | T1 | QUEUED, owner relays | CI: run `npm test` in the "OM AI Web Typecheck and Build" job (7 tests); add a `services/ai` job running `node --test tests/*.test.ts` (Node 22.18+); add `test:seo` (T3, 6 tests) | 2026-10-30 |
+| WO-T1-05 | T1 | QUEUED, owner relays | Config review: staging and production never carry `ENVIRONMENT=local/development/test` (the TLS opt-out depends on it); `OMDALA_ADMIN_PREVIEW=1` only on preview builds; Hyperdrive origin TLS mode set to verify the certificate; optional edge redirect for old docs `?lang=vi` links | 2026-10-30 |
 
 ### 7.1 Order specs
 
 Base for every new order: the team's current branch head, merged with
 `OMCODE/infra-e2e-auto-20261026` (7abd962) when that moves. Each order ends with
 its report file. Tests named here are the minimum; the cycle prompt adds the
-standard checks.
+standard checks. Specs of finished orders are in git history (commit 32c124e).
 
-**WO-T2-CI, WO-T3-CI, WO-TAI-CI.** In `.github/workflows/ci.yml` change only the
-`push:` branches line to
-`    branches: [main, feat/pricing-promo-engine, "OMCODE/**", "claude/omdala-**"]`.
-No other change, so the three branches merge cleanly. Push, wait for the
-"OMDALA CI" run on that exact SHA, and report its URL and every job result. Each
-failing job is a finding; fix those inside your own paths as the next item, and
-report failures outside your paths for T0 to route.
+**WO-T2-08 (critical).** `services/api/src/db/client.ts` now verifies TLS on every
+connection, including the Hyperdrive path, where the connection string points at
+a local proxy. Read Cloudflare's current Hyperdrive documentation for
+node-postgres (developers.cloudflare.com) and cite the page and the date read in
+the report. Then make the Hyperdrive path follow the documented configuration,
+while a direct `DATABASE_URL` keeps certificate verification. Unit tests for both
+paths; the insecure flag stays refused outside local/development/test. If the
+documentation does not settle it, report BLOCKED with the exact question for a
+staging check (T1). Label: `PREP_UNDER_ASSUMPTION(CTL-03, PostgreSQL via Hyperdrive)`.
 
-**WO-T2-04.** R-03: `services/api/src/db/client.ts` sets
-`ssl: { rejectUnauthorized: false }` for every connection. Verify certificates by
-default. Allow skipping verification only when an explicit flag
-(`OMDALA_DB_TLS_INSECURE=1`) is set in a local or test environment, and refuse it
-when the environment is production or staging. Unit tests: default verifies; the
-flag is honored locally; the flag is refused in production. Update references
-under `services/**`.
+**WO-T2-09.** T4 found that `db/auth-repository.integration.test.ts` "verifies
+the server certificate by default" fails when the local server's certificate is
+trusted (VERIFY-t2-1f1d532, VERIFY-t2-3988b4c). Make the test provision its own
+untrusted certificate (for example a throwaway self-signed CA served by a scratch
+cluster or a local TLS socket), or skip it with an explicit message when the
+server certificate verifies. It must still fail if verification is off.
 
-**WO-T2-05.** Real-SQL tests in the container: install PostgreSQL 17 locally
-(apt or official binaries), create a scratch database on localhost, and run the
-bootstrap test and the auth-repository tests with `OMDALA_TEST_DATABASE_URL`
-pointing at it. This is a local process, not a remote database. Acceptance: the
-suites that used to skip now run and pass; any real defect found is fixed or
-reported. Put the setup commands in the report so T1 can copy them into CI
-(WO-T1-03).
+**WO-T2-10.** The models route (`/v1/ai/models`) maps every provider failure to
+503 `aiagent_catalog_unavailable`. Use the same mapping as chat: 429 with
+`Retry-After`, 504 on timeout, 502 on provider 5xx. Contract tests.
 
-**WO-T2-06.** R-26: `services/api/src/db/reality-repository.test.ts` must import
-the real normalizer (export it if needed) instead of re-implementing it. R-19:
-`packages/core/src/i18n.ts` marks all six languages ready; set
-`OMDALA_READY_LANGUAGES` to `['en', 'vi']`, add a test, and list in the report
-every consumer whose UI changes (T3 follows up). The stray file
-`services/api/src/index.v2.db-errors.test 2.ts`: diff it against
-`index.v2.db-errors.test.ts`; delete it if it is a copy, otherwise move its
-unique tests into the canonical file.
+**WO-T2-11.** Lease: `docs/contracts/API_V1_TEAM2_CONTRACT_2026-10-07.md` only.
+Document `OMDALA_DB_TLS_INSECURE` and `DB_TLS_INSECURE_REFUSED`; the 503/504
+database codes (`DATABASE_UNAVAILABLE` moved from 502 to 503); the AIAGENT
+429/504 codes; and the `/plans/upgrade` refusal is TAI's, so leave it out.
 
-**WO-T2-07.** `services/api/src/aiagent-client.ts`: a provider 429 now surfaces as
-a generic 502. Map 429 to 429 with `Retry-After` passed through and a stable error
-code; provider 5xx stays 502; a timeout becomes 504. Contract tests for each case.
+**WO-T2-12 (E2E-2 exit, prepares a cross-team journey).** A local-integrated stand-up for
+the API: one command under `services/api/` starts the worker locally (no remote
+bindings, no `--remote`) against a scratch local PostgreSQL, applies migrations,
+seeds one test account, and prints the base URL; a health and magic-link-request
+smoke passes against it. No secret values in the repo; generate local ones at run
+time. T3 uses it in a later order for a browser journey across auth and app.
 
-**WO-T3-03.** Push the admin test edit left unpushed on 2026-10-28 if it is still
-in your worktree; otherwise redo it. R-01: `apps/admin/app/layout.tsx` grants admin
-to everyone through a mock. Make the default build deny: no mock grant unless
-`OMDALA_ADMIN_PREVIEW=1` at build time, and the default build renders an
-access-denied or sign-in state. Run the 22 admin specs with the preview flag, and
-add one spec for the default deny state.
+**WO-T3-07.** The 3 redirect specs in `apps/app/e2e/auth-dashboard.spec.ts`
+(:193, :207, :217) navigate to the real `auth.omdala.com` and fail without
+network. Route the auth origin to a local stub (Playwright `page.route` or a
+local static server) so they are hermetic, while still asserting the login URL
+with `lang` and `next`. `pnpm e2e:app` must pass 19/19 offline.
 
-**WO-T3-04.** R-07/R-10/R-13/R-17: `apps/{admin,app,docs}` ship both
-`app/robots.ts` and `public/robots.txt`, and `apps/web` must be checked too. Keep
-one source per app: `noindex` for app and admin, index rules for web and docs.
-Assert the built `out/robots.txt` of each app in a test. R-21:
-`packages/ui` `LanguageSwitcher` drops the query string; keep the query and hash
-(for example `?next=` and the magic-link token flow) and cover it with a test on
-the auth login page.
+**WO-T3-08.** BL-T2-02 moved `DATABASE_UNAVAILABLE` from 502 to 503 and added
+503/504 codes. Find every consumer in T3 paths that branches on the API status or
+code (error messages, retries, specs) and update it, with a test for the 503
+case. After R-19, the switchers show zh/es/ja/ko as disabled "coming soon": check
+that this renders correctly and is excluded from hreflang and sitemaps.
 
-**WO-T3-05.** R-08/R-09: the Save draft buttons in
-`apps/app/app/(dashboard)/nodes/new` and `requests/new` do nothing; disable them
-with a visible "not available yet" label, or remove them. R-28:
-`apps/docs/app/api/page.tsx` lists routes that do not exist; list only routes
-present in the `services/api` router (read only, T2 owns it). R-11:
-`apps/app/e2e/smoke-auth-dashboard.spec.ts` accepts the opposite of a redirect to
-login; make it assert the real redirect.
+**WO-T3-09.** T4 BL-T4-02 finding 1: `apps/app/playwright-staging-policy.ts`
+`assertOutsideCandidate` accepts a directory inside the checkout whose name
+starts with `..`. Compare path segments instead of a string prefix, and add a
+unit test next to the policy file that covers `<repo>/..name`, `<repo>/../x` and
+a real outside path. No change under `scripts/` (T1).
 
-**WO-T3-06.** R-12/R-16: docs and web choose the locale after hydration, so the
-static HTML is always English. Render each locale on the server or at static
-export, using the existing route scheme (EN default, VI under its prefix), so the
-built HTML of each locale contains the localized text. Assert this by reading the
-built HTML in a test, and keep the hreflang alternates correct.
+**WO-T3-10.** Matrix gap 12: add a Vietnamese browse assertion (`/vi/` page with
+`<html lang="vi">` and localized text) to the staging and production go-live
+specs in `apps/app`. These specs only run in protected workflows, so check them
+with `playwright test --list` and a type check; do not run them against staging.
 
-**WO-TAI-03.** `/v2/live/plans/upgrade` in `om-ai.omdala.com/backend` lets any
-user set any plan. A user must not change their own plan. Until the billing
-authority is decided, the endpoint returns 403 with code
-`PLAN_CHANGE_REQUIRES_BILLING` for users. An admin or test-support path stays
-test-only. Label: `PREP_UNDER_ASSUMPTION(billing authority, server-side only)`.
-Tests for user, admin and test-support callers, next to `live.routes.test.ts`.
+**WO-T4-07.** Verify BL-T2-05's negative control (a one-byte change in the
+restored copy fails the hash comparison) and the DR receipt fields at the
+current T2 head; then verify WO-T2-08 and WO-T2-09 when they land, with the
+Hyperdrive documentation the report cites.
 
-**WO-TAI-04.** MOB-02: a reproducible toolchain report for
-`om-ai.omdala.com/{app,android,ios}`: pinned versions, build and test commands,
-what runs in a Linux container (try it), and what needs macOS or devices. Fix
-config gaps only inside TAI paths and without lockfile changes.
-
-**WO-TAI-05.** E2E-4 for Om AI: AI backend down, quota exhausted and provider 429
-must each show a clear message to the user, not a blank screen or a raw error. Add
-tests in the existing Om AI test setup (Playwright where present, otherwise
-component or integration tests).
-
-**WO-T4-03 (standing).** Runs at the start of every T4 turn: verify each T2, T3
-and TAI head SHA that has no `VERIFY-<team>-<sha7>.md` yet. Use a separate
-worktree at the exact SHA and a frozen-lockfile install. Re-run the commands the
-team reported plus `pnpm typecheck`, `pnpm lint` and the affected tests and E2E.
-Read hosted CI for the SHA when it exists, and mark each claim VERIFIED or FAILED
-with counts.
-
-**WO-T4-04.** Refresh the E2E-0 matrix
-(`docs/audit/team4/2026-10-28/E2E_MATRIX.md`) at the current team heads. Mark the
-cells the first wave closed, and list every remaining gap with its owning team and
-a one-line proposed order, which T0 turns into orders.
-
-**WO-T4-05.** Re-run the 14 CONFIRMED R findings
-(`docs/audit/team4/2026-10-28/R_FINDINGS_REPRODUCTION.md`) at the current team
-heads. Mark each FIXED_AT_<sha> or STILL_CONFIRMED with the command used.
-
-**WO-T4-06.** Security review of each team branch diff against 7abd962: authn and
-authz, tenant isolation, input validation, secrets, unsafe defaults and redirect
-handling. Findings only, each with file:line, severity and proposed fix owner.
+**WO-T4-08.** Independent SEO check of T3's docs locale restructure (6256448,
+054ec10): every built page in `apps/docs/out` and `apps/web/out` has one
+canonical, hreflang for en, vi and x-default only, a matching `<html lang>`, and
+sitemap entries for both locales; no zh/es/ja/ko URL is advertised anywhere.
 
 ### 7.2 Standing backlog (taken in order when a team has no READY order)
 
 | ID | Team | Work |
 |---|---|---|
-| BL-T2-01 | T2 | Tenant isolation negatives for every `/v2/*` route: a caller from another tenant gets 403 or 404, one test per route |
-| BL-T2-02 | T2 | E2E-4 API failure states: database unavailable gives 503 with a stable code; a mail sink failure gives an explicit error, never a false success |
-| BL-T2-03 | T2 | R-18: `infra/migrations/*.sql` use `\i`; switch to `\ir` and test running migrations from another working directory |
-| BL-T2-04 | T2 | R-22..R-25 under the scripts lease: `ON_ERROR_STOP` in restore and cleanup, `curl --fail` in report upload, consistency check after cleanup in the smoke script |
-| BL-T2-05 | T2 | E2E-5 local DR rehearsal on a scratch local database: backup, restore, compare; record the receipt |
-| BL-T3-01 | T3 | R-20: `packages/seo` `buildLanguageAlternates` must emit only the locales passed in |
 | BL-T3-02 | T3 | P0-08: fonts never load because the `@import` ends up mid-file; self-host them through `next/font/local` or `packages/ui` assets and assert the font request in a test |
-| BL-T3-03 | T3 | R-14/R-15 re-check on the candidate: per-page title and canonical; `index` honors `OMDALA_NOINDEX` |
-| BL-T3-04 | T3 | Remaining E2E-1 gaps in T3 paths from T4's refreshed matrix |
-| BL-TAI-01 | TAI | Tests for each row of the OMAI implementation map marked implemented but untested |
-| BL-TAI-02 | TAI | Contract tests for `services/ai/**` where it exists |
-| BL-TAI-03 | TAI | MEM-04 memory schema fixtures and validation tests, no runtime |
-| BL-T4-01 | T4 | Spot-check ledger claims against git: each DONE row has the SHA and report it cites |
-| BL-T4-02 | T4 | Read-only review of the E2E-3 staging loader and dry-run path on 7abd962 |
-| BL-T4-03 | T4 | `pnpm audit --audit-level=high` at each team head; report new high or critical advisories |
+| BL-T3-04 | T3 | Remaining E2E-1 gaps in T3 paths from `docs/audit/team4/2026-10-30_E2E_MATRIX_REFRESH.md` on the T4 branch |
+| BL-T2-06 | T2 | Matrix gap 7 (API side): contact and access-request endpoints against the staging-sink policy with a local stub sink; assert no mail leaves without a sink receipt |
+| BL-T4-04 | T4 | Re-run `pnpm audit --audit-level=high` and the R-finding table when a lockfile or one of the R files changes on a team branch |
+
+BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
+
+### 7.3 Waiting on a human or another team (not dispatchable)
+
+| Item | Needs | Unblocks |
+|---|---|---|
+| Real iOS bundle identifier and Android package name; fate of `ios/AIOmApp/**` | Owner | MOB-02 config order for TAI |
+| AI authority realtime contract | Provider lane (AI-02..05) | WO-TAI-05 browser test, session activation tests |
+| CTL-03 storage shape | Owner (plan section 11 item 2) | TAI memory validators for learning, persona-affinity, subscription; scenes/runs persistence |
+| Session bridge contract for Om AI | T2 after CTL-03 | TAI consumer contract tests |
+| Admin edge access layer before any live data | T1 design, owner | T3 admin access order (T4 WO-T4-06 finding 1) |
+| Token in URL fragment instead of query | Owner (UX/security trade-off) | T3/T2 magic-link format change (T4 WO-T4-06 finding 2) |
+| R-27 Worker account id | Owner, INFRA-003 | `services/api/wrangler.toml` |
 
 ## 8. Coordinator run log (keep last 20)
 
 | Time (UTC) | Tick | Actions | Result |
 |---|---|---|---|
 | 2026-10-28 | PLAN | Version 3 plan and ledger sections 5-8 written on `claude/omdala-coordination` from 7abd962 | Activation approved |
-| 2026-10-28T16:20Z | ACTIVATE | Created T2/T3/TAI/T4 sessions with first orders; created coordinator routine `trig_011XrmiQupK2SLA2VdfwrPqX`; told T4 to retarget an auto-created PR from main | Teams starting |
-| 2026-10-28T17:20Z..2026-10-29T02:20Z | 10 ticks | Observed all four teams DONE with draft PRs #16-#19 (base correct); recorded results; dispatch not delivered (worker restarts, then send_message approval pending) | FAILED |
-| 2026-10-29T03:2xZ | PAUSE | Set PAUSED per two-failed-ticks rule; recorded cause and resume options | Waiting for owner |
+| 2026-10-28T16:20Z | ACTIVATE | Created T2/T3/TAI/T4 sessions with first orders; created coordinator routine `trig_011XrmiQupK2SLA2VdfwrPqX` | Teams starting |
+| 2026-10-28T17:20Z..2026-10-29T02:20Z | 10 ticks | Observed all four teams DONE with draft PRs #16-#19; dispatch not delivered (send_message approval) | FAILED |
+| 2026-10-29T03:2xZ | PAUSE | Set PAUSED per two-failed-ticks rule | Waiting for owner |
 | 2026-10-29T04:20Z..2026-10-30T14:20Z | 35 ticks | Routine kept firing while PAUSED; each tick stopped at the flag | Empty; the cause of the version 4 change |
-| 2026-10-30T14:45Z | REBUILD | Owner asked for a flexible schedule with no empty loops. Created four team triggers (pull model), wrote 18 READY orders with specs and a standing backlog, set ACTIVE, rewrote the T0 tick | Teams fire hourly from 14:45Z |
+| 2026-10-30T14:45Z | REBUILD | Four team triggers (pull model), 18 READY orders with specs, standing backlog, ACTIVE (32c124e) | |
+| 2026-10-30T15:30Z | START | T0 prompt rewritten for version 4; fired all four team triggers by hand | All four WORKING |
+| 2026-10-30T16:20Z, 17:20Z | 2 ticks | Harvest read, but the T0 worker restarted before the ledger was written both times | Ledger not updated; recovered at 18:2xZ |
+| 2026-10-30T18:2xZ | HARVEST | Marked 25 orders and backlog items (T2 and TAI queues empty, T4 empty, T3 on backlog); hosted CI green on every T2 and TAI SHA; T4 confirms 13 of the 14 CONFIRMED R findings fixed (only R-27, a human gate, remains). Refilled T2 (5), T3 (4), T4 (2); disabled TAI (waits on humans, 7.3); T1 orders 01, 03-05 updated | |
