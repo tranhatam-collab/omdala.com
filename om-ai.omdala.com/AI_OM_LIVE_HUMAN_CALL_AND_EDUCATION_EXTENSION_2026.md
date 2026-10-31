@@ -10,6 +10,8 @@ Date: April 4, 2026
 
 ---
 
+> **Change note, 2026-10-31 (WO-TAI-13).** This extension is a product and planning spec. Where it describes API shapes or flows, the implemented code and `AI_OM_LIVE_API_CONTRACT_V1.md` (change note 2026-10-30) win: the envelope is `{ data, error, meta? }`; session statuses are `blocked | active | ended | failed`; realtime connect, token and bootstrap are fail-closed (503 `ai_authority_unavailable`) until the OMDALA AI authority publishes a realtime contract, so no client may expect a realtime token, a provider name or `ready` status today; plan changes return 403 `PLAN_CHANGE_REQUIRES_BILLING`; moderation today is a keyword screen only (`docs/OMAI_MODERATION_SCOPE.md`). Anything below that needs those is planned, not available.
+
 # 1. Executive Summary
 
 AI Om Live is the human-interaction extension of AI Om.  
@@ -904,6 +906,8 @@ Avoid using wellness signals in creepy or exploitative ways.
 
 ## 22.2 Core API Groups
 
+Base path `/v2/live`. Implemented today: personas (list, detail, favorite), sessions (create, get, list, end; connect is fail-closed), realtime (token and bootstrap are fail-closed), memory profile (get, patch), usage today, plans (list; upgrade is closed), moderation check (keyword screen), avatar providers (always empty). Everything else in the groups below is **planned, not implemented** (memory persona get and delete, curriculum and lessons, usage cycle, moderation escalate, avatar session start and end). See `docs/OMAI_API_CONTRACT_MATRIX_2026-10-30.md`.
+
 ### Personas
 
 - `GET /personas`
@@ -961,9 +965,10 @@ Avoid using wellness signals in creepy or exploitative ways.
 
 ## 23.1 Create Session Request
 
+Fields the backend reads (identity such as `user_id` and `plan_context` in the body are ignored; the user comes from the verified session and the plan from the stored subscription):
+
 ```json
 {
-  "user_id": "user_01",
   "persona_id": "teacher_english_01",
   "session_type": "language_call",
   "language_mode": {
@@ -971,9 +976,8 @@ Avoid using wellness signals in creepy or exploitative ways.
     "target_language": "en",
     "correction_language": "vi"
   },
-  "avatar_enabled": true,
-  "goal": "practice_daily_conversation",
-  "plan_context": "free"
+  "avatar_enabled": false,
+  "goal": "practice_daily_conversation"
 }
 ```
 
@@ -981,22 +985,24 @@ Avoid using wellness signals in creepy or exploitative ways.
 
 ```json
 {
-  "session_id": "live_session_01",
-  "status": "ready",
-  "realtime_transport": "webrtc",
-  "realtime_bootstrap_token": "server_generated_ephemeral_token",
-  "avatar": {
-    "enabled": true,
-    "provider": "tavus",
-    "mode": "realtime_avatar"
+  "data": {
+    "session_id": "live_session_01",
+    "status": "blocked",
+    "idempotent_replayed": false,
+    "execution_ready": false,
+    "ai_authority": { "authority": "omdala_api_aiagent", "status": "blocked" },
+    "avatar": { "enabled": false, "provider": null, "mode": "blocked" },
+    "usage": { "free_seconds_remaining_today": 1800 }
   },
-  "usage": {
-    "free_seconds_remaining_today": 1800
-  }
+  "error": null
 }
 ```
 
+Planned (not implemented): `status: "ready"`, `realtime_transport`, a realtime bootstrap token and a named avatar provider. They will come from the OMDALA AI authority, not from this service.
+
 ## 23.3 End Session Response
+
+Implemented shape is `{ "data": { ... }, "error": null }` with `session_id`, `idempotent_replayed`, `billable_seconds`, `free_seconds_remaining_today` and `summary`. The `summary` is a static placeholder today, and `billable_seconds` is 0 until realtime sessions can become `active`. The example below shows the planned content of `summary`:
 
 ```json
 {

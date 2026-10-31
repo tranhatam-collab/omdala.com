@@ -6,6 +6,9 @@ Canonical product name: Om AI
 Legacy filename namespace: `AI_OM_*` retained for continuity  
 Date: April 9, 2026
 
+
+> **Change note, 2026-10-31 (WO-TAI-13).** Client modules must follow the implemented backend and `AI_OM_LIVE_API_CONTRACT_V1.md` (change note 2026-10-30), not older flow descriptions: responses are `{ data, error, meta? }`; session statuses are `blocked | active | ended | failed`; "fetch realtime bootstrap", the realtime client, audio transport and avatar provider sessions are **planned and blocked** because connect, token and bootstrap return 503 `ai_authority_unavailable` until the OMDALA AI authority publishes a realtime contract; clients never hold provider keys or call providers directly. There is no client-side session token or refresh handling: the canonical session bridge is not available, so protected calls fail closed (`canonical_session_bridge_unavailable`). Plan changes return 403 `PLAN_CHANGE_REQUIRES_BILLING`; show the mapped user messages for backend-down, quota-exhausted and provider-busy states (`web/src/api/liveErrors.ts` is the reference mapping). Moderation in code is a keyword screen only.
+
 ---
 
 # 0. Boundary Normalization - April 9, 2026
