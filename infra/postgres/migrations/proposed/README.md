@@ -19,3 +19,15 @@ Nothing reads this folder except the T2 tests and the local stand-up. To promote
    to the expected modes.
 
 Then delete this folder. The manual reversal is `../rollback/0004_reality_scenes_runs.down.sql`.
+
+## 0005_ai_usage_ledger (WO-T2-20)
+
+Same path as 0004, same lease. `0005_ai_usage_ledger.sql` (sha256
+`7c3fe2c2b0ad16b3ad08605a02222d4c90982fab51974d76c4d897a154c1707a`)
+adds the per-owner daily counter and the per-request ledger behind the AI cost cap.
+Promote it after 0004 (it does not depend on it): move the file, append its
+`compatibility.json` entry (`expand-only`), add `"0005_ai_usage_ledger"` and one more
+`"expand-only"` to the two expectations in `scripts/verify-migration-compatibility.test.mjs`.
+Manual reversal: `../rollback/0005_ai_usage_ledger.down.sql`.
+Until it is applied, staging and production answer chat with 503 (the cap is required and
+the ledger is unreachable), which is the intended fail-closed state.

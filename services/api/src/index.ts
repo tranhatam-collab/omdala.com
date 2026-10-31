@@ -48,6 +48,8 @@ import {
 } from "./contracts";
 import {
   AiagentProviderError,
+  aiagentRequestId,
+  chatMayHaveBeenBilled,
   executeAiagentChat,
   getAiagentAuthority,
   listAiagentModels,
@@ -98,6 +100,18 @@ import {
   mapDbErrorToHttp,
   ResourceAccessError,
 } from "./db/errors";
+import {
+  capIsRequired,
+  parseDailyCap,
+  reservationFor,
+  secondsUntilNextUtcMidnight,
+  utcDay,
+} from "./ai-usage-cap";
+import {
+  releaseAiUsage,
+  reserveAiUsage,
+  settleAiUsage,
+} from "./db/ai-usage-repository";
 import { createApiContractStub } from "./stub";
 import { DEFAULT_REALITY_SCENES } from "./reality-scene-defaults";
 // ─── Custom Security & AI Connectors ───────────────────────────────────
@@ -145,6 +159,7 @@ type ApiStatus =
   | 201
   | 400
   | 401
+  | 402
   | 404
   | 410
   | 422
@@ -3911,6 +3926,83 @@ app.get("/v1/ai/models", async (c) => {
   }
 });
 
+type ChatBudget = { ownerEmail: string; requestId: string; estimateUsd: number } | null;
+
+// Returns a Response to send instead of calling the provider, the reservation to settle
+// or release afterwards, or null when no cap applies (local environments only).
+async function reserveChatBudget(
+  c: ApiContext,
+  ownerEmail: string,
+  idempotencyKey: string,
+): Promise<ChatBudget | Response> {
+  const cap = parseDailyCap(c.env.OMDALA_AI_DAILY_COST_CAP_USD);
+  const required = capIsRequired(c.env.ENVIRONMENT);
+  if (!cap.configured) {
+    if (!required) return null;
+    return jsonError(c, 503, "ai_cap_not_configured", "The AI usage cap is not configured for this environment.");
+  }
+  if (!isDatabaseConfigured(c.env)) {
+    if (!required) return null;
+    return jsonError(
+      c,
+      503,
+      "PERSISTENCE_REQUIRED",
+      "PostgreSQL persistence is required for this protected API in the current environment.",
+    );
+  }
+
+  try {
+    const subscription = await getRuntimeBillingSubscription(c.env, ownerEmail);
+    if (subscription.status === "cancelled" || subscription.status === "past_due") {
+      return jsonError(c, 402, "subscription_inactive", "An active subscription is required to use AI.");
+    }
+
+    const now = Date.now();
+    const requestId = await aiagentRequestId(ownerEmail, idempotencyKey);
+    const estimateUsd = reservationFor(cap.capUsd);
+    const reserved = await reserveAiUsage(c.env, {
+      ownerEmail,
+      requestId,
+      usageDay: utcDay(now),
+      estimateUsd,
+      capUsd: cap.capUsd,
+    });
+    if (reserved.outcome === "cap_exceeded") {
+      c.header("Retry-After", String(secondsUntilNextUtcMidnight(now)));
+      return jsonError(c, 429, "ai_tenant_cap_exceeded", "The daily AI usage limit for this account was reached.");
+    }
+    // A replay of an already-reserved request is not charged again.
+    return reserved.outcome === "reserved" ? { ownerEmail, requestId, estimateUsd } : null;
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "reserveAiUsage");
+  }
+}
+
+// Bookkeeping after the provider call. The caller already has (or does not need) the
+// answer, so a ledger failure here is logged and never turns into a user-facing error;
+// a reservation that could not be closed stays counted until the UTC day ends.
+async function finishChatBudget(
+  c: ApiContext,
+  budget: ChatBudget,
+  action: "settle" | "release" | "keep",
+  spentUsd?: number,
+): Promise<void> {
+  if (!budget || action === "keep") return;
+  try {
+    if (action === "settle") {
+      await settleAiUsage(c.env, { ownerEmail: budget.ownerEmail, requestId: budget.requestId, spentUsd: spentUsd ?? budget.estimateUsd });
+    } else {
+      await releaseAiUsage(c.env, { ownerEmail: budget.ownerEmail, requestId: budget.requestId });
+    }
+  } catch (error) {
+    console.error("ai usage ledger update failed", {
+      request_id: budget.requestId,
+      action,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 app.post("/v1/ai/chat", async (c) => {
   const session = await requireAuthenticatedSession(c);
   if (session instanceof Response) return session;
@@ -3946,6 +4038,10 @@ app.post("/v1/ai/chat", async (c) => {
     maxTokens,
   };
 
+  // Per-account daily cost cap (PREP_UNDER_ASSUMPTION(AI cost cap, fail closed when unset)).
+  const gate = await reserveChatBudget(c, session.email, idempotencyKey);
+  if (gate instanceof Response) return gate;
+
   try {
     const result = await executeAiagentChat(
       c.env,
@@ -3953,8 +4049,12 @@ app.post("/v1/ai/chat", async (c) => {
       idempotencyKey,
       input,
     );
+    await finishChatBudget(c, gate, "settle", result.cost_usd);
     return jsonOk(c, result);
   } catch (error) {
+    // A refusal before dispatch costs nothing; anything that may have been executed
+    // keeps its whole reservation counted.
+    await finishChatBudget(c, gate, chatMayHaveBeenBilled(error) ? "keep" : "release");
     const code = error instanceof Error ? error.message : "AIAGENT_UNKNOWN_ERROR";
     const providerFailure = aiagentTransportFailureResponse(c, error);
     if (providerFailure) return providerFailure;

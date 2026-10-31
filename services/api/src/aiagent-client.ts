@@ -346,6 +346,23 @@ async function correlatedRequestId(email: string, idempotencyKey: string): Promi
   return `omdala-web-${hex}`;
 }
 
+/** The AIAGENT request id for an account and Idempotency-Key (also the usage ledger key). */
+export async function aiagentRequestId(email: string, idempotencyKey: string): Promise<string> {
+  return correlatedRequestId(email, idempotencyKey);
+}
+
+// Failures after which the provider may already have executed (and billed) the call.
+const maybeBilledFailures = new WeakSet<object>();
+
+/**
+ * True when a chat failure may still have cost money: the call was dispatched and the
+ * failure was not a plain HTTP refusal, or it happened after the chat completed
+ * (run or receipt readback). A refusal before dispatch costs nothing.
+ */
+export function chatMayHaveBeenBilled(error: unknown): boolean {
+  return typeof error === "object" && error !== null && maybeBilledFailures.has(error);
+}
+
 function requiredString(object: JsonObject, key: string): string {
   const value = object[key];
   if (typeof value !== "string" || !value) {
@@ -531,6 +548,25 @@ export async function executeAiagentChat(
   idempotencyKey: string,
   input: AiagentChatInput,
 ): Promise<AiagentChatResult> {
+  const progress = { stage: "before-chat" as "before-chat" | "chat" | "after-chat" };
+  try {
+    return await runAiagentChat(env, email, idempotencyKey, input, progress);
+  } catch (error) {
+    const billable =
+      progress.stage === "after-chat" ||
+      (progress.stage === "chat" && !(error instanceof AiagentProviderError));
+    if (billable && typeof error === "object" && error !== null) maybeBilledFailures.add(error);
+    throw error;
+  }
+}
+
+async function runAiagentChat(
+  env: ApiBindings,
+  email: string,
+  idempotencyKey: string,
+  input: AiagentChatInput,
+  progress: { stage: "before-chat" | "chat" | "after-chat" },
+): Promise<AiagentChatResult> {
   const identity = expectedRuntimeIdentity(env);
   if (!identity || !runtimeCredential(env)) {
     throw new Error("AIAGENT_RUNTIME_NOT_CONFIGURED");
@@ -560,6 +596,7 @@ export async function executeAiagentChat(
   if (!selected) throw new Error("AIAGENT_MODEL_NOT_AVAILABLE");
 
   const requestId = await correlatedRequestId(email, idempotencyKey);
+  progress.stage = "chat";
   const invocationPayload = await requestAiagentJson(env, "/v1/ai/chat", {
     method: "POST",
     headers: {
@@ -586,6 +623,7 @@ export async function executeAiagentChat(
     requestId,
     identity.workspace,
   );
+  progress.stage = "after-chat";
 
   const runPayload = await requestAiagentJson(
     env,

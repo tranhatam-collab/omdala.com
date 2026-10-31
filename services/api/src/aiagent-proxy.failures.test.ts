@@ -5,10 +5,22 @@ vi.mock("./db/auth-repository", async (importOriginal) => ({
   isAuthSessionActive: vi.fn(async () => true),
 }));
 
+vi.mock("./db/ai-usage-repository", () => ({
+  reserveAiUsage: vi.fn(async () => ({ outcome: "reserved" })),
+  settleAiUsage: vi.fn(async () => true),
+  releaseAiUsage: vi.fn(async () => true),
+}));
+vi.mock("./db/runtime-repository", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./db/runtime-repository")>()),
+  readOrCreateBillingSubscription: vi.fn(async () => ({ id: "sub_x", appId: "om-ai", planId: "free", status: "active", billingCycle: "monthly" })),
+}));
+
 import app from "./index";
 
 const env = {
   ENVIRONMENT: "production",
+  DATABASE_URL: "postgres://example.local/db",
+  OMDALA_AI_DAILY_COST_CAP_USD: "10",
   MAGIC_LINK_SECRET: "test_magic_secret_for_aiagent_failure_routes",
   AIAGENT_API_URL: "https://api.aiagent.iai.one",
   AIAGENT_WORKSPACE_ID: "omdala-com-production",
