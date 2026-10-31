@@ -5,6 +5,9 @@
 // when OMDALA_TEST_DATABASE_URL names a disposable local server and pg_dump /
 // pg_restore are on PATH. It creates and drops its own databases and never
 // touches the named one. Set OMDALA_DR_RECEIPT_PATH to write the receipt JSON.
+// Covers the applied migrations and the proposed ones (0004 to 0007: reality scenes
+// and runs, the AI cost-cap ledger, bridge credentials, stored account ids), so a
+// restore is proven to keep the cap counters and the revocation state.
 import { execFile } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -14,6 +17,8 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import type { ApiBindings } from "./contracts";
+import { reserveAiUsage } from "./db/ai-usage-repository";
 
 const run = promisify(execFile);
 const adminUrl = process.env.OMDALA_TEST_DATABASE_URL;
@@ -31,6 +36,12 @@ async function haveTool(name: string): Promise<boolean> {
   }
 }
 const toolsPresent = adminUrl ? await haveTool("pg_dump") && await haveTool("pg_restore") : false;
+
+const proposedDir = resolve(migrationsDir, "proposed");
+const sqlIn = (dir: string) => readdirSync(dir).filter((n) => /^\d{4}_.+\.sql$/.test(n)).map((n) => resolve(dir, n));
+const allMigrations = [...sqlIn(migrationsDir), ...sqlIn(proposedDir)].sort((a, b) =>
+  a.split("/").pop()!.localeCompare(b.split("/").pop()!),
+);
 
 function withDatabase(url: string, database: string): string {
   const parsed = new URL(url);
@@ -91,8 +102,8 @@ describe.skipIf(!adminUrl || !toolsPresent)("local DR rehearsal: dump, restore, 
     await admin.query(`CREATE DATABASE ${sourceName}`);
     source = new Client({ connectionString: withDatabase(adminUrl!, sourceName) });
     await source.connect();
-    for (const name of readdirSync(migrationsDir).filter((n) => /^\d{4}_.+\.sql$/.test(n)).sort()) {
-      await source.query(readFileSync(resolve(migrationsDir, name), "utf8"));
+    for (const file of allMigrations) {
+      await source.query(readFileSync(file, "utf8"));
     }
     await source.query(`
       INSERT INTO omdala.nodes (id, owner_email, slug, node_type, name, summary) VALUES
@@ -124,6 +135,24 @@ line summary'),
         VALUES ('nt1', 'a@example.com', 'acc1', 'system', 'T', 'B', 'om-ai', '/x');
       INSERT INTO omdala.analytics_events (id, owner_email, app_id, event_name, event_source, occurred_at, properties)
         VALUES ('e1', 'a@example.com', 'om-ai', 'open', 'web', NOW(), '{"k":1}'::jsonb);
+      -- proposed 0004: scenes and runs
+      INSERT INTO omdala.reality_scenes (owner_email, scene_id, display_name, safety_class, actions)
+        VALUES ('a@example.com', 'sc1', 'Evening ✓', 'low', '[{"k":"lights"}]'::jsonb);
+      INSERT INTO omdala.reality_runs (owner_email, run_id, source, source_id, actor_id, status, policy_decision, proof_id)
+        VALUES ('a@example.com', 'r1', 'scene', 'sc1', 'acc1', 'succeeded', 'allow', 'p1');
+      -- proposed 0005: cap counter and ledger (one settled, one held, one released)
+      INSERT INTO omdala.ai_usage_days (owner_email, usage_day, committed_usd) VALUES ('a@example.com', '2026-10-30', 0.251);
+      INSERT INTO omdala.ai_usage_ledger (owner_email, request_id, usage_day, reserved_usd, settled_usd, status) VALUES
+        ('a@example.com', 'req-settled', '2026-10-30', 0.25, 0.001, 'settled'),
+        ('a@example.com', 'req-held', '2026-10-30', 0.25, NULL, 'reserved'),
+        ('a@example.com', 'req-released', '2026-10-30', 0.25, NULL, 'released');
+      -- proposed 0006: one live and one revoked bridge credential
+      INSERT INTO omdala.om_ai_bridge_credentials (jti, parent_sid, owner_email, workspace_id, scopes, expires_at, revoked_at) VALUES
+        ('44444444-4444-4444-8444-444444444444', '22222222-2222-4222-8222-222222222222', 'a@example.com', 'w1', 'profile:read session:read', NOW() + interval '15 minutes', NULL),
+        ('55555555-5555-4555-8555-555555555555', '22222222-2222-4222-8222-222222222222', 'a@example.com', 'w1', 'session:read', NOW() + interval '15 minutes', NOW());
+      -- proposed 0007: stored account ids
+      INSERT INTO omdala.account_ids (email, account_id) VALUES
+        ('a@example.com', '66666666-6666-4666-8666-666666666666'), ('b@example.com', '77777777-7777-4777-8777-777777777777');
     `);
     sourceReceipt = await receipt(source);
 
@@ -148,7 +177,7 @@ line summary'),
     for (const [table, info] of Object.entries(sourceReceipt.tables)) {
       expect(info.rows, `${table} must have rows so parity is meaningful`).toBeGreaterThan(0);
     }
-    expect(Object.keys(sourceReceipt.tables)).toHaveLength(16);
+    expect(Object.keys(sourceReceipt.tables)).toHaveLength(22);
   });
 
   it("restores a database with identical per-table rows and content hashes", async () => {
@@ -175,12 +204,63 @@ line summary'),
     await target.query("DELETE FROM omdala.trust_score_history WHERE id = 3");
   });
 
+  it("keeps the cost-cap state: counters equal the ledger and the cap still holds after a restore", async () => {
+    const q = async (client: Client) =>
+      (
+        await client.query(
+          `SELECT d.committed_usd::text AS committed,
+                  COALESCE(SUM(CASE l.status WHEN 'reserved' THEN l.reserved_usd WHEN 'settled' THEN l.settled_usd ELSE 0 END), 0)::text AS derived,
+                  COUNT(*) FILTER (WHERE l.status = 'released')::int AS released
+             FROM omdala.ai_usage_days d JOIN omdala.ai_usage_ledger l USING (owner_email, usage_day)
+            GROUP BY d.committed_usd`,
+        )
+      ).rows[0];
+    const before = await q(source);
+    const after = await q(target);
+    expect(after).toEqual(before);
+    expect(Number(after.committed)).toBeCloseTo(Number(after.derived), 6);
+    // the restored counter is what the atomic reservation reads: 0.251 + 0.25 > 0.4, so it refuses
+    const env = { ENVIRONMENT: "test", OMDALA_DB_TLS_INSECURE: "1", DATABASE_URL: withDatabase(adminUrl!, targetName) } as ApiBindings;
+    const refused = await reserveAiUsage(env, { ownerEmail: "a@example.com", requestId: "req-new", usageDay: "2026-10-30", estimateUsd: 0.25, capUsd: 0.4 });
+    expect(refused).toMatchObject({ outcome: "cap_exceeded" });
+    // a replayed key is still a duplicate in its original state
+    expect(await reserveAiUsage(env, { ownerEmail: "a@example.com", requestId: "req-released", usageDay: "2026-10-30", estimateUsd: 0.25, capUsd: 5 })).toEqual({ outcome: "duplicate", status: "released" });
+    expect(Number((await target.query("SELECT committed_usd FROM omdala.ai_usage_days")).rows[0].committed_usd)).toBeCloseTo(0.251, 6);
+  });
+
+  it("keeps bridge credential revocation state and stored account ids", async () => {
+    const state = async (client: Client) =>
+      (await client.query("SELECT jti::text, (revoked_at IS NOT NULL) AS revoked, scopes FROM omdala.om_ai_bridge_credentials ORDER BY jti")).rows;
+    const restored = await state(target);
+    expect(restored).toEqual(await state(source));
+    expect(restored.map((r) => r.revoked)).toEqual([false, true]);
+    const ids = async (client: Client) => (await client.query("SELECT email, account_id::text FROM omdala.account_ids ORDER BY email")).rows;
+    expect(await ids(target)).toEqual(await ids(source));
+    // uniqueness still enforced on the restored copy
+    await expect(target.query("INSERT INTO omdala.account_ids (email, account_id) VALUES ('c@example.com', '66666666-6666-4666-8666-666666666666')")).rejects.toThrow();
+  });
+
   it("detects drift: a changed byte in the restored copy fails the comparison", async () => {
     await target.query("UPDATE omdala.nodes SET summary = summary || '!' WHERE id = 'n2'");
     const drifted = await receipt(target);
     expect(drifted.tables.nodes).not.toEqual(sourceReceipt.tables.nodes);
     await target.query("UPDATE omdala.nodes SET summary = '' WHERE id = 'n2'");
     expect((await receipt(target)).tables.nodes).toEqual(sourceReceipt.tables.nodes);
+  });
+
+  it("detects drift in the new tables: an un-revoked credential or a lowered counter fails parity", async () => {
+    await target.query("BEGIN");
+    try {
+      await target.query("UPDATE omdala.om_ai_bridge_credentials SET revoked_at = NULL WHERE jti = '55555555-5555-4555-8555-555555555555'");
+      expect((await receipt(target)).tables.om_ai_bridge_credentials).not.toEqual(sourceReceipt.tables.om_ai_bridge_credentials);
+      await target.query("UPDATE omdala.ai_usage_days SET committed_usd = 0");
+      expect((await receipt(target)).tables.ai_usage_days).not.toEqual(sourceReceipt.tables.ai_usage_days);
+    } finally {
+      await target.query("ROLLBACK");
+    }
+    const back = await receipt(target);
+    expect(back.tables.om_ai_bridge_credentials).toEqual(sourceReceipt.tables.om_ai_bridge_credentials);
+    expect(back.tables.ai_usage_days).toEqual(sourceReceipt.tables.ai_usage_days);
   });
 
   it("writes the receipt when OMDALA_DR_RECEIPT_PATH is set", () => {
