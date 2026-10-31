@@ -5,8 +5,8 @@
 // when OMDALA_TEST_DATABASE_URL names a disposable local server and pg_dump /
 // pg_restore are on PATH. It creates and drops its own databases and never
 // touches the named one. Set OMDALA_DR_RECEIPT_PATH to write the receipt JSON.
-// Covers the applied migrations and the proposed ones (0004 to 0007: reality scenes
-// and runs, the AI cost-cap ledger, bridge credentials, stored account ids), so a
+// Covers the applied migrations and the proposed ones (0004 to 0008: reality scenes
+// and runs, the AI cost-cap ledger, bridge credentials, stored account ids, rate-limit windows), so a
 // restore is proven to keep the cap counters and the revocation state.
 import { execFile } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
@@ -150,6 +150,9 @@ line summary'),
       INSERT INTO omdala.om_ai_bridge_credentials (jti, parent_sid, owner_email, workspace_id, scopes, expires_at, revoked_at) VALUES
         ('44444444-4444-4444-8444-444444444444', '22222222-2222-4222-8222-222222222222', 'a@example.com', 'w1', 'profile:read session:read', NOW() + interval '15 minutes', NULL),
         ('55555555-5555-4555-8555-555555555555', '22222222-2222-4222-8222-222222222222', 'a@example.com', 'w1', 'session:read', NOW() + interval '15 minutes', NOW());
+      -- proposed 0008: shared rate-limit windows
+      INSERT INTO omdala.rate_limit_windows (key_hash, window_start, hits)
+        VALUES (repeat('a', 64), '2026-10-31T00:00:00Z', 4), (repeat('b', 64), '2026-10-31T00:00:00Z', 9);
       -- proposed 0007: stored account ids
       INSERT INTO omdala.account_ids (email, account_id) VALUES
         ('a@example.com', '66666666-6666-4666-8666-666666666666'), ('b@example.com', '77777777-7777-4777-8777-777777777777');
@@ -177,7 +180,7 @@ line summary'),
     for (const [table, info] of Object.entries(sourceReceipt.tables)) {
       expect(info.rows, `${table} must have rows so parity is meaningful`).toBeGreaterThan(0);
     }
-    expect(Object.keys(sourceReceipt.tables)).toHaveLength(22);
+    expect(Object.keys(sourceReceipt.tables)).toHaveLength(23);
   });
 
   it("restores a database with identical per-table rows and content hashes", async () => {

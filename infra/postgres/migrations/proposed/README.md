@@ -46,3 +46,10 @@ does not release anything; the release change is a separate owner decision.
 sha256 `c25e67f0b2ed09298dcaf6252d2fa080b73f6d6b097cef0c13d95eb83a7f2791`. Stores the stable account id used as the bridge credential `sub`. Same
 promotion steps as 0004 to 0006 (WO-T1-06). Manual reversal: `../rollback/0007_account_ids.down.sql`
 (only on a database with no live bridge credentials).
+
+## 0008_rate_limit_windows (WO-T2-27)
+
+sha256 `e306a86843c097dad3fc43533cf3b24ef20174d9340439596dfbea05f1f2fab8`. Shared fixed-window counters for the request limiter. Same promotion steps as
+0004 to 0007 (WO-T1-06). Until it is applied the API falls back, with a logged error and a
+30-second back-off, to the per-isolate limiter, so nothing breaks; the limits just stay per isolate.
+Manual reversal: `../rollback/0008_rate_limit_windows.down.sql`.

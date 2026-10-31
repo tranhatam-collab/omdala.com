@@ -117,6 +117,7 @@ import {
   type BridgeIdentity,
   type BridgeScope,
 } from "./om-ai-bridge";
+import { hitRateLimit, purgeRateLimitWindows } from "./db/rate-limit-repository";
 import {
   capIsRequired,
   parseDailyCap,
@@ -368,7 +369,37 @@ function getClientIp(c: ApiContext): string {
   return getTrustedClientIp(c.req.raw.headers);
 }
 
-function isRateLimited(key: string, limit: number, windowMs: number): boolean {
+// Rate limiting sits behind one function. Configured databases (outside test and development) count
+// requests in PostgreSQL so every Worker isolate shares the window; otherwise, and whenever the
+// shared store is unreachable, the per-isolate in-memory limiter answers. A failing store is
+// skipped for a while instead of being retried on every request.
+// PREP_UNDER_ASSUMPTION(CTL-03, PostgreSQL via Hyperdrive for the main API)
+let sharedLimiterRetryAt = 0;
+const SHARED_LIMITER_BACKOFF_MS = 30_000;
+
+async function isRateLimited(
+  c: ApiContext,
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<boolean> {
+  const env = c.env;
+  const shared =
+    isDatabaseConfigured(env) &&
+    !["test", "development"].includes(env.ENVIRONMENT ?? "") &&
+    Date.now() >= sharedLimiterRetryAt;
+  if (shared) {
+    try {
+      const limited = await hitRateLimit(env, { key, limit, windowSeconds: Math.max(1, Math.round(windowMs / 1000)) });
+      if (Math.random() < 0.01) await purgeRateLimitWindows(env, 24 * 60 * 60).catch(() => undefined);
+      return limited;
+    } catch (error) {
+      sharedLimiterRetryAt = Date.now() + SHARED_LIMITER_BACKOFF_MS;
+      console.error("shared rate limiter unavailable, using the per-isolate limiter", {
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
   return rateLimiter.isLimited(key, limit, windowMs);
 }
 
@@ -2790,8 +2821,8 @@ app.post("/v1/contact", async (c) => {
   const payload = apiContract.normalizeContactRequest(body);
   const clientIp = getClientIp(c);
   if (
-    isRateLimited(`contact:ip:${clientIp}`, 10, 15 * 60 * 1000) ||
-    isRateLimited(`contact:email:${payload.email}`, 5, 15 * 60 * 1000)
+    (await isRateLimited(c, `contact:ip:${clientIp}`, 10, 15 * 60 * 1000)) ||
+    (await isRateLimited(c, `contact:email:${payload.email}`, 5, 15 * 60 * 1000))
   ) {
     return jsonError(
       c,
@@ -2852,8 +2883,8 @@ app.post("/v1/auth/access-request", async (c) => {
   const payload = apiContract.normalizeAccessRequest(body);
   const clientIp = getClientIp(c);
   if (
-    isRateLimited(`access:ip:${clientIp}`, 10, 15 * 60 * 1000) ||
-    isRateLimited(`access:email:${payload.email}`, 5, 15 * 60 * 1000)
+    (await isRateLimited(c, `access:ip:${clientIp}`, 10, 15 * 60 * 1000)) ||
+    (await isRateLimited(c, `access:email:${payload.email}`, 5, 15 * 60 * 1000))
   ) {
     return jsonError(
       c,
@@ -2993,8 +3024,8 @@ app.post("/v1/auth/magic-link/request", async (c) => {
   const { email, redirectTo } = apiContract.normalizeMagicLinkRequest(body);
   const clientIp = getClientIp(c);
   if (
-    isRateLimited(`magic-link:ip:${clientIp}`, 20, 15 * 60 * 1000) ||
-    isRateLimited(`magic-link:email:${email}`, 5, 15 * 60 * 1000)
+    (await isRateLimited(c, `magic-link:ip:${clientIp}`, 20, 15 * 60 * 1000)) ||
+    (await isRateLimited(c, `magic-link:email:${email}`, 5, 15 * 60 * 1000))
   ) {
     return jsonError(
       c,
@@ -3789,7 +3820,7 @@ app.post("/v1/auth/om-ai/bridge-token", async (c) => {
   const persistenceError = protectedRuntimePersistenceError(c);
   if (persistenceError) return persistenceError;
 
-  if (isRateLimited(`bridge-mint:${session.email}`, 10, 60 * 1000)) {
+  if (await isRateLimited(c, `bridge-mint:${session.email}`, 10, 60 * 1000)) {
     return jsonError(c, 429, "rate_limited", "Too many bridge credential requests.");
   }
 
@@ -4072,7 +4103,7 @@ app.get("/v1/ai/models", async (c) => {
   const session = await requireAuthenticatedSession(c);
   if (session instanceof Response) return session;
 
-  if (isRateLimited(`ai-catalog:${session.email}`, 30, 60 * 1000)) {
+  if (await isRateLimited(c, `ai-catalog:${session.email}`, 30, 60 * 1000)) {
     return jsonError(c, 429, "rate_limited", "Too many catalog requests.");
   }
 
@@ -4200,7 +4231,7 @@ app.post("/v1/ai/chat", async (c) => {
       "A valid Idempotency-Key header is required.",
     );
   }
-  if (isRateLimited(`ai-chat:${session.email}`, 20, 60 * 1000)) {
+  if (await isRateLimited(c, `ai-chat:${session.email}`, 20, 60 * 1000)) {
     return jsonError(c, 429, "rate_limited", "Too many AI requests.");
   }
 
