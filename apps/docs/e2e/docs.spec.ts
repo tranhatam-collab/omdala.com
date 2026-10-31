@@ -1,4 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
+import { watchCsp } from "../../../packages/ui/testing/csp";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 
@@ -182,5 +183,17 @@ test.describe("self-hosted fonts", () => {
     expect(fontRequests.some((url) => /inter-latin-\d{3}-normal/.test(url))).toBe(true);
     expect(requests.filter((url) => /fonts\.(googleapis|gstatic)\.com/.test(url))).toEqual([]);
     expect(await page.evaluate(() => document.fonts.check("400 16px Inter"))).toBe(true);
+  });
+});
+
+test.describe("content security policy", () => {
+  test("pages load under the shipped CSP with their self-hosted fonts and no violation", async ({ page }) => {
+    const violations = await watchCsp(page);
+    for (const path of ["/", "/vi/", "/platform/"]) {
+      await page.goto(path);
+      await page.evaluate(() => document.fonts.ready);
+    }
+    expect(await page.evaluate(() => document.fonts.check("400 16px Inter"))).toBe(true);
+    expect(await violations()).toEqual([]);
   });
 });

@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Request } from "@playwright/test";
+import { watchCsp } from "../../../packages/ui/testing/csp";
 
 const EXCHANGE = "**/v1/auth/session/exchange";
 
@@ -240,5 +241,27 @@ test.describe("self-hosted fonts", () => {
     expect(fontRequests.some((url) => /inter-latin-\d{3}-normal/.test(url))).toBe(true);
     expect(requests.filter((url) => /fonts\.(googleapis|gstatic)\.com/.test(url))).toEqual([]);
     expect(await page.evaluate(() => document.fonts.check("400 16px Inter"))).toBe(true);
+  });
+});
+
+test.describe("content security policy", () => {
+  test("the login page and its API call run under the shipped CSP with no violation", async ({ page }) => {
+    await page.route("https://api.omdala.com/**", (route) => {
+      const cors = {
+        "access-control-allow-origin": route.request().headers()["origin"] ?? "*",
+        "access-control-allow-credentials": "true",
+        "access-control-allow-headers": "content-type",
+        "access-control-allow-methods": "POST, OPTIONS",
+      };
+      if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+      return route.fulfill({ status: 201, contentType: "application/json", headers: cors, body: JSON.stringify({ ok: true, data: { sent: true } }) });
+    });
+    const violations = await watchCsp(page);
+    await page.goto("/login/");
+    await page.getByRole("button", { name: /send/i }).click();
+    await expect(page.locator(".auth-status--success")).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    expect(await page.evaluate(() => document.fonts.check("400 16px Inter"))).toBe(true);
+    expect(await violations()).toEqual([]);
   });
 });

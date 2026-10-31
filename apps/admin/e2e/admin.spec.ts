@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
+import { watchCsp } from "../../../packages/ui/testing/csp";
 
 const ROUTES = ["/", "/providers/", "/nodes/", "/offers/", "/requests/", "/proofs/", "/verifications/"];
 
@@ -107,5 +108,24 @@ test.describe("default build denies access", () => {
     await page.goto(`${denyURL}/providers/`);
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(/admin role required/i);
+  });
+});
+
+test.describe("content security policy", () => {
+  test("pages load under the shipped CSP and the API health call is allowed", async ({ page }) => {
+    await page.route("https://api.omdala.com/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify({ ok: true, data: { providers: [], total: 0, modelCallExecuted: false } }),
+      }),
+    );
+    const violations = await watchCsp(page);
+    for (const route of ["/", "/providers/", "/nodes/"]) {
+      await page.goto(route);
+      await page.evaluate(() => document.fonts.ready);
+    }
+    expect(await violations()).toEqual([]);
   });
 });
