@@ -9,7 +9,7 @@ const OPTIONS: Array<{ locale: Locale; label: string }> = [
 export function LanguageSwitcher() {
   const { locale, setLocale, t } = useLocale();
   return (
-    <div role="group" aria-label={t('Language / Ngon ngu')} className="language-switcher">
+    <div role="group" aria-label={t('Language / Ngôn ngữ')} className="language-switcher">
       {OPTIONS.map((option) => (
         <button
           key={option.locale}

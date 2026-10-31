@@ -11,19 +11,19 @@ export type LiveErrorMessage = { kind: LiveErrorKind; message: string };
 
 const MESSAGES: Record<LiveErrorKind, string> = {
   backend_unavailable:
-    'Om AI is not reachable right now. Your session was not started and nothing was charged. Please try again in a few minutes. / Om AI tam thoi chua ket noi duoc. Phien chua bat dau va khong bi tinh phi. Vui long thu lai sau it phut.',
+    'Om AI is not reachable right now. Your session was not started and nothing was charged. Please try again in a few minutes. / Om AI tạm thời chưa kết nối được. Phiên chưa bắt đầu và không bị tính phí. Vui lòng thử lại sau ít phút.',
   quota_exhausted:
-    'You have used today\'s free practice time. It resets tomorrow, or you can choose a plan that includes more time. / Ban da dung het thoi gian mien phi hom nay. Thoi gian se duoc lam moi vao ngay mai, hoac ban co the chon goi co them thoi gian.',
+    'You have used today\'s free practice time. It resets tomorrow, or you can choose a plan that includes more time. / Bạn đã dùng hết thời gian luyện tập miễn phí hôm nay. Thời gian sẽ được làm mới vào ngày mai, hoặc bạn có thể chọn gói có thêm thời gian.',
   provider_busy:
-    'The AI teacher is busy right now. Please wait a moment and try again. / Giao vien AI dang ban. Vui long doi mot lat roi thu lai.',
+    'The AI teacher is busy right now. Please wait a moment and try again. / Giáo viên AI đang bận. Vui lòng đợi một lát rồi thử lại.',
   sign_in_required:
-    'Please sign in to use live sessions. / Vui long dang nhap de dung phien truc tiep.',
+    'Please sign in to use live sessions. / Vui lòng đăng nhập để dùng phiên trực tiếp.',
   plan_required:
-    'This feature is not included in your current plan. / Tinh nang nay chua co trong goi hien tai cua ban.',
+    'This feature is not included in your current plan. / Tính năng này chưa có trong gói hiện tại của bạn.',
   billing_required:
-    'Plan changes are handled through billing and are not available here yet. / Viec doi goi duoc xu ly qua thanh toan va chua co o day.',
+    'Plan changes are handled through billing and are not available here yet. / Việc đổi gói được xử lý qua thanh toán và hiện chưa có ở đây.',
   unknown:
-    'Something went wrong. Please try again. If it keeps happening, contact support. / Da co loi xay ra. Vui long thu lai. Neu van loi, hay lien he ho tro.',
+    'Something went wrong. Please try again. If it keeps happening, contact support. / Đã có lỗi xảy ra. Vui lòng thử lại. Nếu vẫn lỗi, hãy liên hệ hỗ trợ.',
 };
 
 const BACKEND_DOWN = new Set([
@@ -60,4 +60,19 @@ export function describeLiveError(code: string | number | null | undefined): Liv
   }
 
   return { kind, message: MESSAGES[kind] };
+}
+
+const NEUTRAL_UNAVAILABLE =
+  'Om AI is not reachable right now. Please try again in a few minutes. / Om AI tạm thời chưa kết nối được. Vui lòng thử lại sau ít phút.';
+
+/**
+ * Message for a failed call outside the live-session flow (devices, scenes, planner, ...).
+ * A recognised cause (service down, busy, quota, sign-in, plan) gets its bilingual message;
+ * anything else keeps the caller's own specific message. The raw code is never shown.
+ */
+export function describeApiError(code: string | number | null | undefined, fallback: string): string {
+  const described = describeLiveError(code);
+  if (described.kind === 'unknown') return fallback;
+  if (described.kind === 'backend_unavailable') return NEUTRAL_UNAVAILABLE;
+  return described.message;
 }

@@ -281,7 +281,7 @@ export function LiveExecutionCard({ className = '' }: Props) {
   }
 
   return (
-    <Card className={className} title={t('Om AI Live Execution / Thuc thi live')}>
+    <Card className={className} title={t('Om AI Live Execution / Thực thi trực tiếp')}>
       <p className="meta-line">
         {locale === 'vi' ? (
           <>
@@ -296,8 +296,8 @@ export function LiveExecutionCard({ className = '' }: Props) {
       </p>
 
       <div className="controls">
-        <Input value={userId} onChange={(event) => setUserId(event.target.value)} aria-label={t('User id / Ma nguoi dung')} placeholder="user_id" />
-        <select value={personaId} onChange={(event) => setPersonaId(event.target.value)} aria-label={t('Persona / Nhan vat')}>
+        <Input value={userId} onChange={(event) => setUserId(event.target.value)} aria-label={t('User id / Mã người dùng')} placeholder="user_id" />
+        <select value={personaId} onChange={(event) => setPersonaId(event.target.value)} aria-label={t('Persona / Nhân vật')}>
           {personaOptions.map((persona) => (
             <option key={persona.persona_id} value={persona.persona_id} lang="en">
               {persona.display_name} ({persona.role_type})
@@ -315,32 +315,32 @@ export function LiveExecutionCard({ className = '' }: Props) {
 
       <div className="controls">
         <Button onClick={() => void onCreate()} disabled={flowLoading}>
-          {t('Create session / Tao phien')}
+          {t('Create session / Tạo phiên')}
         </Button>
         <Button onClick={() => void onConnect()} disabled={flowLoading || !sessionId} variant="secondary">
-          {t('Connect / Ket noi')}
+          {t('Connect / Kết nối')}
         </Button>
         <Button onClick={() => void onEnd()} disabled={flowLoading || !sessionId} variant="secondary">
-          {t('End (180s) / Ket thuc (180 giay)')}
+          {t('End (180s) / Kết thúc (180 giây)')}
         </Button>
         <Button onClick={() => void refreshUsage(userId)} disabled={flowLoading} variant="secondary">
-          {t('Refresh usage / Lam moi muc dung')}
+          {t('Refresh usage / Làm mới mức dùng')}
         </Button>
       </div>
 
       <div className="subsection">
-        <h3>{t('Memory profile / Ho so memory')}</h3>
+        <h3>{t('Memory profile / Hồ sơ memory')}</h3>
         <div className="controls">
           <Input
             value={memoryDisplayName}
             onChange={(event) => setMemoryDisplayName(event.target.value)}
-            aria-label={t('Display name / Ten hien thi')}
+            aria-label={t('Display name / Tên hiển thị')}
             placeholder="display_name"
           />
           <Input
             value={memoryTimezone}
             onChange={(event) => setMemoryTimezone(event.target.value)}
-            aria-label={t('Timezone / Mui gio')}
+            aria-label={t('Timezone / Múi giờ')}
             placeholder="timezone"
           />
         </div>
@@ -348,11 +348,11 @@ export function LiveExecutionCard({ className = '' }: Props) {
           <Input
             value={memoryTargetLanguage}
             onChange={(event) => setMemoryTargetLanguage(event.target.value)}
-            aria-label={t('Target language / Ngon ngu muc tieu')}
+            aria-label={t('Target language / Ngôn ngữ mục tiêu')}
             placeholder="target_language"
           />
           <select
-            aria-label={t('Correction style / Kieu sua loi')}
+            aria-label={t('Correction style / Kiểu sửa lỗi')}
             value={memoryCorrectionStyle}
             onChange={(event) =>
               setMemoryCorrectionStyle(event.target.value as NonNullable<LiveMemoryProfile['correction_style']>)
@@ -365,18 +365,18 @@ export function LiveExecutionCard({ className = '' }: Props) {
             ))}
           </select>
           <Button onClick={() => void onSaveMemory()} disabled={memoryLoading}>
-            {t('Save memory / Luu memory')}
+            {t('Save memory / Lưu memory')}
           </Button>
           <Button onClick={() => void refreshMemory(userId)} disabled={memoryLoading} variant="secondary">
-            {t('Refresh memory / Lam moi memory')}
+            {t('Refresh memory / Làm mới memory')}
           </Button>
         </div>
       </div>
 
       <div className="subsection">
-        <h3>{t('Plan gating / Goi va gioi han')}</h3>
+        <h3>{t('Plan gating / Gói và giới hạn')}</h3>
         <div className="controls">
-          <select value={selectedPlanId} onChange={(event) => setSelectedPlanId(event.target.value)} aria-label={t('Plan / Goi')}>
+          <select value={selectedPlanId} onChange={(event) => setSelectedPlanId(event.target.value)} aria-label={t('Plan / Gói')}>
             {planOptions.map((plan) => (
               <option key={plan.plan_id} value={plan.plan_id} lang="en">
                 {plan.display_name} ({plan.plan_id})
@@ -384,14 +384,14 @@ export function LiveExecutionCard({ className = '' }: Props) {
             ))}
           </select>
           <Button onClick={() => void onUpgradePlan()} disabled={planLoading}>
-            {t('Upgrade plan / Nang cap goi')}
+            {t('Upgrade plan / Nâng cấp gói')}
           </Button>
           <Button onClick={() => void refreshUsage(userId)} disabled={planLoading} variant="secondary">
-            {t('Refresh plan usage / Lam moi muc dung goi')}
+            {t('Refresh plan usage / Làm mới mức dùng gói')}
           </Button>
         </div>
         <p className="meta-line">
-          {t('Current plan / Goi hien tai: ')}
+          {t('Current plan / Gói hiện tại: ')}
           <span lang="en">
             {currentPlanId} / avatar={activePlan?.supports_avatar ? 'yes' : 'no'} / custom_personas=
             {activePlan?.supports_custom_personas ? 'yes' : 'no'} / free_seconds={activePlan?.daily_free_seconds ?? 0}

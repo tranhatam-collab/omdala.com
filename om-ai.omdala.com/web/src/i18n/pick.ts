@@ -3,8 +3,8 @@ export type Locale = 'en' | 'vi';
 const SEPARATOR = ' / ';
 
 /**
- * Copy is written as "English / Tieng Viet". Pick one side. A trailing colon or space on the
- * Vietnamese side ("Label / Nhan: ") is kept on the English side so a value can follow. Strings
+ * Copy is written as "English / Tiếng Việt". Pick one side. A trailing colon or space on the
+ * Vietnamese side ("Label / Nhãn: ") is kept on the English side so a value can follow. Strings
  * with no separator, or with more than one (technical text such as "a=1 / b=2 / c=3"), are returned as is.
  */
 export function pickLocale(text: string, locale: Locale): string {

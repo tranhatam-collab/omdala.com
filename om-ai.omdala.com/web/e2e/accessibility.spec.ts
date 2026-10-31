@@ -146,7 +146,7 @@ test.describe('locale', () => {
 
     await openPage(page, '/?lang=vi');
     expect(await htmlLang(page)).toBe('vi');
-    await expect(page.getByRole('heading', { level: 2, name: /Dang nhap/ })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: /Đăng nhập/ })).toBeVisible();
   });
 
   test('switching language updates <html lang> and the page text, and the choice is remembered', async ({ page }) => {
@@ -156,15 +156,15 @@ test.describe('locale', () => {
 
     await group.getByRole('button', { name: 'Tiếng Việt' }).click();
     expect(await htmlLang(page)).toBe('vi');
-    await expect(page.getByRole('heading', { level: 2, name: /Dang nhap/ })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: /Đăng nhập/ })).toBeVisible();
     await expect(page.getByRole('heading', { level: 2, name: /Sign in/ })).toHaveCount(0);
-    await expect(page.getByRole('group', { name: /Ngon ngu/ }).getByRole('button', { name: 'Tiếng Việt' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('group', { name: /Ngôn ngữ/ }).getByRole('button', { name: 'Tiếng Việt' })).toHaveAttribute('aria-pressed', 'true');
 
     await page.reload();
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     expect(await htmlLang(page)).toBe('vi');
 
-    await page.getByRole('group', { name: /Ngon ngu/ }).getByRole('button', { name: 'English' }).click();
+    await page.getByRole('group', { name: /Ngôn ngữ/ }).getByRole('button', { name: 'English' }).click();
     expect(await htmlLang(page)).toBe('en');
     await expect(page.getByRole('heading', { level: 2, name: /Sign in/ })).toBeVisible();
   });

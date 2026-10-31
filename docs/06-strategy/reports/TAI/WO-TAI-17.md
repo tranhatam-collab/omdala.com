@@ -1,0 +1,10 @@
+# WO-TAI-17 report
+Order: WO-TAI-17 (Vietnamese with diacritics; map API error text to bilingual messages). Status: DONE; NEEDS NATIVE-SPEAKER REVIEW. Base SHA: c8a2be8.
+Files (om-ai.omdala.com/web): src/App.tsx, src/components/LiveExecutionCard.tsx, src/components/LanguageSwitcher.tsx, src/api/liveErrors.ts, src/hooks/*.ts (8 hooks), e2e/accessibility.spec.ts, tests/copy.test.ts (new).
+Change 1: all 100+ Vietnamese halves of "English / Vietnamese" strings were re-typed with diacritics (key-by-key map, English halves untouched, meaning unchanged). One judgement call: "bi chan cho cau noi phien canonical" is now "bị chặn, chờ cầu nối phiên chuẩn (canonical)", and "live" is "trực tiếp" in the hero and live-session titles; reviewers should confirm these terms. The planner's sample prompt keeps its odd wording and only gains diacritics ("Om, cho phòng con ngủ").
+Change 2: failures outside the live-session flow (devices, scenes, planner, plan details, approvals, runs, proof, sign-in link) used one fixed message whatever the cause; they now go through `describeApiError`: service down / bridge unavailable / 5xx -> "Om AI is not reachable right now..." (neutral wording, no "session"); 429 -> busy; quota -> free time used; 401 -> sign in; unknown codes keep the specific fixed message. The raw code is never shown.
+Guard: tests/copy.test.ts fails if any bilingual pair in web/src has a Vietnamese half without diacritics, checks error messages keep them, and covers describeApiError.
+Commands (om-ai.omdala.com/web): `npm test` 17 pass / 0 fail (3 new); `npm run test:e2e` 26 pass / 0 fail; `npm run typecheck` pass; `npm run build` pass; app `npm test` 15 node + 4 jest pass.
+Evidence: VERIFIED_WORKTREE_ONLY.
+Findings: the NOT_COPY allow-list in the guard covers technical key=value strings and sample inputs; some Vietnamese product terms (scene, run, proof, memory, magic link) stay in English on purpose as UI vocabulary.
+Next: a native speaker reviews the strings listed above; then WO-TAI queue is empty.
