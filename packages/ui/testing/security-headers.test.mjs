@@ -49,6 +49,20 @@ describe("policy checker", () => {
     assert.match(headerProblems("docs", duplicated).join("\n"), /both \/\* and \//);
   });
 
+  it("allows blob: workers and data: fonts for the editor surface only", () => {
+    const editorHeaders = GOOD
+      .replace("/*\n", "/*\n  X-Robots-Tag: noindex, nofollow\n")
+      .replace("X-Frame-Options: SAMEORIGIN", "X-Frame-Options: DENY")
+      .replace("strict-origin-when-cross-origin", "no-referrer")
+      .replace("font-src 'self'", "font-src 'self' data:")
+      .replace("frame-ancestors 'self'", "frame-ancestors 'none'")
+      .replace("default-src 'self';", "default-src 'self'; worker-src 'self' blob:;");
+    assert.deepEqual(headerProblems("app", editorHeaders.replace("connect-src 'self'", "connect-src 'self' https://api.omdala.com")), []);
+    const publicWithBlob = GOOD.replace("default-src 'self';", "default-src 'self'; worker-src 'self' blob:;");
+    assert.match(headerProblems("docs", publicWithBlob).join("\n"), /worker-src must be 'self' only/);
+    assert.match(headerProblems("docs", GOOD.replace("font-src 'self'", "font-src 'self' data:")).join("\n"), /font-src must be 'self'/);
+  });
+
   it("requires noindex on private surfaces only", () => {
     assert.match(headerProblems("auth", GOOD).join("\n"), /X-Robots-Tag/);
     assert.match(headerProblems("docs", GOOD.replace("/*\n", "/*\n  X-Robots-Tag: noindex, nofollow\n")).join("\n"), /must not send X-Robots-Tag/);

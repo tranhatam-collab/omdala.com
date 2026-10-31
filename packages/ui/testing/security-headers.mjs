@@ -30,7 +30,9 @@ export const PRODUCTION_API_ORIGIN = "https://api.omdala.com";
 export const APP_POLICY = {
   web: { api: true, private: false, frameAncestors: "'self'" },
   docs: { api: false, private: false, frameAncestors: "'self'" },
-  app: { api: true, private: true, frameAncestors: "'none'", allowUnsafeEval: true },
+  // app hosts the self-hosted Monaco editor: its worker bootstrap is a same-origin blob: worker and
+  // its icon font is embedded as a data: URI. Neither can run script; no other surface needs them.
+  app: { api: true, private: true, frameAncestors: "'none'", editor: true },
   admin: { api: true, private: true, frameAncestors: "'none'" },
   auth: { api: true, private: true, frameAncestors: "'none'" },
   "brand-marketplace": { api: false, private: false, frameAncestors: "'none'" },
@@ -90,20 +92,25 @@ export function headerProblems(app, text) {
   if (sources("object-src").join(" ") !== "'none'") problems.push(`${app}: object-src must be 'none'`);
   if (sources("base-uri").join(" ") !== "'self'") problems.push(`${app}: base-uri must be 'self'`);
   if (sources("form-action").join(" ") !== "'self'") problems.push(`${app}: form-action must be 'self'`);
-  if (sources("font-src").join(" ") !== "'self'") problems.push(`${app}: font-src must be 'self' (fonts are self-hosted)`);
+  const fontSrc = policy.editor ? "'self' data:" : "'self'";
+  if (sources("font-src").join(" ") !== fontSrc) problems.push(`${app}: font-src must be ${fontSrc} (fonts are self-hosted)`);
   if (sources("frame-ancestors").join(" ") !== policy.frameAncestors) problems.push(`${app}: frame-ancestors must be ${policy.frameAncestors}`);
   if (!("upgrade-insecure-requests" in csp)) problems.push(`${app}: CSP needs upgrade-insecure-requests`);
   for (const [directive, values] of Object.entries(csp)) {
     for (const value of values) {
-      if (value === "*" || value.startsWith("http:") || value === "data:" && directive === "script-src") {
+      if (value === "*" || value.startsWith("http:") || value === "data:" && directive === "script-src" || value === "blob:" && directive === "script-src") {
         problems.push(`${app}: ${directive} allows ${value}`);
       }
       if (/fonts\.(googleapis|gstatic)\.com/.test(value)) problems.push(`${app}: ${directive} still allows Google Fonts`);
     }
   }
   const script = sources("script-src");
-  if (!policy.allowUnsafeEval && script.includes("'unsafe-eval'")) problems.push(`${app}: script-src allows 'unsafe-eval'`);
+  if (script.includes("'unsafe-eval'")) problems.push(`${app}: script-src allows 'unsafe-eval'`);
   if (script.some((value) => /^https?:/.test(value))) problems.push(`${app}: script-src allows a remote origin`);
+  const worker = sources("worker-src");
+  const allowedWorker = policy.editor ? ["'self'", "blob:"] : ["'self'"];
+  if (worker.some((value) => !allowedWorker.includes(value))) problems.push(`${app}: worker-src must be ${allowedWorker.join(" ")} only`);
+  if (policy.editor && !allowedWorker.every((value) => worker.includes(value))) problems.push(`${app}: worker-src must be ${allowedWorker.join(" ")} for the editor`);
   const connect = sources("connect-src");
   if (!connect.includes("'self'")) problems.push(`${app}: connect-src must include 'self'`);
   const remoteConnect = connect.filter((value) => /^https?:/.test(value));
