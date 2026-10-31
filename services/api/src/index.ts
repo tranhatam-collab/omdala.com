@@ -101,6 +101,20 @@ import {
   ResourceAccessError,
 } from "./db/errors";
 import {
+  BRIDGE_SCOPES,
+  BRIDGE_TOKEN_PREFIX,
+  BRIDGE_TTL_SECONDS,
+  authenticateBridgeToken,
+  bridgeReleased,
+  isBridgeScope,
+  isRouteAllowed,
+  mintBridgeCredential,
+  revokeBridgeToken,
+  revokeBridgeTokensForSession,
+  type BridgeIdentity,
+  type BridgeScope,
+} from "./om-ai-bridge";
+import {
   capIsRequired,
   parseDailyCap,
   reservationFor,
@@ -145,6 +159,7 @@ const app = new Hono<{
   Variables: {
     requestId: string;
     realityOwnerEmail?: string;
+    bridge?: BridgeIdentity;
   };
 }>();
 type ApiContext = Context<{
@@ -152,6 +167,7 @@ type ApiContext = Context<{
   Variables: {
     requestId: string;
     realityOwnerEmail?: string;
+    bridge?: BridgeIdentity;
   };
 }>;
 type ApiStatus =
@@ -160,6 +176,7 @@ type ApiStatus =
   | 400
   | 401
   | 402
+  | 403
   | 404
   | 410
   | 422
@@ -1282,6 +1299,17 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 async function requireAuthenticatedSession(
   c: ApiContext,
 ): Promise<SessionTokenPayload | Response> {
+  // A verified Om AI bridge credential (middleware below) acts as its owner, nothing more.
+  const bridge = c.get("bridge");
+  if (bridge) {
+    return {
+      jti: bridge.jti,
+      sid: bridge.sid,
+      email: bridge.email,
+      type: "access",
+      exp: bridge.exp * 1000,
+    };
+  }
   const accessToken =
     getBearerToken(c) ?? getCookieValue(c, "omdala_access_token");
 
@@ -2163,6 +2191,40 @@ app.use("/*", async (c, next) => {
   await next();
   c.header("x-request-id", requestId);
 });
+
+// Om AI bridge credentials (PREP_UNDER_ASSUMPTION(AI-01, bridge as drafted)): a bearer that
+// carries the bridge prefix is never treated as a browser session. Outside local/test
+// environments it is refused before anything is read.
+app.use("/v1/*", async (c, next) => {
+  const bearer = getBearerToken(c);
+  if (!bearer?.startsWith(BRIDGE_TOKEN_PREFIX)) {
+    await next();
+    return;
+  }
+  if (!bridgeReleased(c.env)) return bridgeNotReleased(c);
+  let result;
+  try {
+    result = await authenticateBridgeToken(c.env, bearer, ({ sid, email }) =>
+      isAuthSessionStateActive(c.env, { sid, email }),
+    );
+  } catch {
+    return jsonError(c, 503, "session_authority_unavailable", "Session authority is unavailable.");
+  }
+  if (!result.ok) {
+    return result.reason === "revoked"
+      ? jsonError(c, 401, "session_revoked", "Bridge credential has been revoked.")
+      : jsonError(c, 401, "invalid_or_expired_token", "Bridge credential is invalid or expired.");
+  }
+  if (!isRouteAllowed(result.identity.scope, c.req.method, c.req.path)) {
+    return jsonError(c, 403, "bridge_scope_forbidden", "This credential does not allow this route.");
+  }
+  c.set("bridge", result.identity);
+  await next();
+});
+
+function bridgeNotReleased(c: ApiContext) {
+  return jsonError(c, 501, "OM_AI_BRIDGE_NOT_RELEASED", "The Om AI session bridge is not available in this environment.");
+}
 
 app.use("/v2/reality/*", async (c, next) => {
   getOrCreateRequestId(c); // already set by global middleware, just ensure variable is seeded
@@ -3232,7 +3294,9 @@ app.get("/v1/workspaces", async (c) => {
   if (persistenceError) return persistenceError;
 
   try {
-    const workspaces = await getRuntimeWorkspaces(c.env, session.email);
+    const bridgeWs = c.get("bridge")?.ws;
+    const owned = await getRuntimeWorkspaces(c.env, session.email);
+    const workspaces = bridgeWs ? owned.filter((item) => item.id === bridgeWs) : owned;
     return jsonOk(c, {
       schemaVersion: "2026-04-10",
       workspaces,
@@ -3253,8 +3317,9 @@ app.get("/v1/workspaces/:workspaceId", async (c) => {
   if (persistenceError) return persistenceError;
 
   try {
+    const bridgeWs = c.get("bridge")?.ws;
     const workspace = (await getRuntimeWorkspaces(c.env, session.email)).find(
-      (item) => item.id === c.req.param("workspaceId"),
+      (item) => item.id === c.req.param("workspaceId") && (!bridgeWs || item.id === bridgeWs),
     );
     if (!workspace) {
       return jsonError(
@@ -3700,6 +3765,68 @@ app.post("/v1/auth/refresh", async (c) => {
   }
 });
 
+app.post("/v1/auth/om-ai/bridge-token", async (c) => {
+  if (!bridgeReleased(c.env)) return bridgeNotReleased(c);
+  const session = await requireAuthenticatedSession(c);
+  if (session instanceof Response) return session;
+  const persistenceError = protectedRuntimePersistenceError(c);
+  if (persistenceError) return persistenceError;
+
+  const body = await c.req
+    .json<{ workspaceId?: unknown; scopes?: unknown }>()
+    .catch(() => null);
+  if (!body || typeof body.workspaceId !== "string" || !body.workspaceId || body.workspaceId.length > 128) {
+    return jsonError(c, 400, "invalid_request", "workspaceId is required.");
+  }
+  if (!Array.isArray(body.scopes) || body.scopes.length === 0 || body.scopes.length > Object.keys(BRIDGE_SCOPES).length) {
+    return jsonError(c, 400, "invalid_request", "scopes must be a non-empty list.");
+  }
+  if (!body.scopes.every(isBridgeScope)) {
+    return jsonError(c, 400, "invalid_scope", "Unknown scope requested.");
+  }
+  try {
+    // Ownership is checked here, at mint time, against the caller's own workspaces.
+    const owned = await getRuntimeWorkspaces(c.env, session.email);
+    if (!owned.some((item) => item.id === body.workspaceId)) {
+      return jsonError(c, 404, "workspace_not_found", "Workspace was not found in current session scope.");
+    }
+    const { token, claims } = await mintBridgeCredential(c.env, {
+      email: session.email,
+      parentSid: session.sid,
+      workspaceId: body.workspaceId,
+      scopes: body.scopes as BridgeScope[],
+    });
+    c.header("Cache-Control", "no-store");
+    c.header("Pragma", "no-cache");
+    return jsonOk(c, {
+      token,
+      tokenType: "Bearer",
+      aud: claims.aud,
+      scope: claims.scope,
+      ws: claims.ws,
+      sub: claims.sub,
+      expiresAt: new Date(claims.exp * 1000).toISOString(),
+      expiresIn: BRIDGE_TTL_SECONDS,
+    });
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "mintBridgeCredential");
+  }
+});
+
+app.post("/v1/auth/om-ai/bridge-token/revoke", async (c) => {
+  if (!bridgeReleased(c.env)) return bridgeNotReleased(c);
+  const bridge = c.get("bridge");
+  if (!bridge) {
+    return jsonError(c, 400, "bridge_token_required", "Present the bridge credential to revoke it.");
+  }
+  try {
+    await revokeBridgeToken(c.env, bridge.jti);
+  } catch {
+    return jsonError(c, 503, "session_revocation_failed", "Bridge credential revocation failed.");
+  }
+  return jsonOk(c, { revoked: true });
+});
+
 app.post("/v1/auth/logout", async (c) => {
   const requestId = getOrCreateRequestId(c);
   const refreshToken = getCookieValue(c, "omdala_refresh_token");
@@ -3713,6 +3840,7 @@ app.post("/v1/auth/logout", async (c) => {
   if (session) {
     try {
       await revokeAuthSessionState(c.env, session.sid);
+      if (bridgeReleased(c.env)) await revokeBridgeTokensForSession(c.env, session.sid);
     } catch {
       return jsonError(
         c,

@@ -31,3 +31,12 @@ Promote it after 0004 (it does not depend on it): move the file, append its
 Manual reversal: `../rollback/0005_ai_usage_ledger.down.sql`.
 Until it is applied, staging and production answer chat with 503 (the cap is required and
 the ledger is unreachable), which is the intended fail-closed state.
+
+## 0006_om_ai_bridge_credentials (WO-T2-21)
+
+Same path and lease. sha256 `fd2bfef62ae21f27c2f3d43e2de0ad208b46634a9eb6a19f56bc5de3e97111f2`. Backs the revocable Om AI bridge credential rows.
+Promote after 0005 with the same three steps (move, `compatibility.json` entry, two
+expectations in `scripts/verify-migration-compatibility.test.mjs`). Manual reversal:
+`../rollback/0006_om_ai_bridge_credentials.down.sql`. The bridge routes answer 501 in
+staging and production regardless of the schema (`bridgeReleased`), so promotion alone
+does not release anything; the release change is a separate owner decision.
