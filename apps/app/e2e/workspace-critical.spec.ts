@@ -90,3 +90,24 @@ test.describe("Workspace chrome", () => {
     await expect(page.locator(".language-switcher")).toHaveCount(0);
   });
 });
+
+// WO-T3-20: `next dev` has no CSP, so a CDN load would go unnoticed there; assert it directly.
+test.describe("Monaco assets in development", () => {
+  test("the editor loads from this origin, never from a CDN", async ({ page, baseURL }) => {
+    const requests: string[] = [];
+    page.on("request", (request) => requests.push(request.url()));
+    await page.route("**/v1/ai/models", (route) => route.fulfill({ status: 503, contentType: "application/json", body: "{}" }));
+    await injectWorkspaceFixture(page);
+    await page.addInitScript(() => {
+      try { localStorage.setItem("omcode:terms:accepted:v1", "true"); } catch {}
+    });
+    await page.goto("/workspace/?fixture=1");
+    await expect(page.getByText("OMDALA Workspace")).toBeVisible({ timeout: 20000 });
+    await page.getByText("package.json", { exact: true }).click();
+    await expect(page.locator(".monaco-editor").first()).toBeVisible({ timeout: 30000 });
+    expect(requests.some((url) => url.includes("/monaco/vs/editor/editor.main.js"))).toBe(true);
+    expect(requests.filter((url) => /jsdelivr|unpkg|cdnjs/.test(url))).toEqual([]);
+    const origin = new URL(baseURL!).origin;
+    expect(requests.filter((url) => /^https?:/.test(url) && ![origin, "https://api.omdala.com"].includes(new URL(url).origin))).toEqual([]);
+  });
+});

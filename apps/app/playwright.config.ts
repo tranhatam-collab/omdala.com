@@ -37,7 +37,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: "pnpm exec next dev --port 3001 --hostname 127.0.0.1",
+          command: "node scripts/copy-monaco.mjs --dev && pnpm exec next dev --port 3001 --hostname 127.0.0.1",
           url: baseURL,
           reuseExistingServer: process?.env?.CI !== "true",
           timeout: 120000,

@@ -7,13 +7,13 @@ import type { OnMount } from "@monaco-editor/react";
 import type { OpenFileEntry } from "../hooks/useFileSystem";
 import { useI18n } from "../hooks/useI18n";
 
-// Monaco is self-hosted in the export (out/monaco/vs, copied by scripts/copy-monaco.mjs after the
-// build) so the CSP stays on 'self'. `next dev` has no CSP and no copy, so it keeps the loader's
-// default. The config runs inside the lazy import: it stays out of first-load JS.
+// Monaco is self-hosted so the CSP stays on 'self': the export gets out/monaco/vs after the build
+// and `next dev` a public/monaco/vs link (scripts/copy-monaco.mjs), so both load the same assets.
+// The config runs inside the lazy import: it stays out of first-load JS.
 const MonacoEditor = dynamic(
   async () => {
     const { default: Editor, loader } = await import("@monaco-editor/react");
-    if (process.env.NODE_ENV === "production") loader.config({ paths: { vs: "/monaco/vs" } });
+    loader.config({ paths: { vs: "/monaco/vs" } });
     return Editor;
   },
   { ssr: false }

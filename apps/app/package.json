@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/copy-monaco.mjs --dev",
     "dev": "NODE_OPTIONS='--max-old-space-size=2048' next dev --turbo",
+    "prebuild": "node scripts/copy-monaco.mjs --clean",
     "build": "next build",
     "postbuild": "node scripts/copy-monaco.mjs",
     "build:static": "next build && next export",
