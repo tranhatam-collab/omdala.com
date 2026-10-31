@@ -87,18 +87,64 @@ describe("minting", () => {
   });
 
   it("rejects malformed requests and unknown scopes", async () => {
-    const ws = await workspaceFor("bad@example.test");
-    const { cookie } = await sessionCookie("bad@example.test");
-    for (const body of [
+    const bodies = (ws: string | undefined): unknown[] => [
       {}, { workspaceId: ws }, { workspaceId: ws, scopes: [] }, { workspaceId: ws, scopes: "session:read" },
       { workspaceId: 7, scopes: ["session:read"] }, { workspaceId: "", scopes: ["session:read"] },
-    ]) {
-      expect((await call("/v1/auth/om-ai/bridge-token", json({ cookie }, body))).status).toBe(400);
+      ...[["admin"], ["session:write"], ["session:read", "billing:read"], ["*"], [null], ["__proto__"], ["constructor"]].map((scopes) => ({ workspaceId: ws, scopes })),
+    ];
+    // the mint rate limit is per account, so spread the attempts over several accounts
+    let index = 0;
+    let email = "";
+    let ws: string | undefined;
+    let cookie = "";
+    for (const body of bodies("placeholder")) {
+      if (index % 8 === 0) {
+        email = `bad-${crypto.randomUUID().slice(0, 8)}@example.test`;
+        ws = await workspaceFor(email);
+        cookie = (await sessionCookie(email)).cookie;
+      }
+      index += 1;
+      const patched = JSON.parse(JSON.stringify(body)) as Record<string, unknown>;
+      if (patched.workspaceId === "placeholder") patched.workspaceId = ws;
+      const response = await call("/v1/auth/om-ai/bridge-token", json({ cookie }, patched));
+      expect(response.status, JSON.stringify(patched)).toBe(400);
     }
-    for (const scopes of [["admin"], ["session:write"], ["session:read", "billing:read"], ["*"], [null], ["__proto__"], ["constructor"]]) {
-      const response = await call("/v1/auth/om-ai/bridge-token", json({ cookie }, { workspaceId: ws, scopes }));
-      expect(response.status).toBe(400);
+  });
+
+  it("limits minting per account (429 rate_limited) and live credentials per session (429 bridge_credential_limit)", async () => {
+    const email = `limit-${crypto.randomUUID().slice(0, 8)}@example.test`;
+    const ws = await workspaceFor(email);
+    const session = await sessionCookie(email);
+    const attempt = () => call("/v1/auth/om-ai/bridge-token", json({ cookie: session.cookie }, { workspaceId: ws, scopes: ["session:read"] }));
+    const statuses: number[] = [];
+    const codes: string[] = [];
+    for (let i = 0; i < 6; i++) {
+      const response = await attempt();
+      statuses.push(response.status);
+      if (response.status !== 200) codes.push(await errorCode(response));
     }
+    expect(statuses).toEqual([200, 200, 200, 200, 200, 429]);
+    expect(codes).toEqual(["bridge_credential_limit"]);
+    // another session of the same account has its own allowance
+    const other = await sessionCookie(email);
+    expect((await call("/v1/auth/om-ai/bridge-token", json({ cookie: other.cookie }, { workspaceId: ws, scopes: ["session:read"] }))).status).toBe(200);
+    // the per-account mint rate limit (10 per minute) now answers
+    for (let i = 0; i < 4; i++) await attempt();
+    const limited = await attempt();
+    expect(limited.status).toBe(429);
+    expect(await errorCode(limited)).toBe("rate_limited");
+  });
+
+  it("frees a slot when a credential is revoked", async () => {
+    const email = `free-${crypto.randomUUID().slice(0, 8)}@example.test`;
+    const ws = await workspaceFor(email);
+    const session = await sessionCookie(email);
+    const mintOne = async () => call("/v1/auth/om-ai/bridge-token", json({ cookie: session.cookie }, { workspaceId: ws, scopes: ["session:read"] }));
+    const first = ((await (await mintOne()).json()) as { data: { token: string } }).data.token;
+    for (let i = 0; i < 4; i++) await mintOne();
+    expect((await mintOne()).status).toBe(429);
+    await call("/v1/auth/om-ai/bridge-token/revoke", { method: "POST", headers: bearer(first) });
+    expect((await mintOne()).status).toBe(200);
   });
 
   it("a bridge credential cannot mint another one", async () => {
@@ -168,8 +214,8 @@ describe("what a valid credential can read", () => {
 });
 
 describe("every claim is checked (valid signature, bad claim)", () => {
-  async function claimsFor(email: string) {
-    const { token } = await mint(email);
+  async function claimsFor(label: string) {
+    const { token } = await mint(`${label.split("@")[0]}-${crypto.randomUUID().slice(0, 8)}@example.test`);
     return decode(token);
   }
   const reads = async (token: string) => (await call("/v1/auth/session", { headers: bearer(token) })).status;
@@ -266,6 +312,46 @@ describe("revocation", () => {
     } finally {
       Date.now = realNow;
     }
+  });
+});
+
+describe("administrator revoke", () => {
+  const adminEnv = { ...env, OMDALA_BRIDGE_ADMIN_EMAILS: "Boss@example.test, other@example.test" };
+
+  it("lets a configured administrator revoke any credential by id", async () => {
+    const { token } = await mint(`victim-${crypto.randomUUID().slice(0, 8)}@example.test`);
+    const jti = decode(token).jti as string;
+    const { cookie } = await sessionCookie("boss@example.test");
+    const response = await call("/v1/auth/om-ai/bridge-token/admin-revoke", json({ cookie }, { jti }), adminEnv);
+    expect(response.status).toBe(200);
+    expect((await call("/v1/auth/session", { headers: bearer(token) }, adminEnv)).status).toBe(401);
+    const again = await call("/v1/auth/om-ai/bridge-token/admin-revoke", json({ cookie }, { jti }), adminEnv);
+    expect(again.status).toBe(404);
+  });
+
+  it("refuses everyone else: ordinary accounts, an unset list, and bridge credentials", async () => {
+    const { token } = await mint(`target-${crypto.randomUUID().slice(0, 8)}@example.test`);
+    const jti = decode(token).jti as string;
+    const { cookie } = await sessionCookie("random@example.test");
+    expect((await call("/v1/auth/om-ai/bridge-token/admin-revoke", json({ cookie }, { jti }), adminEnv)).status).toBe(403);
+    const boss = await sessionCookie("boss@example.test");
+    expect((await call("/v1/auth/om-ai/bridge-token/admin-revoke", json({ cookie: boss.cookie }, { jti }))).status).toBe(403); // no list configured
+    expect((await call("/v1/auth/om-ai/bridge-token/admin-revoke", json({}, { jti }), adminEnv)).status).toBe(401);
+    expect((await call("/v1/auth/om-ai/bridge-token/admin-revoke", json(bearer(token), { jti }), adminEnv)).status).toBe(403);
+    expect((await call("/v1/auth/session", { headers: bearer(token) })).status).toBe(200); // still live
+  });
+
+  it("validates the id", async () => {
+    const { cookie } = await sessionCookie("boss@example.test");
+    for (const jti of [undefined, 7, "nope", "../x"]) {
+      expect((await call("/v1/auth/om-ai/bridge-token/admin-revoke", json({ cookie }, { jti }), adminEnv)).status).toBe(400);
+    }
+  });
+
+  it("answers 501 outside the release boundary", async () => {
+    const { cookie } = await sessionCookie("boss@example.test");
+    const response = await call("/v1/auth/om-ai/bridge-token/admin-revoke", json({ cookie }, { jti: crypto.randomUUID() }), { ...adminEnv, ENVIRONMENT: "production" });
+    expect(response.status).toBe(501);
   });
 });
 

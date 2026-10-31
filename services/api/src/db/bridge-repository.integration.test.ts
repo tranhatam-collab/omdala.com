@@ -11,6 +11,7 @@ import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ApiBindings } from "../contracts";
 import {
+  countLiveBridgeCredentialsForSession,
   insertBridgeCredential,
   readBridgeCredential,
   revokeBridgeCredential,
@@ -86,6 +87,18 @@ describe.skipIf(!adminUrl)("Om AI bridge credentials on real PostgreSQL", () => 
     expect(await revokeBridgeCredentialsForSession(env, sid)).toBe(0);
     for (const item of mine) expect((await readBridgeCredential(env, item.jti))!.revoked).toBe(true);
     expect((await readBridgeCredential(env, other.jti))!.revoked).toBe(false);
+  });
+
+  it("counts only live credentials of one session", async () => {
+    const sid = crypto.randomUUID();
+    const live = [row(sid), row(sid), row(sid)];
+    for (const item of live) await insertBridgeCredential(env, item);
+    await insertBridgeCredential(env, row());
+    expect(await countLiveBridgeCredentialsForSession(env, sid)).toBe(3);
+    await revokeBridgeCredential(env, live[0].jti);
+    expect(await countLiveBridgeCredentialsForSession(env, sid)).toBe(2);
+    await pg.query("UPDATE omdala.om_ai_bridge_credentials SET issued_at = NOW() - interval '2 hours', expires_at = NOW() - interval '1 hour' WHERE jti = $1::uuid", [live[1].jti]);
+    expect(await countLiveBridgeCredentialsForSession(env, sid)).toBe(1);
   });
 
   it("refuses a duplicate jti and an already-expired row", async () => {

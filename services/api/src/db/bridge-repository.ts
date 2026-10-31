@@ -82,3 +82,15 @@ export async function revokeBridgeCredentialsForSession(env: ApiBindings, parent
   );
   return rows.length;
 }
+
+export async function countLiveBridgeCredentialsForSession(env: ApiBindings, parentSid: string): Promise<number> {
+  const rows = await inDbContext("countLiveBridgeCredentialsForSession", () =>
+    queryRows<{ live: string | number }>(
+      env,
+      `SELECT COUNT(*)::int AS live FROM omdala.om_ai_bridge_credentials
+        WHERE parent_sid = $1::uuid AND revoked_at IS NULL AND expires_at > NOW()`,
+      [parentSid],
+    ),
+  );
+  return Number(rows[0]?.live ?? 0);
+}

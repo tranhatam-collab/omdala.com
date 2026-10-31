@@ -7,6 +7,7 @@
 // parent session. Everything here is behind the release boundary (`bridgeReleased`).
 import type { ApiBindings } from "./contracts";
 import {
+  countLiveBridgeCredentialsForSession,
   insertBridgeCredential,
   readBridgeCredential,
   revokeBridgeCredential,
@@ -17,6 +18,8 @@ import {
 export const BRIDGE_AUDIENCE = "om-ai";
 export const BRIDGE_TOKEN_PREFIX = "omb1.";
 export const BRIDGE_TTL_SECONDS = 15 * 60;
+/** Live credentials one parent session may hold at once. */
+export const MAX_LIVE_CREDENTIALS_PER_SESSION = 5;
 const MAX_TTL_SECONDS = 60 * 60;
 const MAX_CLOCK_SKEW_SECONDS = 60;
 const SIGNING_CONTEXT = "omdala:om-ai-bridge:v1:";
@@ -40,6 +43,12 @@ export type BridgeClaims = {
   exp: number;
   jti: string;
 };
+
+export class BridgeLimitError extends Error {
+  constructor() {
+    super("BRIDGE_CREDENTIAL_LIMIT");
+  }
+}
 
 export type BridgeIdentity = BridgeClaims & { email: string; sid: string };
 
@@ -107,6 +116,9 @@ export async function mintBridgeCredential(
     exp: iat + BRIDGE_TTL_SECONDS,
     jti: crypto.randomUUID(),
   };
+  if ((await countLiveCredentials(env, input.parentSid, input.nowMs ?? Date.now())) >= MAX_LIVE_CREDENTIALS_PER_SESSION) {
+    throw new BridgeLimitError();
+  }
   const row = {
     jti: claims.jti,
     parentSid: input.parentSid,
@@ -121,7 +133,19 @@ export async function mintBridgeCredential(
   return { token: `${BRIDGE_TOKEN_PREFIX}${payloadPart}.${await sign(env, payloadPart)}`, claims };
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+// Soft limit: the count and the insert are separate statements, so a burst of parallel
+// mints can overshoot by a few; the per-account mint rate limit bounds that burst.
+async function countLiveCredentials(env: ApiBindings, parentSid: string, nowMs: number): Promise<number> {
+  if (!memoryStoreApplies(env)) return countLiveBridgeCredentialsForSession(env, parentSid);
+  let live = 0;
+  for (const row of memoryRows.values()) {
+    if (row.parentSid === parentSid && !row.revoked && row.expiresAt > nowMs) live += 1;
+  }
+  return live;
+}
+
+export const BRIDGE_JTI_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const UUID = BRIDGE_JTI_PATTERN;
 const ACCOUNT_ID = /^acct_[0-9a-f]{32}$/;
 
 /** Signature and claim shape only (no store). Returns null for anything not exactly a bridge token. */

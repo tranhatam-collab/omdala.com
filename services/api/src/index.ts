@@ -48,6 +48,7 @@ import {
 } from "./contracts";
 import {
   AiagentProviderError,
+  isAiagentChatInputValid,
   aiagentRequestId,
   chatMayHaveBeenBilled,
   executeAiagentChat,
@@ -104,6 +105,8 @@ import {
   BRIDGE_SCOPES,
   BRIDGE_TOKEN_PREFIX,
   BRIDGE_TTL_SECONDS,
+  BRIDGE_JTI_PATTERN,
+  BridgeLimitError,
   authenticateBridgeToken,
   bridgeReleased,
   isBridgeScope,
@@ -3772,6 +3775,10 @@ app.post("/v1/auth/om-ai/bridge-token", async (c) => {
   const persistenceError = protectedRuntimePersistenceError(c);
   if (persistenceError) return persistenceError;
 
+  if (isRateLimited(`bridge-mint:${session.email}`, 10, 60 * 1000)) {
+    return jsonError(c, 429, "rate_limited", "Too many bridge credential requests.");
+  }
+
   const body = await c.req
     .json<{ workspaceId?: unknown; scopes?: unknown }>()
     .catch(() => null);
@@ -3809,6 +3816,9 @@ app.post("/v1/auth/om-ai/bridge-token", async (c) => {
       expiresIn: BRIDGE_TTL_SECONDS,
     });
   } catch (error) {
+    if (error instanceof BridgeLimitError) {
+      return jsonError(c, 429, "bridge_credential_limit", "Too many live bridge credentials for this session; revoke one first.");
+    }
     return protectedRuntimeDatabaseErrorResponse(c, error, "mintBridgeCredential");
   }
 });
@@ -3823,6 +3833,31 @@ app.post("/v1/auth/om-ai/bridge-token/revoke", async (c) => {
     await revokeBridgeToken(c.env, bridge.jti);
   } catch {
     return jsonError(c, 503, "session_revocation_failed", "Bridge credential revocation failed.");
+  }
+  return jsonOk(c, { revoked: true });
+});
+
+app.post("/v1/auth/om-ai/bridge-token/admin-revoke", async (c) => {
+  if (!bridgeReleased(c.env)) return bridgeNotReleased(c);
+  const session = await requireAuthenticatedSession(c);
+  if (session instanceof Response) return session;
+  const admins = (c.env.OMDALA_BRIDGE_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  if (!admins.includes(session.email.toLowerCase())) {
+    return jsonError(c, 403, "forbidden", "Administrator access is required.");
+  }
+  const body = await c.req.json<{ jti?: unknown }>().catch(() => null);
+  if (!body || typeof body.jti !== "string" || !BRIDGE_JTI_PATTERN.test(body.jti)) {
+    return jsonError(c, 400, "invalid_request", "jti must be a credential id.");
+  }
+  try {
+    if (!(await revokeBridgeToken(c.env, body.jti))) {
+      return jsonError(c, 404, "bridge_credential_not_found", "No live bridge credential has this id.");
+    }
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "revokeBridgeCredential");
   }
   return jsonOk(c, { revoked: true });
 });
@@ -4165,6 +4200,11 @@ app.post("/v1/ai/chat", async (c) => {
     messages: body.messages as AiagentChatInput["messages"],
     maxTokens,
   };
+
+  // Invalid input is refused before any budget is reserved, so it never touches the ledger.
+  if (!isAiagentChatInputValid(input)) {
+    return jsonError(c, 422, "invalid_ai_request", "The requested AI model or input is invalid.");
+  }
 
   // Per-account daily cost cap (PREP_UNDER_ASSUMPTION(AI cost cap, fail closed when unset)).
   const gate = await reserveChatBudget(c, session.email, idempotencyKey);

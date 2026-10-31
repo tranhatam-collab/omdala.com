@@ -172,12 +172,21 @@ const code = async (r: Response) => ((await r.json()) as { error: { code: string
 describe("what limits a tenant's AI use", () => {
   it("bounds a single request: tokens, messages and size (422 invalid_ai_request)", async () => {
     installProvider();
-    for (const extra of [{ maxTokens: 2049 }, { maxTokens: 0 }, { messages: [] }]) {
-      expect([400, 422]).toContain((await chat("bounded@example.test", extra)).status);
+    const huge = [{ role: "user", content: "x".repeat(20_001) }];
+    const cases: Record<string, unknown>[] = [
+      { maxTokens: 2049 }, { maxTokens: 0 }, { maxTokens: 1.5 }, { messages: [] }, { messages: huge },
+      { messages: [null] }, { messages: [{ role: "user", content: 7 }] }, { messages: [{ role: "tool", content: "x" }] },
+      { messages: [{ role: "user", content: "  " }] }, { model: "not a model id" },
+      { messages: Array.from({ length: 21 }, () => ({ role: "user", content: "x" })) },
+    ];
+    for (const extra of cases) {
+      const response = await chat("bounded@example.test", extra);
+      expect([400, 422], JSON.stringify(extra).slice(0, 60)).toContain(response.status);
     }
     expect(providerChatCalls).toBe(0);
-    // validation inside the client rejects before dispatch, so nothing stays reserved
-    expect(ledger_.releaseAiUsage).toHaveBeenCalledTimes(ledger_.reserveAiUsage.mock.calls.length);
+    // invalid requests are refused before the ledger is touched
+    expect(ledger_.reserveAiUsage).not.toHaveBeenCalled();
+    expect(ledger_.releaseAiUsage).not.toHaveBeenCalled();
     expect(ledger_.settleAiUsage).not.toHaveBeenCalled();
   });
 

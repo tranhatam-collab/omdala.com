@@ -560,6 +560,30 @@ export async function executeAiagentChat(
   }
 }
 
+/** Shape and size bounds of a chat request; also run by the route before any budget is reserved. */
+export function isAiagentChatInputValid(input: AiagentChatInput): boolean {
+  return (
+    typeof input.model === "string" &&
+    MODEL_ID_PATTERN.test(input.model) &&
+    Number.isSafeInteger(input.maxTokens) &&
+    input.maxTokens >= 1 &&
+    input.maxTokens <= 2048 &&
+    Array.isArray(input.messages) &&
+    input.messages.length >= 1 &&
+    input.messages.length <= 20 &&
+    input.messages.every(
+      (message) =>
+        typeof message === "object" &&
+        message !== null &&
+        ["system", "user", "assistant"].includes(message.role) &&
+        typeof message.content === "string" &&
+        message.content.trim().length > 0 &&
+        message.content.length <= 20_000,
+    ) &&
+    input.messages.reduce((total, message) => total + message.content.length, 0) <= 100_000
+  );
+}
+
 async function runAiagentChat(
   env: ApiBindings,
   email: string,
@@ -571,23 +595,7 @@ async function runAiagentChat(
   if (!identity || !runtimeCredential(env)) {
     throw new Error("AIAGENT_RUNTIME_NOT_CONFIGURED");
   }
-  if (
-    !MODEL_ID_PATTERN.test(input.model) ||
-    !Number.isSafeInteger(input.maxTokens) ||
-    input.maxTokens < 1 ||
-    input.maxTokens > 2048 ||
-    input.messages.length === 0 ||
-    input.messages.length > 20 ||
-    input.messages.some(
-      (message) =>
-        !["system", "user", "assistant"].includes(message.role) ||
-        !message.content.trim() ||
-        message.content.length > 20_000,
-    ) ||
-    input.messages.reduce((total, message) => total + message.content.length, 0) > 100_000
-  ) {
-    throw new Error("AIAGENT_CHAT_INPUT_INVALID");
-  }
+  if (!isAiagentChatInputValid(input)) throw new Error("AIAGENT_CHAT_INPUT_INVALID");
 
   const catalog = await listAiagentModels(env);
   const selected = catalog.find(
