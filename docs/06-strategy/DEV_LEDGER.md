@@ -100,6 +100,7 @@ Staging E2E **OPEN**. Production **HOLD**. AUTOMATION: see the flag at the top a
 | Lease: CI trigger | `.github/workflows/ci.yml`, the single `push: branches` line, to T2, T3 and TAI for the identical patch in WO-*-CI. Workflows that deploy are `workflow_call`/`workflow_dispatch` only, so the change runs CI, never deploy. The repository is public, so hosted minutes are not billed. T1 adopts the same line on its branch (WO-T1-01) |
 | Lease: scripts | `scripts/backup/omdala_pg_restore.sh`, `scripts/cleanup_test_data.sql`, `scripts/ops_v2_report_upload.sh`, `scripts/smoke_v2_reality.sh` to T2 for BL-T2-04 (R-22..R-25). T1 keeps priority: if T1 changes one of these files, the lease ends |
 | Lease: root `package.json` scripts | T3 only, no dependency or lockfile change |
+| Lease: `pnpm-lock.yaml` and `apps/app/package.json` dependencies | T3, for WO-T3-19 only (add `monaco-editor` at the version `@monaco-editor/react` expects); ends when WO-T3-19 is reported. No other team changes the lockfile meanwhile |
 
 ### 5.1 Triggers and adaptive cadence
 
@@ -176,7 +177,7 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-TAI-04 MOB-02 toolchain | TAI | PARTIAL: Linux side done; bundle ids need the owner (7.3) | 66b169d | 2026-10-30 |
 | WO-TAI-05 failure states | TAI | PARTIAL: messages and unit tests done; browser test waits on the AI authority contract | cba5ccb | 2026-10-30 |
 | BL-TAI-01..03 | TAI | VERIFIED | e1d3be3, 696dad1 | 2026-10-30 |
-| WO-T4-03 standing | T4 | READY (standing, every turn) | Verified through T2 0f8197a, T3 da7bf52, TAI c780cde, no failures; next: T2 065b716, T3 74d1f74, TAI 63d0141 | 2026-10-31 |
+| WO-T4-03 standing | T4 | READY (standing, every turn) | Verified through T2 065b716, T3 74d1f74, TAI 63d0141, no failures; next: T2 5c7c84e (with WO-T4-15), T3 8b37c13, TAI c8a2be8 | 2026-10-31 |
 | WO-T4-04, -05, -06 | T4 | DONE | 4248392, 9ed2ab0 (+638d097), 9e4ece3 | 2026-10-30 |
 | BL-T4-01, -02, -03 | T4 | DONE | d3291e8, 7c251b1 | 2026-10-30 |
 | WO-T2-08 Hyperdrive TLS | T2 | BLOCKED: `developers.cloudflare.com` is outside this environment's network allowlist; T2 will not configure it from memory. Needs the owner (allow the host) or a T1 staging check (7.3) | 131b5d4 | 2026-10-30 |
@@ -222,17 +223,22 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-T3-17 | T3 | READY (WO-T2-20 landed; the codes are in its report, so the UI can map them without T2 code on the T3 base) | | 2026-10-31 |
 | WO-TAI-13 client and extension specs | TAI | DONE, awaiting T4 | c780cde | 2026-10-31 |
 | WO-T4-13 bridge findings | T4 | DONE: F1-F8 all CONFIRMED at the T2 head | 56eab2d | 2026-10-31 |
-| WO-T2-24 | T2 | READY, **urgent: do first** | | 2026-10-31 |
+| WO-T2-24 cost-cap replay fix | T2 | DONE, awaiting T4 (WO-T4-15): any reused key now answers 409 `idempotency_key_reused` before the provider; `/v1/ai/complete` is 501, models route does not reserve | 5c7c84e | 2026-10-31 |
 | WO-T2-22 hardening | T2 | DONE, awaiting T4 (per-session cap is soft; no admin role in the API, admin list is configuration) | fe6b42e | 2026-10-31 |
 | WO-T2-23 stable sub, token options | T2 | DONE, awaiting T4; migration 0007 in `proposed/`; owner picks introspection or published keys | 065b716 | 2026-10-31 |
 | WO-T3-17 cap messages | T3 | DONE, awaiting T4 | c706e7e | 2026-10-31 |
 | BL-T3-06 brand-marketplace parity | T3 | DONE, awaiting T4 | 74d1f74 | 2026-10-31 |
 | WO-TAI-14 Om AI accessibility | TAI | DONE, awaiting T4; `lang` limit settled by T0 in WO-TAI-15 | 63d0141 | 2026-10-31 |
 | WO-T4-14 security review | T4 | DONE: **HIGH, reproduced**: the daily AI cost cap can be bypassed without bound by replaying an `Idempotency-Key` whose reservation was released (`index.ts:4057-4105`, `ai-usage-repository.ts`); bridge credential is 501 in every release-like environment | ce1832d | 2026-10-31 |
-| WO-T3-18 | T3 | READY | | 2026-10-31 |
-| BL-T3-07 | T3 | READY | | 2026-10-31 |
-| WO-TAI-15 | TAI | READY | | 2026-10-31 |
-| WO-TAI-16 | TAI | READY | | 2026-10-31 |
+| WO-T3-18 security headers | T3 | DONE, awaiting T4; every app now ships HSTS, CSP without remote scripts, frame-ancestors; finding: the app's code editor (Monaco) loads from a CDN the CSP blocks, decided in WO-T3-19 | 5f4103c | 2026-10-31 |
+| BL-T3-07 bundle budgets | T3 | DONE, awaiting T4 | 8b37c13 | 2026-10-31 |
+| WO-TAI-15 Om AI lang and contrast | TAI | DONE, awaiting T4; Vietnamese copy has no diacritics (WO-TAI-17) | 6025bd6 | 2026-10-31 |
+| WO-TAI-16 bridge runtime negatives | TAI | DONE under assumptions, both token options behind one port | c8a2be8 | 2026-10-31 |
+| WO-T2-25 | T2 | READY | | 2026-10-31 |
+| WO-T2-26 | T2 | READY | | 2026-10-31 |
+| WO-T3-19 | T3 | READY | | 2026-10-31 |
+| WO-TAI-17 | TAI | READY | | 2026-10-31 |
+| WO-T4-16 | T4 | READY (after WO-T3-19) | | 2026-10-31 |
 | WO-T4-15 | T4 | READY (after WO-T2-24 lands) | | 2026-10-31 |
 | WO-T0-01 | T0 | QUEUED | | 2026-10-28 |
 | WO-T0-02 | T0 | QUEUED | | 2026-10-28 |
@@ -567,6 +573,37 @@ swaps the adapter.
 then try the same replay on `/v1/ai/complete` and the models route, and confirm
 the refresh 500 no longer carries an internal message.
 
+**WO-T2-25 (billing, matrix gap 7).** Map the billing flow in `services/api` and
+`packages/billing` and test it locally with a stub provider, no paid or remote
+calls: plan change only through the billing path, webhook signature verification
+and replay refusal, idempotent event handling, and the cancelled and past-due states
+that the AI cap answers with 402. Report what is real, what is a stub, and the gaps
+before a sandbox provider can be connected.
+
+**WO-T2-26 (E2E-5).** Extend the local DR rehearsal (BL-T2-05) to the proposed
+migrations 0004-0007: populate the new tables, back up, restore, and prove per-table
+parity and that the cost-cap ledger and bridge credentials survive a restore with
+the same counts and revocation state.
+
+**WO-T3-19 (T0 decision on the Monaco finding).** Self-host the code editor instead of
+allowing a third-party CDN: add `monaco-editor` under the lockfile lease in section 5,
+point the `@monaco-editor/react` loader at local assets served from the app, set
+`worker-src`/`script-src` to what Monaco needs from `'self'` only, and drop
+`'unsafe-eval'` if the self-hosted build works without it (report if it does not).
+Add an E2E spec that opens the workspace editor with the shipped CSP and asserts it
+loads with no CSP violation. Keep the bundle budget from BL-T3-07 honest: the editor
+must load lazily, outside first-load JS.
+
+**WO-TAI-17.** Vietnamese copy in `om-ai.omdala.com/web` is written without
+diacritics. Rewrite every Vietnamese string with correct diacritics, and map the
+English error text that still reaches the UI from API responses to the bilingual
+messages from WO-TAI-05. Mark the change for a native-speaker review in the report;
+do not change meaning.
+
+**WO-T4-16 (after WO-T3-19).** Independent check of T3's security headers
+(WO-T3-18) on the built `out/_headers` of each app, and of the self-hosted editor
+under the shipped CSP: no violation, no third-party origin, editor loads.
+
 ### 7.2 Standing backlog (taken in order when a team has no READY order)
 
 | ID | Team | Work |
@@ -616,3 +653,4 @@ BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
 | 2026-10-31T00:2xZ | HARVEST | T4 unblocked and verified every head through T2 2c48d55, T3 fed7b6b, TAI f86bf49; WO-T4-12 CONFIRMED the app API-origin defect; WO-T4-11 migration 0004 checks pass. T2 WO-T2-17..19 DONE (no per-tenant AI cost cap exists); T3 WO-T3-15, TAI WO-TAI-11 DONE. New: WO-T2-20/21, WO-T3-16 (+17 queued), WO-TAI-12/13, WO-T4-13 | |
 | 2026-10-31T01:2xZ | HARVEST | T2 WO-T2-20 (AI cost cap) and WO-T2-21 (bridge credential, 501 outside test) DONE; T3 WO-T3-16 DONE; TAI WO-TAI-12/13 DONE; T4 verified T2 3566a14, T3 e967a33, TAI bcb3034 with no failures and CONFIRMED bridge gaps F1-F8. New: WO-T2-22/23, WO-T3-17 READY, BL-T3-06, WO-TAI-14, WO-T4-14; WO-T1-06 now covers 0004-0006 | |
 | 2026-10-31T02:2xZ | HARVEST | T2 WO-T2-22/23 DONE; T3 WO-T3-17, BL-T3-06 DONE; TAI WO-TAI-14 DONE; T4 verified the previous heads with no failures and found a HIGH cost-cap bypass (replay of a released key). New: WO-T2-24 urgent, WO-T3-18, BL-T3-07, WO-TAI-15/16, WO-T4-15 | |
+| 2026-10-31T03:2xZ | HARVEST | T2 WO-T2-24 cost-cap replay fixed (409 on any reused key), awaiting WO-T4-15; T3 WO-T3-18 security headers and BL-T3-07 budgets DONE; TAI WO-TAI-15/16 DONE; T4 verified the previous heads, no failures. T0 decided Monaco is self-hosted (WO-T3-19, lockfile lease to T3). New: WO-T2-25/26, WO-T3-19, WO-TAI-17, WO-T4-16 | |
