@@ -1,0 +1,15 @@
+{
+  "unit": "bytes: gzip level 9 of the scripts each exported page loads (first-load JS)",
+  "routes": {
+    "/": 159943,
+    "/404": 142015,
+    "/404/": 142015,
+    "/api/": 159765,
+    "/platform/": 159765,
+    "/trust/": 159765,
+    "/vi/": 159944,
+    "/vi/api/": 159766,
+    "/vi/platform/": 159766,
+    "/vi/trust/": 159766
+  }
+}

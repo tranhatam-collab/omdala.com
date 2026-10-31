@@ -1,5 +1,5 @@
 import { realpathSync } from "node:fs";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 function requiredPath(environment: NodeJS.ProcessEnv, name: string): string {
@@ -11,12 +11,15 @@ function requiredPath(environment: NodeJS.ProcessEnv, name: string): string {
   return value;
 }
 
-function assertOutsideCandidate(path: string, candidateRoot: string, name: string): void {
+export function assertOutsideCandidate(path: string, candidateRoot: string, name: string): void {
   const candidateRelative = relative(candidateRoot, path);
-  if (
-    candidateRelative === "" ||
-    (!candidateRelative.startsWith("..") && !isAbsolute(candidateRelative))
-  ) {
+  // Compare whole path segments: a directory named "..name" inside the checkout is
+  // inside it, while "..", "../x" and absolute results (another drive) are outside.
+  const isOutside =
+    candidateRelative === ".." ||
+    candidateRelative.startsWith(`..${sep}`) ||
+    isAbsolute(candidateRelative);
+  if (!isOutside) {
     throw new Error(`${name} must be outside the candidate checkout`);
   }
 }

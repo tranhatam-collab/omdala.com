@@ -1,23 +1,27 @@
 import { resolvePublicOrigin } from "@omdala/core";
 
-declare const process:
-  | {
-      env?: {
-        NEXT_PUBLIC_API_URL?: string;
-        NEXT_PUBLIC_RELEASE_ENVIRONMENT?: string;
-      };
-    }
-  | undefined;
+// Read as `process.env.NEXT_PUBLIC_*` (never `process?.env?.…`): the bundler only inlines the
+// direct form, and an optional-chained read is undefined in the browser, which silently
+// selects the production API origin.
+declare const process: {
+  env: {
+    NEXT_PUBLIC_API_URL?: string;
+    NEXT_PUBLIC_RELEASE_ENVIRONMENT?: string;
+  };
+};
 
 export class ApiClientError extends Error {
   code: string;
   status: number;
+  /** Seconds from a readable Retry-After header (cross-origin, so only when the API exposes it). */
+  retryAfterSeconds: number | null;
 
-  constructor(message: string, code: string, status: number) {
+  constructor(message: string, code: string, status: number, retryAfterSeconds: number | null = null) {
     super(message);
     this.name = "ApiClientError";
     this.code = code;
     this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -31,22 +35,28 @@ type ApiEnvelope = {
 };
 
 export function getApiBaseUrl() {
-  const runtimeApiUrl = process?.env?.NEXT_PUBLIC_API_URL;
+  const runtimeApiUrl = process.env.NEXT_PUBLIC_API_URL;
   return resolvePublicOrigin(
     "api",
     runtimeApiUrl,
-    process?.env?.NEXT_PUBLIC_RELEASE_ENVIRONMENT,
+    process.env.NEXT_PUBLIC_RELEASE_ENVIRONMENT,
   );
+}
+
+function parseRetryAfter(value: string | null): number | null {
+  if (!value || !/^\d+$/.test(value.trim())) return null;
+  return Number(value.trim());
 }
 
 function toApiError(
   payload: ApiEnvelope | null,
   status: number,
   fallbackMessage: string,
+  retryAfter: string | null = null,
 ) {
   const code = payload?.error?.code ?? "API_REQUEST_FAILED";
   const message = payload?.error?.message ?? fallbackMessage;
-  return new ApiClientError(message, code, status);
+  return new ApiClientError(message, code, status, parseRetryAfter(retryAfter));
 }
 
 export async function apiJsonRequest<T>(
@@ -67,7 +77,7 @@ export async function apiJsonRequest<T>(
   }
 
   if (!response.ok) {
-    throw toApiError(payload, response.status, fallbackMessage);
+    throw toApiError(payload, response.status, fallbackMessage, response.headers.get("Retry-After"));
   }
 
   if (!payload?.ok) {
@@ -91,4 +101,13 @@ export async function hasValidServerSession() {
   } catch {
     return false;
   }
+}
+
+const UNAVAILABLE_STATUSES = new Set([502, 503, 504]);
+const UNAVAILABLE_CODES = new Set(["DATABASE_UNAVAILABLE", "SERVICE_UNAVAILABLE", "UPSTREAM_TIMEOUT"]);
+
+/** True when the API says a dependency is down or timed out (502/503/504 or a known code). */
+export function isServiceUnavailableError(error: unknown): boolean {
+  if (!(error instanceof ApiClientError)) return false;
+  return UNAVAILABLE_STATUSES.has(error.status) || UNAVAILABLE_CODES.has(error.code);
 }

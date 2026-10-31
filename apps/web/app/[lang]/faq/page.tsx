@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { FaqPageView } from "../../faq/FaqPageView"
+import { FaqPageView } from "../../(en)/faq/FaqPageView"
 import { buildLocalizedMetadata } from "../../lib/localized-metadata"
 import { getPrefixedLocaleStaticParams, resolveRouteLanguage } from "../../lib/locale-routing"
 

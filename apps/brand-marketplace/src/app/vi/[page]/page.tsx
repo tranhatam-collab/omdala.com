@@ -1,3 +1,4 @@
+import { selfAlternates } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { InformationPage } from "@/components/InformationPage";
@@ -7,7 +8,7 @@ export function generateStaticParams() { return informationPageSlugs("vi").map((
 export async function generateMetadata({ params }: { params: Promise<{ page: string }> }): Promise<Metadata> {
   const { page } = await params;
   const content = getInformationPage("vi", page);
-  return content ? { title: content.title, description: content.lead } : { title: "OMDALA Brand Exchange" };
+  return content ? { title: content.title, description: content.lead, alternates: selfAlternates("vi", `/${page}`) } : { title: "OMDALA Brand Exchange" };
 }
 
 export default async function VietnameseInformationRoute({ params }: { params: Promise<{ page: string }> }) {

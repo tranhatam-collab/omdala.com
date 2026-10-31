@@ -1,5 +1,6 @@
 import http from "node:http";
 import fs from "node:fs/promises";
+import { accessSync, constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes, createHash, timingSafeEqual } from "node:crypto";
@@ -21,6 +22,27 @@ import { createApprovals, digest } from "./approvals.mjs";
 import { assertEgressAllowed } from "./egress-policy.mjs";
 import { APP_VERSION } from "./meta.mjs";
 const here = path.dirname(fileURLToPath(import.meta.url));
+
+const executable = (file) => {
+  try {
+    accessSync(file, fsConstants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Shell for the terminal route: the user's SHELL when it is an executable absolute path, else
+ * /bin/zsh where present (macOS default, run without rc files as before), else /bin/sh.
+ * `-f` is zsh's "no rc files"; for other shells it would change meaning, so only zsh gets it.
+ */
+export function terminalShell(env = process.env, isExecutable = executable) {
+  const candidates = [env.SHELL, "/bin/zsh", "/bin/sh"];
+  const shell = candidates.find((file) => typeof file === "string" && path.isAbsolute(file) && isExecutable(file)) ?? "/bin/sh";
+  const args = path.basename(shell) === "zsh" ? ["-f", "-c"] : ["-c"];
+  return { shell, args };
+}
 const hash = (content) => createHash("sha256").update(content).digest("hex");
 const emptyHash = hash("");
 
@@ -287,7 +309,8 @@ export async function startServer(options = {}) {
           res.on("close", () => {
             if (!res.writableEnded) controller.abort();
           });
-          result = await execute("/bin/zsh", ["-f", "-c", body.command], {
+          const { shell, args } = terminalShell();
+          result = await execute(shell, [...args, body.command], {
             cwd: root,
             timeout: 60000,
             signal: controller.signal,

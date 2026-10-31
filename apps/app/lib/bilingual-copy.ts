@@ -50,6 +50,14 @@ export const APP_COPY = {
       en: "Product Surface",
       vi: "Bề mặt sản phẩm",
     },
+    signOut: {
+      en: "Sign out",
+      vi: "Đăng xuất",
+    },
+    signingOut: {
+      en: "Signing out...",
+      vi: "Đang đăng xuất...",
+    },
     appNavigation: {
       en: "App navigation",
       vi: "Điều hướng ứng dụng",

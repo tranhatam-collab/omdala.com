@@ -11,6 +11,7 @@ import {
   pickBilingualValue,
   SHARED_UI_COPY,
   useLocationSearchParam,
+  useLocationSuffix,
 } from "@omdala/ui";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -27,7 +28,12 @@ const LANGUAGE_LABELS: Record<(typeof OMDALA_LANGUAGES)[number], string> = {
 export function LanguageSwitcher() {
   const pathname = usePathname();
   const currentLanguage = resolveLanguage(useLocationSearchParam("lang"));
-  const currentPath = pathname;
+  // Keep every other query parameter and the hash (for example ?next= and anchors).
+  const currentPath = `${pathname}${useLocationSuffix()}`;
+
+  // The OMCODE IDE has its own language toggle in its top bar, where this fixed overlay
+  // would cover the account and tracker buttons.
+  if (pathname?.startsWith("/workspace")) return null;
 
   return (
     <div
@@ -44,6 +50,7 @@ export function LanguageSwitcher() {
             <span
               key={language}
               className="language-switcher__item language-switcher__item--disabled"
+              aria-disabled="true"
               title={pickBilingualValue(currentLanguage, SHARED_UI_COPY.comingSoon)}
             >
               {LANGUAGE_LABELS[language]}

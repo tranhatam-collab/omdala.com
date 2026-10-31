@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { ForHostsPageView } from "../../for-hosts/ForHostsPageView"
+import { ForHostsPageView } from "../../(en)/for-hosts/ForHostsPageView"
 import { buildLocalizedMetadata } from "../../lib/localized-metadata"
 import { getPrefixedLocaleStaticParams, resolveRouteLanguage } from "../../lib/locale-routing"
 

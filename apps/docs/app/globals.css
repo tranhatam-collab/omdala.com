@@ -84,3 +84,8 @@ a {
 .docs-language-switcher__item--disabled {
   opacity: 0.45;
 }
+
+h1,
+h2 {
+  font-family: Sora, Inter, system-ui, sans-serif;
+}

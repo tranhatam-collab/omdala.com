@@ -51,8 +51,8 @@ a { color: inherit; }
 .listing-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
 .listing-card { display: flex; flex-direction: column; min-height: 360px; padding: 1.35rem; background: rgba(255, 253, 247, 0.66); border: 1px solid var(--line); }
 .listing-card__topline { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
-.listing-card h3 { margin: 2.5rem 0 0.75rem; font-family: var(--serif); font-size: 2.1rem; line-height: 0.95; font-weight: 500; letter-spacing: -0.04em; }
-.listing-card h3 a { text-decoration: none; }
+.listing-card h2, .listing-card h3 { margin: 2.5rem 0 0.75rem; font-family: var(--serif); font-size: 2.1rem; line-height: 0.95; font-weight: 500; letter-spacing: -0.04em; }
+.listing-card h2 a, .listing-card h3 a { text-decoration: none; }
 .listing-card > p { color: var(--moss-soft); line-height: 1.5; }
 .listing-card__price { margin-top: auto; display: flex; flex-direction: column; gap: 0.2rem; }
 .listing-card__price span { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; }

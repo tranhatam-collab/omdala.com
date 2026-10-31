@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { TrustPageView } from "../../trust/TrustPageView"
+import { TrustPageView } from "../../(en)/trust/TrustPageView"
 import { buildLocalizedMetadata } from "../../lib/localized-metadata"
 import { getPrefixedLocaleStaticParams, resolveRouteLanguage } from "../../lib/locale-routing"
 

@@ -7,6 +7,7 @@ import {
 } from "@omdala/core";
 import { AUTH_COPY, pickBilingualValue, useLocationSearchParam } from "@omdala/ui";
 import { Suspense } from "react";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 import { AuthLoginForm } from "./AuthLoginForm";
 
 export default function LoginPage() {
@@ -33,6 +34,7 @@ export default function LoginPage() {
     <main className="auth-shell">
       <section className="auth-grid">
         <article className="auth-panel">
+          <LanguageSwitcher />
           <p className="auth-eyebrow">{pickBilingualValue(language, copy.eyebrow)}</p>
           <h1>{pickBilingualValue(language, copy.title)}</h1>
           <p className="auth-copy">{pickBilingualValue(language, copy.body)}</p>

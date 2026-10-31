@@ -14,6 +14,10 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  experimental: {
+    // Each locale has its own root layout, so unknown URLs need a self-contained 404.
+    globalNotFound: true,
+  },
   turbopack: {
     root: configDir
   }

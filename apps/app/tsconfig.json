@@ -34,7 +34,9 @@
   "exclude": [
     "node_modules",
     "playwright.config.ts",
+    "playwright.export.config.ts",
     "e2e",
+    "e2e-export",
     "test-results"
   ]
 }

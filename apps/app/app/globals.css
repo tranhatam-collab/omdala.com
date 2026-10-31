@@ -390,3 +390,53 @@ h2 {
     max-width: none;
   }
 }
+
+.app-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.language-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--om-border);
+  border-radius: 999px;
+  background: rgba(10, 22, 40, 0.82);
+  backdrop-filter: blur(8px);
+}
+
+.language-switcher__item {
+  border-radius: 999px;
+  color: var(--om-text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 6px 9px;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+a.language-switcher__item:hover {
+  color: var(--om-text);
+}
+
+.language-switcher__item--active {
+  background: rgba(126, 242, 255, 0.14);
+  box-shadow: inset 0 0 0 1px var(--om-border-focus);
+  color: var(--om-text);
+}
+
+.language-switcher__item--disabled {
+  color: var(--om-text-muted);
+  cursor: not-allowed;
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+/* Pages with the dashboard header carry their own switcher; the floating one would cover its buttons. */
+body[data-inline-language-switcher] .language-switcher-floating {
+  display: none;
+}

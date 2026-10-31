@@ -4,6 +4,8 @@ import * as React from "react";
 import { resolveLanguage, withLanguageParam } from "@omdala/core";
 import { AICommandPalette, useLocationSearchParam } from "@omdala/ui";
 import { LocaleLink } from "./LocaleLink";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { SignOutButton } from "./SignOutButton";
 import { APP_COPY, t } from "@/lib/bilingual-copy";
 
 interface SmartLayoutProps {
@@ -22,6 +24,12 @@ export function SmartLayout({ children }: SmartLayoutProps) {
   const language = resolveLanguage(useLocationSearchParam("lang"));
   const [paletteOpen, setPaletteOpen] = React.useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+
+  // The header carries its own language switcher, so hide the floating one while it is mounted.
+  React.useEffect(() => {
+    document.body.setAttribute("data-inline-language-switcher", "");
+    return () => document.body.removeAttribute("data-inline-language-switcher");
+  }, []);
 
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -230,9 +238,10 @@ export function SmartLayout({ children }: SmartLayoutProps) {
           }}
         >
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 700, color: "#f7fbff", margin: 0 }}>
+            {/* A paragraph, not a heading: every page below renders its own h1. */}
+            <p style={{ fontSize: 20, fontWeight: 700, color: "#f7fbff", margin: 0 }}>
               Omdala Operator
-            </h1>
+            </p>
             <p style={{ fontSize: 13, color: "#6b7f99", margin: "4px 0 0" }}>
               {t(language, APP_COPY.layout.productSurface)}
             </p>
@@ -244,6 +253,8 @@ export function SmartLayout({ children }: SmartLayoutProps) {
             <LocaleLink href="/profile" className="app-button app-button--primary">
               {t(language, APP_COPY.layout.navLabels.Profile)}
             </LocaleLink>
+            <LanguageSwitcher />
+            <SignOutButton />
           </div>
         </header>
 

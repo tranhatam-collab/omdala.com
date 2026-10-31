@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { HowItWorksPageView } from "../../how-it-works/HowItWorksPageView"
+import { HowItWorksPageView } from "../../(en)/how-it-works/HowItWorksPageView"
 import { buildLocalizedMetadata } from "../../lib/localized-metadata"
 import { getPrefixedLocaleStaticParams, resolveRouteLanguage } from "../../lib/locale-routing"
 

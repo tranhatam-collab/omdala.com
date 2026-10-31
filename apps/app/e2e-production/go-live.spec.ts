@@ -85,6 +85,13 @@ test.describe.serial("OMDALA merged-main production acceptance", () => {
     expect(appHref).toBeTruthy();
     expect(new URL(appHref!).origin).toBe(production.appUrl);
 
+    // Vietnamese browse: the /vi/ route renders localized text and declares lang="vi".
+    const webVi = await page.goto(`${production.webUrl}/vi/`, { waitUntil: "domcontentloaded" });
+    expect(webVi?.status()).toBe(200);
+    await expect(page.locator("html")).toHaveAttribute("lang", "vi");
+    await expect(page).toHaveTitle(/Nền tảng/);
+    await expect(page.locator("body")).toContainText(/Bắt đầu/);
+
     const appLogin = await page.goto(`${production.appUrl}/login/`, {
       waitUntil: "domcontentloaded",
     });

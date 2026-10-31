@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useLocationSearchParam } from "../hooks/useLocationSearchParam";
 
 const SUPPORTED_LANGUAGES = new Set(["en", "vi", "zh", "es", "ja", "ko"]);
 
@@ -35,10 +36,13 @@ function resolveDocumentLanguage(language?: string) {
 }
 
 export function DocumentLanguageSync({ language }: DocumentLanguageSyncProps) {
+  // Re-sync on client-side ?lang= changes, not only on first mount.
+  const queryLanguage = useLocationSearchParam("lang");
+
   useEffect(() => {
     const nextLanguage = resolveDocumentLanguage(language);
     document.documentElement.lang = nextLanguage;
-  }, [language]);
+  }, [language, queryLanguage]);
 
   return null;
 }

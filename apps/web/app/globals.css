@@ -989,3 +989,12 @@ h3 {
 /* ============================================================
    END OMDALA Brand v2.0 Signal & Substrate overlay
    ============================================================ */
+
+/* Card titles that sit directly under the page h1 are h2 (no skipped heading level) but keep the
+   size the former h3 had. */
+h2.card-title {
+  max-width: none;
+  margin-bottom: 0.75rem;
+  font-size: 1.28rem;
+  line-height: 1.04;
+}

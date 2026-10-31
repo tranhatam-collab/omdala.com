@@ -16,6 +16,10 @@ const config: NextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    // The EN and VI trees each have their own root layout, so unknown URLs need a self-contained 404.
+    globalNotFound: true,
+  },
   transpilePackages: ['@omdala/ui', '@omdala/seo', '@omdala/types', '@omdala/core'],
 }
 

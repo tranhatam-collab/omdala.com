@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { withLanguagePath } from '@omdala/core'
 import { OMDALA_PAGES, buildLanguageAlternates, buildSeoUrl } from '@omdala/seo'
 import { WEB_BILINGUAL_LANGUAGES } from './lib/locale-routing'
 
@@ -35,18 +36,18 @@ export const dynamic = 'force-static'
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = Object.values(OMDALA_PAGES)
 
-  return routes.map((path) => {
-    const url = buildSeoUrl(path)
+  // One entry per locale URL (EN at the path, VI under /vi), each carrying the same alternates.
+  return routes.flatMap((path) => {
     const alternates = buildLanguageAlternates(path, { locales: WEB_BILINGUAL_LANGUAGES })
 
-    return {
-      url,
+    return WEB_BILINGUAL_LANGUAGES.map((language) => ({
+      url: buildSeoUrl(withLanguagePath(path, language)),
       lastModified: BUILD_DATE,
       changeFrequency: ROUTE_CHANGE_FREQUENCY[path] ?? 'monthly',
       priority: ROUTE_PRIORITY[path] ?? 0.5,
       alternates: {
         languages: alternates,
       },
-    }
+    }))
   })
 }

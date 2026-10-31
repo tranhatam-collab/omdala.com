@@ -1,8 +1,0 @@
-User-agent: *
-Allow: /
-
-Disallow: /preview/
-Disallow: /internal/
-Disallow: /draft/
-
-Sitemap: https://docs.omdala.com/sitemap.xml

@@ -1,6 +1,7 @@
 // ─── AIChatPanel — Right sidebar chat với AI agent ────────────────────────
 "use client";
 
+import { describeAiChatError, type ChatLanguage } from "../api/ai-chat-errors";
 import * as React from "react";
 import { classifyTask } from "@omdala/core";
 import { ModelPickerWithAuto, resolveAiagentModel } from "./ModelPicker";
@@ -27,6 +28,8 @@ interface AIChatPanelProps {
   workspaceFiles: Array<{ path: string; content: string }>;
   workspaceName: string;
   activePath?: string | null;
+  /** Language of the workspace chrome; chat errors are shown in it. */
+  lang?: ChatLanguage;
   onApplyCode?: (code: string, targetPath?: string) => void;
 }
 
@@ -120,7 +123,7 @@ function MessageContent({
   );
 }
 
-export function AIChatPanel({ workspaceFiles, workspaceName, activePath, onApplyCode }: AIChatPanelProps) {
+export function AIChatPanel({ workspaceFiles, workspaceName, activePath, lang = "vi", onApplyCode }: AIChatPanelProps) {
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [input, setInput] = React.useState("");
   const [isProcessing, setIsProcessing] = React.useState(false);
@@ -296,12 +299,15 @@ Trả lời ngắn gọn, dùng tiếng Việt.`;
       }, 30);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "unknown";
+      const friendly = describeAiChatError(err, lang);
       setMessages((m) => [
         ...m,
         {
           id: `m-${Date.now() + 1}`,
           role: "system",
-          content: `Lỗi: ${errorMessage}\n\nKiểm tra phiên đăng nhập và AIAGENT catalog trong Account.`,
+          content:
+            friendly ??
+            `Lỗi: ${errorMessage}\n\nKiểm tra phiên đăng nhập và AIAGENT catalog trong Account.`,
           timestamp: Date.now(),
         },
       ]);
