@@ -12,7 +12,9 @@ import { useApprovals } from './hooks/useApprovals';
 import { useRunDetails } from './hooks/useRunDetails';
 import { useRuns } from './hooks/useRuns';
 import { useScenes } from './hooks/useScenes';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { LiveExecutionCard } from './components/LiveExecutionCard';
+import { useLocale } from './i18n/locale';
 import { useAppStore } from './state/store';
 
 export function App() {
@@ -20,6 +22,7 @@ export function App() {
   const deployStatus = import.meta.env.VITE_DEPLOY_STATUS ?? 'preview';
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'same-origin';
 
+  const { t } = useLocale();
   const { state, setSelectedSpaceId } = useAppStore();
   const { devices, loading: loadingDevices, error: devicesError } = useDevices();
   const { scenes, runScene, loading: loadingScenes, error: scenesError } = useScenes();
@@ -149,8 +152,10 @@ export function App() {
 
     setLastAuthEmail(email);
     setAuthSuccess(
-      `Check your email: ${email} / Vui long kiem tra email: ${email}${
-        result.value.expiresAt ? ` (expires at ${result.value.expiresAt} / het han luc ${result.value.expiresAt})` : ''
+      `Check your email: ${email}${
+        result.value.expiresAt ? ` (expires at ${result.value.expiresAt})` : ''
+      }. / Vui long kiem tra email: ${email}${
+        result.value.expiresAt ? ` (het han luc ${result.value.expiresAt})` : ''
       }.`,
     );
     setCooldownUntil(Date.now() + 30_000);
@@ -219,170 +224,171 @@ export function App() {
     <div className="page">
       <header className="hero">
         <h1>Om AI</h1>
+        <LanguageSwitcher />
         <p>
-          Control your space and talk with live AI support in one place. Every action is checked by policy and
-          saved with a clear history. / Dieu khien khong gian va tro chuyen voi AI live trong mot noi. Moi hanh dong
-          duoc kiem tra theo chinh sach va luu lai lich su ro rang.
+          {t(
+            'Control your space and talk with live AI support in one place. Every action is checked by policy and saved with a clear history. / Dieu khien khong gian va tro chuyen voi AI live trong mot noi. Moi hanh dong duoc kiem tra theo chinh sach va luu lai lich su ro rang.',
+          )}
         </p>
         <div className="hero-actions">
-          <a href="#planner" className="cta-primary">Try live planner / Thu planner truc tiep</a>
-          <a href="#activity" className="cta-secondary">See activity timeline / Xem nhat ky hoat dong</a>
+          <a href="#planner" className="cta-primary">{t('Try live planner / Thu planner truc tiep')}</a>
+          <a href="#activity" className="cta-secondary">{t('See activity timeline / Xem nhat ky hoat dong')}</a>
         </div>
         <div className="hero-row">
-          <span className="chip">Policy-first execution / Thuc thi uu tien chinh sach</span>
-          <span className="chip">Proof-linked runs / Run gan voi bang chung</span>
-          <span className="chip">Human approvals built-in / Co phe duyet thu cong tich hop</span>
+          <span className="chip">{t('Policy-first execution / Thuc thi uu tien chinh sach')}</span>
+          <span className="chip">{t('Proof-linked runs / Run gan voi bang chung')}</span>
+          <span className="chip">{t('Human approvals built-in / Co phe duyet thu cong tich hop')}</span>
         </div>
         <div className="status-row">
-          <span className="status-pill">Status / Trang thai: {deployStatus}</span>
-          <span className="status-pill">Release / Phien ban: {releaseTag}</span>
+          <span className="status-pill">{t('Status / Trang thai: ')}{deployStatus}</span>
+          <span className="status-pill">{t('Release / Phien ban: ')}{releaseTag}</span>
           <span className="status-pill">API: {apiBaseUrl}</span>
           <span className="status-pill status-down">
-            API ready / API san sang: {apiReadyLabel}
+            {t('API ready / API san sang: ')}{t(apiReadyLabel)}
           </span>
           <button className="button-secondary" onClick={onCheckApiReady}>
-            Show bridge status / Xem trang thai cau noi
+            {t('Show bridge status / Xem trang thai cau noi')}
           </button>
         </div>
-        {lastRequestId ? <p className="meta-line">Latest request id / Request id moi nhat: {lastRequestId}</p> : null}
-        {apiCheckedAt ? <p className="meta-line">Last API check / Lan kiem tra API gan nhat: {apiCheckedAt}</p> : null}
+        {lastRequestId ? <p className="meta-line">{t('Latest request id / Request id moi nhat: ')}{lastRequestId}</p> : null}
+        {apiCheckedAt ? <p className="meta-line">{t('Last API check / Lan kiem tra API gan nhat: ')}{apiCheckedAt}</p> : null}
         {apiReady === 'blocked' ? (
           <p className="meta-line warning-line">
-            Protected actions are disabled before network access until this surface has a verified canonical OMDALA
-            session bridge. / Cac thao tac duoc bao ve bi tat truoc khi truy cap mang cho den khi surface nay co cau noi
-            phien OMDALA canonical da xac minh.
+            {t(
+              'Protected actions are disabled before network access until this surface has a verified canonical OMDALA session bridge. / Cac thao tac duoc bao ve bi tat truoc khi truy cap mang cho den khi surface nay co cau noi phien OMDALA canonical da xac minh.',
+            )}
           </p>
         ) : null}
       </header>
 
       <main>
       <section className="grid">
-      <Card className="span-6" id="auth" title="Sign in / Dang nhap (magic link)">
-        {callbackState === 'success' ? <Alert tone="success">Your sign-in link is verified. You can continue. / Link dang nhap da duoc xac minh. Ban co the tiep tuc.</Alert> : null}
+      <Card className="span-6" id="auth" title={t('Sign in / Dang nhap (magic link)')}>
+        {callbackState === 'success' ? <Alert tone="success">{t('Your sign-in link is verified. You can continue. / Link dang nhap da duoc xac minh. Ban co the tiep tuc.')}</Alert> : null}
         {callbackState === 'expired' ? (
-          <Alert tone="warning">Your sign-in link has expired. Request a new link below. / Link dang nhap da het han. Hay yeu cau link moi ben duoi.</Alert>
+          <Alert tone="warning">{t('Your sign-in link has expired. Request a new link below. / Link dang nhap da het han. Hay yeu cau link moi ben duoi.')}</Alert>
         ) : null}
-        {callbackState === 'invalid' ? <Alert tone="warning">Invalid sign-in link. Request a new link. / Link dang nhap khong hop le. Hay yeu cau link moi.</Alert> : null}
+        {callbackState === 'invalid' ? <Alert tone="warning">{t('Invalid sign-in link. Request a new link. / Link dang nhap khong hop le. Hay yeu cau link moi.')}</Alert> : null}
         <div className="controls">
           <Input
             type="email"
-            aria-label="Email address / Dia chi email"
-            placeholder="you@domain.com / ban@domain.com"
+            aria-label={t('Email address / Dia chi email')}
+            placeholder={t('you@domain.com / ban@domain.com')}
             value={authEmail}
             onChange={(e) => setAuthEmail(e.target.value)}
           />
           <Button onClick={() => void onRequestMagicLink()} disabled={authLoading || cooldownSeconds > 0}>
-            {authLoading ? 'Sending... / Dang gui...' : cooldownSeconds > 0 ? `Resend in ${cooldownSeconds}s / Gui lai sau ${cooldownSeconds} giay` : 'Send magic link / Gui magic link'}
+            {authLoading ? t('Sending... / Dang gui...') : cooldownSeconds > 0 ? t(`Resend in ${cooldownSeconds}s / Gui lai sau ${cooldownSeconds} giay`) : t('Send magic link / Gui magic link')}
           </Button>
         </div>
-        {authSuccess ? <Alert tone="success">{authSuccess}</Alert> : null}
+        {authSuccess ? <Alert tone="success">{t(authSuccess)}</Alert> : null}
         {authError ? (
           <Alert tone="warning">
-            {authError}{' '}
+            {t(authError)}{' '}
             <Button variant="secondary" onClick={() => void onRequestMagicLink(lastAuthEmail || undefined)}>
-              Retry / Thu lai
+              {t('Retry / Thu lai')}
             </Button>
           </Alert>
         ) : null}
       </Card>
 
-      <Card className="span-6" title="Why Om AI / Vi sao chon Om AI">
+      <Card className="span-6" title={t('Why Om AI / Vi sao chon Om AI')}>
         <ul>
           {featurePoints.map((point) => (
-            <li key={point}>{point}</li>
+            <li key={point}>{t(point)}</li>
           ))}
         </ul>
       </Card>
 
-      <Card className="span-6" title="Use cases / Cach dung thuc te">
+      <Card className="span-6" title={t('Use cases / Cach dung thuc te')}>
         <ul>
           {useCases.map((item) => (
-            <li key={item}>{item}</li>
+            <li key={item}>{t(item)}</li>
           ))}
         </ul>
       </Card>
 
       <LiveExecutionCard className="span-6" />
 
-      <Card className="span-6" id="planner" title="Planner / Bo lap ke hoach">
+      <Card className="span-6" id="planner" title={t('Planner / Bo lap ke hoach')}>
         <div className="controls">
-          <Input value={input} onChange={(e) => setInput(e.target.value)} aria-label="Describe what you want / Mo ta dieu ban muon" placeholder="Describe what you want / Mo ta dieu ban muon" />
+          <Input value={input} onChange={(e) => setInput(e.target.value)} aria-label={t('Describe what you want / Mo ta dieu ban muon')} placeholder={t('Describe what you want / Mo ta dieu ban muon')} />
         <Button onClick={onPlan} disabled={planning}>
-          {planning ? 'Planning... / Dang lap ke hoach...' : 'Plan / Lap ke hoach'}
+          {planning ? t('Planning... / Dang lap ke hoach...') : t('Plan / Lap ke hoach')}
         </Button>
         </div>
-        {planningError ? <Alert tone="warning">Planner error / Loi planner: {planningError}</Alert> : null}
-        {planResult ? <Alert>Last plan / Ke hoach gan nhat: {planResult}</Alert> : null}
-        {loadingPlanDetails ? <p>Loading plan details... / Dang tai chi tiet ke hoach...</p> : null}
-        {planDetailsError ? <Alert tone="warning">Plan details error / Loi chi tiet ke hoach: {planDetailsError}</Alert> : null}
-        {planDetailResult ? <Alert>Plan details / Chi tiet ke hoach: {planDetailResult}</Alert> : null}
-        {approvalsLoading ? <p>Loading approval... / Dang tai phe duyet...</p> : null}
-        {approvalsError ? <Alert tone="warning">Approvals error / Loi phe duyet: {approvalsError}</Alert> : null}
-        {approvalResult ? <Alert>Approval / Phe duyet: {approvalResult}</Alert> : null}
+        {planningError ? <Alert tone="warning">{t('Planner error / Loi planner: ')}{planningError}</Alert> : null}
+        {planResult ? <Alert>{t('Last plan / Ke hoach gan nhat: ')}{planResult}</Alert> : null}
+        {loadingPlanDetails ? <p>{t('Loading plan details... / Dang tai chi tiet ke hoach...')}</p> : null}
+        {planDetailsError ? <Alert tone="warning">{t('Plan details error / Loi chi tiet ke hoach: ')}{planDetailsError}</Alert> : null}
+        {planDetailResult ? <Alert>{t('Plan details / Chi tiet ke hoach: ')}{planDetailResult}</Alert> : null}
+        {approvalsLoading ? <p>{t('Loading approval... / Dang tai phe duyet...')}</p> : null}
+        {approvalsError ? <Alert tone="warning">{t('Approvals error / Loi phe duyet: ')}{approvalsError}</Alert> : null}
+        {approvalResult ? <Alert>{t('Approval / Phe duyet: ')}{approvalResult}</Alert> : null}
       </Card>
 
-      <Card className="span-6" title="Scenes / Ngu canh">
-        {loadingScenes ? <p>Loading scenes... / Dang tai scenes...</p> : null}
-        {scenesError ? <Alert tone="warning">Scenes error / Loi scenes: {scenesError}</Alert> : null}
+      <Card className="span-6" title={t('Scenes / Ngu canh')}>
+        {loadingScenes ? <p>{t('Loading scenes... / Dang tai scenes...')}</p> : null}
+        {scenesError ? <Alert tone="warning">{t('Scenes error / Loi scenes: ')}{scenesError}</Alert> : null}
         {!loadingScenes && !scenesError ? (
           <ul>
             {scenes.map((s) => (
               <li key={s.scene_id}>
                 {s.display_name} ({s.safety_class})
                 <Button onClick={() => onRunScene(s.scene_id)} variant="secondary" className="ml-8">
-                  Run / Chay
+                  {t('Run / Chay')}
                 </Button>
               </li>
             ))}
           </ul>
         ) : null}
-        {sceneRunResult ? <Alert>Last scene run / Lan chay scene gan nhat: {sceneRunResult}</Alert> : null}
+        {sceneRunResult ? <Alert>{t('Last scene run / Lan chay scene gan nhat: ')}{sceneRunResult}</Alert> : null}
       </Card>
 
-      <Card className="span-8" id="activity" title="Activity timeline / Nhat ky hoat dong">
+      <Card className="span-8" id="activity" title={t('Activity timeline / Nhat ky hoat dong')}>
         <Button onClick={() => void refreshRuns()} disabled={loadingRuns} variant="secondary">
-          {loadingRuns ? 'Refreshing... / Dang lam moi...' : 'Refresh / Lam moi'}
+          {loadingRuns ? t('Refreshing... / Dang lam moi...') : t('Refresh / Lam moi')}
         </Button>
-        {runsError ? <Alert tone="warning">Runs error / Loi runs: {runsError}</Alert> : null}
+        {runsError ? <Alert tone="warning">{t('Runs error / Loi runs: ')}{runsError}</Alert> : null}
         {!loadingRuns && !runsError ? (
           <ul>
             {runs.map((r) => (
               <li key={r.run_id}>
                 {r.created_at} - {r.source}:{r.source_id} - {r.status} ({r.run_id})
                 <Button onClick={() => void onToggleRunDetails(r.run_id)} className="ml-8" variant="secondary">
-                  {selectedRunId === r.run_id ? 'Hide details / An chi tiet' : 'View details / Xem chi tiet'}
+                  {selectedRunId === r.run_id ? t('Hide details / An chi tiet') : t('View details / Xem chi tiet')}
                 </Button>
                 {selectedRunId === r.run_id ? (
                   <div className="meta-line">
-                    {loadingRunDetails ? <p>Loading run details... / Dang tai chi tiet run...</p> : null}
-                    {runDetailsError ? <Alert tone="warning">Run details error / Loi chi tiet run: {runDetailsError}</Alert> : null}
+                    {loadingRunDetails ? <p>{t('Loading run details... / Dang tai chi tiet run...')}</p> : null}
+                    {runDetailsError ? <Alert tone="warning">{t('Run details error / Loi chi tiet run: ')}{runDetailsError}</Alert> : null}
                     {selectedRunDetails ? (
                       <p>
-                        Activity / Hoat dong: {selectedRunDetails}{' '}
+                        {t('Activity / Hoat dong: ')}{selectedRunDetails}{' '}
                         <Button variant="secondary" onClick={() => void onCopy(r.run_id)}>
-                          Copy run id / Sao chep run id
+                          {t('Copy run id / Sao chep run id')}
                         </Button>
                       </p>
                     ) : null}
                     {selectedProofDetails ? (
                       <p>
-                        Proof / Bang chung: {selectedProofDetails}{' '}
+                        {t('Proof / Bang chung: ')}{t(selectedProofDetails)}{' '}
                         {selectedProofId ? (
                           <Button variant="secondary" onClick={() => void onCopy(selectedProofId)}>
-                            Copy proof id / Sao chep proof id
+                            {t('Copy proof id / Sao chep proof id')}
                           </Button>
                         ) : null}
                       </p>
                     ) : null}
                     {selectedRequestedState ? (
                       <>
-                        <p>Requested state / Trang thai yeu cau</p>
+                        <p>{t('Requested state / Trang thai yeu cau')}</p>
                         <pre style={{ whiteSpace: 'pre-wrap', overflowX: 'auto' }}>{selectedRequestedState}</pre>
                       </>
                     ) : null}
                     {selectedActualState ? (
                       <>
-                        <p>Actual state / Trang thai thuc te</p>
+                        <p>{t('Actual state / Trang thai thuc te')}</p>
                         <pre style={{ whiteSpace: 'pre-wrap', overflowX: 'auto' }}>{selectedActualState}</pre>
                       </>
                     ) : null}
@@ -394,9 +400,9 @@ export function App() {
         ) : null}
       </Card>
 
-      <Card className="span-4" title="Devices / Thiet bi">
-        {loadingDevices ? <p>Loading devices... / Dang tai thiet bi...</p> : null}
-        {devicesError ? <Alert tone="warning">Device error / Loi thiet bi: {devicesError}</Alert> : null}
+      <Card className="span-4" title={t('Devices / Thiet bi')}>
+        {loadingDevices ? <p>{t('Loading devices... / Dang tai thiet bi...')}</p> : null}
+        {devicesError ? <Alert tone="warning">{t('Device error / Loi thiet bi: ')}{devicesError}</Alert> : null}
         {!loadingDevices && !devicesError ? (
           <ul>
             {devices.map((d) => (
@@ -406,15 +412,15 @@ export function App() {
         ) : null}
       </Card>
 
-      <Card className="span-12" title="Store / Bo nho trang thai">
-        <Alert>Selected space / Khong gian dang chon: {state.selectedSpaceId ?? 'none / chua chon'}</Alert>
-        <Button onClick={() => setSelectedSpaceId('space_demo_01')}>Select demo space / Chon khong gian demo</Button>
-        <Button onClick={() => setSelectedSpaceId(null)} className="ml-8" variant="secondary">Clear / Xoa</Button>
+      <Card className="span-12" title={t('Store / Bo nho trang thai')}>
+        <Alert>{t('Selected space / Khong gian dang chon: ')}{state.selectedSpaceId ?? t('none / chua chon')}</Alert>
+        <Button onClick={() => setSelectedSpaceId('space_demo_01')}>{t('Select demo space / Chon khong gian demo')}</Button>
+        <Button onClick={() => setSelectedSpaceId(null)} className="ml-8" variant="secondary">{t('Clear / Xoa')}</Button>
       </Card>
       </section>
       </main>
 
-      <footer className="footer">Om AI - reality control and AI human interaction in one governed flow. / Om AI - dieu khien thuc tai va tuong tac AI con nguoi trong mot luong duoc quan tri.</footer>
+      <footer className="footer">{t('Om AI - reality control and AI human interaction in one governed flow. / Om AI - dieu khien thuc tai va tuong tac AI con nguoi trong mot luong duoc quan tri.')}</footer>
     </div>
   );
 }

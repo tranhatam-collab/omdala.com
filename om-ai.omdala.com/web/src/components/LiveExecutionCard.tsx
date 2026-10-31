@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { describeLiveError } from '../api/liveErrors';
+import { useLocale } from '../i18n/locale';
 import {
   createLiveSession,
   connectLiveSession,
@@ -54,6 +55,7 @@ const CORRECTION_STYLE_OPTIONS: NonNullable<LiveMemoryProfile['correction_style'
 ];
 
 export function LiveExecutionCard({ className = '' }: Props) {
+  const { t, locale } = useLocale();
   const [userId, setUserId] = useState('web_live_user_01');
   const [personaId, setPersonaId] = useState('teacher_english_01');
   const [personas, setPersonas] = useState<LivePersonaRecord[]>([]);
@@ -279,17 +281,25 @@ export function LiveExecutionCard({ className = '' }: Props) {
   }
 
   return (
-    <Card className={className} title="Om AI Live Execution / Thuc thi live">
+    <Card className={className} title={t('Om AI Live Execution / Thuc thi live')}>
       <p className="meta-line">
-        Backend execution path for <code>/v2/live</code> with persona, memory, plan gating, and server-side metering.
-        {' '} / Luong backend <code>/v2/live</code> gom persona, memory, plan gating, va metering o phia server.
+        {locale === 'vi' ? (
+          <>
+            Luong backend <code>/v2/live</code> gom persona, memory, plan gating, va metering o phia server.
+          </>
+        ) : (
+          <>
+            Backend execution path for <code>/v2/live</code> with persona, memory, plan gating, and server-side
+            metering.
+          </>
+        )}
       </p>
 
       <div className="controls">
-        <Input value={userId} onChange={(event) => setUserId(event.target.value)} aria-label="User id / Ma nguoi dung" placeholder="user_id" />
-        <select value={personaId} onChange={(event) => setPersonaId(event.target.value)} aria-label="Persona / Nhan vat">
+        <Input value={userId} onChange={(event) => setUserId(event.target.value)} aria-label={t('User id / Ma nguoi dung')} placeholder="user_id" />
+        <select value={personaId} onChange={(event) => setPersonaId(event.target.value)} aria-label={t('Persona / Nhan vat')}>
           {personaOptions.map((persona) => (
-            <option key={persona.persona_id} value={persona.persona_id}>
+            <option key={persona.persona_id} value={persona.persona_id} lang="en">
               {persona.display_name} ({persona.role_type})
             </option>
           ))}
@@ -297,7 +307,7 @@ export function LiveExecutionCard({ className = '' }: Props) {
       </div>
 
       {personaDetail ? (
-        <Alert>
+        <Alert lang="en">
           persona={personaDetail.display_name} / safety={personaDetail.safety_profile} / modes=
           {personaDetail.supported_modes.join(', ')} / providers={personaDetail.supported_providers.join(', ')}
         </Alert>
@@ -305,32 +315,32 @@ export function LiveExecutionCard({ className = '' }: Props) {
 
       <div className="controls">
         <Button onClick={() => void onCreate()} disabled={flowLoading}>
-          Create session
+          {t('Create session / Tao phien')}
         </Button>
         <Button onClick={() => void onConnect()} disabled={flowLoading || !sessionId} variant="secondary">
-          Connect
+          {t('Connect / Ket noi')}
         </Button>
         <Button onClick={() => void onEnd()} disabled={flowLoading || !sessionId} variant="secondary">
-          End (180s)
+          {t('End (180s) / Ket thuc (180 giay)')}
         </Button>
         <Button onClick={() => void refreshUsage(userId)} disabled={flowLoading} variant="secondary">
-          Refresh usage
+          {t('Refresh usage / Lam moi muc dung')}
         </Button>
       </div>
 
       <div className="subsection">
-        <h3>Memory profile / Ho so memory</h3>
+        <h3>{t('Memory profile / Ho so memory')}</h3>
         <div className="controls">
           <Input
             value={memoryDisplayName}
             onChange={(event) => setMemoryDisplayName(event.target.value)}
-            aria-label="Display name / Ten hien thi"
+            aria-label={t('Display name / Ten hien thi')}
             placeholder="display_name"
           />
           <Input
             value={memoryTimezone}
             onChange={(event) => setMemoryTimezone(event.target.value)}
-            aria-label="Timezone / Mui gio"
+            aria-label={t('Timezone / Mui gio')}
             placeholder="timezone"
           />
         </div>
@@ -338,60 +348,62 @@ export function LiveExecutionCard({ className = '' }: Props) {
           <Input
             value={memoryTargetLanguage}
             onChange={(event) => setMemoryTargetLanguage(event.target.value)}
-            aria-label="Target language / Ngon ngu muc tieu"
+            aria-label={t('Target language / Ngon ngu muc tieu')}
             placeholder="target_language"
           />
           <select
-            aria-label="Correction style / Kieu sua loi"
+            aria-label={t('Correction style / Kieu sua loi')}
             value={memoryCorrectionStyle}
             onChange={(event) =>
               setMemoryCorrectionStyle(event.target.value as NonNullable<LiveMemoryProfile['correction_style']>)
             }
           >
             {CORRECTION_STYLE_OPTIONS.map((option) => (
-              <option key={option} value={option}>
+              <option key={option} value={option} lang="en">
                 {option}
               </option>
             ))}
           </select>
           <Button onClick={() => void onSaveMemory()} disabled={memoryLoading}>
-            Save memory
+            {t('Save memory / Luu memory')}
           </Button>
           <Button onClick={() => void refreshMemory(userId)} disabled={memoryLoading} variant="secondary">
-            Refresh memory
+            {t('Refresh memory / Lam moi memory')}
           </Button>
         </div>
       </div>
 
       <div className="subsection">
-        <h3>Plan gating / Goi va gioi han</h3>
+        <h3>{t('Plan gating / Goi va gioi han')}</h3>
         <div className="controls">
-          <select value={selectedPlanId} onChange={(event) => setSelectedPlanId(event.target.value)} aria-label="Plan / Goi">
+          <select value={selectedPlanId} onChange={(event) => setSelectedPlanId(event.target.value)} aria-label={t('Plan / Goi')}>
             {planOptions.map((plan) => (
-              <option key={plan.plan_id} value={plan.plan_id}>
+              <option key={plan.plan_id} value={plan.plan_id} lang="en">
                 {plan.display_name} ({plan.plan_id})
               </option>
             ))}
           </select>
           <Button onClick={() => void onUpgradePlan()} disabled={planLoading}>
-            Upgrade plan
+            {t('Upgrade plan / Nang cap goi')}
           </Button>
           <Button onClick={() => void refreshUsage(userId)} disabled={planLoading} variant="secondary">
-            Refresh plan usage
+            {t('Refresh plan usage / Lam moi muc dung goi')}
           </Button>
         </div>
         <p className="meta-line">
-          Current plan / Goi hien tai: {currentPlanId} / avatar={activePlan?.supports_avatar ? 'yes' : 'no'} /
-          custom_personas={activePlan?.supports_custom_personas ? 'yes' : 'no'} /
-          free_seconds={activePlan?.daily_free_seconds ?? 0}
+          {t('Current plan / Goi hien tai: ')}
+          <span lang="en">
+            {currentPlanId} / avatar={activePlan?.supports_avatar ? 'yes' : 'no'} / custom_personas=
+            {activePlan?.supports_custom_personas ? 'yes' : 'no'} / free_seconds={activePlan?.daily_free_seconds ?? 0}
+          </span>
         </p>
       </div>
 
-      {flowText ? <Alert>{flowText}</Alert> : null}
-      {usageText ? <Alert>{usageText}</Alert> : null}
-      {memoryText ? <Alert>{memoryText}</Alert> : null}
-      {planText ? <Alert>{planText}</Alert> : null}
-      {error ? <Alert tone="warning">{describeLiveError(error).message}</Alert> : null}
+      {flowText ? <Alert lang="en">{flowText}</Alert> : null}
+      {usageText ? <Alert lang="en">{usageText}</Alert> : null}
+      {memoryText ? <Alert lang="en">{memoryText}</Alert> : null}
+      {planText ? <Alert lang="en">{planText}</Alert> : null}
+      {error ? <Alert tone="warning">{t(describeLiveError(error).message)}</Alert> : null}
     </Card>
   );
 }

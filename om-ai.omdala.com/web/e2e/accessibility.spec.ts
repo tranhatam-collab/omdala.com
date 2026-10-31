@@ -123,3 +123,83 @@ for (const locale of ['en-US', 'vi-VN']) {
     });
   });
 }
+
+// ---------------------------------------------------------------------------------------------
+// Language: <html lang> follows the active locale from the first render and on every switch;
+// text in the other language carries its own lang attribute.
+// ---------------------------------------------------------------------------------------------
+
+async function openPage(page: Page, url = '/') {
+  await mockApi(page);
+  await page.goto(url);
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+}
+
+const htmlLang = (page: Page) => page.locator('html').getAttribute('lang');
+
+test.describe('locale', () => {
+  test.use({ locale: 'en-US' });
+
+  test('first render uses the browser language, and ?lang= overrides it', async ({ page }) => {
+    await openPage(page);
+    expect(await htmlLang(page)).toBe('en');
+
+    await openPage(page, '/?lang=vi');
+    expect(await htmlLang(page)).toBe('vi');
+    await expect(page.getByRole('heading', { level: 2, name: /Dang nhap/ })).toBeVisible();
+  });
+
+  test('switching language updates <html lang> and the page text, and the choice is remembered', async ({ page }) => {
+    await openPage(page);
+    const group = page.getByRole('group', { name: 'Language' });
+    await expect(group.getByRole('button', { name: 'English' })).toHaveAttribute('aria-pressed', 'true');
+
+    await group.getByRole('button', { name: 'Tiếng Việt' }).click();
+    expect(await htmlLang(page)).toBe('vi');
+    await expect(page.getByRole('heading', { level: 2, name: /Dang nhap/ })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 2, name: /Sign in/ })).toHaveCount(0);
+    await expect(page.getByRole('group', { name: /Ngon ngu/ }).getByRole('button', { name: 'Tiếng Việt' })).toHaveAttribute('aria-pressed', 'true');
+
+    await page.reload();
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    expect(await htmlLang(page)).toBe('vi');
+
+    await page.getByRole('group', { name: /Ngon ngu/ }).getByRole('button', { name: 'English' }).click();
+    expect(await htmlLang(page)).toBe('en');
+    await expect(page.getByRole('heading', { level: 2, name: /Sign in/ })).toBeVisible();
+  });
+
+  test('the language buttons are labelled in their own language', async ({ page }) => {
+    await openPage(page);
+    await expect(page.getByRole('button', { name: 'English' })).toHaveAttribute('lang', 'en');
+    await expect(page.getByRole('button', { name: 'Tiếng Việt' })).toHaveAttribute('lang', 'vi');
+  });
+
+  test('in Vietnamese no English-only control or heading is left without its own lang', async ({ page }) => {
+    await openPage(page);
+    const read = () =>
+      page.evaluate(() => {
+        const own = (el: Element) => el.closest('[lang]') !== document.documentElement && el.closest('[lang]') !== null;
+        return [...document.querySelectorAll('h1,h2,h3,button,a,label')]
+          .filter((el) => !own(el))
+          .map((el) => (el.textContent ?? '').replace(/\s+/gu, ' ').trim())
+          .filter(Boolean);
+      });
+    const english = await read();
+    await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Tiếng Việt' }).click();
+    const vietnamese = await read();
+    const brand = new Set(['Om AI']);
+    const shared = vietnamese.filter((text) => english.includes(text) && !brand.has(text));
+    expect(shared, 'texts identical in both languages').toEqual([]);
+  });
+
+  test('text in the other language carries lang="en" while Vietnamese is active', async ({ page }) => {
+    await openPage(page, '/?lang=vi');
+    await expect(page.getByText(/plan=free/)).toBeVisible();
+    const tagged = await page.evaluate(() => {
+      const el = [...document.querySelectorAll('p')].find((p) => /plan=free/u.test(p.textContent ?? ''));
+      return el?.closest('[lang]')?.getAttribute('lang');
+    });
+    expect(tagged).toBe('en');
+  });
+});

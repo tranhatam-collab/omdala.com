@@ -295,3 +295,9 @@ pre {
     transform: translateY(0);
   }
 }
+
+.language-switcher {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
