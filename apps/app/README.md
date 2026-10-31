@@ -11,4 +11,4 @@ npm run dev:app
 npm run build:app
 ```
 
-Set `NEXT_PUBLIC_OMDALA_API_BASE_URL` if the API is not running on `http://127.0.0.1:8789`.
+The API origin comes from `NEXT_PUBLIC_API_URL` together with `NEXT_PUBLIC_RELEASE_ENVIRONMENT` (see `lib/api-client.ts`); there is no localhost default.
