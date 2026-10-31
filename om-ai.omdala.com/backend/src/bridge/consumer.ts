@@ -18,6 +18,22 @@ export type BridgeClaims = {
   exp: number;
 };
 
+/** Thrown by a verifier adapter when the credential authority cannot be reached: the caller gets 503, not 401. */
+export class BridgeVerifierUnavailable extends Error {
+  constructor(message = 'bridge_verifier_unavailable') {
+    super(message);
+    this.name = 'BridgeVerifierUnavailable';
+  }
+}
+
+/** Thrown by a verifier adapter when the authority says the credential or its session was revoked. */
+export class BridgeTokenRevoked extends Error {
+  constructor(message = 'bridge_token_revoked') {
+    super(message);
+    this.name = 'BridgeTokenRevoked';
+  }
+}
+
 /** Verifies the signature and returns the raw claims, or null. Supplied by the API-side contract. */
 export type BridgeVerifier = (token: string) => Promise<unknown | null>;
 /** True when the bridge credential or its parent session is revoked. May throw if the store is down. */
@@ -99,7 +115,9 @@ export async function authorizeBridgeRequest(request: BridgeRequest, deps: Bridg
   let verified: unknown;
   try {
     verified = await deps.verify(token);
-  } catch {
+  } catch (error) {
+    if (error instanceof BridgeVerifierUnavailable) return fail(503, 'session_authority_unavailable');
+    if (error instanceof BridgeTokenRevoked) return fail(401, 'session_revoked');
     return fail(401, 'invalid_or_expired_token');
   }
   const nowSeconds = Math.floor((deps.now?.() ?? Date.now()) / 1000);
