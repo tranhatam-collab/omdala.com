@@ -177,7 +177,7 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-TAI-04 MOB-02 toolchain | TAI | PARTIAL: Linux side done; bundle ids need the owner (7.3) | 66b169d | 2026-10-30 |
 | WO-TAI-05 failure states | TAI | PARTIAL: messages and unit tests done; browser test waits on the AI authority contract | cba5ccb | 2026-10-30 |
 | BL-TAI-01..03 | TAI | VERIFIED | e1d3be3, 696dad1 | 2026-10-30 |
-| WO-T4-03 standing | T4 | READY (standing, every turn) | Verified through T2 c442389, T3 3c166ec, TAI 984f640, no failures; next: T2 369cb50, T3 6def072 | 2026-10-31 |
+| WO-T4-03 standing | T4 | READY (standing, every turn) | Verified through T2 369cb50, T3 6def072, TAI 984f640, no failures; next: any new head | 2026-10-31 |
 | WO-T4-04, -05, -06 | T4 | DONE | 4248392, 9ed2ab0 (+638d097), 9e4ece3 | 2026-10-30 |
 | BL-T4-01, -02, -03 | T4 | DONE | d3291e8, 7c251b1 | 2026-10-30 |
 | WO-T2-08 Hyperdrive TLS | T2 | BLOCKED: `developers.cloudflare.com` is outside this environment's network allowlist; T2 will not configure it from memory. Needs the owner (allow the host) or a T1 staging check (7.3) | 131b5d4 | 2026-10-30 |
@@ -245,10 +245,12 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-T2-28 error hygiene | T2 | DONE, awaiting T4 | 369cb50 | 2026-10-31 |
 | WO-T3-20 Monaco in dev | T3 | DONE, awaiting T4 | 6def072 | 2026-10-31 |
 | WO-T4-17 billing and security review | T4 | PARTIAL: WO-T2-25 reviewed (no route but the two closed ones takes a caller secret); the 501 check waits for the T2 head with 3b4ac45, now landed | 05b7a54 | 2026-10-31 |
-| WO-T4-18 | T4 | READY, priority | | 2026-10-31 |
-| WO-T2-PR | T2 | READY | | 2026-10-31 |
-| WO-T3-PR | T3 | READY | | 2026-10-31 |
-| WO-TAI-PR | TAI | READY | | 2026-10-31 |
+| WO-T4-18 integration dry run | T4 | DONE: **all four branches merge onto 7abd962 without a conflict; on the merged tree every check passes** (typecheck, lint, brand, build:all, API 643/643 with PostgreSQL, all unit suites, E2E app 44, web 31, auth 28, docs 49, admin 26, brand 39, app export). Not run: Om AI npm suites, desktop. Local only, hosted CI not run on the merged tree | 953584c | 2026-10-31 |
+| WO-T2-PR | T2 | READY (report file: `docs/06-strategy/reports/T2/PR_SUMMARY.md`; T2's 05:44Z turn did not take it) | | 2026-10-31 |
+| WO-T3-PR | T3 | DONE | de78337 | 2026-10-31 |
+| WO-TAI-PR | TAI | DONE | c1c5366 | 2026-10-31 |
+| WO-T4-19 | T4 | READY | | 2026-10-31 |
+| WO-T4-20 | T4 | READY | | 2026-10-31 |
 | WO-T4-15 | T4 | READY (after WO-T2-24 lands) | | 2026-10-31 |
 | WO-T0-01 | T0 | QUEUED | | 2026-10-28 |
 | WO-T0-02 | T0 | QUEUED | | 2026-10-28 |
@@ -261,6 +263,7 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-T1-06 | T1 | QUEUED, owner relays | Promote T2's proposed migrations 0004 (scenes, runs), 0005 (AI usage ledger), 0006 (bridge credentials), 0007 (stored account ids) and 0008 (shared rate limiter) in order; for 0004: `git mv` it from `infra/postgres/migrations/proposed/` up one level, add its entry to `compatibility.json`, and update the three-migration expectations in `scripts/verify-migration-compatibility.test.mjs`; exact steps and sha256 in `reports/T2/WO-T2-14.md` on the T2 branch | 2026-10-30 |
 | WO-T1-07 | T1 | QUEUED, owner relays, **priority** | CONFIRMED by T4 (WO-T4-12): `apps/app` bundles built before `5190ac8` call the production API (`api.omdala.com`) for the session check, even in a staging build. Check every staging deploy and staging go-live run for this, and treat earlier staging results that touched the API as invalid | 2026-10-30 |
 | WO-T1-08 | T1 | QUEUED, owner relays | Wording: `docs/VERIFIED_PROGRESS_2026-04-29.md` lines 48 and 61 and `docs/OMDALA_MASTER_EXECUTION_PLAN_2026-04-27.md` line 208 count the Om AI keyword screen as moderation or safety coverage; point them at `om-ai.omdala.com/docs/OMAI_MODERATION_SCOPE.md` | 2026-10-30 |
+| WO-T1-09 | T1 | QUEUED, owner decides first | After the owner chooses the review route (decision packet 0): either push the merged tree as `claude/omdala-integration` for hosted CI on the combined code, or merge PRs #17, #18, #16 and #19 into `OMCODE/infra-e2e-auto-20261026` in the order of WO-T4-18 (T2, T3, TAI, T4). Teams cannot do this: their triggers allow only their own branch | 2026-10-31 |
 
 ### 7.1 Order specs
 
@@ -660,6 +663,19 @@ Plain and neutral wording, no vulnerability detail beyond what is already fixed.
 Keep it a draft with base `OMCODE/infra-e2e-auto-20261026`. Write the same text to
 `docs/06-strategy/reports/<TEAM>/PR_SUMMARY.md`.
 
+**WO-T4-19.** Finish the integration dry run on the same scratch merge (re-create it
+if the scratch worktree is gone, same order, newest heads): the Om AI suites
+(`om-ai.omdala.com/{backend,web,gateway,app}` with `npm ci` and each `npm test`,
+web `test:e2e` with the preinstalled Chromium), `services/ai` tests, and the
+desktop tests (`apps/omcode-desktop`). Report counts; never push the scratch branch.
+
+**WO-T4-20.** QA summary for the owner and the human reviewer:
+`docs/audit/team4/2026-10-31_QA_SUMMARY.md`. One table per team: every order
+verified, with SHA, evidence level and hosted CI run when read; every finding T4
+raised and its current state (fixed at SHA, open, owner decision); the R findings
+table; what is local-only evidence versus hosted CI; and the items that block a
+staging release. Facts only, linked to the VERIFY reports.
+
 ### 7.2 Standing backlog (taken in order when a team has no READY order)
 
 | ID | Team | Work |
@@ -714,3 +730,4 @@ BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
 | 2026-10-31T03:2xZ | HARVEST | T2 WO-T2-24 cost-cap replay fixed (409 on any reused key), awaiting WO-T4-15; T3 WO-T3-18 security headers and BL-T3-07 budgets DONE; TAI WO-TAI-15/16 DONE; T4 verified the previous heads, no failures. T0 decided Monaco is self-hosted (WO-T3-19, lockfile lease to T3). New: WO-T2-25/26, WO-T3-19, WO-TAI-17, WO-T4-16 | |
 | 2026-10-31T04:2xZ | HARVEST | T4 WO-T4-15: cost-cap bypass FIXED. T2 WO-T2-25 (fixed webhook signature check that always threw) and WO-T2-26 DONE; T3 WO-T3-19 self-hosted Monaco, `unsafe-eval` dropped; TAI WO-TAI-17 Vietnamese with diacritics. T0 closes the unsafe `/v1/security` surfaces (WO-T2-29). New: WO-T2-27/28/29, WO-T3-20, WO-T4-16/17. TAI has nothing eligible left; its hourly check stays short | |
 | 2026-10-31T05:2xZ | HARVEST | T2 WO-T2-27/28/29 DONE (shared limiter, 5xx hygiene, security surfaces 501); T3 WO-T3-20 DONE; T4 WO-T4-16 DONE, WO-T4-17 PARTIAL; T4 verified the previous heads with no failures. Every team lane is nearly exhausted. New: WO-T4-18 integration dry run of all four branches (priority) and PR summaries for human review | |
+| 2026-10-31T06:2xZ | HARVEST | T4 WO-T4-18: all four team branches merge cleanly onto 7abd962 and every check passes on the merged tree (local). T3 and TAI PR summaries DONE; T2 missed its PR order (still READY). T3 and TAI have nothing eligible; their hourly checks stay short. New: WO-T4-19/20, WO-T1-09; decision packet 0 (review route) added | |

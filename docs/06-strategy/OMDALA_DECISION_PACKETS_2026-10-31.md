@@ -8,6 +8,22 @@ whatever is chosen here.
 
 Ordered by how much work each one unblocks.
 
+## 0. Review and merge route for the team work (CTL-04), new 2026-10-31T06:2xZ
+
+- Facts: T4's integration dry run (WO-T4-18, report on the T4 branch) merged the
+  T2, T3, TAI and T4 branches onto `OMCODE/infra-e2e-auto-20261026` (7abd962)
+  without a conflict, and every check passed on the merged tree: typecheck, lint,
+  brand, build, API 643/643 against PostgreSQL, unit suites, and E2E for app, web,
+  auth, docs, admin and brand. Draft PRs #16-#19 carry reviewer summaries.
+- Options: (a) a human reviewer reads PRs #17, #18, #16, #19 and the owner approves
+  merging them into the OMCODE line in that order (T1 merges); (b) first push the
+  merged tree as `claude/omdala-integration` to get hosted CI on the combined code,
+  then (a); (c) keep the branches separate for now.
+- Consequences: (a) and (b) turn about 60 team orders into one candidate that staging
+  work (E2E-3 onward) can use; (c) keeps every result local to its branch.
+- Recommended: (b), then (a). The owner or T1 does the push or merge (WO-T1-09);
+  the cloud teams are limited to their own branches.
+
 ## 1. Data authority (CTL-03)
 
 - Question: is PostgreSQL through Hyperdrive the main API's system of record?
