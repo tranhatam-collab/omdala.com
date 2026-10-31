@@ -1,9 +1,10 @@
+import { localizedAlternates } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BRAND_CATEGORIES } from "@omdala/brand-core";
 import { categoryHref, localize } from "@/lib/locale";
 
-export const metadata: Metadata = { title: "Danh mục thương hiệu" };
+export const metadata: Metadata = { title: "Danh mục thương hiệu", alternates: localizedAlternates("vi", "/categories") };
 
 export default function VietnameseCategoriesPage() {
   return (

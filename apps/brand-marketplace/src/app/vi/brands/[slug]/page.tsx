@@ -1,3 +1,4 @@
+import { localizedAlternates } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BrandDetail } from "@/components/BrandDetail";
@@ -7,7 +8,8 @@ export function generateStaticParams() { return getListings().map((listing) => (
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const listing = getListingBySlug(slug);
-  return listing ? { title: `${listing.name} | OMDALA Brand Exchange`, description: listing.tagline } : { title: "Niêm yết thương hiệu" };
+  const alternates = localizedAlternates("vi", `/brands/${slug}`);
+  return listing ? { title: `${listing.name} | OMDALA Brand Exchange`, description: listing.tagline, alternates } : { title: "Niêm yết thương hiệu" };
 }
 
 export default async function VietnameseBrandDetailPage({ params }: { params: Promise<{ slug: string }> }) {

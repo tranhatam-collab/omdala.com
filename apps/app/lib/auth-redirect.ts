@@ -4,6 +4,8 @@ import {
   type OmdalaLanguage,
 } from "@omdala/core";
 
+// DashboardAuthGate keeps its own inline copy of this logic: scripts/release-control-contract.mjs
+// checks that source for the environment-bound origin lookup.
 /** The auth host login URL for this release, carrying the language and where to return to. */
 export function buildAuthLoginUrl(language: OmdalaLanguage, nextPath: string): string {
   const authOrigin = resolvePublicOrigin(

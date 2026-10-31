@@ -1,3 +1,4 @@
+import { localizedAlternates } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { BrandDetail } from "@/components/BrandDetail";
@@ -7,7 +8,8 @@ export function generateStaticParams() { return getListings().map((listing) => (
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const listing = getListingBySlug(slug);
-  return listing ? { title: listing.name, description: listing.tagline } : { title: "Brand listing" };
+  const alternates = localizedAlternates("en", `/brands/${slug}`);
+  return listing ? { title: listing.name, description: listing.tagline, alternates } : { title: "Brand listing" };
 }
 
 export default async function BrandDetailPage({ params }: { params: Promise<{ slug: string }> }) {
