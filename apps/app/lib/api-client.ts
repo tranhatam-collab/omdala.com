@@ -13,12 +13,15 @@ declare const process: {
 export class ApiClientError extends Error {
   code: string;
   status: number;
+  /** Seconds from a readable Retry-After header (cross-origin, so only when the API exposes it). */
+  retryAfterSeconds: number | null;
 
-  constructor(message: string, code: string, status: number) {
+  constructor(message: string, code: string, status: number, retryAfterSeconds: number | null = null) {
     super(message);
     this.name = "ApiClientError";
     this.code = code;
     this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -40,14 +43,20 @@ export function getApiBaseUrl() {
   );
 }
 
+function parseRetryAfter(value: string | null): number | null {
+  if (!value || !/^\d+$/.test(value.trim())) return null;
+  return Number(value.trim());
+}
+
 function toApiError(
   payload: ApiEnvelope | null,
   status: number,
   fallbackMessage: string,
+  retryAfter: string | null = null,
 ) {
   const code = payload?.error?.code ?? "API_REQUEST_FAILED";
   const message = payload?.error?.message ?? fallbackMessage;
-  return new ApiClientError(message, code, status);
+  return new ApiClientError(message, code, status, parseRetryAfter(retryAfter));
 }
 
 export async function apiJsonRequest<T>(
@@ -68,7 +77,7 @@ export async function apiJsonRequest<T>(
   }
 
   if (!response.ok) {
-    throw toApiError(payload, response.status, fallbackMessage);
+    throw toApiError(payload, response.status, fallbackMessage, response.headers.get("Retry-After"));
   }
 
   if (!payload?.ok) {

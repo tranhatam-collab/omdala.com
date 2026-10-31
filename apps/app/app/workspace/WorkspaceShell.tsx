@@ -674,6 +674,7 @@ export function WorkspaceShell() {
           flexDirection: "column",
         }}>
           <AIChatPanel
+            lang={lang}
             workspaceFiles={fileSystem.openFiles.map((f) => ({ path: f.path, content: f.content }))}
             workspaceName={fileSystem.rootHandle?.name ?? t("untitled")}
             activePath={fileSystem.activePath}
