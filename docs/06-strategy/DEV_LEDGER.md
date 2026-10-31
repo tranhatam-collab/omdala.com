@@ -100,7 +100,7 @@ Staging E2E **OPEN**. Production **HOLD**. AUTOMATION: see the flag at the top a
 | Lease: CI trigger | `.github/workflows/ci.yml`, the single `push: branches` line, to T2, T3 and TAI for the identical patch in WO-*-CI. Workflows that deploy are `workflow_call`/`workflow_dispatch` only, so the change runs CI, never deploy. The repository is public, so hosted minutes are not billed. T1 adopts the same line on its branch (WO-T1-01) |
 | Lease: scripts | `scripts/backup/omdala_pg_restore.sh`, `scripts/cleanup_test_data.sql`, `scripts/ops_v2_report_upload.sh`, `scripts/smoke_v2_reality.sh` to T2 for BL-T2-04 (R-22..R-25). T1 keeps priority: if T1 changes one of these files, the lease ends |
 | Lease: root `package.json` scripts | T3 only, no dependency or lockfile change |
-| Lease: `pnpm-lock.yaml` and `apps/app/package.json` dependencies | T3, for WO-T3-19 only (add `monaco-editor` at the version `@monaco-editor/react` expects); ends when WO-T3-19 is reported. No other team changes the lockfile meanwhile |
+| Lease: `pnpm-lock.yaml` and `apps/app/package.json` dependencies | Ended 2026-10-31T04:09Z with the WO-T3-19 report; no lockfile lease is active |
 
 ### 5.1 Triggers and adaptive cadence
 
@@ -177,7 +177,7 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-TAI-04 MOB-02 toolchain | TAI | PARTIAL: Linux side done; bundle ids need the owner (7.3) | 66b169d | 2026-10-30 |
 | WO-TAI-05 failure states | TAI | PARTIAL: messages and unit tests done; browser test waits on the AI authority contract | cba5ccb | 2026-10-30 |
 | BL-TAI-01..03 | TAI | VERIFIED | e1d3be3, 696dad1 | 2026-10-30 |
-| WO-T4-03 standing | T4 | READY (standing, every turn) | Verified through T2 065b716, T3 74d1f74, TAI 63d0141, no failures; next: T2 5c7c84e (with WO-T4-15), T3 8b37c13, TAI c8a2be8 | 2026-10-31 |
+| WO-T4-03 standing | T4 | READY (standing, every turn) | Verified through T2 5c7c84e, T3 8b37c13, TAI c8a2be8, no failures; next: T2 c442389, T3 3c166ec, TAI 984f640 | 2026-10-31 |
 | WO-T4-04, -05, -06 | T4 | DONE | 4248392, 9ed2ab0 (+638d097), 9e4ece3 | 2026-10-30 |
 | BL-T4-01, -02, -03 | T4 | DONE | d3291e8, 7c251b1 | 2026-10-30 |
 | WO-T2-08 Hyperdrive TLS | T2 | BLOCKED: `developers.cloudflare.com` is outside this environment's network allowlist; T2 will not configure it from memory. Needs the owner (allow the host) or a T1 staging check (7.3) | 131b5d4 | 2026-10-30 |
@@ -223,7 +223,7 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-T3-17 | T3 | READY (WO-T2-20 landed; the codes are in its report, so the UI can map them without T2 code on the T3 base) | | 2026-10-31 |
 | WO-TAI-13 client and extension specs | TAI | DONE, awaiting T4 | c780cde | 2026-10-31 |
 | WO-T4-13 bridge findings | T4 | DONE: F1-F8 all CONFIRMED at the T2 head | 56eab2d | 2026-10-31 |
-| WO-T2-24 cost-cap replay fix | T2 | DONE, awaiting T4 (WO-T4-15): any reused key now answers 409 `idempotency_key_reused` before the provider; `/v1/ai/complete` is 501, models route does not reserve | 5c7c84e | 2026-10-31 |
+| WO-T2-24 cost-cap replay fix | T2 | VERIFIED by WO-T4-15 (HIGH finding FIXED): any reused key answers 409 `idempotency_key_reused` before the provider | 5c7c84e | 2026-10-31 |
 | WO-T2-22 hardening | T2 | DONE, awaiting T4 (per-session cap is soft; no admin role in the API, admin list is configuration) | fe6b42e | 2026-10-31 |
 | WO-T2-23 stable sub, token options | T2 | DONE, awaiting T4; migration 0007 in `proposed/`; owner picks introspection or published keys | 065b716 | 2026-10-31 |
 | WO-T3-17 cap messages | T3 | DONE, awaiting T4 | c706e7e | 2026-10-31 |
@@ -234,11 +234,17 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | BL-T3-07 bundle budgets | T3 | DONE, awaiting T4 | 8b37c13 | 2026-10-31 |
 | WO-TAI-15 Om AI lang and contrast | TAI | DONE, awaiting T4; Vietnamese copy has no diacritics (WO-TAI-17) | 6025bd6 | 2026-10-31 |
 | WO-TAI-16 bridge runtime negatives | TAI | DONE under assumptions, both token options behind one port | c8a2be8 | 2026-10-31 |
-| WO-T2-25 | T2 | READY | | 2026-10-31 |
-| WO-T2-26 | T2 | READY | | 2026-10-31 |
-| WO-T3-19 | T3 | READY | | 2026-10-31 |
-| WO-TAI-17 | TAI | READY | | 2026-10-31 |
-| WO-T4-16 | T4 | READY (after WO-T3-19) | | 2026-10-31 |
+| WO-T2-25 billing flow | T2 | DONE, awaiting T4; fixed `verifyWebhookSignature` (it always threw); gaps: no provider webhook receiver, no plan-change path, no replay store; `/v1/security/webhooks/verify` is an unauthenticated secret oracle (WO-T2-29) | c442389 | 2026-10-31 |
+| WO-T2-26 DR for 0004-0007 | T2 | DONE, awaiting T4 | 476749a | 2026-10-31 |
+| WO-T3-19 self-hosted Monaco | T3 | DONE, awaiting T4 (WO-T4-16); `'unsafe-eval'` dropped from the app CSP; lockfile lease ended | 299af7a, 3c166ec | 2026-10-31 |
+| WO-TAI-17 Vietnamese copy | TAI | DONE, awaiting T4; needs a native-speaker review | 984f640 | 2026-10-31 |
+| WO-T4-15 cap re-test | T4 | DONE: fix holds | 02bd7b6 | 2026-10-31 |
+| WO-T4-16 | T4 | READY (WO-T3-19 landed) | | 2026-10-31 |
+| WO-T2-29 | T2 | READY, do first | | 2026-10-31 |
+| WO-T2-27 | T2 | READY | | 2026-10-31 |
+| WO-T2-28 | T2 | READY | | 2026-10-31 |
+| WO-T3-20 | T3 | READY | | 2026-10-31 |
+| WO-T4-17 | T4 | READY | | 2026-10-31 |
 | WO-T4-15 | T4 | READY (after WO-T2-24 lands) | | 2026-10-31 |
 | WO-T0-01 | T0 | QUEUED | | 2026-10-28 |
 | WO-T0-02 | T0 | QUEUED | | 2026-10-28 |
@@ -604,6 +610,36 @@ do not change meaning.
 (WO-T3-18) on the built `out/_headers` of each app, and of the self-hosted editor
 under the shipped CSP: no violation, no third-party origin, editor loads.
 
+**WO-T2-29 (T0 decision, reversible).** Close the three `/v1/security` surfaces that are
+unsafe or inert: `webhooks/verify` (unauthenticated, takes the secret from the
+caller), service-token mint (tokens never verify) and API keys (never stored). They
+answer 501 `not_released` in staging and production, like the other release-gated
+routes, and keep working in test and development for their existing tests. Label:
+`PREP_UNDER_ASSUMPTION(security endpoints closed until designed)`; the owner can
+reopen them with a design (section 7.3).
+
+**WO-T2-27.** The chat, magic-link and bridge-mint limiters are in-memory per Worker
+isolate, so production with several isolates does not enforce them. Put the limiter
+behind a port: a PostgreSQL fixed-window implementation (one conditional upsert per
+key and window) for configured databases, the in-memory one for development. Real-SQL
+tests: parallel requests across two simulated isolates never exceed the limit;
+window rollover. Label: `PREP_UNDER_ASSUMPTION(CTL-03, PostgreSQL)`.
+
+**WO-T2-28.** Error hygiene: T4 found handlers echoing `error.message` in a 500. Add one
+error path for every route so a 5xx body carries only a stable code and a request
+id, never driver, provider or stack text; sweep `services/api/src` for remaining
+`error.message`/`String(error)` in responses; a test that forces a thrown error in a
+sample of routes and asserts the body.
+
+**WO-T3-20.** WO-T3-19 finding 3: `next dev` still loads Monaco from the CDN. Serve the
+same local assets in development so dev and the export behave alike, and make the
+dev server's CSP check (or a spec) catch a CDN load.
+
+**WO-T4-17.** Independent review of WO-T2-25 (webhook signature fix, billing state
+feeding the AI cap) and, when it lands, WO-T2-29: confirm 501 for the three security
+surfaces in every release-like environment, and that no other route accepts a secret
+from the caller.
+
 ### 7.2 Standing backlog (taken in order when a team has no READY order)
 
 | ID | Team | Work |
@@ -629,7 +665,9 @@ BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
 | Network access to `developers.cloudflare.com` for the cloud environment, or a T1 staging check: does `pg` with `ssl: { rejectUnauthorized: true }` connect through `env.HYPERDRIVE.connectionString`? | Owner (environment network settings) or T1 | WO-T2-08, the one change that could break the deployed API |
 | `update_trigger` allowed in the T0 session ("always allow") | Owner | T0 pausing and resuming idle team triggers by itself (rule 5.1.6) |
 | T4 session waiting on a Bash permission prompt since 2026-10-30T22:57Z (task: verifying the API-origin finding) | Owner, in the T4 session; T0 never approves it | T4 verification of every new head |
-| Service tokens never verify and API keys are never stored (WO-T2-16): build them or remove them | Owner; T0 recommends refusing the mint endpoints with 501 until designed | `services/api` security routes |
+| Service tokens, API keys and webhook verify (WO-T2-16, WO-T2-25): T0 closes them with 501 in WO-T2-29 (reversible); the owner decides whether to design and reopen them | Owner | `services/api` security routes |
+| Billing provider choice | Owner (CTL-02) | Webhook receiver, plan-change path and replay store (WO-T2-25 gaps), each behind the release boundary |
+| Native-speaker review of Om AI Vietnamese copy (WO-TAI-17) | Owner or a named reviewer | Om AI web copy sign-off |
 | AI daily cost cap value per plan (`OMDALA_AI_DAILY_COST_CAP_USD`) | Owner, with the billing plan (CTL-02 budget) | WO-T2-20 enforcement in staging and production |
 | Om AI session bridge: approve the drafted design (proposals 1-5) and pick the token check: (a) introspection endpoint or (b) published signing keys (draft section from WO-T2-23) | Owner (AI-01) | Releasing WO-T2-21 beyond 501; Om AI CORS origin; replacing TAI's injected verifier |
 
@@ -654,3 +692,4 @@ BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
 | 2026-10-31T01:2xZ | HARVEST | T2 WO-T2-20 (AI cost cap) and WO-T2-21 (bridge credential, 501 outside test) DONE; T3 WO-T3-16 DONE; TAI WO-TAI-12/13 DONE; T4 verified T2 3566a14, T3 e967a33, TAI bcb3034 with no failures and CONFIRMED bridge gaps F1-F8. New: WO-T2-22/23, WO-T3-17 READY, BL-T3-06, WO-TAI-14, WO-T4-14; WO-T1-06 now covers 0004-0006 | |
 | 2026-10-31T02:2xZ | HARVEST | T2 WO-T2-22/23 DONE; T3 WO-T3-17, BL-T3-06 DONE; TAI WO-TAI-14 DONE; T4 verified the previous heads with no failures and found a HIGH cost-cap bypass (replay of a released key). New: WO-T2-24 urgent, WO-T3-18, BL-T3-07, WO-TAI-15/16, WO-T4-15 | |
 | 2026-10-31T03:2xZ | HARVEST | T2 WO-T2-24 cost-cap replay fixed (409 on any reused key), awaiting WO-T4-15; T3 WO-T3-18 security headers and BL-T3-07 budgets DONE; TAI WO-TAI-15/16 DONE; T4 verified the previous heads, no failures. T0 decided Monaco is self-hosted (WO-T3-19, lockfile lease to T3). New: WO-T2-25/26, WO-T3-19, WO-TAI-17, WO-T4-16 | |
+| 2026-10-31T04:2xZ | HARVEST | T4 WO-T4-15: cost-cap bypass FIXED. T2 WO-T2-25 (fixed webhook signature check that always threw) and WO-T2-26 DONE; T3 WO-T3-19 self-hosted Monaco, `unsafe-eval` dropped; TAI WO-TAI-17 Vietnamese with diacritics. T0 closes the unsafe `/v1/security` surfaces (WO-T2-29). New: WO-T2-27/28/29, WO-T3-20, WO-T4-16/17. TAI has nothing eligible left; its hourly check stays short | |
