@@ -175,7 +175,7 @@ Om AI must remain understandable even when shared platform data is delayed or pa
 
 Must validate:
 
-- blocked unsafe requests are intercepted
+- blocked unsafe requests are intercepted (the current in-repo check is a keyword screen, not a classifier; its limits are in `docs/OMAI_MODERATION_SCOPE.md`, and tests of it do not prove interception of unsafe requests in general)
 - escalation flows are understandable
 - wellness modes do not impersonate licensed clinical care
 - family-safe restrictions apply consistently

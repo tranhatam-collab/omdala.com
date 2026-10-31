@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { describeApiError } from '../api/liveErrors';
 import { getProof, getRun } from '../api/reality';
 import type { ProofRecord, RunRecord } from '../../../shared/api-contracts';
 
@@ -23,7 +24,7 @@ export function useRunDetails() {
 
     const runResult = await getRun(runId);
     if (runResult.error || !runResult.value) {
-      setError('Unable to load activity details. Please try again. / Khong the tai chi tiet hoat dong. Vui long thu lai.');
+      setError(describeApiError(runResult.error, 'Unable to load activity details. Please try again. / Không thể tải chi tiết hoạt động. Vui lòng thử lại.'));
       setLoading(false);
       return null;
     }
@@ -39,7 +40,7 @@ export function useRunDetails() {
 
     const proofResult = await getProof(run.proof_id);
     if (proofResult.error || !proofResult.value) {
-      setError('Unable to load proof details. Please try again. / Khong the tai chi tiet bang chung. Vui long thu lai.');
+      setError(describeApiError(proofResult.error, 'Unable to load proof details. Please try again. / Không thể tải chi tiết bằng chứng. Vui lòng thử lại.'));
       setLoading(false);
       return { run, proof: null };
     }

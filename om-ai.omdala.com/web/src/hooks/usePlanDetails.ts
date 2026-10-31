@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { describeApiError } from '../api/liveErrors';
 import { getPlan } from '../api/reality';
 
 export function usePlanDetails() {
@@ -10,7 +11,7 @@ export function usePlanDetails() {
     const result = await getPlan(planId);
     setLoading(false);
     if (result.error || !result.value) {
-      setError('Unable to load plan details. Please try again. / Khong the tai chi tiet ke hoach. Vui long thu lai.');
+      setError(describeApiError(result.error, 'Unable to load plan details. Please try again. / Không thể tải chi tiết kế hoạch. Vui lòng thử lại.'));
       return null;
     }
     setError(null);

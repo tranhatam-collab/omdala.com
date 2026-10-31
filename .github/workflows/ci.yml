@@ -2,7 +2,7 @@ name: OMDALA CI
 
 on:
   push:
-    branches: [main, feat/pricing-promo-engine, "OMCODE/**"]
+    branches: [main, feat/pricing-promo-engine, "OMCODE/**", "claude/omdala-**"]
   pull_request:
     branches: [main]
 

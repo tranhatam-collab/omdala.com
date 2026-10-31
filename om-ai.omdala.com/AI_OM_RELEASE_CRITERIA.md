@@ -20,7 +20,7 @@ Current rule:
 - supported live interaction path works
 - voice and text paths work
 - recap or session evidence is generated
-- safety and moderation path works
+- safety and moderation path works (the in-repo keyword screen does not satisfy this on its own; see `docs/OMAI_MODERATION_SCOPE.md`: it needs a reviewed classifier behind the AI authority and escalation routing)
 - memory updates work
 - failure states are safe
 

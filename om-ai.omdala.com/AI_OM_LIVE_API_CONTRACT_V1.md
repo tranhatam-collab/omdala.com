@@ -7,6 +7,8 @@ Master brand: OMDALA
 Base path: `/v2/live`  
 Date: April 4, 2026
 
+> **Change note, 2026-10-30 (WO-TAI-11).** Before release the code is the source of truth. This document now describes the implemented `/v2/live` behavior: the envelope is `{ data, error, meta? }` (no `ok`, no `request_id`), errors are `{ code, reason? }`, session statuses are `blocked | active | ended | failed`, and realtime connect, token and bootstrap are fail-closed (503 `ai_authority_unavailable`) until the OMDALA AI authority publishes a realtime contract. Endpoints that are not implemented are marked **Not implemented** and are planned, not available. The endpoint-by-endpoint comparison is `docs/OMAI_API_CONTRACT_MATRIX_2026-10-30.md`; the contract tests are `backend/src/live.contract.test.ts`. Recap is returned by `POST /sessions/:session_id/end` as `summary` (currently a static placeholder); a dedicated recap endpoint is planned at `GET /sessions/:session_id/recap`.
+
 ---
 
 # 1. Muc tieu
@@ -41,22 +43,16 @@ Base URL:
 `https://api.omdala.com/v2/live`
 
 Auth:
-- Bearer access token
-- org/workspace aware
-- child accounts limited by parent/admin policy
-- optional device session token for realtime bootstrap
+- identity is a server-bound principal supplied by the canonical OMDALA session bridge; headers, body and query are never read as identity (direct access returns 503 `omdala_identity_authority_unavailable` until the bridge exists)
+- org/workspace awareness and child-account limits are planned (see the matrix); today the live store is keyed by user only
 
 Response format:
 
 ```json
 {
-  "ok": true,
   "data": {},
-  "meta": {
-    "request_id": "req_123",
-    "timestamp": "2026-04-04T10:15:08Z"
-  },
-  "error": null
+  "error": null,
+  "meta": {}
 }
 ```
 
@@ -64,17 +60,12 @@ Error format:
 
 ```json
 {
-  "ok": false,
   "data": null,
-  "meta": {
-    "request_id": "req_123",
-    "timestamp": "2026-04-04T10:15:08Z"
-  },
   "error": {
-    "code": "PLAN_LIMIT_REACHED",
-    "message": "Daily free limit reached",
-    "details": {}
-  }
+    "code": "persona_not_found",
+    "reason": "optional human-readable text"
+  },
+  "meta": {}
 }
 ```
 
@@ -108,6 +99,8 @@ Primary resources:
 # 4. Auth + Session
 
 ## 4.1 POST /auth/session
+
+**Not implemented.** Owned by the canonical OMDALA session bridge (api.omdala.com), not by this service.
 
 Create app session.
 
@@ -147,9 +140,13 @@ Response:
 
 ## 4.2 GET /me
 
+**Not implemented.** Owned by the canonical OMDALA session bridge (api.omdala.com), not by this service.
+
 Return current authenticated user and workspace context.
 
 ## 4.3 POST /auth/refresh
+
+**Not implemented.** Owned by the canonical OMDALA session bridge (api.omdala.com), not by this service.
 
 Refresh access token.
 
@@ -158,6 +155,8 @@ Refresh access token.
 # 5. Workspace APIs
 
 ## 5.1 GET /workspaces
+
+**Not implemented.** Planned; not available in the current backend.
 
 Returns all workspaces the user can access.
 
@@ -181,6 +180,8 @@ Response item:
 ```
 
 ## 5.2 POST /workspaces/switch
+
+**Not implemented.** Planned; not available in the current backend.
 
 Switch active workspace.
 
@@ -256,6 +257,8 @@ Favorite persona.
 
 ## 6.4 POST /personas/custom
 
+**Not implemented.** Planned; not available in the current backend.
+
 Create custom persona.
 
 Request:
@@ -289,106 +292,72 @@ Response rules:
 
 ## 7.1 POST /sessions/create
 
-Create a live session before realtime transport starts.
+Create a live session record. The session starts as `blocked` because realtime execution is not available yet.
 
-Request:
+Request (fields not listed are ignored; `user_id`, `plan_context` and any identity in the body are ignored):
 
 ```json
 {
   "persona_id": "teacher_english_01",
   "session_type": "language_call",
-  "workspace_id": "ws_personal_001",
-  "profile_id": "profile_adult_001",
+  "avatar_enabled": false,
+  "goal": "practice_daily_conversation",
   "language_mode": {
     "native_language": "vi",
     "target_language": "en",
     "correction_language": "vi"
-  },
-  "transport_preferences": {
-    "voice_only": false,
-    "avatar_enabled": true,
-    "preferred_provider": "auto"
-  },
-  "goal": "practice_daily_conversation"
+  }
 }
 ```
+
+Optional header `x-idempotency-key` (8 to 128 characters) replays the same session.
 
 Response:
 
 ```json
 {
-  "ok": true,
   "data": {
     "session_id": "live_session_001",
-    "status": "created",
-    "usage_snapshot": {
-      "free_seconds_remaining_today": 1800,
-      "plan_seconds_remaining_cycle": 1800
-    },
-    "provider_decision": {
-      "provider_family": "openai_realtime",
-      "avatar_provider": "tavus",
-      "fallback_mode": "voice_only"
-    }
+    "status": "blocked",
+    "idempotent_replayed": false,
+    "execution_ready": false,
+    "ai_authority": { "authority": "omdala_api_aiagent", "status": "blocked" },
+    "avatar": { "enabled": false, "provider": null, "mode": "blocked" },
+    "usage": { "free_seconds_remaining_today": 1800 }
   },
-  "meta": {},
   "error": null
 }
 ```
+
+Errors: 400 `validation_error` (persona_id and session_type are required strings, `goal` must be a string of at most 10000 characters), 404 `persona_not_found`, 403 `plan_upgrade_required` (avatar requested on a plan without avatar), 403 `persona_not_child_safe` (child profile with a persona that is not child-safe), 422 `content_requires_escalation` (goal text flagged by the keyword screen). Not implemented (planned): `workspace_id`, `profile_id`, `transport_preferences`, `provider_decision`, `usage_snapshot`.
 
 ## 7.2 POST /sessions/:session_id/connect
 
-Move session into connectable state.
-
-Response:
-
-```json
-{
-  "ok": true,
-  "data": {
-    "session_id": "live_session_001",
-    "status": "connect_ready"
-  },
-  "meta": {},
-  "error": null
-}
-```
+Currently always fails closed for the session owner: 503 `ai_authority_unavailable` with `meta.ai_authority`. Unknown or foreign sessions return 404 `session_not_found`. The planned `connect_ready` state is not implemented.
 
 ## 7.3 GET /sessions/:session_id
 
-Return session state, persona, metering snapshot, moderation state, and provider state.
+Return `{ session }` for the caller's own session (404 `session_not_found` otherwise). The session holds `session_id`, `user_id`, `persona_id`, `session_type`, `status`, `created_at`, `plan_context`, `billable_seconds`, `free_seconds_applied`, `premium_seconds_applied` and `ai_authority`. Moderation and provider state are not implemented.
 
 ## 7.4 GET /sessions
 
-List previous sessions with filters:
-- `profile_id`
-- `persona_id`
-- `workspace_id`
-- `session_type`
-- `status`
-- `started_after`
-- `started_before`
+List the caller's own sessions, newest first, as `{ items }` with `meta.total`. Implemented filter: `status`. Not implemented (planned): `profile_id`, `persona_id`, `workspace_id`, `session_type`, `started_after`, `started_before`.
 
 ## 7.5 POST /sessions/:session_id/end
 
-End session and finalize metering.
+End the session and finalize metering. Optional body `billable_seconds` (non-negative number); only a session that was `active` bills, and none can be `active` until realtime exists. Optional header `x-idempotency-key`.
 
 Response:
 
 ```json
 {
-  "ok": true,
   "data": {
     "session_id": "live_session_001",
-    "status": "ended",
-    "billable_seconds": 1320,
-    "free_seconds_remaining_today": 480,
+    "idempotent_replayed": false,
+    "billable_seconds": 0,
+    "free_seconds_remaining_today": 1800,
     "summary": {
-      "main_topics": [
-        "introductions",
-        "daily routine",
-        "asking follow-up questions"
-      ],
+      "main_topics": ["introductions", "daily routine", "follow-up questions"],
       "language_feedback": {
         "strengths": ["good fluency", "clear sentence structure"],
         "corrections": ["past tense consistency", "article usage"]
@@ -396,10 +365,11 @@ Response:
       "next_recommendation": "lesson_daily_routine_a2_02"
     }
   },
-  "meta": {},
   "error": null
 }
 ```
+
+`summary` is a static placeholder, not generated from the session. Errors: 400 `validation_error`, 404 `session_not_found`.
 
 ---
 
@@ -407,47 +377,11 @@ Response:
 
 ## 8.1 POST /realtime/token
 
-Issue short-lived bootstrap credentials.
-
-Request:
-
-```json
-{
-  "session_id": "live_session_001",
-  "client_platform": "ios",
-  "transport": "webrtc"
-}
-```
-
-Response:
-
-```json
-{
-  "ok": true,
-  "data": {
-    "session_id": "live_session_001",
-    "transport": "webrtc",
-    "ephemeral_token": "rt_ephemeral_001",
-    "expires_in_seconds": 60,
-    "provider": "openai_realtime"
-  },
-  "meta": {},
-  "error": null
-}
-```
+Body `{ "session_id": "..." }`. Currently never issues a credential: the session owner gets 503 `ai_authority_unavailable`; a missing or non-string `session_id` gets 400 `validation_error`; an unknown or foreign session gets 404 `session_not_found`. The planned token shape (`transport`, `ephemeral_token`, `expires_in_seconds`) is defined by the OMDALA AI authority contract, not here.
 
 ## 8.2 POST /realtime/session/bootstrap
 
-Return all client bootstrap material in one call.
-
-Response keys:
-- `transport`
-- `ephemeral_token`
-- `client_events_schema_version`
-- `server_events_schema_version`
-- `audio_config`
-- `avatar_config`
-- `usage_snapshot`
+Same behavior and errors as `/realtime/token` today. Planned response keys: `transport`, `ephemeral_token`, `client_events_schema_version`, `server_events_schema_version`, `audio_config`, `avatar_config`, `usage_snapshot`.
 
 Architecture note:
 - use GA Realtime interface for all new builds
@@ -460,34 +394,33 @@ Architecture note:
 
 ## 9.1 GET /usage/today
 
-Response:
+Response (day key follows the profile timezone):
 
 ```json
 {
-  "ok": true,
   "data": {
-    "date": "2026-04-04",
-    "timezone": "Asia/Ho_Chi_Minh",
-    "free_seconds_limit": 1800,
-    "free_seconds_used": 960,
-    "free_seconds_remaining": 840,
-    "warning_thresholds": {
-      "warn_5_min": true,
-      "warn_1_min": true
+    "usage": {
+      "user_id": "user_001",
+      "date_key": "2026-10-30",
+      "free_seconds_limit": 1800,
+      "free_seconds_used": 960,
+      "premium_seconds_used": 0,
+      "free_seconds_remaining": 840,
+      "plan_id": "free",
+      "updated_at": "2026-10-30T10:00:00.000Z"
     }
   },
-  "meta": {},
   "error": null
 }
 ```
 
 ## 9.2 GET /usage/cycle
 
-Returns billing-cycle totals.
+**Not implemented.** Returns billing-cycle totals.
 
 ## 9.3 GET /usage/history
 
-Returns aggregated usage history by day/week/month.
+**Not implemented.** Returns aggregated usage history by day/week/month.
 
 ---
 
@@ -495,24 +428,15 @@ Returns aggregated usage history by day/week/month.
 
 ## 10.1 GET /plans
 
-List available plans for current workspace type.
+Returns `{ plans }`, each with `plan_id` (`free`, `personal_pro`, `education_plus`, `business`, `enterprise_custom`), `display_name`, `daily_free_seconds`, `supports_avatar`, `supports_custom_personas`.
 
 ## 10.2 GET /subscriptions/current
 
-Return current subscription and entitlements.
+**Not implemented.** Return current subscription and entitlements (the plan is visible in `usage.plan_id`).
 
 ## 10.3 POST /plans/upgrade
 
-Request upgrade intent.
-
-Request:
-
-```json
-{
-  "target_plan_id": "plan_personal_pro",
-  "billing_period": "monthly"
-}
-```
+Closed to account holders until a billing authority decides entitlements: every caller gets 403 `PLAN_CHANGE_REQUIRES_BILLING`. A verified admin can change a plan only in test runs (`{ "plan_id": "..." }`, 400 `validation_error` without it). Plan changes in production will come from the billing authority, not from this endpoint.
 
 ---
 
@@ -520,17 +444,25 @@ Request:
 
 ## 11.1 GET /curriculum/paths
 
+**Not implemented.** Planned; not available in the current backend.
+
 List curriculum paths for current profile, persona, language, and level.
 
 ## 11.2 GET /lessons/:lesson_id
+
+**Not implemented.** Planned; not available in the current backend.
 
 Return lesson metadata, objectives, tasks, vocabulary, and eligibility.
 
 ## 11.3 POST /lessons/:lesson_id/start
 
+**Not implemented.** Planned; not available in the current backend.
+
 Start lesson-bound live session.
 
 ## 11.4 POST /lessons/:lesson_id/complete
+
+**Not implemented.** Planned; not available in the current backend.
 
 Mark lesson complete with recap payload.
 
@@ -553,15 +485,19 @@ Update profile memory.
 
 ## 12.3 GET /memory/personas/:persona_id
 
+**Not implemented.** Planned; not available in the current backend.
+
 Return persona-specific memory summary.
 
 ## 12.4 DELETE /memory/personas/:persona_id
 
+**Not implemented.** Planned; not available in the current backend.
+
 Reset persona-specific memory.
 
-## 12.5 GET /memory/sessions/:session_id/summary
+## 12.5 Recap
 
-Return recap and retained memory artifacts.
+**Not implemented as a separate endpoint.** The recap is the `summary` in the end-session response (7.5). The planned dedicated path is `GET /sessions/:session_id/recap`; `GET /memory/sessions/:session_id/summary` is withdrawn.
 
 ---
 
@@ -569,21 +505,30 @@ Return recap and retained memory artifacts.
 
 ## 13.1 POST /moderation/check
 
-Run pre-session or in-session moderation check.
+Run a keyword screen on text. It is not a safety classifier (see `docs/OMAI_MODERATION_SCOPE.md`).
 
-Request:
+Request: `{ "text": "..." }` (string, at most 10000 characters; otherwise 400 `validation_error`).
+
+Response:
 
 ```json
 {
-  "session_id": "live_session_001",
-  "input_type": "transcript_segment",
-  "content": "I want to hurt myself"
+  "data": {
+    "safe": false,
+    "requires_escalation": true,
+    "safety_profile": "wellness_safe_default",
+    "reason": "high_risk_self_harm_signal",
+    "method": "keyword_screen"
+  },
+  "error": null
 }
 ```
 
+Not implemented: `session_id`, `input_type`, transcript-segment screening.
+
 ## 13.2 POST /moderation/escalate
 
-Trigger escalation pathway for high-risk safety case.
+**Not implemented.** Trigger escalation pathway for high-risk safety case.
 
 Response may include:
 - `escalation_mode`
@@ -597,6 +542,8 @@ Response may include:
 
 ## 14.1 GET /providers
 
+**Not implemented.** Planned; not available in the current backend.
+
 Return allowed providers for current workspace and plan.
 
 ## 14.2 GET /avatar/providers
@@ -605,9 +552,13 @@ Return avatar provider availability and capability matrix.
 
 ## 14.3 POST /avatar/session/start
 
+**Not implemented.** Planned; not available in the current backend.
+
 Start avatar provider session if enabled.
 
 ## 14.4 POST /avatar/session/end
+
+**Not implemented.** Planned; not available in the current backend.
 
 Finalize avatar provider session and cost record.
 
@@ -617,9 +568,13 @@ Finalize avatar provider session and cost record.
 
 ## 15.1 GET /family/profiles
 
+**Not implemented.** Planned; not available in the current backend.
+
 Return child and guardian profiles in family workspace.
 
 ## 15.2 PATCH /family/profiles/:profile_id/controls
+
+**Not implemented.** Planned; not available in the current backend.
 
 Update child-safe policy.
 
@@ -637,13 +592,19 @@ Supported controls:
 
 ## 16.1 GET /school/classes
 
+**Not implemented.** Planned; not available in the current backend.
+
 List classes and assigned learners.
 
 ## 16.2 POST /school/assignments
 
+**Not implemented.** Planned; not available in the current backend.
+
 Assign persona path or lesson pack.
 
 ## 16.3 GET /school/reports/:profile_id
+
+**Not implemented.** Planned; not available in the current backend.
 
 Return learner progress, speaking activity, and lesson completion.
 
@@ -653,13 +614,19 @@ Return learner progress, speaking activity, and lesson completion.
 
 ## 17.1 GET /business/agents
 
+**Not implemented.** Planned; not available in the current backend.
+
 List organization-approved business personas.
 
 ## 17.2 POST /business/knowledge-bindings
 
+**Not implemented.** Planned; not available in the current backend.
+
 Bind approved knowledge packs or internal KB to org persona.
 
 ## 17.3 GET /business/reports/usage
+
+**Not implemented.** Planned; not available in the current backend.
 
 Organization usage, quota, and provider spend overview.
 
@@ -668,6 +635,8 @@ Organization usage, quota, and provider spend overview.
 # 18. Analytics APIs
 
 ## 18.1 POST /analytics/events
+
+**Not implemented.** Planned; not available in the current backend.
 
 Write product analytics event.
 
@@ -686,16 +655,13 @@ Core event names:
 
 # 19. State Rules
 
-Session state machine:
-- `created`
-- `connect_ready`
-- `connecting`
-- `active`
-- `interrupted`
-- `reconnecting`
-- `wrapping_up`
+Session state machine (implemented values):
+- `blocked` (created; realtime unavailable)
+- `active` (reserved; nothing sets it until realtime exists)
 - `ended`
-- `failed`
+- `failed` (reserved)
+
+Planned, not implemented: `created`, `connect_ready`, `connecting`, `interrupted`, `reconnecting`, `wrapping_up`.
 
 Hard rules:
 - quota is enforced server-side only

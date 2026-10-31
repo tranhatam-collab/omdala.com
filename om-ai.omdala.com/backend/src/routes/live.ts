@@ -3,6 +3,7 @@ import { getLiveAiAuthorityDecision } from '../aiAuthority.js';
 import { requireSensitiveAuth } from '../auth.js';
 import { fail, ok } from '../response.js';
 import { liveStore } from '../live/store.js';
+import { assessText, MODERATION_MAX_TEXT_LENGTH } from '../live/moderation.js';
 import type { CreateLiveSessionInput } from '../live/types.js';
 
 const ALLOWED_CORRECTION_STYLE = new Set([
@@ -97,6 +98,36 @@ export function registerLiveRoutes(app: FastifyInstance) {
     if (!persona) {
       reply.code(404);
       return fail('persona_not_found');
+    }
+
+    if (body.goal !== undefined) {
+      if (typeof body.goal !== 'string' || body.goal.length > MODERATION_MAX_TEXT_LENGTH) {
+        reply.code(400);
+        return fail('validation_error', 'goal must be a string within the length limit.');
+      }
+      if (assessText(body.goal).requires_escalation) {
+        reply.code(422);
+        return fail('content_requires_escalation', 'Goal text needs a wellness-safe path.');
+      }
+    }
+
+    const profile = await liveStore.getMemoryProfile(userId);
+    if (profile.audience === 'child' && !persona.safe_for_children) {
+      reply.code(403);
+      return fail('persona_not_child_safe', 'This persona is not available to child profiles.');
+    }
+
+    if (body.avatar_enabled) {
+      const usage = await liveStore.getUsageToday(userId);
+      const plan = liveStore.listPlans().find((p) => p.plan_id === usage.plan_id);
+      if (!plan?.supports_avatar) {
+        reply.code(403);
+        return fail('plan_upgrade_required', 'Avatar sessions are not included in the current plan.');
+      }
+      if (!persona.supports_avatar) {
+        reply.code(400);
+        return fail('validation_error', 'This persona does not support avatar sessions.');
+      }
     }
 
     const created = await liveStore.createSession(
@@ -286,7 +317,7 @@ export function registerLiveRoutes(app: FastifyInstance) {
   });
 
   app.patch('/v2/live/memory/profile', async (request, reply) => {
-    const body = request.body as {
+    const body = (request.body ?? {}) as {
       display_name?: string;
       timezone?: string;
       target_language?: string;
@@ -301,6 +332,11 @@ export function registerLiveRoutes(app: FastifyInstance) {
     if (body?.timezone !== undefined && !isNonEmptyString(body.timezone, 80)) {
       reply.code(400);
       return fail('validation_error', 'timezone must be a non-empty string <= 80 chars.');
+    }
+
+    if (body.target_language !== undefined && !isNonEmptyString(body.target_language, 40)) {
+      reply.code(400);
+      return fail('validation_error', 'target_language must be a non-empty string <= 40 chars.');
     }
 
     if (body?.correction_style !== undefined && !ALLOWED_CORRECTION_STYLE.has(body.correction_style)) {
@@ -331,10 +367,19 @@ export function registerLiveRoutes(app: FastifyInstance) {
     return ok({ plans });
   });
 
+  // PREP_UNDER_ASSUMPTION(billing authority, server-side only): no caller may change their own
+  // plan until a billing authority decides entitlements. Only a verified admin in a test run may.
   app.post('/v2/live/plans/upgrade', async (request, reply) => {
     const body = request.body as { plan_id?: string };
     const auth = requireSensitiveAuth(request, reply);
     if (!auth) return;
+    if (process.env.NODE_ENV !== 'test' || auth.role !== 'facility_admin') {
+      reply.code(403);
+      return fail(
+        'PLAN_CHANGE_REQUIRES_BILLING',
+        'Plan changes are applied by the billing authority, not by the account holder.',
+      );
+    }
     if (!isNonEmptyString(body?.plan_id, 40)) {
       reply.code(400);
       return fail('validation_error', 'plan_id is required.');
@@ -345,18 +390,15 @@ export function registerLiveRoutes(app: FastifyInstance) {
     return ok({ subscription });
   });
 
-  app.post('/v2/live/moderation/check', async (request) => {
-    const body = request.body as { text?: string };
-    const text = (body.text ?? '').toLowerCase();
-    const riskPatterns = ['self-harm', 'kill myself', 'suicide', 'hurt myself'];
-    const flagged = riskPatterns.some((pattern) => text.includes(pattern));
+  app.post('/v2/live/moderation/check', async (request, reply) => {
+    const body = request.body as { text?: unknown } | null | undefined;
+    const text = body?.text;
+    if (typeof text !== 'string' || text.length > MODERATION_MAX_TEXT_LENGTH) {
+      reply.code(400);
+      return fail('validation_error', 'text must be a string within the length limit.');
+    }
 
-    return ok({
-      safe: !flagged,
-      requires_escalation: flagged,
-      safety_profile: flagged ? 'wellness_safe_default' : 'education_safe_default',
-      reason: flagged ? 'high_risk_self_harm_signal' : 'no_high_risk_signal',
-    });
+    return ok(assessText(text));
   });
 
   app.get('/v2/live/avatar/providers', async () =>

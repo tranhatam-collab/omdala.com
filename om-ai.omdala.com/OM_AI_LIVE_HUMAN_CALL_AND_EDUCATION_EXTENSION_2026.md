@@ -1,5 +1,7 @@
 # Om AI Live Human Call And Education Extension 2026
 
+> **Change note, 2026-10-31 (WO-TAI-13).** This spec is planning material. The implemented backend and `AI_OM_LIVE_API_CONTRACT_V1.md` (change note 2026-10-30) win: responses are `{ data, error, meta? }`; session statuses are `blocked | active | ended | failed`; realtime connect, token and bootstrap are fail-closed (503 `ai_authority_unavailable`) until the OMDALA AI authority publishes a realtime contract, so no `ready` status, bootstrap token, client secret or provider name is returned today. Provider products named below (for example OpenAI Realtime, Tavus) are candidates that only the OMDALA AI authority may select and call; Om AI services and clients never hold provider keys or call providers directly. Clients have no session-token handling until the canonical session bridge exists (`canonical_session_bridge_unavailable`). Plan changes return 403 `PLAN_CHANGE_REQUIRES_BILLING`. Moderation in code is a keyword screen only (`docs/OMAI_MODERATION_SCOPE.md`).
+
 Version: 1.0  
 Status: Locked extension for immediate DEV build  
 Canonical product name: Om AI Live  
@@ -327,6 +329,8 @@ When usage is exhausted:
 ```
 
 ### 12.2 Session Response
+
+Planned shape. Today the backend returns `status: "blocked"`, `execution_ready: false`, `avatar.provider: null` and no realtime block (see the change note at the top).
 
 ```json
 {

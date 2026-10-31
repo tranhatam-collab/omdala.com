@@ -22,7 +22,7 @@ Repo: `omdala.com/om-ai.omdala.com`
 
 - [ ] `/health`, `/ready`, `/openapi.json`, and docs are reachable
 - [ ] `/v2/live` contract matches shipped mobile build
-- [ ] moderation and metering states are stable
+- [ ] moderation and metering states are stable (a keyword screen is not moderation coverage; see `docs/OMAI_MODERATION_SCOPE.md`)
 - [ ] staging smoke passes against backend
 
 ## QA checks

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { describeApiError } from '../api/liveErrors';
 import { planTransition } from '../api/reality';
 
 export function usePlanner() {
@@ -11,7 +12,7 @@ export function usePlanner() {
     setLoading(false);
 
     if (result.error || !result.value) {
-      setError('Unable to create a plan right now. Please try again. / Hien tai chua tao duoc ke hoach. Vui long thu lai.');
+      setError(describeApiError(result.error, 'Unable to create a plan right now. Please try again. / Hiện tại chưa tạo được kế hoạch. Vui lòng thử lại.'));
       return null;
     }
 

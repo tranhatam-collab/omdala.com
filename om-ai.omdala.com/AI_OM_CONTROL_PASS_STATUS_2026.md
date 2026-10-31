@@ -155,7 +155,7 @@ Use as current product truth:
 - recap
 - memory
 - metering
-- moderation
+- moderation (planned product behavior; the code today is only a keyword screen, see `docs/OMAI_MODERATION_SCOPE.md`)
 - subscription visibility
 - shared account and billing baseline dependency alignment
 - family-safe policy behavior
