@@ -152,3 +152,33 @@ a junk cookie answers 200; a refresh token as bearer answers 401; `POST /v1/auth
 with only a bearer answers `400 missing_refresh_token`; `POST /v1/auth/logout` with only an
 access bearer answers `200 {revoked: true}`; an access token whose `exp` is in seconds is
 rejected as expired (milliseconds are required). These probes are not committed as tests.
+
+## 10. How Om AI verifies a bridge credential (WO-T2-23) — OWNER DECISION
+
+Status: `PROPOSED`. Label: `PREP_UNDER_ASSUMPTION(AI-01, bridge as drafted)`.
+What exists (WO-T2-21/22, 501 outside local and test): the credential is
+`omb1.<payload>.<HS256 signature>`, signed with `MAGIC_LINK_SECRET`, which only this API holds.
+**Om AI therefore cannot verify it by itself.** Two ways to close that:
+
+| | (a) Introspection endpoint | (b) Asymmetric signing + published key set |
+|---|---|---|
+| How | Om AI calls `POST /v1/auth/om-ai/introspect` with the token and its own service credential; the API answers `{active, claims}` after the same checks as today (signature, row, parent session, expiry). | The API signs with a private key (EdDSA or ES256) and publishes the public keys at a JWKS URL; Om AI verifies offline and caches the keys. Tokens become real JWTs: add `iss`, a `kid` header, keep `iat`/`exp` in seconds. |
+| Revocation | Immediate (logout, own revoke, admin revoke all take effect on the next call). | Only at expiry (15 min) unless Om AI also introspects, which brings (a) back. |
+| New secret | A service credential for Om AI (rotation, storage on both sides). | A signing private key in the API's secret store, key rotation with overlapping `kid`s, a public JWKS route. |
+| Latency / availability | One API round trip per verification (cacheable for seconds); Om AI depends on API availability. | No per-request call; Om AI keeps working if the API is briefly down. |
+| Work left | Route, caller authentication, a short cache rule, rate limit. | Key generation and custody, JWKS route, `iss`/`kid`, rotation procedure, tests against a JWT library. |
+| Fits proposal 5 (revoke on logout) | Yes, as written. | Only partly; the 15-minute window is the exposure. |
+
+**Recommendation: (a) now.** The drafted requirement is revocation on logout and by an
+administrator; (a) gives that without new key custody, and the call volume of a read-only
+bridge is small. Keep the token format compatible with (b) (seconds, `iat`/`exp`, `aud`,
+`sub`) so moving to (b) later is additive; revisit if Om AI's latency or API-outage
+tolerance requires offline verification. The owner chooses; nothing in (a) or (b) is
+built beyond this paragraph.
+
+Built with this order, behind the same release boundary: `sub` is now a **stored** account id
+(`acct_` + 32 hex, random, one row per account in `omdala.account_ids`, proposed migration
+`0007_account_ids`), no longer an HMAC of the email under `MAGIC_LINK_SECRET`. It survives
+secret rotation and does not reveal or depend on the email. It is keyed by email, the account
+key the API uses today; if accounts ever get a primary id of their own, `account_id` should
+become that id.

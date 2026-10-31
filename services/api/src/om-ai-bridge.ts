@@ -8,7 +8,9 @@
 import type { ApiBindings } from "./contracts";
 import {
   countLiveBridgeCredentialsForSession,
+  getOrCreateAccountId,
   insertBridgeCredential,
+  readAccountId,
   readBridgeCredential,
   revokeBridgeCredential,
   revokeBridgeCredentialsForSession,
@@ -89,11 +91,25 @@ const fromBase64Url = (value: string) => {
 const hmacKey = (secret: string) =>
   crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
 
-/** Stable, non-reversible account id: the same account always maps to the same `sub`. */
-export async function deriveAccountId(env: ApiBindings, email: string): Promise<string> {
-  const key = await hmacKey(env.MAGIC_LINK_SECRET ?? "");
-  const digest = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(`omdala:account-id:v1:${email}`)));
-  return `acct_${Array.from(digest.slice(0, 16), (b) => b.toString(16).padStart(2, "0")).join("")}`;
+const memoryAccountIds = new Map<string, string>();
+const toSub = (accountId: string) => `acct_${accountId.replace(/-/g, "")}`;
+
+/**
+ * The stable `sub` of an account: a random id stored once per account (migration
+ * 0007_account_ids), never derived from the email or from a secret. `create: false`
+ * reads without writing, for verification.
+ */
+export async function accountSubFor(env: ApiBindings, email: string, create: boolean): Promise<string | null> {
+  if (memoryStoreApplies(env)) {
+    let id = memoryAccountIds.get(email);
+    if (!id && create) {
+      id = crypto.randomUUID();
+      memoryAccountIds.set(email, id);
+    }
+    return id ? toSub(id) : null;
+  }
+  const id = create ? await getOrCreateAccountId(env, email) : await readAccountId(env, email);
+  return id ? toSub(id) : null;
 }
 
 async function sign(env: ApiBindings, payloadPart: string): Promise<string> {
@@ -111,7 +127,7 @@ export async function mintBridgeCredential(
     aud: BRIDGE_AUDIENCE,
     scope: [...new Set(input.scopes)].sort(),
     ws: input.workspaceId,
-    sub: await deriveAccountId(env, input.email),
+    sub: (await accountSubFor(env, input.email, true))!,
     iat,
     exp: iat + BRIDGE_TTL_SECONDS,
     jti: crypto.randomUUID(),
@@ -198,7 +214,7 @@ export async function authenticateBridgeToken(
     row.workspaceId !== claims.ws ||
     row.scopes.join(" ") !== [...claims.scope].sort().join(" ") ||
     row.expiresAt !== claims.exp * 1000 ||
-    (await deriveAccountId(env, row.ownerEmail)) !== claims.sub
+    (await accountSubFor(env, row.ownerEmail, false)) !== claims.sub
   ) {
     return { ok: false, reason: "invalid" };
   }

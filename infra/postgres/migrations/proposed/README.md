@@ -40,3 +40,9 @@ expectations in `scripts/verify-migration-compatibility.test.mjs`). Manual rever
 `../rollback/0006_om_ai_bridge_credentials.down.sql`. The bridge routes answer 501 in
 staging and production regardless of the schema (`bridgeReleased`), so promotion alone
 does not release anything; the release change is a separate owner decision.
+
+## 0007_account_ids (WO-T2-23)
+
+sha256 `c25e67f0b2ed09298dcaf6252d2fa080b73f6d6b097cef0c13d95eb83a7f2791`. Stores the stable account id used as the bridge credential `sub`. Same
+promotion steps as 0004 to 0006 (WO-T1-06). Manual reversal: `../rollback/0007_account_ids.down.sql`
+(only on a database with no live bridge credentials).

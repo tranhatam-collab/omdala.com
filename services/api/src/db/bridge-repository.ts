@@ -94,3 +94,25 @@ export async function countLiveBridgeCredentialsForSession(env: ApiBindings, par
   );
   return Number(rows[0]?.live ?? 0);
 }
+
+/** The account's stored id, created on first use (idempotent and race-free in one statement). */
+export async function getOrCreateAccountId(env: ApiBindings, email: string): Promise<string> {
+  const rows = await inDbContext("getOrCreateAccountId", () =>
+    queryRows<{ account_id: string }>(
+      env,
+      `INSERT INTO omdala.account_ids (email) VALUES ($1)
+       ON CONFLICT (email) DO UPDATE SET email = omdala.account_ids.email
+       RETURNING account_id::text AS account_id`,
+      [email],
+    ),
+  );
+  return String(rows[0].account_id);
+}
+
+/** Read-only: null when the account never minted a credential. */
+export async function readAccountId(env: ApiBindings, email: string): Promise<string | null> {
+  const rows = await inDbContext("readAccountId", () =>
+    queryRows<{ account_id: string }>(env, `SELECT account_id::text AS account_id FROM omdala.account_ids WHERE email = $1`, [email]),
+  );
+  return rows[0] ? String(rows[0].account_id) : null;
+}

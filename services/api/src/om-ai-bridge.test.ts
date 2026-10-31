@@ -3,7 +3,7 @@
 // a rejection proves the claim check itself and not just the HMAC.
 import { describe, expect, it } from "vitest";
 import app from "./index";
-import { BRIDGE_SCOPES, deriveAccountId, isRouteAllowed } from "./om-ai-bridge";
+import { BRIDGE_SCOPES, accountSubFor, isRouteAllowed } from "./om-ai-bridge";
 
 const SECRET = "test_om_ai_bridge_secret_value_0123456789";
 const env = { ENVIRONMENT: "test", MAGIC_LINK_SECRET: SECRET };
@@ -55,7 +55,7 @@ describe("minting", () => {
     expect(response.headers.get("set-cookie")).toBeNull();
     expect(response.headers.get("cache-control")).toBe("no-store");
     const claims = decode(token);
-    expect(claims).toMatchObject({ aud: "om-ai", ws, sub: await deriveAccountId(env as never, "mint@example.test") });
+    expect(claims).toMatchObject({ aud: "om-ai", ws, sub: await accountSubFor(env as never, "mint@example.test", false) });
     expect(claims.scope).toEqual(["preferences:read", "profile:read", "session:read", "workspaces:read"]);
     expect(Number.isInteger(claims.iat) && Number.isInteger(claims.exp)).toBe(true);
     expect((claims.exp as number) - (claims.iat as number)).toBe(900);
@@ -65,11 +65,19 @@ describe("minting", () => {
     expect(JSON.stringify(data)).not.toContain("refresh");
   });
 
-  it("derives the same sub for the same account and a different one for another", async () => {
-    const a = await deriveAccountId(env as never, "a@example.test");
-    expect(a).toBe(await deriveAccountId(env as never, "a@example.test"));
-    expect(a).not.toBe(await deriveAccountId(env as never, "b@example.test"));
-    expect(a).toMatch(/^acct_[0-9a-f]{32}$/);
+  it("uses a stored, stable sub: the same across mints and secret rotation, different per account, not derived from the email", async () => {
+    const first = await mint("stable@example.test");
+    const second = await mint("stable@example.test");
+    const other = await mint("different@example.test");
+    const sub = decode(first.token).sub;
+    expect(decode(second.token).sub).toBe(sub);
+    expect(decode(other.token).sub).not.toBe(sub);
+    expect(sub).toMatch(/^acct_[0-9a-f]{32}$/);
+    expect(await accountSubFor(env as never, "never-minted@example.test", false)).toBeNull();
+    // rotating the signing secret invalidates old tokens but does not move the account id
+    const rotated = { ...env, MAGIC_LINK_SECRET: `${SECRET}_rotated` };
+    expect(await accountSubFor(rotated as never, "stable@example.test", false)).toBe(sub);
+    expect(JSON.stringify(decode(first.token))).not.toContain("stable@example.test");
   });
 
   it("requires an authenticated session", async () => {

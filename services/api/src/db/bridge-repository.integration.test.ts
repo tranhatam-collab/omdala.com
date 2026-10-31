@@ -12,7 +12,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ApiBindings } from "../contracts";
 import {
   countLiveBridgeCredentialsForSession,
+  getOrCreateAccountId,
   insertBridgeCredential,
+  readAccountId,
   readBridgeCredential,
   revokeBridgeCredential,
   revokeBridgeCredentialsForSession,
@@ -28,6 +30,7 @@ const appliedOrder = [...sqlFiles(root), ...sqlFiles(resolve(root, "proposed"))]
   a.split("/").pop()!.localeCompare(b.split("/").pop()!),
 );
 const downFile = resolve(root, "rollback/0006_om_ai_bridge_credentials.down.sql");
+const downAccountIds = resolve(root, "rollback/0007_account_ids.down.sql");
 
 describe.skipIf(!adminUrl)("Om AI bridge credentials on real PostgreSQL", () => {
   const dbName = `omdala_bridge_${randomBytes(6).toString("hex")}`;
@@ -101,6 +104,16 @@ describe.skipIf(!adminUrl)("Om AI bridge credentials on real PostgreSQL", () => 
     expect(await countLiveBridgeCredentialsForSession(env, sid)).toBe(1);
   });
 
+  it("stores one stable account id per email, race-free", async () => {
+    const email = `acct-${crypto.randomUUID().slice(0, 8)}@example.test`;
+    expect(await readAccountId(env, email)).toBeNull();
+    const ids = await Promise.all(Array.from({ length: 12 }, () => getOrCreateAccountId(env, email)));
+    expect(new Set(ids).size).toBe(1);
+    expect(ids[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(await readAccountId(env, email)).toBe(ids[0]);
+    expect(await getOrCreateAccountId(env, `${email}.other`)).not.toBe(ids[0]);
+  });
+
   it("refuses a duplicate jti and an already-expired row", async () => {
     const input = row();
     await insertBridgeCredential(env, input);
@@ -115,5 +128,11 @@ describe.skipIf(!adminUrl)("Om AI bridge credentials on real PostgreSQL", () => 
     await pg.query(readFileSync(migration, "utf8"));
     await pg.query(readFileSync(migration, "utf8")); // idempotent
     expect((await pg.query("SELECT to_regclass('omdala.om_ai_bridge_credentials') AS t")).rows[0].t).not.toBeNull();
+    await pg.query(readFileSync(downAccountIds, "utf8"));
+    expect((await pg.query("SELECT to_regclass('omdala.account_ids') AS t")).rows[0].t).toBeNull();
+    const accounts = appliedOrder.find((file) => file.endsWith("0007_account_ids.sql"))!;
+    await pg.query(readFileSync(accounts, "utf8"));
+    await pg.query(readFileSync(accounts, "utf8"));
+    expect((await pg.query("SELECT to_regclass('omdala.account_ids') AS t")).rows[0].t).not.toBeNull();
   });
 });
