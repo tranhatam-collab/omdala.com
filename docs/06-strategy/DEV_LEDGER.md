@@ -134,7 +134,11 @@ records each change here and in section 8:
 6. Limit found 2026-10-30: `update_trigger` (pause, resume, cadence) needs owner
    approval in the T0 session, like `send_message`. On 2026-10-31T08:2xZ every
    team's lane was exhausted; T0 asked the owner to approve disabling T2, T3 and
-   TAI and moving T0 to every 3 hours; T4 stays on to verify the last heads. Until the owner allows it,
+   TAI and moving T0 to every 3 hours; T4 stays on to verify the last heads.
+   2026-10-31T09:2xZ: T4 verified the last heads too, so T0 requests disabling all
+   four team triggers and moving T0 to every 6 hours (rule 3). Each request is an
+   approval prompt in the T0 session; until the owner answers, the triggers keep
+   firing and each idle check costs about 1-2 USD. Until the owner allows it,
    T0 keeps idle teams busy by refilling eligible work first, and a team with
    nothing eligible only does a short ledger check when its trigger fires.
 
@@ -181,7 +185,7 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-TAI-04 MOB-02 toolchain | TAI | PARTIAL: Linux side done; bundle ids need the owner (7.3) | 66b169d | 2026-10-30 |
 | WO-TAI-05 failure states | TAI | PARTIAL: messages and unit tests done; browser test waits on the AI authority contract | cba5ccb | 2026-10-30 |
 | BL-TAI-01..03 | TAI | VERIFIED | e1d3be3, 696dad1 | 2026-10-30 |
-| WO-T4-03 standing | T4 | READY (standing, every turn) | Verified through T2 369cb50, T3 c036f21, TAI c1c5366, no failures; next: T2 7c79659, T3 74a89b4 | 2026-10-31 |
+| WO-T4-03 standing | T4 | READY (standing, every turn) | **Every team head verified**: T2 7c79659 (hosted CI read), T3 74a89b4, TAI c1c5366, no failures | 2026-10-31 |
 | WO-T4-04, -05, -06 | T4 | DONE | 4248392, 9ed2ab0 (+638d097), 9e4ece3 | 2026-10-30 |
 | BL-T4-01, -02, -03 | T4 | DONE | d3291e8, 7c251b1 | 2026-10-30 |
 | WO-T2-08 Hyperdrive TLS | T2 | BLOCKED: `developers.cloudflare.com` is outside this environment's network allowlist; T2 will not configure it from memory. Needs the owner (allow the host) or a T1 staging check (7.3) | 131b5d4 | 2026-10-30 |
@@ -207,7 +211,7 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-TAI-07 moderation normalization | TAI | DONE, awaiting T4 | 5c7a79a | 2026-10-30 |
 | WO-TAI-08 gateway negatives | TAI | PARTIAL: the gateway has no HTTP surface; command, registry and router negatives done | c79c3cb | 2026-10-30 |
 | WO-T4-09 local-stack safety review | T4 | DONE: 4 findings, fix is WO-T2-15 | 5a0647d | 2026-10-30 |
-| WO-T4-10 | T4 | READY | | 2026-10-30 |
+| WO-T4-10 R-finding and matrix refresh | T4 | DONE | f290d0d | 2026-10-31 |
 | WO-T2-15 local-stack hardening | T2 | DONE, awaiting T4 | acdcfc4 | 2026-10-30 |
 | WO-T2-16 /v1 tenant isolation | T2 | DONE, awaiting T4; 3 defects fixed: colliding default workspace ids, `analytics/track` wrote to a workspace the caller does not own, service-token mint did not require a session | 2c48d55 | 2026-10-30 |
 | WO-T3-14 bilingual web 404 | T3 | DONE, awaiting T4 | 8c1e3b9 | 2026-10-30 |
@@ -257,7 +261,7 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-T4-20 QA summary | T4 | DONE: `docs/audit/team4/2026-10-31_QA_SUMMARY.md` on the T4 branch, with the items that block a staging release | f720ca0 | 2026-10-31 |
 | WO-T2-30 DB suites in hosted CI | T2 | DONE, **VERIFIED_CURRENT for CI scope**: T0 read run 41181940249 on 60625bb, conclusion success; T2 reports 643 passed, 0 skipped in "API Tests" | 60625bb | 2026-10-31 |
 | WO-T2-31 PR #17 summary | T2 | DONE | 2228a55 | 2026-10-31 |
-| WO-T3-21 desktop shell | T3 | DONE, awaiting T4: desktop `npm test` 117/0/0 on Linux | 74a89b4 | 2026-10-31 |
+| WO-T3-21 desktop shell | T3 | VERIFIED (VERIFY-t3-74a89b4): desktop `npm test` 117/0/0 on Linux | 74a89b4 | 2026-10-31 |
 | WO-T4-15 | T4 | READY (after WO-T2-24 lands) | | 2026-10-31 |
 | WO-T0-01 | T0 | QUEUED | | 2026-10-28 |
 | WO-T0-02 | T0 | QUEUED | | 2026-10-28 |
@@ -759,3 +763,4 @@ BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
 | 2026-10-31T06:2xZ | HARVEST | T4 WO-T4-18: all four team branches merge cleanly onto 7abd962 and every check passes on the merged tree (local). T3 and TAI PR summaries DONE; T2 missed its PR order (still READY). T3 and TAI have nothing eligible; their hourly checks stay short. New: WO-T4-19/20, WO-T1-09; decision packet 0 (review route) added | |
 | 2026-10-31T07:2xZ | HARVEST | T4 WO-T4-19 (Om AI suites pass on the merged tree; desktop 2 failures from `/bin/zsh`) and WO-T4-20 QA summary DONE; T3 wrote QUEUE_EMPTY; T2 missed its PR order twice (reissued as WO-T2-31). Idle checks cost about 1.6 USD each for a large-context team session. New: WO-T2-30 (DB suites in hosted CI), WO-T2-31, WO-T3-21 (desktop shell, lease), WO-T1-10. Asked the owner to approve disabling the TAI trigger (nothing eligible) | |
 | 2026-10-31T08:2xZ | HARVEST | T2 WO-T2-30: the 87 DB-gated API tests now run in hosted CI, 643/643 (run 41181940249 read by T0, success); WO-T2-31 PR summary. T3 WO-T3-21 desktop shell fix, desktop 117/117. T4 WO-T4-17: three security surfaces answer 501 in every release-like environment. **All lanes exhausted**: every remaining item needs the owner or T1 (decision packets 0-12, WO-T1-*). Requested approval to disable T2, T3, TAI and slow T0 | Waiting for the owner |
+| 2026-10-31T09:2xZ | HARVEST | T4 verified T2 7c79659 and T3 74a89b4 (no failures) and refreshed the R table and matrix (WO-T4-10). Nothing eligible remains for any team. Requested owner approval to disable all four team triggers and set T0 to every 6 hours | Waiting for the owner |
