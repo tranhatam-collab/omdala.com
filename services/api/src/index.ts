@@ -30,6 +30,7 @@ import type {
 } from "../../../packages/types/src";
 import type { Context } from "hono";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { cors } from "hono/cors";
 import type {
   AccessRequest,
@@ -47,6 +48,10 @@ import {
   parsePaginationParams,
 } from "./contracts";
 import {
+  AiagentProviderError,
+  isAiagentChatInputValid,
+  aiagentRequestId,
+  chatMayHaveBeenBilled,
   executeAiagentChat,
   getAiagentAuthority,
   listAiagentModels,
@@ -59,10 +64,13 @@ import {
   getTrustByNodeId,
   listCommitments,
   listNodes,
+  listRuns,
+  listScenes,
   listProofs,
   listStates,
   listTransitions,
   listTrust,
+  runScene,
 } from "./db/reality-repository";
 import {
   readOrCreateAccountPreferences,
@@ -94,7 +102,37 @@ import {
   mapDbErrorToHttp,
   ResourceAccessError,
 } from "./db/errors";
+import {
+  BRIDGE_SCOPES,
+  BRIDGE_TOKEN_PREFIX,
+  BRIDGE_TTL_SECONDS,
+  BRIDGE_JTI_PATTERN,
+  BridgeLimitError,
+  authenticateBridgeToken,
+  bridgeReleased,
+  isBridgeScope,
+  isRouteAllowed,
+  mintBridgeCredential,
+  revokeBridgeToken,
+  revokeBridgeTokensForSession,
+  type BridgeIdentity,
+  type BridgeScope,
+} from "./om-ai-bridge";
+import { hitRateLimit, purgeRateLimitWindows } from "./db/rate-limit-repository";
+import {
+  capIsRequired,
+  parseDailyCap,
+  reservationFor,
+  secondsUntilNextUtcMidnight,
+  utcDay,
+} from "./ai-usage-cap";
+import {
+  releaseAiUsage,
+  reserveAiUsage,
+  settleAiUsage,
+} from "./db/ai-usage-repository";
 import { createApiContractStub } from "./stub";
+import { DEFAULT_REALITY_SCENES } from "./reality-scene-defaults";
 // ─── Custom Security & AI Connectors ───────────────────────────────────
 import {
   buildClearCookie as buildSecureClearCookie,
@@ -126,6 +164,7 @@ const app = new Hono<{
   Variables: {
     requestId: string;
     realityOwnerEmail?: string;
+    bridge?: BridgeIdentity;
   };
 }>();
 type ApiContext = Context<{
@@ -133,6 +172,7 @@ type ApiContext = Context<{
   Variables: {
     requestId: string;
     realityOwnerEmail?: string;
+    bridge?: BridgeIdentity;
   };
 }>;
 type ApiStatus =
@@ -140,7 +180,10 @@ type ApiStatus =
   | 201
   | 400
   | 401
+  | 402
+  | 403
   | 404
+  | 409
   | 410
   | 422
   | 429
@@ -279,6 +322,28 @@ function jsonError(
   );
 }
 
+// The one way a handler turns an unexpected failure into a response: the cause (driver, provider,
+// stack) goes to the log with the request id, the body carries only a stable code, a fixed
+// sentence and the request id (WO-T2-28).
+function internalFailure(
+  c: ApiContext,
+  error: unknown,
+  operation: string,
+  code: string,
+  message: string,
+  status: ApiStatus = 500,
+) {
+  console.error("request failed", {
+    request_id: c.get("requestId") as string | undefined,
+    method: c.req.method,
+    path: c.req.path,
+    operation,
+    error_code: code,
+    message: error instanceof Error ? error.message : String(error),
+  });
+  return jsonError(c, status, code, message);
+}
+
 function jsonOk(c: ApiContext, data: unknown, status: ApiStatus = 200) {
   const requestId = c.get("requestId") as string | undefined;
   return c.json(
@@ -327,7 +392,37 @@ function getClientIp(c: ApiContext): string {
   return getTrustedClientIp(c.req.raw.headers);
 }
 
-function isRateLimited(key: string, limit: number, windowMs: number): boolean {
+// Rate limiting sits behind one function. Configured databases (outside test and development) count
+// requests in PostgreSQL so every Worker isolate shares the window; otherwise, and whenever the
+// shared store is unreachable, the per-isolate in-memory limiter answers. A failing store is
+// skipped for a while instead of being retried on every request.
+// PREP_UNDER_ASSUMPTION(CTL-03, PostgreSQL via Hyperdrive for the main API)
+let sharedLimiterRetryAt = 0;
+const SHARED_LIMITER_BACKOFF_MS = 30_000;
+
+async function isRateLimited(
+  c: ApiContext,
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<boolean> {
+  const env = c.env;
+  const shared =
+    isDatabaseConfigured(env) &&
+    !["test", "development"].includes(env.ENVIRONMENT ?? "") &&
+    Date.now() >= sharedLimiterRetryAt;
+  if (shared) {
+    try {
+      const limited = await hitRateLimit(env, { key, limit, windowSeconds: Math.max(1, Math.round(windowMs / 1000)) });
+      if (Math.random() < 0.01) await purgeRateLimitWindows(env, 24 * 60 * 60).catch(() => undefined);
+      return limited;
+    } catch (error) {
+      sharedLimiterRetryAt = Date.now() + SHARED_LIMITER_BACKOFF_MS;
+      console.error("shared rate limiter unavailable, using the per-isolate limiter", {
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
   return rateLimiter.isLimited(key, limit, windowMs);
 }
 
@@ -756,8 +851,17 @@ function toDisplayNameFromEmail(email: string): string {
     .join(" ");
 }
 
-function toIdFromEmail(email: string): string {
-  return email.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+// Injective by construction: every byte outside [a-z0-9] becomes "_" plus two hex
+// digits, so two different addresses can never share a default id. (The earlier
+// lossy form mapped "john.doe@x.com" and "john_doe@x.com" to one primary key, which
+// locked the second account out of its workspace features.) The "wsd_" prefix also
+// keeps new ids disjoint from the "ws_" ids already issued.
+function defaultWorkspaceIdForEmail(email: string): string {
+  const escaped = Array.from(new TextEncoder().encode(email.toLowerCase()), (byte) => {
+    const char = String.fromCharCode(byte);
+    return /[a-z0-9]/.test(char) ? char : `_${byte.toString(16).padStart(2, "0")}`;
+  }).join("");
+  return `wsd_${escaped}`;
 }
 
 function toSlug(value: string): string {
@@ -1023,10 +1127,9 @@ function buildDefaultWorkspacesForEmail(
   profile: OmAiAccountProfile,
 ): WorkspaceRecord[] {
   const now = new Date().toISOString();
-  const baseId = toIdFromEmail(email);
   return [
     {
-      id: `ws_${baseId}`,
+      id: defaultWorkspaceIdForEmail(email),
       slug: `${toSlug(profile.displayName || email)}-workspace`,
       name: `${profile.displayName || email} Workspace`,
       type: "organization",
@@ -1254,6 +1357,17 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 async function requireAuthenticatedSession(
   c: ApiContext,
 ): Promise<SessionTokenPayload | Response> {
+  // A verified Om AI bridge credential (middleware below) acts as its owner, nothing more.
+  const bridge = c.get("bridge");
+  if (bridge) {
+    return {
+      jti: bridge.jti,
+      sid: bridge.sid,
+      email: bridge.email,
+      type: "access",
+      exp: bridge.exp * 1000,
+    };
+  }
   const accessToken =
     getBearerToken(c) ?? getCookieValue(c, "omdala_access_token");
 
@@ -1407,18 +1521,11 @@ function createRealitySeed() {
     },
   ];
 
-  const scenes = [
-    {
-      scene_id: "scene_sleep_child",
-      display_name: "Sleep – Child's Room",
-      safety_class: "safe",
-      actions: [
-        { device: "smart_bulb_child", command: "set_brightness", value: 0 },
-        { device: "air_purifier_child", command: "set_mode", value: "sleep" },
-      ],
-      created_at: now,
-    },
-  ];
+  const scenes = DEFAULT_REALITY_SCENES.map((scene) => ({
+    ...scene,
+    actions: scene.actions.map((action) => ({ ...action })),
+    created_at: now,
+  }));
 
   const runs: Array<{
     run_id: string;
@@ -1649,6 +1756,27 @@ function protectedRuntimeDatabaseErrorResponse(
     message: error instanceof Error ? error.message : String(error),
   });
   return jsonError(c, mapped.status, mapped.errorCode, mapped.message);
+}
+
+// Authentication state lives in PostgreSQL. A storage failure must surface as a
+// stable, non-leaking code instead of the raw driver or configuration message.
+function authStorageFailureResponse(
+  c: ApiContext,
+  error: unknown,
+  operation: string,
+): Response | null {
+  if (error instanceof DbQueryError) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, operation);
+  }
+  if (error instanceof Error && error.message === "DATABASE_URL is not configured") {
+    return jsonError(
+      c,
+      503,
+      "PERSISTENCE_REQUIRED",
+      "PostgreSQL persistence is required for this protected API in the current environment.",
+    );
+  }
+  return null;
 }
 
 function releaseIdentity(env: ApiBindings) {
@@ -2092,6 +2220,12 @@ function buildAccessRequestAckEmail(payload: Required<AccessRequest>) {
   };
 }
 
+// Anything a handler did not catch still answers with a stable code and the request id.
+app.onError((error, c) => {
+  if (error instanceof HTTPException) return error.getResponse();
+  return internalFailure(c, error, "unhandled", "internal_error", "The request could not be completed.");
+});
+
 // CORS — restrict credentialed requests to exact origins for this environment
 app.use(
   "/*",
@@ -2121,6 +2255,53 @@ app.use("/*", async (c, next) => {
   await next();
   c.header("x-request-id", requestId);
 });
+
+// Om AI bridge credentials (PREP_UNDER_ASSUMPTION(AI-01, bridge as drafted)): a bearer that
+// carries the bridge prefix is never treated as a browser session. Outside local/test
+// environments it is refused before anything is read.
+app.use("/v1/*", async (c, next) => {
+  const bearer = getBearerToken(c);
+  if (!bearer?.startsWith(BRIDGE_TOKEN_PREFIX)) {
+    await next();
+    return;
+  }
+  if (!bridgeReleased(c.env)) return bridgeNotReleased(c);
+  let result;
+  try {
+    result = await authenticateBridgeToken(c.env, bearer, ({ sid, email }) =>
+      isAuthSessionStateActive(c.env, { sid, email }),
+    );
+  } catch {
+    return jsonError(c, 503, "session_authority_unavailable", "Session authority is unavailable.");
+  }
+  if (!result.ok) {
+    return result.reason === "revoked"
+      ? jsonError(c, 401, "session_revoked", "Bridge credential has been revoked.")
+      : jsonError(c, 401, "invalid_or_expired_token", "Bridge credential is invalid or expired.");
+  }
+  if (!isRouteAllowed(result.identity.scope, c.req.method, c.req.path)) {
+    return jsonError(c, 403, "bridge_scope_forbidden", "This credential does not allow this route.");
+  }
+  c.set("bridge", result.identity);
+  await next();
+});
+
+// PREP_UNDER_ASSUMPTION(security endpoints closed until designed): webhook verification takes its
+// secret from the caller, service tokens never verify and API keys are never stored. They are
+// answered before anything is read, and only local environments serve them.
+for (const path of ["/v1/security/webhooks/verify", "/v1/security/service-token", "/v1/security/api-keys"]) {
+  app.all(path, async (c, next) => {
+    if (["test", "development", "local"].includes(c.env.ENVIRONMENT ?? "")) {
+      await next();
+      return;
+    }
+    return jsonError(c, 501, "not_released", "This endpoint is not available in this environment.");
+  });
+}
+
+function bridgeNotReleased(c: ApiContext) {
+  return jsonError(c, 501, "OM_AI_BRIDGE_NOT_RELEASED", "The Om AI session bridge is not available in this environment.");
+}
 
 app.use("/v2/reality/*", async (c, next) => {
   getOrCreateRequestId(c); // already set by global middleware, just ensure variable is seeded
@@ -2539,6 +2720,11 @@ app.get("/v2/reality/trust/:nodeId", async (c) => {
 
 app.get("/v2/reality/scenes", async (c) => {
   return withV2Guard(c, async () => {
+    if (hasDatabase(c.env)) {
+      const scenes = await listScenes(c.env, getRealityOwnerEmail(c));
+      return jsonOk(c, { scenes, total: scenes.length });
+    }
+
     return jsonOk(c, {
       scenes: realitySeed.scenes,
       total: realitySeed.scenes.length,
@@ -2549,6 +2735,26 @@ app.get("/v2/reality/scenes", async (c) => {
 app.post("/v2/reality/scenes/:id/run", async (c) => {
   return withV2Guard(c, async () => {
     const sceneId = c.req.param("id");
+
+    if (hasDatabase(c.env)) {
+      const run = await runScene(c.env, getRealityOwnerEmail(c), sceneId);
+      if (!run) {
+        return jsonError(c, 404, "SCENE_NOT_FOUND", "Scene does not exist.");
+      }
+      return jsonOk(c, {
+        run_id: run.run_id,
+        scene_id: run.source_id,
+        status: run.status,
+        proof: {
+          proofId: run.proof_id,
+          runId: run.run_id,
+          actorId: run.actor_id,
+          policyDecision: run.policy_decision,
+          verifiedAt: run.created_at,
+        },
+      });
+    }
+
     const scene = realitySeed.scenes.find((s) => s.scene_id === sceneId);
     if (!scene) {
       return jsonError(c, 404, "SCENE_NOT_FOUND", "Scene does not exist.");
@@ -2593,6 +2799,23 @@ app.get("/v2/reality/runs", async (c) => {
       page: c.req.query("page"),
       limit: c.req.query("limit"),
     });
+
+    if (hasDatabase(c.env)) {
+      const { runs, total } = await listRuns(c.env, getRealityOwnerEmail(c), { page, limit });
+      const pagination = {
+        page,
+        limit,
+        total,
+        hasNextPage: (page - 1) * limit + runs.length < total,
+      };
+      return jsonOk(c, {
+        contractVersion: API_CONTRACT_VERSION,
+        runs,
+        pagination,
+        meta_pagination: pagination,
+      });
+    }
+
     const sorted = [...realitySeed.runs].sort((a, b) =>
       a.created_at < b.created_at ? 1 : -1,
     );
@@ -2627,8 +2850,8 @@ app.post("/v1/contact", async (c) => {
   const payload = apiContract.normalizeContactRequest(body);
   const clientIp = getClientIp(c);
   if (
-    isRateLimited(`contact:ip:${clientIp}`, 10, 15 * 60 * 1000) ||
-    isRateLimited(`contact:email:${payload.email}`, 5, 15 * 60 * 1000)
+    (await isRateLimited(c, `contact:ip:${clientIp}`, 10, 15 * 60 * 1000)) ||
+    (await isRateLimited(c, `contact:email:${payload.email}`, 5, 15 * 60 * 1000))
   ) {
     return jsonError(
       c,
@@ -2664,14 +2887,7 @@ app.post("/v1/contact", async (c) => {
       deliveryReceipts,
     });
   } catch (error) {
-    return jsonError(
-      c,
-      502,
-      "mail_delivery_failed",
-      error instanceof Error
-        ? error.message
-        : "Unable to deliver contact email.",
-    );
+    return internalFailure(c, error, "sendContactMail", "mail_delivery_failed", "Unable to deliver contact email.", 502);
   }
 });
 
@@ -2689,8 +2905,8 @@ app.post("/v1/auth/access-request", async (c) => {
   const payload = apiContract.normalizeAccessRequest(body);
   const clientIp = getClientIp(c);
   if (
-    isRateLimited(`access:ip:${clientIp}`, 10, 15 * 60 * 1000) ||
-    isRateLimited(`access:email:${payload.email}`, 5, 15 * 60 * 1000)
+    (await isRateLimited(c, `access:ip:${clientIp}`, 10, 15 * 60 * 1000)) ||
+    (await isRateLimited(c, `access:email:${payload.email}`, 5, 15 * 60 * 1000))
   ) {
     return jsonError(
       c,
@@ -2730,15 +2946,27 @@ app.post("/v1/auth/access-request", async (c) => {
       201,
     );
   } catch (error) {
-    return jsonError(
-      c,
-      502,
-      "mail_delivery_failed",
-      error instanceof Error
-        ? error.message
-        : "Unable to deliver access request email.",
-    );
+    return internalFailure(c, error, "sendAccessRequestMail", "mail_delivery_failed", "Unable to deliver access request email.", 502);
   }
+});
+
+// Development only: lets a local browser journey start from a clean rate limiter
+// without restarting the worker. Every other environment (production, staging, test,
+// unset) answers exactly like an unknown path, whatever credential is sent.
+app.post("/v1/_dev/reset-rate-limits", async (c) => {
+  if (c.env.ENVIRONMENT !== "development") return c.notFound();
+
+  const expectedSecret = c.env.E2E_TEST_SECRET?.trim() ?? "";
+  if (expectedSecret.length < 32) {
+    return jsonError(c, 503, "dev_reset_not_configured", "Local reset is not configured.");
+  }
+  const providedSecret = c.req.header("x-e2e-test-secret")?.trim() ?? "";
+  if (!providedSecret || !(await secureStringEqual(providedSecret, expectedSecret))) {
+    return jsonError(c, 401, "invalid_dev_secret", "Invalid credential.");
+  }
+
+  rateLimiter.clear();
+  return jsonOk(c, { reset: true });
 });
 
 app.post("/v1/_e2e/magic-link", async (c) => {
@@ -2811,8 +3039,8 @@ app.post("/v1/auth/magic-link/request", async (c) => {
   const { email, redirectTo } = apiContract.normalizeMagicLinkRequest(body);
   const clientIp = getClientIp(c);
   if (
-    isRateLimited(`magic-link:ip:${clientIp}`, 20, 15 * 60 * 1000) ||
-    isRateLimited(`magic-link:email:${email}`, 5, 15 * 60 * 1000)
+    (await isRateLimited(c, `magic-link:ip:${clientIp}`, 20, 15 * 60 * 1000)) ||
+    (await isRateLimited(c, `magic-link:email:${email}`, 5, 15 * 60 * 1000))
   ) {
     return jsonError(
       c,
@@ -2854,12 +3082,9 @@ app.post("/v1/auth/magic-link/request", async (c) => {
       201,
     );
   } catch (error) {
-    return jsonError(
-      c,
-      502,
-      "magic_link_failed",
-      error instanceof Error ? error.message : "Unable to send magic link.",
-    );
+    const storage = authStorageFailureResponse(c, error, "requestMagicLink");
+    if (storage) return storage;
+    return internalFailure(c, error, "requestMagicLink", "magic_link_failed", "Unable to send magic link.", 502);
   }
 });
 
@@ -2918,12 +3143,9 @@ app.post("/v1/auth/session/exchange", async (c) => {
       expiresAt: new Date(accessExp).toISOString(),
     });
   } catch (error) {
-    return jsonError(
-      c,
-      500,
-      "session_exchange_failed",
-      error instanceof Error ? error.message : "Unable to exchange session.",
-    );
+    const storage = authStorageFailureResponse(c, error, "exchangeSession");
+    if (storage) return storage;
+    return internalFailure(c, error, "exchangeSession", "session_exchange_failed", "Unable to exchange session.");
   }
 });
 
@@ -3125,7 +3347,9 @@ app.get("/v1/workspaces", async (c) => {
   if (persistenceError) return persistenceError;
 
   try {
-    const workspaces = await getRuntimeWorkspaces(c.env, session.email);
+    const bridgeWs = c.get("bridge")?.ws;
+    const owned = await getRuntimeWorkspaces(c.env, session.email);
+    const workspaces = bridgeWs ? owned.filter((item) => item.id === bridgeWs) : owned;
     return jsonOk(c, {
       schemaVersion: "2026-04-10",
       workspaces,
@@ -3146,8 +3370,9 @@ app.get("/v1/workspaces/:workspaceId", async (c) => {
   if (persistenceError) return persistenceError;
 
   try {
+    const bridgeWs = c.get("bridge")?.ws;
     const workspace = (await getRuntimeWorkspaces(c.env, session.email)).find(
-      (item) => item.id === c.req.param("workspaceId"),
+      (item) => item.id === c.req.param("workspaceId") && (!bridgeWs || item.id === bridgeWs),
     );
     if (!workspace) {
       return jsonError(
@@ -3390,6 +3615,20 @@ app.post("/v1/analytics/track", async (c) => {
   if (persistenceError) return persistenceError;
 
   try {
+    // An event may only reference a workspace the caller owns.
+    if (body.workspaceId) {
+      const owned = (await getRuntimeWorkspaces(c.env, session.email)).some(
+        (item) => item.id === body.workspaceId,
+      );
+      if (!owned) {
+        return jsonError(
+          c,
+          404,
+          "workspace_not_found",
+          "Workspace was not found in current session scope.",
+        );
+      }
+    }
     const profile = isDatabaseConfigured(c.env)
       ? await getRuntimeAccountProfile(c.env, session.email)
       : getAccountProfileForEmail(session.email);
@@ -3568,13 +3807,104 @@ app.post("/v1/auth/refresh", async (c) => {
       expires_at: new Date(accessExp).toISOString(),
     });
   } catch (error) {
-    return jsonError(
-      c,
-      500,
-      "refresh_failed",
-      error instanceof Error ? error.message : "Unable to refresh session.",
-    );
+    const storage = authStorageFailureResponse(c, error, "refreshSession");
+    if (storage) return storage;
+    return internalFailure(c, error, "refreshSession", "refresh_failed", "Unable to refresh session.");
   }
+});
+
+app.post("/v1/auth/om-ai/bridge-token", async (c) => {
+  if (!bridgeReleased(c.env)) return bridgeNotReleased(c);
+  const session = await requireAuthenticatedSession(c);
+  if (session instanceof Response) return session;
+  const persistenceError = protectedRuntimePersistenceError(c);
+  if (persistenceError) return persistenceError;
+
+  if (await isRateLimited(c, `bridge-mint:${session.email}`, 10, 60 * 1000)) {
+    return jsonError(c, 429, "rate_limited", "Too many bridge credential requests.");
+  }
+
+  const body = await c.req
+    .json<{ workspaceId?: unknown; scopes?: unknown }>()
+    .catch(() => null);
+  if (!body || typeof body.workspaceId !== "string" || !body.workspaceId || body.workspaceId.length > 128) {
+    return jsonError(c, 400, "invalid_request", "workspaceId is required.");
+  }
+  if (!Array.isArray(body.scopes) || body.scopes.length === 0 || body.scopes.length > Object.keys(BRIDGE_SCOPES).length) {
+    return jsonError(c, 400, "invalid_request", "scopes must be a non-empty list.");
+  }
+  if (!body.scopes.every(isBridgeScope)) {
+    return jsonError(c, 400, "invalid_scope", "Unknown scope requested.");
+  }
+  try {
+    // Ownership is checked here, at mint time, against the caller's own workspaces.
+    const owned = await getRuntimeWorkspaces(c.env, session.email);
+    if (!owned.some((item) => item.id === body.workspaceId)) {
+      return jsonError(c, 404, "workspace_not_found", "Workspace was not found in current session scope.");
+    }
+    const { token, claims } = await mintBridgeCredential(c.env, {
+      email: session.email,
+      parentSid: session.sid,
+      workspaceId: body.workspaceId,
+      scopes: body.scopes as BridgeScope[],
+    });
+    c.header("Cache-Control", "no-store");
+    c.header("Pragma", "no-cache");
+    return jsonOk(c, {
+      token,
+      tokenType: "Bearer",
+      aud: claims.aud,
+      scope: claims.scope,
+      ws: claims.ws,
+      sub: claims.sub,
+      expiresAt: new Date(claims.exp * 1000).toISOString(),
+      expiresIn: BRIDGE_TTL_SECONDS,
+    });
+  } catch (error) {
+    if (error instanceof BridgeLimitError) {
+      return jsonError(c, 429, "bridge_credential_limit", "Too many live bridge credentials for this session; revoke one first.");
+    }
+    return protectedRuntimeDatabaseErrorResponse(c, error, "mintBridgeCredential");
+  }
+});
+
+app.post("/v1/auth/om-ai/bridge-token/revoke", async (c) => {
+  if (!bridgeReleased(c.env)) return bridgeNotReleased(c);
+  const bridge = c.get("bridge");
+  if (!bridge) {
+    return jsonError(c, 400, "bridge_token_required", "Present the bridge credential to revoke it.");
+  }
+  try {
+    await revokeBridgeToken(c.env, bridge.jti);
+  } catch {
+    return jsonError(c, 503, "session_revocation_failed", "Bridge credential revocation failed.");
+  }
+  return jsonOk(c, { revoked: true });
+});
+
+app.post("/v1/auth/om-ai/bridge-token/admin-revoke", async (c) => {
+  if (!bridgeReleased(c.env)) return bridgeNotReleased(c);
+  const session = await requireAuthenticatedSession(c);
+  if (session instanceof Response) return session;
+  const admins = (c.env.OMDALA_BRIDGE_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  if (!admins.includes(session.email.toLowerCase())) {
+    return jsonError(c, 403, "forbidden", "Administrator access is required.");
+  }
+  const body = await c.req.json<{ jti?: unknown }>().catch(() => null);
+  if (!body || typeof body.jti !== "string" || !BRIDGE_JTI_PATTERN.test(body.jti)) {
+    return jsonError(c, 400, "invalid_request", "jti must be a credential id.");
+  }
+  try {
+    if (!(await revokeBridgeToken(c.env, body.jti))) {
+      return jsonError(c, 404, "bridge_credential_not_found", "No live bridge credential has this id.");
+    }
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "revokeBridgeCredential");
+  }
+  return jsonOk(c, { revoked: true });
 });
 
 app.post("/v1/auth/logout", async (c) => {
@@ -3590,6 +3920,7 @@ app.post("/v1/auth/logout", async (c) => {
   if (session) {
     try {
       await revokeAuthSessionState(c.env, session.sid);
+      if (bridgeReleased(c.env)) await revokeBridgeTokensForSession(c.env, session.sid);
     } catch {
       return jsonError(
         c,
@@ -3624,7 +3955,7 @@ app.get("/v1/security/csrf", async (c) => {
     const pair = await generateCsrfToken(secret);
     return jsonOk(c, { token: pair.token, expiresAt: new Date(pair.expiresAt).toISOString() });
   } catch (error) {
-    return jsonError(c, 500, "csrf_generation_failed", error instanceof Error ? error.message : "Unknown error");
+    return internalFailure(c, error, "generateCsrfToken", "csrf_generation_failed", "Unable to generate a token.");
   }
 });
 
@@ -3641,7 +3972,7 @@ app.post("/v1/security/api-keys", async (c) => {
     const result = await createApiKeyRecord(body.name, body.scopes, body.expiresInDays);
     return jsonOk(c, { keyId: result.record.keyId, rawKey: result.rawKey, scopes: result.record.scopes }, 201);
   } catch (error) {
-    return jsonError(c, 500, "api_key_creation_failed", error instanceof Error ? error.message : "Unknown error");
+    return internalFailure(c, error, "createApiKey", "api_key_creation_failed", "Unable to create the key.");
   }
 });
 
@@ -3660,11 +3991,14 @@ app.post("/v1/security/webhooks/verify", async (c) => {
     const valid = await verifyWebhookSignature(body.payload, body.signature, body.secret, body.algorithm);
     return jsonOk(c, { valid });
   } catch (error) {
-    return jsonError(c, 500, "verification_failed", error instanceof Error ? error.message : "Unknown error");
+    return internalFailure(c, error, "verify", "verification_failed", "Unable to verify.");
   }
 });
 
 app.post("/v1/security/service-token", async (c) => {
+  const session = await requireAuthenticatedSession(c);
+  if (session instanceof Response) return session;
+
   const secret = c.env.SERVICE_TOKEN_SECRET ?? c.env.MAGIC_LINK_SECRET ?? "";
   if (!secret) {
     return jsonError(c, 501, "not_configured", "Service token secret is not configured.");
@@ -3679,7 +4013,7 @@ app.post("/v1/security/service-token", async (c) => {
     const token = await createServiceToken(body.serviceId, secret, body.ttlSeconds);
     return jsonOk(c, { token }, 201);
   } catch (error) {
-    return jsonError(c, 500, "token_creation_failed", error instanceof Error ? error.message : "Unknown error");
+    return internalFailure(c, error, "createServiceToken", "token_creation_failed", "Unable to create the token.");
   }
 });
 
@@ -3701,7 +4035,7 @@ app.post("/v1/security/service-token/verify", async (c) => {
     }
     return jsonOk(c, { valid: true, serviceId: payload.sub, jti: payload.jti });
   } catch (error) {
-    return jsonError(c, 500, "verification_failed", error instanceof Error ? error.message : "Unknown error");
+    return internalFailure(c, error, "verify", "verification_failed", "Unable to verify.");
   }
 });
 
@@ -3737,11 +4071,39 @@ app.get("/v1/ai/health", async (c) => {
   });
 });
 
+// Shared by every AIAGENT route: quota/rate limits and timeouts keep the same
+// stable status and code everywhere, with a bounded Retry-After passed through.
+function aiagentTransportFailureResponse(
+  c: ApiContext,
+  error: unknown,
+): Response | null {
+  if (error instanceof AiagentProviderError && error.status === 429) {
+    if (error.retryAfterSeconds !== null) {
+      c.header("Retry-After", String(error.retryAfterSeconds));
+    }
+    return jsonError(
+      c,
+      429,
+      "aiagent_quota_exceeded",
+      "The AI provider quota or rate limit was reached. Retry later.",
+    );
+  }
+  if (error instanceof Error && error.message === "AIAGENT_TIMEOUT") {
+    return jsonError(
+      c,
+      504,
+      "aiagent_timeout",
+      "The AI provider did not respond in time.",
+    );
+  }
+  return null;
+}
+
 app.get("/v1/ai/models", async (c) => {
   const session = await requireAuthenticatedSession(c);
   if (session instanceof Response) return session;
 
-  if (isRateLimited(`ai-catalog:${session.email}`, 30, 60 * 1000)) {
+  if (await isRateLimited(c, `ai-catalog:${session.email}`, 30, 60 * 1000)) {
     return jsonError(c, 429, "rate_limited", "Too many catalog requests.");
   }
 
@@ -3752,7 +4114,17 @@ app.get("/v1/ai/models", async (c) => {
       models,
       total: models.length,
     });
-  } catch {
+  } catch (error) {
+    const transport = aiagentTransportFailureResponse(c, error);
+    if (transport) return transport;
+    if (error instanceof AiagentProviderError) {
+      return jsonError(
+        c,
+        502,
+        "aiagent_catalog_unavailable",
+        "The AI provider rejected the catalog request.",
+      );
+    }
     return jsonError(
       c,
       503,
@@ -3761,6 +4133,88 @@ app.get("/v1/ai/models", async (c) => {
     );
   }
 });
+
+type ChatBudget = { ownerEmail: string; requestId: string; estimateUsd: number } | null;
+
+// Returns a Response to send instead of calling the provider, the reservation to settle
+// or release afterwards, or null when no cap applies (local environments only).
+async function reserveChatBudget(
+  c: ApiContext,
+  ownerEmail: string,
+  idempotencyKey: string,
+): Promise<ChatBudget | Response> {
+  const cap = parseDailyCap(c.env.OMDALA_AI_DAILY_COST_CAP_USD);
+  const required = capIsRequired(c.env.ENVIRONMENT);
+  if (!cap.configured) {
+    if (!required) return null;
+    return jsonError(c, 503, "ai_cap_not_configured", "The AI usage cap is not configured for this environment.");
+  }
+  if (!isDatabaseConfigured(c.env)) {
+    if (!required) return null;
+    return jsonError(
+      c,
+      503,
+      "PERSISTENCE_REQUIRED",
+      "PostgreSQL persistence is required for this protected API in the current environment.",
+    );
+  }
+
+  try {
+    const subscription = await getRuntimeBillingSubscription(c.env, ownerEmail);
+    if (subscription.status === "cancelled" || subscription.status === "past_due") {
+      return jsonError(c, 402, "subscription_inactive", "An active subscription is required to use AI.");
+    }
+
+    const now = Date.now();
+    const requestId = await aiagentRequestId(ownerEmail, idempotencyKey);
+    const estimateUsd = reservationFor(cap.capUsd);
+    const reserved = await reserveAiUsage(c.env, {
+      ownerEmail,
+      requestId,
+      usageDay: utcDay(now),
+      estimateUsd,
+      capUsd: cap.capUsd,
+    });
+    if (reserved.outcome === "cap_exceeded") {
+      c.header("Retry-After", String(secondsUntilNextUtcMidnight(now)));
+      return jsonError(c, 429, "ai_tenant_cap_exceeded", "The daily AI usage limit for this account was reached.");
+    }
+    if (reserved.outcome === "duplicate") {
+      // The key already has a ledger row, whatever its status: a released row freed its money,
+      // a held or settled one has been (or may have been) spent. None of them may reach the
+      // provider again for free, so the replay is refused and the client uses a new key.
+      return jsonError(c, 409, "idempotency_key_reused", "This Idempotency-Key was already used for an AI request; send a new key.");
+    }
+    return { ownerEmail, requestId, estimateUsd };
+  } catch (error) {
+    return protectedRuntimeDatabaseErrorResponse(c, error, "reserveAiUsage");
+  }
+}
+
+// Bookkeeping after the provider call. The caller already has (or does not need) the
+// answer, so a ledger failure here is logged and never turns into a user-facing error;
+// a reservation that could not be closed stays counted until the UTC day ends.
+async function finishChatBudget(
+  c: ApiContext,
+  budget: ChatBudget,
+  action: "settle" | "release" | "keep",
+  spentUsd?: number,
+): Promise<void> {
+  if (!budget || action === "keep") return;
+  try {
+    if (action === "settle") {
+      await settleAiUsage(c.env, { ownerEmail: budget.ownerEmail, requestId: budget.requestId, spentUsd: spentUsd ?? budget.estimateUsd });
+    } else {
+      await releaseAiUsage(c.env, { ownerEmail: budget.ownerEmail, requestId: budget.requestId });
+    }
+  } catch (error) {
+    console.error("ai usage ledger update failed", {
+      request_id: budget.requestId,
+      action,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
 
 app.post("/v1/ai/chat", async (c) => {
   const session = await requireAuthenticatedSession(c);
@@ -3777,7 +4231,7 @@ app.post("/v1/ai/chat", async (c) => {
       "A valid Idempotency-Key header is required.",
     );
   }
-  if (isRateLimited(`ai-chat:${session.email}`, 20, 60 * 1000)) {
+  if (await isRateLimited(c, `ai-chat:${session.email}`, 20, 60 * 1000)) {
     return jsonError(c, 429, "rate_limited", "Too many AI requests.");
   }
 
@@ -3797,6 +4251,15 @@ app.post("/v1/ai/chat", async (c) => {
     maxTokens,
   };
 
+  // Invalid input is refused before any budget is reserved, so it never touches the ledger.
+  if (!isAiagentChatInputValid(input)) {
+    return jsonError(c, 422, "invalid_ai_request", "The requested AI model or input is invalid.");
+  }
+
+  // Per-account daily cost cap (PREP_UNDER_ASSUMPTION(AI cost cap, fail closed when unset)).
+  const gate = await reserveChatBudget(c, session.email, idempotencyKey);
+  if (gate instanceof Response) return gate;
+
   try {
     const result = await executeAiagentChat(
       c.env,
@@ -3804,9 +4267,15 @@ app.post("/v1/ai/chat", async (c) => {
       idempotencyKey,
       input,
     );
+    await finishChatBudget(c, gate, "settle", result.cost_usd);
     return jsonOk(c, result);
   } catch (error) {
+    // A refusal before dispatch costs nothing; anything that may have been executed
+    // keeps its whole reservation counted.
+    await finishChatBudget(c, gate, chatMayHaveBeenBilled(error) ? "keep" : "release");
     const code = error instanceof Error ? error.message : "AIAGENT_UNKNOWN_ERROR";
+    const providerFailure = aiagentTransportFailureResponse(c, error);
+    if (providerFailure) return providerFailure;
     if (code === "AIAGENT_CHAT_INPUT_INVALID" || code === "AIAGENT_MODEL_NOT_AVAILABLE") {
       return jsonError(c, 422, "invalid_ai_request", "The requested AI model or input is invalid.");
     }

@@ -15,29 +15,9 @@ import {
   listCommitments,
   listTransitions,
   listTrust,
+  normalizeExplanation,
 } from "./reality-repository";
 import { ResourceAccessError } from "./errors";
-
-type MaybeJson = unknown;
-
-function normalizeExplanation(raw: MaybeJson): string[] {
-  if (Array.isArray(raw)) {
-    return raw.map((item) => String(item));
-  }
-
-  if (typeof raw === "string" && raw.trim()) {
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      if (Array.isArray(parsed)) {
-        return parsed.map((item) => String(item));
-      }
-    } catch {
-      return [];
-    }
-  }
-
-  return [];
-}
 
 describe("reality repository helpers", () => {
   beforeEach(() => {
@@ -54,6 +34,13 @@ describe("reality repository helpers", () => {
   it("returns empty array for invalid explanation JSON", () => {
     const result = normalizeExplanation("not-json");
     expect(result).toEqual([]);
+  });
+
+  it("returns empty for JSON that is not an array and for non-string inputs", () => {
+    expect(normalizeExplanation('{"a":1}')).toEqual([]);
+    expect(normalizeExplanation("   ")).toEqual([]);
+    expect(normalizeExplanation(null)).toEqual([]);
+    expect(normalizeExplanation(42)).toEqual([]);
   });
 
   it("returns mapped values for explanation arrays", () => {

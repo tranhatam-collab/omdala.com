@@ -17,7 +17,7 @@ describe("db error mapping", () => {
     const error = { code: "08006", message: "connection failure" };
     const mapped = mapDbErrorToHttp(error);
 
-    expect(mapped.status).toBe(502);
+    expect(mapped.status).toBe(503);
     expect(mapped.errorCode).toBe("DATABASE_UNAVAILABLE");
   });
 

@@ -104,22 +104,27 @@ export async function verifyWebhookSignature(
   secret: string,
   algorithm: "sha256" = "sha256",
 ): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(secret),
-    { name: "HMAC", hash: algorithm.toUpperCase() },
-    false,
-    ["sign", "verify"],
-  );
-  const sigBytes = hexToBytes(signature);
-  const dataBytes = encoder.encode(payload);
-  return crypto.subtle.verify(
-    "HMAC",
-    key,
-    toArrayBuffer(sigBytes),
-    toArrayBuffer(dataBytes),
-  );
+  // Fail closed: an unsupported algorithm, an empty secret or a malformed signature is
+  // "not valid", never an exception and never a pass.
+  if (algorithm !== "sha256" || !secret || !/^(?:[0-9a-fA-F]{2})+$/.test(signature)) return false;
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(secret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"],
+    );
+    return await crypto.subtle.verify(
+      "HMAC",
+      key,
+      toArrayBuffer(hexToBytes(signature)),
+      toArrayBuffer(encoder.encode(payload)),
+    );
+  } catch {
+    return false;
+  }
 }
 
 function hexToBytes(hex: string): Uint8Array {
@@ -257,6 +262,10 @@ export class RateLimiter {
 
   reset(key: string): void {
     this.store.delete(key);
+  }
+
+  clear(): void {
+    this.store.clear();
   }
 
   getState(key: string): RateLimitState | undefined {

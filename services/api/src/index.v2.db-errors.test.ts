@@ -97,7 +97,7 @@ describe("v2/reality database error envelope", () => {
     expect(json.error?.message).toBe("Database request timed out");
   });
 
-  it("returns 502 DATABASE_UNAVAILABLE when DB connection fails", async () => {
+  it("returns 503 DATABASE_UNAVAILABLE when DB connection fails", async () => {
     repoMocks.listTrust.mockRejectedValueOnce(
       new DbQueryError({
         kind: "unavailable",
@@ -112,7 +112,7 @@ describe("v2/reality database error envelope", () => {
       {},
       env,
     );
-    expect(response.status).toBe(502);
+    expect(response.status).toBe(503);
 
     const json = (await response.json()) as {
       ok: boolean;

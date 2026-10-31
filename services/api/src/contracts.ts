@@ -14,6 +14,13 @@ export interface ApiBindings {
   DEPLOYMENT_ID?: string;
   VERSION_METADATA?: WorkerVersionMetadata;
   DATABASE_URL?: string;
+  // Local/test only: "1" skips PostgreSQL TLS certificate verification.
+  OMDALA_DB_TLS_INSECURE?: string;
+  // Per-account daily AI cost cap in USD (see ai-usage-cap.ts). Unset: chat is refused
+  // outside local/development/test.
+  OMDALA_AI_DAILY_COST_CAP_USD?: string;
+  /** Comma-separated emails allowed to revoke any Om AI bridge credential. Unset: nobody. */
+  OMDALA_BRIDGE_ADMIN_EMAILS?: string;
   HYPERDRIVE?: HyperdriveBinding;
   APP_BASE_URL?: string;
   WEB_BASE_URL?: string;

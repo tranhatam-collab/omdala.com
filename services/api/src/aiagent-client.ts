@@ -18,6 +18,36 @@ const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const MODEL_ID_PATTERN = /^iai-one\/[a-z0-9][a-z0-9-]{1,63}$/;
 const CREDENTIAL_PATTERN = /^sk-aiagent-[a-f0-9]{48}$/;
 
+const MAX_RETRY_AFTER_SECONDS = 24 * 60 * 60;
+
+export class AiagentProviderError extends Error {
+  constructor(
+    readonly status: number,
+    readonly retryAfterSeconds: number | null,
+  ) {
+    super(`AIAGENT_HTTP_${status}`);
+    this.name = "AiagentProviderError";
+  }
+}
+
+// Retry-After is provider-controlled; only a bounded number of seconds passes through.
+function parseRetryAfter(value: string | null): number | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  let seconds: number;
+  if (/^\d{1,9}$/.test(trimmed)) {
+    seconds = Number(trimmed);
+  } else {
+    if (!/^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(trimmed)) {
+      return null;
+    }
+    const date = Date.parse(trimmed);
+    if (!Number.isFinite(date)) return null;
+    seconds = Math.ceil((date - Date.now()) / 1000);
+  }
+  return Math.min(Math.max(seconds, 0), MAX_RETRY_AFTER_SECONDS);
+}
+
 type ReleaseEnvironment = keyof typeof AIAGENT_ORIGINS;
 type JsonObject = Record<string, unknown>;
 
@@ -202,15 +232,27 @@ async function requestAiagentJson(
   headers.set("X-Actor-Role", "agent");
   headers.set("X-Surface", "agent");
 
-  const response = await fetch(`${identity.origin}${path}`, {
-    ...init,
-    redirect: "error",
-    signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${identity.origin}${path}`, {
+      ...init,
+      redirect: "error",
+      signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
+      headers,
+    });
+  } catch (error) {
+    const name = (error as { name?: string } | null)?.name;
+    if (name === "TimeoutError" || name === "AbortError") {
+      throw new Error("AIAGENT_TIMEOUT");
+    }
+    throw error;
+  }
   if (!response.ok) {
     await response.body?.cancel();
-    throw new Error(`AIAGENT_HTTP_${response.status}`);
+    throw new AiagentProviderError(
+      response.status,
+      parseRetryAfter(response.headers.get("Retry-After")),
+    );
   }
   if (
     options.expectedRequestId &&
@@ -302,6 +344,23 @@ async function correlatedRequestId(email: string, idempotencyKey: string): Promi
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
   return `omdala-web-${hex}`;
+}
+
+/** The AIAGENT request id for an account and Idempotency-Key (also the usage ledger key). */
+export async function aiagentRequestId(email: string, idempotencyKey: string): Promise<string> {
+  return correlatedRequestId(email, idempotencyKey);
+}
+
+// Failures after which the provider may already have executed (and billed) the call.
+const maybeBilledFailures = new WeakSet<object>();
+
+/**
+ * True when a chat failure may still have cost money: the call was dispatched and the
+ * failure was not a plain HTTP refusal, or it happened after the chat completed
+ * (run or receipt readback). A refusal before dispatch costs nothing.
+ */
+export function chatMayHaveBeenBilled(error: unknown): boolean {
+  return typeof error === "object" && error !== null && maybeBilledFailures.has(error);
 }
 
 function requiredString(object: JsonObject, key: string): string {
@@ -489,27 +548,54 @@ export async function executeAiagentChat(
   idempotencyKey: string,
   input: AiagentChatInput,
 ): Promise<AiagentChatResult> {
+  const progress = { stage: "before-chat" as "before-chat" | "chat" | "after-chat" };
+  try {
+    return await runAiagentChat(env, email, idempotencyKey, input, progress);
+  } catch (error) {
+    const billable =
+      progress.stage === "after-chat" ||
+      (progress.stage === "chat" && !(error instanceof AiagentProviderError));
+    if (billable && typeof error === "object" && error !== null) maybeBilledFailures.add(error);
+    throw error;
+  }
+}
+
+/** Shape and size bounds of a chat request; also run by the route before any budget is reserved. */
+export function isAiagentChatInputValid(input: AiagentChatInput): boolean {
+  return (
+    typeof input.model === "string" &&
+    MODEL_ID_PATTERN.test(input.model) &&
+    Number.isSafeInteger(input.maxTokens) &&
+    input.maxTokens >= 1 &&
+    input.maxTokens <= 2048 &&
+    Array.isArray(input.messages) &&
+    input.messages.length >= 1 &&
+    input.messages.length <= 20 &&
+    input.messages.every(
+      (message) =>
+        typeof message === "object" &&
+        message !== null &&
+        ["system", "user", "assistant"].includes(message.role) &&
+        typeof message.content === "string" &&
+        message.content.trim().length > 0 &&
+        message.content.length <= 20_000,
+    ) &&
+    input.messages.reduce((total, message) => total + message.content.length, 0) <= 100_000
+  );
+}
+
+async function runAiagentChat(
+  env: ApiBindings,
+  email: string,
+  idempotencyKey: string,
+  input: AiagentChatInput,
+  progress: { stage: "before-chat" | "chat" | "after-chat" },
+): Promise<AiagentChatResult> {
   const identity = expectedRuntimeIdentity(env);
   if (!identity || !runtimeCredential(env)) {
     throw new Error("AIAGENT_RUNTIME_NOT_CONFIGURED");
   }
-  if (
-    !MODEL_ID_PATTERN.test(input.model) ||
-    !Number.isSafeInteger(input.maxTokens) ||
-    input.maxTokens < 1 ||
-    input.maxTokens > 2048 ||
-    input.messages.length === 0 ||
-    input.messages.length > 20 ||
-    input.messages.some(
-      (message) =>
-        !["system", "user", "assistant"].includes(message.role) ||
-        !message.content.trim() ||
-        message.content.length > 20_000,
-    ) ||
-    input.messages.reduce((total, message) => total + message.content.length, 0) > 100_000
-  ) {
-    throw new Error("AIAGENT_CHAT_INPUT_INVALID");
-  }
+  if (!isAiagentChatInputValid(input)) throw new Error("AIAGENT_CHAT_INPUT_INVALID");
 
   const catalog = await listAiagentModels(env);
   const selected = catalog.find(
@@ -518,6 +604,7 @@ export async function executeAiagentChat(
   if (!selected) throw new Error("AIAGENT_MODEL_NOT_AVAILABLE");
 
   const requestId = await correlatedRequestId(email, idempotencyKey);
+  progress.stage = "chat";
   const invocationPayload = await requestAiagentJson(env, "/v1/ai/chat", {
     method: "POST",
     headers: {
@@ -544,6 +631,7 @@ export async function executeAiagentChat(
     requestId,
     identity.workspace,
   );
+  progress.stage = "after-chat";
 
   const runPayload = await requestAiagentJson(
     env,
