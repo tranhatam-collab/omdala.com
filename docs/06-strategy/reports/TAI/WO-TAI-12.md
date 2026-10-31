@@ -1,0 +1,10 @@
+# WO-TAI-12 report
+Order: WO-TAI-12 (consumer-side contract tests for the session bridge draft). Status: DONE under an assumption; the producer side does not exist. Base SHA: bcb3034.
+Source read: docs/contracts/OMAI_SESSION_BRIDGE_CONTRACT_DRAFT.md at origin/claude/omdala-t2-core (a2d97dc listed in the ledger). Label: PREP_UNDER_ASSUMPTION(CTL-03, PostgreSQL).
+Files (om-ai.omdala.com/backend/src): bridge/consumer.ts (new, pure; not wired anywhere), bridge-consumer.test.ts (new, 12 tests).
+Consumer rules encoded from draft section 8: bearer only; claims sub, aud "om-ai", scope list, ws, jti, iat/exp in seconds with a 3600 s cap and 30 s skew (a millisecond exp is refused, F6); revocation lookup with fail-closed 503 when the store is down; exact route allowlist with read/write scopes; workspace and account mismatch refused; principal is always role owner (no role claim, F4), so a bridge credential can never pass the admin-only plan-change path.
+Tests: accepted claims; missing/malformed authorization; unverifiable or throwing verifier; expired (incl. ms, over-long lifetime, future iat, non-integer); claim shape violations; revoked and store-down; replay (same token accepted until exp or revocation per the draft, then refused); wrong workspace and account; per-route scope; unknown routes, methods, traversal, non-Om AI paths; no admin escalation; not wired into app or boundary.
+Commands (om-ai.omdala.com/backend): `npm run typecheck` pass; `npm test` 81 pass / 0 fail / 0 skip (was 69); `npm run build` pass.
+Evidence: VERIFIED_WORKTREE_ONLY.
+Findings / decisions needed: the draft defines no signature scheme the consumer can verify (HS256 secret stays in the API), so the verifier is an injected port; the scope names (om_ai.live:read/write), the 3600 s cap, `iss` handling and whether tokens are replayable until exp are my assumptions and need T0/T2 confirmation; the draft's replay rule for access-style tokens (replayable) is tested as such.
+Next: when T2 fixes the bridge token format, replace the injected verifier with the real one and add a runtime negative suite per docs/audit/2026-10-08/OM_AI_PUBLIC_AUTH_BOUNDARY.md exit evidence.
