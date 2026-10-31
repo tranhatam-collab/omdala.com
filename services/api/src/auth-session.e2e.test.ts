@@ -282,6 +282,7 @@ describe("staging auth acceptance contract", () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockImplementation(async () => new Response(null, { status: 202 }));
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
     try {
       const response = await app.request(
@@ -303,13 +304,16 @@ describe("staging auth acceptance contract", () => {
         ok: false,
         error: {
           code: "mail_delivery_failed",
-          message: expect.stringMatching(/provider message ID/i),
+          // WO-T2-28: the body carries a fixed sentence; the cause is in the log with the request id
+          message: "Unable to deliver contact email.",
         },
       });
+      expect(JSON.stringify(logged.mock.calls)).toMatch(/provider message ID/i);
       expect(fetchMock.mock.calls.length).toBeGreaterThanOrEqual(1);
       expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(2);
     } finally {
       fetchMock.mockRestore();
+      logged.mockRestore();
     }
   });
 

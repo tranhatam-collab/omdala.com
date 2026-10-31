@@ -30,6 +30,7 @@ import type {
 } from "../../../packages/types/src";
 import type { Context } from "hono";
 import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
 import { cors } from "hono/cors";
 import type {
   AccessRequest,
@@ -319,6 +320,28 @@ function jsonError(
     },
     status,
   );
+}
+
+// The one way a handler turns an unexpected failure into a response: the cause (driver, provider,
+// stack) goes to the log with the request id, the body carries only a stable code, a fixed
+// sentence and the request id (WO-T2-28).
+function internalFailure(
+  c: ApiContext,
+  error: unknown,
+  operation: string,
+  code: string,
+  message: string,
+  status: ApiStatus = 500,
+) {
+  console.error("request failed", {
+    request_id: c.get("requestId") as string | undefined,
+    method: c.req.method,
+    path: c.req.path,
+    operation,
+    error_code: code,
+    message: error instanceof Error ? error.message : String(error),
+  });
+  return jsonError(c, status, code, message);
 }
 
 function jsonOk(c: ApiContext, data: unknown, status: ApiStatus = 200) {
@@ -2197,6 +2220,12 @@ function buildAccessRequestAckEmail(payload: Required<AccessRequest>) {
   };
 }
 
+// Anything a handler did not catch still answers with a stable code and the request id.
+app.onError((error, c) => {
+  if (error instanceof HTTPException) return error.getResponse();
+  return internalFailure(c, error, "unhandled", "internal_error", "The request could not be completed.");
+});
+
 // CORS — restrict credentialed requests to exact origins for this environment
 app.use(
   "/*",
@@ -2858,14 +2887,7 @@ app.post("/v1/contact", async (c) => {
       deliveryReceipts,
     });
   } catch (error) {
-    return jsonError(
-      c,
-      502,
-      "mail_delivery_failed",
-      error instanceof Error
-        ? error.message
-        : "Unable to deliver contact email.",
-    );
+    return internalFailure(c, error, "sendContactMail", "mail_delivery_failed", "Unable to deliver contact email.", 502);
   }
 });
 
@@ -2924,14 +2946,7 @@ app.post("/v1/auth/access-request", async (c) => {
       201,
     );
   } catch (error) {
-    return jsonError(
-      c,
-      502,
-      "mail_delivery_failed",
-      error instanceof Error
-        ? error.message
-        : "Unable to deliver access request email.",
-    );
+    return internalFailure(c, error, "sendAccessRequestMail", "mail_delivery_failed", "Unable to deliver access request email.", 502);
   }
 });
 
@@ -3069,12 +3084,7 @@ app.post("/v1/auth/magic-link/request", async (c) => {
   } catch (error) {
     const storage = authStorageFailureResponse(c, error, "requestMagicLink");
     if (storage) return storage;
-    return jsonError(
-      c,
-      502,
-      "magic_link_failed",
-      "Unable to send magic link.",
-    );
+    return internalFailure(c, error, "requestMagicLink", "magic_link_failed", "Unable to send magic link.", 502);
   }
 });
 
@@ -3135,12 +3145,7 @@ app.post("/v1/auth/session/exchange", async (c) => {
   } catch (error) {
     const storage = authStorageFailureResponse(c, error, "exchangeSession");
     if (storage) return storage;
-    return jsonError(
-      c,
-      500,
-      "session_exchange_failed",
-      "Unable to exchange session.",
-    );
+    return internalFailure(c, error, "exchangeSession", "session_exchange_failed", "Unable to exchange session.");
   }
 });
 
@@ -3804,12 +3809,7 @@ app.post("/v1/auth/refresh", async (c) => {
   } catch (error) {
     const storage = authStorageFailureResponse(c, error, "refreshSession");
     if (storage) return storage;
-    return jsonError(
-      c,
-      500,
-      "refresh_failed",
-      "Unable to refresh session.",
-    );
+    return internalFailure(c, error, "refreshSession", "refresh_failed", "Unable to refresh session.");
   }
 });
 
@@ -3955,7 +3955,7 @@ app.get("/v1/security/csrf", async (c) => {
     const pair = await generateCsrfToken(secret);
     return jsonOk(c, { token: pair.token, expiresAt: new Date(pair.expiresAt).toISOString() });
   } catch (error) {
-    return jsonError(c, 500, "csrf_generation_failed", error instanceof Error ? error.message : "Unknown error");
+    return internalFailure(c, error, "generateCsrfToken", "csrf_generation_failed", "Unable to generate a token.");
   }
 });
 
@@ -3972,7 +3972,7 @@ app.post("/v1/security/api-keys", async (c) => {
     const result = await createApiKeyRecord(body.name, body.scopes, body.expiresInDays);
     return jsonOk(c, { keyId: result.record.keyId, rawKey: result.rawKey, scopes: result.record.scopes }, 201);
   } catch (error) {
-    return jsonError(c, 500, "api_key_creation_failed", error instanceof Error ? error.message : "Unknown error");
+    return internalFailure(c, error, "createApiKey", "api_key_creation_failed", "Unable to create the key.");
   }
 });
 
@@ -3991,7 +3991,7 @@ app.post("/v1/security/webhooks/verify", async (c) => {
     const valid = await verifyWebhookSignature(body.payload, body.signature, body.secret, body.algorithm);
     return jsonOk(c, { valid });
   } catch (error) {
-    return jsonError(c, 500, "verification_failed", error instanceof Error ? error.message : "Unknown error");
+    return internalFailure(c, error, "verify", "verification_failed", "Unable to verify.");
   }
 });
 
@@ -4013,7 +4013,7 @@ app.post("/v1/security/service-token", async (c) => {
     const token = await createServiceToken(body.serviceId, secret, body.ttlSeconds);
     return jsonOk(c, { token }, 201);
   } catch (error) {
-    return jsonError(c, 500, "token_creation_failed", error instanceof Error ? error.message : "Unknown error");
+    return internalFailure(c, error, "createServiceToken", "token_creation_failed", "Unable to create the token.");
   }
 });
 
@@ -4035,7 +4035,7 @@ app.post("/v1/security/service-token/verify", async (c) => {
     }
     return jsonOk(c, { valid: true, serviceId: payload.sub, jti: payload.jti });
   } catch (error) {
-    return jsonError(c, 500, "verification_failed", error instanceof Error ? error.message : "Unknown error");
+    return internalFailure(c, error, "verify", "verification_failed", "Unable to verify.");
   }
 });
 
