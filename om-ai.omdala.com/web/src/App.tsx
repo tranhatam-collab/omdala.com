@@ -216,8 +216,8 @@ export function App() {
   }
 
   return (
-    <main className="page">
-      <section className="hero">
+    <div className="page">
+      <header className="hero">
         <h1>Om AI</h1>
         <p>
           Control your space and talk with live AI support in one place. Every action is checked by policy and
@@ -253,8 +253,9 @@ export function App() {
             phien OMDALA canonical da xac minh.
           </p>
         ) : null}
-      </section>
+      </header>
 
+      <main>
       <section className="grid">
       <Card className="span-6" id="auth" title="Sign in / Dang nhap (magic link)">
         {callbackState === 'success' ? <Alert tone="success">Your sign-in link is verified. You can continue. / Link dang nhap da duoc xac minh. Ban co the tiep tuc.</Alert> : null}
@@ -265,6 +266,7 @@ export function App() {
         <div className="controls">
           <Input
             type="email"
+            aria-label="Email address / Dia chi email"
             placeholder="you@domain.com / ban@domain.com"
             value={authEmail}
             onChange={(e) => setAuthEmail(e.target.value)}
@@ -304,7 +306,7 @@ export function App() {
 
       <Card className="span-6" id="planner" title="Planner / Bo lap ke hoach">
         <div className="controls">
-          <Input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Describe what you want / Mo ta dieu ban muon" />
+          <Input value={input} onChange={(e) => setInput(e.target.value)} aria-label="Describe what you want / Mo ta dieu ban muon" placeholder="Describe what you want / Mo ta dieu ban muon" />
         <Button onClick={onPlan} disabled={planning}>
           {planning ? 'Planning... / Dang lap ke hoach...' : 'Plan / Lap ke hoach'}
         </Button>
@@ -410,8 +412,9 @@ export function App() {
         <Button onClick={() => setSelectedSpaceId(null)} className="ml-8" variant="secondary">Clear / Xoa</Button>
       </Card>
       </section>
+      </main>
 
       <footer className="footer">Om AI - reality control and AI human interaction in one governed flow. / Om AI - dieu khien thuc tai va tuong tac AI con nguoi trong mot luong duoc quan tri.</footer>
-    </main>
+    </div>
   );
 }

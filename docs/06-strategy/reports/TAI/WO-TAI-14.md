@@ -1,0 +1,9 @@
+# WO-TAI-14 report
+Order: WO-TAI-14 (accessibility specs for the Om AI web app). Status: DONE; one limit on `lang` noted. Base SHA: c780cde.
+Files (om-ai.omdala.com/web): e2e/accessibility.spec.ts (new, 6 checks x 2 locales), src/App.tsx, src/components/LiveExecutionCard.tsx.
+Checks (Playwright, same hermetic setup as WO-TAI-06, run in en-US and vi-VN browser locales): valid non-empty `lang`, title, unique ids; exactly one h1 and no skipped heading level; one main, one banner, one contentinfo and every heading/control/link inside a landmark; every input, select and button has an accessible name (a placeholder alone does not count); images have alt and links have names; keyboard focus visible on every focusable control.
+Failures found first (2 of 6 checks, both locales): no banner landmark (the hero sat inside `<main>`), and 9 unnamed controls (2 inputs on the sign-in and planner cards, user id, persona select, display name, timezone, target language, correction style, plan select). Fixed in TAI paths: hero is now `<header>` outside `<main>`, `<main>` wraps the grid, footer stays outside; bilingual `aria-label` on all 9 controls. Heading order, lang, alt, ids and focus already passed.
+Commands (om-ai.omdala.com/web): `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npm run test:e2e` 18 pass / 0 fail / 0 skip (12 new); `npm test` 9 pass; `npm run typecheck` pass; `npm run build` pass; app `npm test` 15 node + 4 jest pass.
+Evidence: VERIFIED_WORKTREE_ONLY.
+Limit: the page is one bilingual document declared `lang="en"` with Vietnamese (written without diacritics) inline after each English phrase, so screen readers read the Vietnamese with an English voice; tagging it needs separate EN/VI strings or a language switch, which is a product decision (candidate order). No colour-contrast check was run (no axe dependency added).
+Next: owner decision on separate EN/VI rendering; then lang-tagged strings and a contrast check.

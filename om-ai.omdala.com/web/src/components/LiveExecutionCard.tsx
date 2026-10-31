@@ -286,8 +286,8 @@ export function LiveExecutionCard({ className = '' }: Props) {
       </p>
 
       <div className="controls">
-        <Input value={userId} onChange={(event) => setUserId(event.target.value)} placeholder="user_id" />
-        <select value={personaId} onChange={(event) => setPersonaId(event.target.value)}>
+        <Input value={userId} onChange={(event) => setUserId(event.target.value)} aria-label="User id / Ma nguoi dung" placeholder="user_id" />
+        <select value={personaId} onChange={(event) => setPersonaId(event.target.value)} aria-label="Persona / Nhan vat">
           {personaOptions.map((persona) => (
             <option key={persona.persona_id} value={persona.persona_id}>
               {persona.display_name} ({persona.role_type})
@@ -324,11 +324,13 @@ export function LiveExecutionCard({ className = '' }: Props) {
           <Input
             value={memoryDisplayName}
             onChange={(event) => setMemoryDisplayName(event.target.value)}
+            aria-label="Display name / Ten hien thi"
             placeholder="display_name"
           />
           <Input
             value={memoryTimezone}
             onChange={(event) => setMemoryTimezone(event.target.value)}
+            aria-label="Timezone / Mui gio"
             placeholder="timezone"
           />
         </div>
@@ -336,9 +338,11 @@ export function LiveExecutionCard({ className = '' }: Props) {
           <Input
             value={memoryTargetLanguage}
             onChange={(event) => setMemoryTargetLanguage(event.target.value)}
+            aria-label="Target language / Ngon ngu muc tieu"
             placeholder="target_language"
           />
           <select
+            aria-label="Correction style / Kieu sua loi"
             value={memoryCorrectionStyle}
             onChange={(event) =>
               setMemoryCorrectionStyle(event.target.value as NonNullable<LiveMemoryProfile['correction_style']>)
@@ -362,7 +366,7 @@ export function LiveExecutionCard({ className = '' }: Props) {
       <div className="subsection">
         <h3>Plan gating / Goi va gioi han</h3>
         <div className="controls">
-          <select value={selectedPlanId} onChange={(event) => setSelectedPlanId(event.target.value)}>
+          <select value={selectedPlanId} onChange={(event) => setSelectedPlanId(event.target.value)} aria-label="Plan / Goi">
             {planOptions.map((plan) => (
               <option key={plan.plan_id} value={plan.plan_id}>
                 {plan.display_name} ({plan.plan_id})
