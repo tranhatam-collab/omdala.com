@@ -391,6 +391,10 @@ are executors, rules and sub-work of existing packages.
 
 ## 11. Founder decision queue (ordered by what they unblock)
 
+Current packets with options and consequences (2026-10-31):
+[OMDALA_DECISION_PACKETS_2026-10-31.md](./OMDALA_DECISION_PACKETS_2026-10-31.md).
+The table below is the original 2026-10-28 queue.
+
 | # | Decision | Recommended option | Unblocks |
 |---|---|---|---|
 | 1 | Activation packet 8.1 and D-002 (draft PRs) | Approve; draft PRs stacked on PR #13, no merge | All automated work |

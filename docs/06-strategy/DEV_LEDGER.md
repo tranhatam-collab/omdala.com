@@ -248,7 +248,7 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-T4-15 | T4 | READY (after WO-T2-24 lands) | | 2026-10-31 |
 | WO-T0-01 | T0 | QUEUED | | 2026-10-28 |
 | WO-T0-02 | T0 | QUEUED | | 2026-10-28 |
-| WO-T0-03 | T0 | QUEUED | | 2026-10-28 |
+| WO-T0-03 decision packets | T0 | DONE: [OMDALA_DECISION_PACKETS_2026-10-31.md](./OMDALA_DECISION_PACKETS_2026-10-31.md), 12 decisions with options and recommendations | | 2026-10-31 |
 | WO-T1-01 | T1 | QUEUED, owner relays | On `OMCODE/infra-e2e-auto-20261026`: add `"claude/omdala-**"` to `on.push.branches` in `ci.yml` (T2 and TAI branches already carry the identical line; T3 needs it from here) | 2026-10-30 |
 | WO-T1-02 | T1 | QUEUED, owner relays | Staging suite dry-run, read-only API 522 evidence packet, `/release.json` contract | 2026-10-28 |
 | WO-T1-03 | T1 | QUEUED, owner relays | CI: PostgreSQL service **with TLS on** (client.ts now requires it; setup in `reports/T2/WO-T2-05.md` on the T2 branch) and `OMDALA_TEST_DATABASE_URL`, so the 27 skipped DB suites run; jobs for `e2e:auth`, `e2e:docs`, `e2e:admin`; `.gitignore` `apps/*/test-results`; desktop test hardcodes `/bin/zsh` | 2026-10-30 |
