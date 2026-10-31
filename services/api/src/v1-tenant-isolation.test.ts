@@ -337,7 +337,7 @@ describe("security routes", () => {
       signature: "00",
       secret: "caller-supplied-secret",
     });
-    expect([200, 400, 500]).toContain(verify.status);
+    expect(verify.status).toBe(200); // an invalid signature is "valid: false", never an error
     expect(db.state.owners).toHaveLength(0);
   });
 });
