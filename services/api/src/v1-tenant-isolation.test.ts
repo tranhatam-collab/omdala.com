@@ -176,8 +176,6 @@ const routes: Array<[string, string, unknown?]> = [
   ["POST", `/v1/notifications/mark-read/${A_NOTIFICATION}`, {}],
   ["POST", "/v1/analytics/track", { eventName: "e" }],
   ["GET", "/v1/analytics/dashboard"],
-  ["POST", "/v1/security/api-keys", { name: "k" }],
-  ["POST", "/v1/security/service-token", { serviceId: "svc" }],
 ];
 
 describe("every account- and workspace-scoped /v1 route requires a session", () => {
@@ -322,22 +320,22 @@ describe("a caller from another account (tenant B) never reaches tenant A's data
 });
 
 describe("security routes", () => {
-  it("POST /v1/security/api-keys and /service-token work for a signed-in caller and touch no tenant data", async () => {
-    const key = await request("POST", "/v1/security/api-keys", B, { name: "k" });
-    expect(key.status).toBe(201);
-    const token = await request("POST", "/v1/security/service-token", B, { serviceId: "svc" });
-    expect(token.status).toBe(201);
+  it("POST /v1/security/api-keys, /service-token and /webhooks/verify are closed in production (WO-T2-29) and touch no tenant data", async () => {
+    for (const [path, body] of [
+      ["/v1/security/api-keys", { name: "k" }],
+      ["/v1/security/service-token", { serviceId: "svc" }],
+      ["/v1/security/webhooks/verify", { payload: "{}", signature: "00", secret: "caller-supplied-secret" }],
+    ] as const) {
+      for (const email of [B, null]) {
+        const response = await request("POST", path, email, body);
+        expect(response.status, path).toBe(501);
+      }
+    }
     expect(db.state.owners).toHaveLength(0);
   });
 
-  it("GET /v1/security/csrf and POST /v1/security/webhooks/verify are stateless and touch no tenant data", async () => {
+  it("GET /v1/security/csrf is stateless and touches no tenant data", async () => {
     expect((await request("GET", "/v1/security/csrf", null)).status).toBe(200);
-    const verify = await request("POST", "/v1/security/webhooks/verify", null, {
-      payload: "{}",
-      signature: "00",
-      secret: "caller-supplied-secret",
-    });
-    expect(verify.status).toBe(200); // an invalid signature is "valid: false", never an error
     expect(db.state.owners).toHaveLength(0);
   });
 });

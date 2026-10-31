@@ -135,7 +135,8 @@ describe.skipIf(!adminUrl)("billing flow on real PostgreSQL", () => {
     );
     for (const [method, path, body] of attempts) {
       const response = await call(cookie, method, path, body);
-      expect(response.status, `${method} ${path}`).not.toBeGreaterThanOrEqual(500);
+      // 501 is the deliberate "not released" answer (the api-keys route is closed in production)
+      if (response.status >= 500) expect(response.status, `${method} ${path}`).toBe(501);
     }
     expect(await rows(email)).toEqual(before);
   });

@@ -2226,6 +2226,19 @@ app.use("/v1/*", async (c, next) => {
   await next();
 });
 
+// PREP_UNDER_ASSUMPTION(security endpoints closed until designed): webhook verification takes its
+// secret from the caller, service tokens never verify and API keys are never stored. They are
+// answered before anything is read, and only local environments serve them.
+for (const path of ["/v1/security/webhooks/verify", "/v1/security/service-token", "/v1/security/api-keys"]) {
+  app.all(path, async (c, next) => {
+    if (["test", "development", "local"].includes(c.env.ENVIRONMENT ?? "")) {
+      await next();
+      return;
+    }
+    return jsonError(c, 501, "not_released", "This endpoint is not available in this environment.");
+  });
+}
+
 function bridgeNotReleased(c: ApiContext) {
   return jsonError(c, 501, "OM_AI_BRIDGE_NOT_RELEASED", "The Om AI session bridge is not available in this environment.");
 }
