@@ -1,6 +1,8 @@
 # DEV LEDGER - OMDALA continuous development
 
-AUTOMATION: ACTIVE
+AUTOMATION: PAUSED
+
+Paused by T0 on 2026-10-31T12:2xZ: every team lane is exhausted and every head is verified; all remaining work needs the owner (decision packets 0-12) or T1 (WO-T1-*). Set the line above back to `AUTOMATION: ACTIVE` to resume: teams take any new READY order on their next hourly fire.
 
 Updated 2026-10-30. Canonical plan:
 [OMDALA_CONTINUOUS_DEV_PLAN_2026.md](./OMDALA_CONTINUOUS_DEV_PLAN_2026.md).
@@ -764,3 +766,4 @@ BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
 | 2026-10-31T07:2xZ | HARVEST | T4 WO-T4-19 (Om AI suites pass on the merged tree; desktop 2 failures from `/bin/zsh`) and WO-T4-20 QA summary DONE; T3 wrote QUEUE_EMPTY; T2 missed its PR order twice (reissued as WO-T2-31). Idle checks cost about 1.6 USD each for a large-context team session. New: WO-T2-30 (DB suites in hosted CI), WO-T2-31, WO-T3-21 (desktop shell, lease), WO-T1-10. Asked the owner to approve disabling the TAI trigger (nothing eligible) | |
 | 2026-10-31T08:2xZ | HARVEST | T2 WO-T2-30: the 87 DB-gated API tests now run in hosted CI, 643/643 (run 41181940249 read by T0, success); WO-T2-31 PR summary. T3 WO-T3-21 desktop shell fix, desktop 117/117. T4 WO-T4-17: three security surfaces answer 501 in every release-like environment. **All lanes exhausted**: every remaining item needs the owner or T1 (decision packets 0-12, WO-T1-*). Requested approval to disable T2, T3, TAI and slow T0 | Waiting for the owner |
 | 2026-10-31T09:2xZ | HARVEST | T4 verified T2 7c79659 and T3 74a89b4 (no failures) and refreshed the R table and matrix (WO-T4-10). Nothing eligible remains for any team. Requested owner approval to disable all four team triggers and set T0 to every 6 hours | Waiting for the owner |
+| 2026-10-31T12:2xZ | PAUSE | No eligible order for any team since 09:2xZ and the owner has not answered the trigger-disable requests (approval prompts closed by worker restarts). Set `AUTOMATION: PAUSED` so team and T0 turns stop at their first step instead of re-reading the queue | Waiting for the owner |
