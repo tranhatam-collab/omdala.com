@@ -26,6 +26,7 @@ vi.mock("./db/auth-repository", async (importOriginal) => ({
 }));
 
 import app from "./index";
+import { MODEL, cookieFor as cookieForSecret, installProvider, providerCalls, providerResponse } from "./ai-chat-test-support";
 
 const SECRET = "test_ai_usage_gap_secret_value_0123456789";
 const env = {
@@ -37,95 +38,7 @@ const env = {
   AIAGENT_WORKSPACE_ID: "omdala-com-production",
   AIAGENT_API_KEY: `sk-aiagent-${"a".repeat(48)}`,
 };
-const MODEL = "iai-one/iris-7";
-const ledger = {
-  ledger_release_sha: "1".repeat(40),
-  ledger_version_id: "ledger-version-1",
-  ledger_deployment_id: "ledger-version-1",
-  ledger_bundle_sha256: "2".repeat(64),
-  ledger_contract_version: "1.0.0",
-  ledger_schema_version: "1",
-  ledger_migration_sha256: "3".repeat(64),
-};
-
-async function cookieFor(email: string) {
-  const part = Buffer.from(
-    JSON.stringify({ jti: crypto.randomUUID(), sid: crypto.randomUUID(), email, type: "access", exp: Date.now() + 60 * 60 * 1000 }),
-  ).toString("base64url");
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(part));
-  return `omdala_access_token=${part}.${Buffer.from(new Uint8Array(sig)).toString("base64url")}`;
-}
-
-const providerResponse = (payload: unknown, requestId?: string) =>
-  new Response(JSON.stringify(payload), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Provider-Contract-Version": "1.0.0",
-      ...(requestId ? { "X-Request-ID": requestId, "X-Trace-ID": requestId } : {}),
-    },
-  });
-
-let providerChatCalls = 0;
-
-// A fully reconciled provider: every call costs 0.001 USD and the provider never refuses.
-function installProvider() {
-  let invocation: Record<string, unknown> | null = null;
-  return vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
-    const url = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url);
-    const headers = new Headers(init?.headers);
-    if (url.pathname === "/v1/ai/models") {
-      return providerResponse({
-        ok: true,
-        contract_version: "1.0.0",
-        data: {
-          authority: "aiagent.iai.one",
-          transport_origin: "https://api.aiagent.iai.one",
-          namespace: "iai-one",
-          count: 1,
-          models: [{ id: MODEL, capabilities: ["chat"], status: "available" }],
-        },
-      });
-    }
-    if (url.pathname === "/v1/ai/chat") {
-      providerChatCalls += 1;
-      const body = JSON.parse(String(init?.body)) as { request_id: string; model: string };
-      invocation = {
-        response: "ok",
-        model: body.model,
-        provider: "iai-one",
-        request_id: body.request_id,
-        tenant_id: "omdala-com",
-        workspace_id: "omdala-com-production",
-        run_id: "run-1",
-        receipt_id: "receipt-1",
-        ledger_entry_id: "ledger-entry-1",
-        usage: { input_tokens: 3, output_tokens: 2, total_tokens: 5 },
-        cost_usd: 0.001,
-        billing_eligible: true,
-        cost_ledger_status: "reconciled",
-        fallback_used: false,
-        fallback_chain: [],
-        budget: { limit_usd: 0.25, reserved_usd: 0.01, used_usd: 0.01, remaining_usd: 0.24, reservation_basis: "configured_rate_conservative_ceiling" },
-        request_quota: { scope: "api-key-lifetime", limit: 1_000_000, used: providerChatCalls, remaining: 1_000_000 - providerChatCalls },
-        ...ledger,
-      };
-      return providerResponse({ ok: true, contract_version: "1.0.0", data: invocation }, body.request_id);
-    }
-    if (url.pathname === "/v1/runs/run-1") {
-      return providerResponse(
-        { ok: true, run: { run_id: "run-1", receipt_id: "receipt-1", request_id: invocation!.request_id, model: MODEL, tenant_id: "omdala-com", workspace_id: "omdala-com-production", status: "success", input_tokens: 3, output_tokens: 2, cost_usd: 0.001, billing_eligible: true } },
-        headers.get("x-request-id")!,
-      );
-    }
-    return providerResponse(
-      { ok: true, contract_version: "1.0.0", data: { verified: true, execution_status: "success", receipt: { receipt_id: "receipt-1", run_id: "run-1", request_id: invocation!.request_id, model: MODEL, provider: "groq", tenant_id: "omdala-com", workspace_id: "omdala-com-production", input_tokens: 3, output_tokens: 2, cost_usd: 0.001, ledger_entry_id: "ledger-entry-1", billing_eligible: true, cost_ledger_status: "reconciled", ...ledger } } },
-      headers.get("x-request-id")!,
-    );
-  });
-}
-
+const cookieFor = (email: string) => cookieForSecret(SECRET, email);
 let sequence = 0;
 async function chat(email: string, extra: Record<string, unknown> = {}) {
   sequence += 1;
@@ -141,7 +54,7 @@ async function chat(email: string, extra: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => {
-  providerChatCalls = 0;
+  providerCalls.chat = 0;
   Object.values(repo).forEach((fn) => fn.mockReset());
   Object.values(ledger_).forEach((fn) => fn.mockReset());
   repo.readOrCreateBillingSubscription.mockResolvedValue({ id: "sub_x", appId: "om-ai", planId: "free", status: "active", billingCycle: "monthly" });
@@ -183,7 +96,7 @@ describe("what limits a tenant's AI use", () => {
       const response = await chat("bounded@example.test", extra);
       expect([400, 422], JSON.stringify(extra).slice(0, 60)).toContain(response.status);
     }
-    expect(providerChatCalls).toBe(0);
+    expect(providerCalls.chat).toBe(0);
     // invalid requests are refused before the ledger is touched
     expect(ledger_.reserveAiUsage).not.toHaveBeenCalled();
     expect(ledger_.releaseAiUsage).not.toHaveBeenCalled();
@@ -231,7 +144,7 @@ describe("daily cost cap", () => {
     expect(response.status).toBe(429);
     expect(await code(response.clone())).toBe("ai_tenant_cap_exceeded");
     expect(response.headers.get("retry-after")).toBe(String(12 * 3600)); // clock is 12:00:00 UTC
-    expect(providerChatCalls).toBe(0);
+    expect(providerCalls.chat).toBe(0);
     expect(ledger_.settleAiUsage).not.toHaveBeenCalled();
   });
 
@@ -244,7 +157,7 @@ describe("daily cost cap", () => {
       expect(await code(response)).toBe("subscription_inactive");
     }
     expect(ledger_.reserveAiUsage).not.toHaveBeenCalled();
-    expect(providerChatCalls).toBe(0);
+    expect(providerCalls.chat).toBe(0);
   });
 
   it("answers 503 DATABASE_UNAVAILABLE when the ledger cannot be reached, without calling the provider", async () => {
@@ -253,7 +166,7 @@ describe("daily cost cap", () => {
     const response = await chat("down@example.test");
     expect(response.status).toBe(503);
     expect(await code(response)).toBe("DATABASE_UNAVAILABLE");
-    expect(providerChatCalls).toBe(0);
+    expect(providerCalls.chat).toBe(0);
   });
 
   it("fails closed when the cap is unset or invalid in staging and production", async () => {
@@ -265,7 +178,7 @@ describe("daily cost cap", () => {
         expect(await code(response)).toBe("ai_cap_not_configured");
       }
     }
-    expect(providerChatCalls).toBe(0);
+    expect(providerCalls.chat).toBe(0);
     expect(ledger_.reserveAiUsage).not.toHaveBeenCalled();
   });
 
@@ -287,16 +200,28 @@ describe("daily cost cap", () => {
     expect(ledger_.settleAiUsage).not.toHaveBeenCalled();
   });
 
-  it("does not charge a replay of the same Idempotency-Key a second time", async () => {
+  it("refuses a replayed Idempotency-Key in every ledger state without calling the provider", async () => {
     installProvider();
-    ledger_.reserveAiUsage.mockResolvedValueOnce({ outcome: "reserved" }).mockResolvedValueOnce({ outcome: "duplicate", status: "settled" });
-    const first = await chatWith("replay@example.test", env, "idem-key-same-abcdefgh");
-    const second = await chatWith("replay@example.test", env, "idem-key-same-abcdefgh");
-    expect(first.status).toBe(200);
-    expect(second.status).toBe(200);
-    const [a, b] = ledger_.reserveAiUsage.mock.calls.map((call) => call[1].requestId);
-    expect(a).toBe(b);
-    expect(ledger_.settleAiUsage).toHaveBeenCalledTimes(1); // only the first call settles
+    for (const status of ["released", "settled", "reserved"]) {
+      ledger_.reserveAiUsage.mockResolvedValueOnce({ outcome: "duplicate", status });
+      const before = providerCalls.chat;
+      const response = await chatWith(`replay-${status}@example.test`, env, "idem-key-same-abcdefgh");
+      expect(response.status, status).toBe(409);
+      expect(await code(response)).toBe("idempotency_key_reused");
+      expect(providerCalls.chat).toBe(before);
+    }
+    expect(ledger_.settleAiUsage).not.toHaveBeenCalled();
+    expect(ledger_.releaseAiUsage).not.toHaveBeenCalled();
+  });
+
+  it("derives the request id from the account and the key, so the same pair always collides", async () => {
+    installProvider();
+    await chatWith("pair@example.test", env, "idem-key-pair-abcdefgh");
+    await chatWith("pair@example.test", env, "idem-key-pair-abcdefgh");
+    await chatWith("other-pair@example.test", env, "idem-key-pair-abcdefgh");
+    const ids = ledger_.reserveAiUsage.mock.calls.map((call) => call[1].requestId);
+    expect(ids[0]).toBe(ids[1]);
+    expect(ids[2]).not.toBe(ids[0]);
   });
 
   it("keeps tenants apart: the owner always comes from the session", async () => {

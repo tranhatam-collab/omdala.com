@@ -451,3 +451,21 @@ describe("redirect target validation", () => {
     expect(contract.normalizePath("", "/dashboard")).toBe("/dashboard");
   });
 });
+
+describe("unexpected failures do not echo internal error text (WO-T2-24)", () => {
+  it("answers refresh_failed with a fixed message", async () => {
+    const repo = await import("./db/auth-repository");
+    const session = await login("leak@example.test");
+    vi.mocked(repo.rotateAuthSession).mockRejectedValueOnce(new Error("internal detail host 10.0.0.5 secret-ish"));
+    const response = await app.request(
+      "http://localhost/v1/auth/refresh",
+      { method: "POST", headers: { cookie: session.refresh } },
+      env,
+    );
+    expect(response.status).toBe(500);
+    const text = await response.text();
+    expect(text).toContain("refresh_failed");
+    expect(text).not.toContain("10.0.0.5");
+    expect(text).not.toContain("internal detail");
+  });
+});

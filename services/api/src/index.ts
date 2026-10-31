@@ -181,6 +181,7 @@ type ApiStatus =
   | 402
   | 403
   | 404
+  | 409
   | 410
   | 422
   | 429
@@ -3028,7 +3029,7 @@ app.post("/v1/auth/magic-link/request", async (c) => {
       c,
       502,
       "magic_link_failed",
-      error instanceof Error ? error.message : "Unable to send magic link.",
+      "Unable to send magic link.",
     );
   }
 });
@@ -3094,7 +3095,7 @@ app.post("/v1/auth/session/exchange", async (c) => {
       c,
       500,
       "session_exchange_failed",
-      error instanceof Error ? error.message : "Unable to exchange session.",
+      "Unable to exchange session.",
     );
   }
 });
@@ -3763,7 +3764,7 @@ app.post("/v1/auth/refresh", async (c) => {
       c,
       500,
       "refresh_failed",
-      error instanceof Error ? error.message : "Unable to refresh session.",
+      "Unable to refresh session.",
     );
   }
 });
@@ -4134,8 +4135,13 @@ async function reserveChatBudget(
       c.header("Retry-After", String(secondsUntilNextUtcMidnight(now)));
       return jsonError(c, 429, "ai_tenant_cap_exceeded", "The daily AI usage limit for this account was reached.");
     }
-    // A replay of an already-reserved request is not charged again.
-    return reserved.outcome === "reserved" ? { ownerEmail, requestId, estimateUsd } : null;
+    if (reserved.outcome === "duplicate") {
+      // The key already has a ledger row, whatever its status: a released row freed its money,
+      // a held or settled one has been (or may have been) spent. None of them may reach the
+      // provider again for free, so the replay is refused and the client uses a new key.
+      return jsonError(c, 409, "idempotency_key_reused", "This Idempotency-Key was already used for an AI request; send a new key.");
+    }
+    return { ownerEmail, requestId, estimateUsd };
   } catch (error) {
     return protectedRuntimeDatabaseErrorResponse(c, error, "reserveAiUsage");
   }
