@@ -101,6 +101,8 @@ Staging E2E **OPEN**. Production **HOLD**. AUTOMATION: see the flag at the top a
 | Lease: scripts | `scripts/backup/omdala_pg_restore.sh`, `scripts/cleanup_test_data.sql`, `scripts/ops_v2_report_upload.sh`, `scripts/smoke_v2_reality.sh` to T2 for BL-T2-04 (R-22..R-25). T1 keeps priority: if T1 changes one of these files, the lease ends |
 | Lease: root `package.json` scripts | T3 only, no dependency or lockfile change |
 | Lease: `pnpm-lock.yaml` and `apps/app/package.json` dependencies | Ended 2026-10-31T04:09Z with the WO-T3-19 report; no lockfile lease is active |
+| Lease: `.github/workflows/ci.yml`, job `test-api` only | T2, for WO-T2-30. T1 has made no CI change since 7abd962 |
+| Lease: `apps/omcode-desktop/server/index.mjs` and its tests | T3, for WO-T3-21 (T1 path; T1 idle since 2026-10-28) |
 
 ### 5.1 Triggers and adaptive cadence
 
@@ -246,11 +248,14 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-T3-20 Monaco in dev | T3 | DONE, awaiting T4 | 6def072 | 2026-10-31 |
 | WO-T4-17 billing and security review | T4 | PARTIAL: WO-T2-25 reviewed (no route but the two closed ones takes a caller secret); the 501 check waits for the T2 head with 3b4ac45, now landed | 05b7a54 | 2026-10-31 |
 | WO-T4-18 integration dry run | T4 | DONE: **all four branches merge onto 7abd962 without a conflict; on the merged tree every check passes** (typecheck, lint, brand, build:all, API 643/643 with PostgreSQL, all unit suites, E2E app 44, web 31, auth 28, docs 49, admin 26, brand 39, app export). Not run: Om AI npm suites, desktop. Local only, hosted CI not run on the merged tree | 953584c | 2026-10-31 |
-| WO-T2-PR | T2 | READY (report file: `docs/06-strategy/reports/T2/PR_SUMMARY.md`; T2's 05:44Z turn did not take it) | | 2026-10-31 |
+| WO-T2-PR | T2 | WITHDRAWN: T2's 05:44Z and 06:44Z turns read no order in this row; reissued as WO-T2-31 | | 2026-10-31 |
 | WO-T3-PR | T3 | DONE | de78337 | 2026-10-31 |
 | WO-TAI-PR | TAI | DONE | c1c5366 | 2026-10-31 |
-| WO-T4-19 | T4 | READY | | 2026-10-31 |
-| WO-T4-20 | T4 | READY | | 2026-10-31 |
+| WO-T4-19 Om AI and desktop on the merged tree | T4 | DONE: Om AI backend 107/107, gateway 19/19, web 17/17, app pass; desktop 111/113 (the two failures are the `/bin/zsh` hardcode, WO-T3-21) | 825f274 | 2026-10-31 |
+| WO-T4-20 QA summary | T4 | DONE: `docs/audit/team4/2026-10-31_QA_SUMMARY.md` on the T4 branch, with the items that block a staging release | f720ca0 | 2026-10-31 |
+| WO-T2-30 | T2 | READY | | 2026-10-31 |
+| WO-T2-31 | T2 | READY | | 2026-10-31 |
+| WO-T3-21 | T3 | READY | | 2026-10-31 |
 | WO-T4-15 | T4 | READY (after WO-T2-24 lands) | | 2026-10-31 |
 | WO-T0-01 | T0 | QUEUED | | 2026-10-28 |
 | WO-T0-02 | T0 | QUEUED | | 2026-10-28 |
@@ -264,6 +269,7 @@ team branch. "CI" = hosted OMDALA CI read for that exact SHA.
 | WO-T1-07 | T1 | QUEUED, owner relays, **priority** | CONFIRMED by T4 (WO-T4-12): `apps/app` bundles built before `5190ac8` call the production API (`api.omdala.com`) for the session check, even in a staging build. Check every staging deploy and staging go-live run for this, and treat earlier staging results that touched the API as invalid | 2026-10-30 |
 | WO-T1-08 | T1 | QUEUED, owner relays | Wording: `docs/VERIFIED_PROGRESS_2026-04-29.md` lines 48 and 61 and `docs/OMDALA_MASTER_EXECUTION_PLAN_2026-04-27.md` line 208 count the Om AI keyword screen as moderation or safety coverage; point them at `om-ai.omdala.com/docs/OMAI_MODERATION_SCOPE.md` | 2026-10-30 |
 | WO-T1-09 | T1 | QUEUED, owner decides first | After the owner chooses the review route (decision packet 0): either push the merged tree as `claude/omdala-integration` for hosted CI on the combined code, or merge PRs #17, #18, #16 and #19 into `OMCODE/infra-e2e-auto-20261026` in the order of WO-T4-18 (T2, T3, TAI, T4). Teams cannot do this: their triggers allow only their own branch | 2026-10-31 |
+| WO-T1-10 | T1 | QUEUED, after WO-T1-09 | CI jobs for suites that exist only on the merged tree: `e2e:auth`, `e2e:docs`, `e2e:admin`, `e2e:app-export`, `test:seo`, `test:security-headers`, `test:bundle-budget`, `test:inlined-env`, Om AI web `npm test` and `test:e2e`, `services/ai` tests; supersedes the matching parts of WO-T1-03/04 | 2026-10-31 |
 
 ### 7.1 Order specs
 
@@ -676,6 +682,24 @@ raised and its current state (fixed at SHA, open, owner decision); the R finding
 table; what is local-only evidence versus hosted CI; and the items that block a
 staging release. Facts only, linked to the VERIFY reports.
 
+**WO-T2-30.** Under the CI lease (job `test-api` only): add a PostgreSQL service with
+TLS on (the setup from `reports/T2/WO-T2-05.md`, using a throwaway certificate
+generated in the job) and `OMDALA_TEST_DATABASE_URL`, so the 87 DB-gated API tests
+run in hosted CI. Acceptance: the "API Tests" job on your new head shows the
+DB-gated suites passing with 0 skipped; report the run URL. No other job changes.
+
+**WO-T2-31.** Reviewer summary for draft PR #17, as specified for WO-T2-PR: what the
+branch changes grouped by order ID with SHAs, tests and counts, open findings, what
+waits for the owner or T1. Update the PR description and write the same text to
+`docs/06-strategy/reports/T2/PR_SUMMARY.md`.
+
+**WO-T3-21 (lease, T1 idle).** `apps/omcode-desktop/server/index.mjs` runs terminal
+commands with a hardcoded `/bin/zsh`, so the desktop tests fail where zsh is absent
+(WO-T4-19). Use the user's `SHELL` when it exists and is executable, otherwise
+`/bin/sh`; keep zsh behaviour on macOS where it is present. The two failing tests in
+`apps/omcode-desktop/tests/runtime.test.mjs` must pass on Linux; `npm test` in that
+package 113/113.
+
 ### 7.2 Standing backlog (taken in order when a team has no READY order)
 
 | ID | Team | Work |
@@ -731,3 +755,4 @@ BL-T3-03 was dropped: T4 found R-14/R-15 NOT_REPRODUCED on 2026-10-28.
 | 2026-10-31T04:2xZ | HARVEST | T4 WO-T4-15: cost-cap bypass FIXED. T2 WO-T2-25 (fixed webhook signature check that always threw) and WO-T2-26 DONE; T3 WO-T3-19 self-hosted Monaco, `unsafe-eval` dropped; TAI WO-TAI-17 Vietnamese with diacritics. T0 closes the unsafe `/v1/security` surfaces (WO-T2-29). New: WO-T2-27/28/29, WO-T3-20, WO-T4-16/17. TAI has nothing eligible left; its hourly check stays short | |
 | 2026-10-31T05:2xZ | HARVEST | T2 WO-T2-27/28/29 DONE (shared limiter, 5xx hygiene, security surfaces 501); T3 WO-T3-20 DONE; T4 WO-T4-16 DONE, WO-T4-17 PARTIAL; T4 verified the previous heads with no failures. Every team lane is nearly exhausted. New: WO-T4-18 integration dry run of all four branches (priority) and PR summaries for human review | |
 | 2026-10-31T06:2xZ | HARVEST | T4 WO-T4-18: all four team branches merge cleanly onto 7abd962 and every check passes on the merged tree (local). T3 and TAI PR summaries DONE; T2 missed its PR order (still READY). T3 and TAI have nothing eligible; their hourly checks stay short. New: WO-T4-19/20, WO-T1-09; decision packet 0 (review route) added | |
+| 2026-10-31T07:2xZ | HARVEST | T4 WO-T4-19 (Om AI suites pass on the merged tree; desktop 2 failures from `/bin/zsh`) and WO-T4-20 QA summary DONE; T3 wrote QUEUE_EMPTY; T2 missed its PR order twice (reissued as WO-T2-31). Idle checks cost about 1.6 USD each for a large-context team session. New: WO-T2-30 (DB suites in hosted CI), WO-T2-31, WO-T3-21 (desktop shell, lease), WO-T1-10. Asked the owner to approve disabling the TAI trigger (nothing eligible) | |
