@@ -47,6 +47,7 @@
     "release:verify": "node scripts/release-verify.mjs",
     "infra:audit:source": "node scripts/infra-readonly-probe.mjs",
     "infra:audit:remote": "node scripts/infra-readonly-probe.mjs --remote --confirm-read-only-remote",
+    "test:bundle-budget": "node --test --test-timeout=2400000 packages/ui/testing/bundle-budget.test.mjs",
     "test:security-headers": "node --test --test-timeout=2400000 packages/ui/testing/security-headers.test.mjs",
     "test:inlined-env": "node --test --test-timeout=2400000 packages/ui/testing/inlined-env.test.mjs",
     "test:seo": "pnpm --filter @omdala/core exec vitest run --root ../seo",

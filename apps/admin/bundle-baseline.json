@@ -1,0 +1,14 @@
+{
+  "unit": "bytes: gzip level 9 of the scripts each exported page loads (first-load JS)",
+  "routes": {
+    "/": 160418,
+    "/404": 160418,
+    "/404/": 160418,
+    "/nodes/": 160415,
+    "/offers/": 160415,
+    "/proofs/": 160415,
+    "/providers/": 161826,
+    "/requests/": 160415,
+    "/verifications/": 160415
+  }
+}

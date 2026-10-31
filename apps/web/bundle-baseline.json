@@ -1,0 +1,27 @@
+{
+  "unit": "bytes: gzip level 9 of the scripts each exported page loads (first-load JS)",
+  "routes": {
+    "/": 165797,
+    "/404": 145593,
+    "/404/": 145593,
+    "/contact/": 169005,
+    "/faq/": 165797,
+    "/for-communities/": 165797,
+    "/for-experts/": 165797,
+    "/for-hosts/": 165797,
+    "/how-it-works/": 165797,
+    "/trust/": 165797,
+    "/vi/": 176365,
+    "/vi/contact/": 179573,
+    "/vi/faq/": 176365,
+    "/vi/for-communities/": 176365,
+    "/vi/for-experts/": 176365,
+    "/vi/for-hosts/": 176365,
+    "/vi/how-it-works/": 176365,
+    "/vi/trust/": 176365,
+    "/vi/vision/": 176365,
+    "/vi/what-is-omdala/": 176365,
+    "/vision/": 165797,
+    "/what-is-omdala/": 165797
+  }
+}
